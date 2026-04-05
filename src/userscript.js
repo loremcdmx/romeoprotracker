@@ -1,137 +1,281 @@
-/**
- * Генератор кода Tampermonkey-скрипта.
- * Вызывается из AdminPanel для отображения скрипта пользователю.
- */
-export function getUserscriptCode() {
-  return [
-    "// ==UserScript==",
-    "// @name         RomeoPro Forum Crawler",
-    "// @namespace    https://github.com/your-username/romeoprotracker",
-    "// @version      2.1",
-    "// @description  Crawls RomeoPro marathon thread and sends data to tracker",
-    "// @match        https://forum.gipsyteam.ru/*",
-    "// @run-at       document-idle",
-    "// @grant        GM_setClipboard",
-    "// ==/UserScript==",
-    "(function () {",
-    "  var TOPIC = '181676';",
-    "  var FLAG  = 'rp_crawling';",
-    "  var DATA  = 'rp_posts';",
-    "  var PAGE  = 'rp_page';",
-    "",
-    "  if (!location.href.includes('viewtopic=' + TOPIC)) return;",
-    "  var params = new URLSearchParams(location.search);",
-    "  var mode   = params.get('rp_mode') || sessionStorage.getItem(FLAG);",
-    "  if (!mode) return;",
-    "  sessionStorage.setItem(FLAG, mode);",
-    "",
-    "  // Overlay",
-    "  var ov = document.createElement('div');",
-    "  ov.id = 'rp-ov';",
-    "  ov.style.cssText = 'position:fixed;bottom:20px;right:20px;z-index:999999;background:#061208;border:2px solid #15803d;border-radius:12px;padding:14px 18px;font-family:sans-serif;font-size:13px;color:#d1fae5;min-width:260px;box-shadow:0 8px 32px rgba(0,0,0,.8);';",
-    "  ov.innerHTML = '<div style=\"font-weight:700;color:#4ade80;margin-bottom:6px;\">RomeoPro Crawler</div><div id=\"rp-st\">Инициализация...</div><div style=\"height:5px;background:#0f2016;border-radius:3px;margin-top:8px;\"><div id=\"rp-bar\" style=\"height:100%;width:0%;background:linear-gradient(90deg,#15803d,#4ade80);transition:width .5s;\"></div></div><div id=\"rp-inf\" style=\"font-size:11px;color:#374151;margin-top:4px;\"></div>';",
-    "  document.body.appendChild(ov);",
-    "",
-    "  function setSt(s,i){var e=document.getElementById('rp-st'),f=document.getElementById('rp-inf');if(e)e.textContent=s;if(f&&i)f.textContent=i;}",
-    "  function setBar(p){var b=document.getElementById('rp-bar');if(b)b.style.width=p+'%';}",
-    "",
-    "  function extractPosts() {",
-    "    var posts = [];",
-    "    document.querySelectorAll('a[href*=\"autocom=postvote\"][href*=\"value=1\"]').forEach(function(vl) {",
-    "      try {",
-    "        var pm = vl.href.match(/pid=(\\d+)/); if (!pm) return;",
-    "        var pid = pm[1];",
-    "        var li = vl; while (li && li.tagName !== 'LI') li = li.parentElement; if (!li) return;",
-    "        var author=null,rep=null,postCount=null,yearsOnSite=null;",
-    "        li.querySelectorAll('a[href*=\"/profile/\"]').forEach(function(a) {",
-    "          var t=a.textContent.trim(),n=parseInt(t.replace(/[,\\s]/g,''));",
-    "          if(!author&&t&&isNaN(n)&&t!=='\\u041F\\u0440\\u043E\\u0444\\u0438\\u043B\\u044C')author=t;",
-    "          if(!isNaN(n)){if(!a.href.includes('/forumposts')&&rep===null)rep=n;else if(a.href.includes('/forumposts')&&postCount===null)postCount=n;}",
-    "        });",
-    "        var vc=vl.nextElementSibling;",
-    "        var rating=vc?(parseInt(vc.textContent)||0):0;",
-    "        var ltxt=li.textContent;",
-    "        var tm=ltxt.match(/(\\d{1,2}\\.\\d{2}\\.\\d{2,4},\\s*\\d{2}:\\d{2})/g);",
-    "        var ts=tm?tm[tm.length-1]:null;",
-    "        var ym=ltxt.match(/(\\d+)\\s*\\u043B\\u0435\\u0442\\s*\\u043D\\u0430\\s*\\u0441\\u0430\\u0439\\u0442\\u0435/);",
-    "        if(ym)yearsOnSite=parseInt(ym[1]);",
-    "        var avEl=li.querySelector('img[src*=\"Avatar\"]');",
-    "        var avatarUrl=avEl?avEl.src:null;",
-    "        var images=[];",
-    "        li.querySelectorAll('img').forEach(function(img){if(img.src&&!img.src.includes('Avatar')&&!img.src.includes('/img/')&&img.naturalWidth>50)images.push(img.src);});",
-    "        var clone=li.cloneNode(true);",
-    "        ['a[href*=profile]','a[href*=autocom]','a[href*=findpost]','img'].forEach(function(s){clone.querySelectorAll(s).forEach(function(e){e.remove();});});",
-    "        var body=clone.textContent.replace(/\\u041E\\u0442\\u0432\\u0435\\u0442\\u0438\\u0442\\u044C[\\s\\S]*/,'').split('\\n').map(function(l){return l.trim();}).filter(Boolean).join('\\n').trim();",
-    "        var isRomeopro=(author||'').toLowerCase()==='romeopro';",
-    "        var brMentioned=null;",
-    "        if(isRomeopro){var bm=body.match(/\\$(\\d[\\d,]*)\\s*k?\\b/i);if(bm){var v=parseFloat(bm[1].replace(/,/g,''));if(/\\$[\\d,]+k/i.test(bm[0]))v*=1000;if(v>500&&v<5000000)brMentioned=v;}}",
-    "        posts.push({id:pid,author:author,authorReputation:rep,postCount:postCount,yearsOnSite:yearsOnSite,text:body,rating:rating,timestamp:ts,isRomeopro:isRomeopro,brMentioned:brMentioned,avatarUrl:avatarUrl,images:images,postUrl:'https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p='+pid});",
-    "      } catch(e) {}",
-    "    });",
-    "    return posts;",
-    "  }",
-    "",
-    "  function merge(a,b){var m={};(a||[]).forEach(function(p){if(p&&p.id)m[String(p.id)]=p;});(b||[]).forEach(function(p){if(p&&p.id)m[String(p.id)]=p;});return Object.values(m);}",
-    "",
-    "  function nextUrl(){",
-    "    var cur=parseInt(new URLSearchParams(location.search).get('st')||'0');",
-    "    var best=null;",
-    "    document.querySelectorAll('a[href*=\"viewtopic=181676\"]').forEach(function(a){var m=a.href.match(/st=(\\d+)/);if(m){var n=parseInt(m[1]);if(n>cur&&(best===null||n<best))best=n;}});",
-    "    if(best===null)return null;",
-    "    var url='https://forum.gipsyteam.ru/index.php?viewtopic=181676&st='+best;",
-    "    if(mode==='author')url+='&filter=author';",
-    "    return url;",
-    "  }",
-    "",
-    "  function extractBrData(ap){",
-    "    return ap.filter(function(p){return p.brMentioned;}).map(function(p){",
-    "      var dm=(p.text||'').match(/[\\u0414\\u0434]\\u0435\\u043D\\u044C\\s*(\\d+)|[Dd]ay\\s*(\\d+)/);",
-    "      var day=dm?parseInt(dm[1]||dm[2]):null;",
-    "      return{day:day,totalBr:p.brMentioned,profit:p.brMentioned-10000,label:day?('\\u0414\\u0435\\u043D\\u044C '+day):(p.timestamp||'?'),postUrl:p.postUrl,postText:(p.text||'').slice(0,120)};",
-    "    }).filter(function(d){return d.day!==null;}).sort(function(a,b){return a.day-b.day;});",
-    "  }",
-    "",
-    "  function ping(ev,extra){",
-    "    if(!window.opener)return false;",
-    "    try{var m={type:'romeoproAgent',event:ev};Object.keys(extra||{}).forEach(function(k){m[k]=extra[k];});window.opener.postMessage(m,'*');return true;}catch(e){return false;}",
-    "  }",
-    "",
-    "  function copyResult(str){",
-    "    try{if(typeof GM_setClipboard!=='undefined'){GM_setClipboard(str);return true;}}catch(e){}",
-    "    try{navigator.clipboard.writeText(str);return true;}catch(e){}",
-    "    try{var ta=document.createElement('textarea');ta.value=str;ta.style.position='fixed';ta.style.top='-9999px';document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);return true;}catch(e){return false;}",
-    "  }",
-    "",
-    "  // Main",
-    "  var page=extractPosts();",
-    "  var prev=[];try{prev=JSON.parse(sessionStorage.getItem(DATA)||'[]');}catch(e){}",
-    "  var all=merge(prev,page);",
-    "  sessionStorage.setItem(DATA,JSON.stringify(all));",
-    "  var pc=(parseInt(sessionStorage.getItem(PAGE)||'0'))+1;",
-    "  sessionStorage.setItem(PAGE,String(pc));",
-    "  var est=mode==='author'?4:mode==='recent'?10:181;",
-    "  setBar(Math.min(95,Math.round((pc/est)*100)));",
-    "  setSt('\\u0421\\u0442\\u0440. '+pc+' | '+all.length+' \\u043F\\u043E\\u0441\\u0442\\u043E\\u0432');",
-    "  ping('progress',{pageCount:pc,totalPosts:all.length,pageUrl:location.href});",
-    "  var next=nextUrl();",
-    "  if(next){setTimeout(function(){location.href=next;},900);}",
-    "  else{",
-    "    var ap=all.filter(function(p){return p.isRomeopro;});",
-    "    var bd=extractBrData(ap);",
-    "    var result={type:'rp_crawler_result',posts:all,brData:bd,pageCount:pc};",
-    "    var str=JSON.stringify(result);",
-    "    var pmOk=ping('done',{posts:all,brData:bd,pageCount:pc});",
-    "    copyResult(str);",
-    "    sessionStorage.removeItem(FLAG);sessionStorage.removeItem(DATA);sessionStorage.removeItem(PAGE);",
-    "    var oe=document.getElementById('rp-ov');",
-    "    if(oe){oe.style.background='#052e16';oe.style.borderColor='#4ade80';",
-    "      oe.innerHTML='<div style=\"font-weight:800;color:#4ade80;font-size:15px;margin-bottom:8px;\">\\u2705 \\u0413\\u043E\\u0442\\u043E\\u0432\\u043E!</div>'+",
-    "        '<div style=\"color:#d1fae5;margin-bottom:6px;\">'+all.length+' \\u043F\\u043E\\u0441\\u0442\\u043E\\u0432, '+pc+' \\u0441\\u0442\\u0440\\u0430\\u043D\\u0438\\u0446</div>'+",
-    "        (pmOk?'<div style=\"font-size:12px;color:#6b7280;\">\\u0414\\u0430\\u043D\\u043D\\u044B\\u0435 \\u043E\\u0442\\u043F\\u0440\\u0430\\u0432\\u043B\\u0435\\u043D\\u044B \\u0430\\u0432\\u0442\\u043E\\u043C\\u0430\\u0442\\u0438\\u0447\\u0435\\u0441\\u043A\\u0438 \\u2714</div>':"+
-    "        '<div style=\"background:#0a2010;border:1px solid #15803d;border-radius:8px;padding:10px;margin-top:8px;font-size:12px;color:#86efac;\">\\u0414\\u0430\\u043D\\u043D\\u044B\\u0435 \\u0441\\u043A\\u043E\\u043F\\u0438\\u0440\\u043E\\u0432\\u0430\\u043D\\u044B!<br>\\u0412\\u0435\\u0440\\u043D\\u0438\\u0442\\u0435\\u0441\\u044C \\u0432 \\u0442\\u0440\\u0435\\u043A\\u0435\\u0440 \\u2192 \\u0410\\u0434\\u043C\\u0438\\u043D \\u2192 \\u00AB\\u0412\\u0441\\u0442\\u0430\\u0432\\u0438\\u0442\\u044C \\u0440\\u0435\\u0437\\u0443\\u043B\\u044C\\u0442\\u0430\\u0442\\u044B\\u00BB</div>');",
-    "    }",
-    "    if(pmOk)setTimeout(function(){window.close();},3000);",
-    "  }",
-    "})();",
-  ].join('\n');
+export function generateUserscript(cfg, mode) {
+  const maxPages = mode === 'last10' ? 10 : mode === 'all' ? 999 : 0
+  return `// ==UserScript==
+// @name         RomeoPro Tracker Agent v2
+// @namespace    http://tampermonkey.net/
+// @version      2.1
+// @description  Парсит посты RomeoPro с gipsyteam.ru и загружает в GitHub
+// @author       RomeoPro Tracker
+// @match        https://forum.gipsyteam.ru/*
+// @grant        GM_xmlhttpRequest
+// @grant        GM_setValue
+// @grant        GM_getValue
+// @connect      api.github.com
+// ==/UserScript==
+
+(function () {
+  'use strict';
+
+  // ── КОНФИГ ──────────────────────────────────────────────────────────────
+  const MODE       = '${mode}';
+  const REPO       = '${cfg.repo}';
+  const TOKEN      = '${cfg.token}';
+  const AUTHOR     = '${cfg.authorName || 'Romeopro'}';
+  const MAX_PAGES  = ${maxPages};
+  const FORUM_BASE = 'https://forum.gipsyteam.ru/index.php?viewtopic=181676';
+
+  // ── ЛОГГЕР ──────────────────────────────────────────────────────────────
+  let logPanel, logBody;
+
+  function createPanel() {
+    logPanel = document.createElement('div');
+    logPanel.style.cssText = 'position:fixed;bottom:16px;right:16px;width:440px;max-height:340px;background:#0d1117;border:1px solid #1a2d45;border-radius:8px;font-family:JetBrains Mono,monospace;font-size:12px;z-index:999999;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,.7)';
+    const hdr = document.createElement('div');
+    hdr.style.cssText = 'background:#0d1a2a;padding:8px 14px;border-bottom:1px solid #1a2d45;color:#00e676;font-weight:700;display:flex;justify-content:space-between;align-items:center';
+    hdr.innerHTML = '<span>🎲 RomeoPro Tracker</span><span id="rpt-badge" style="font-size:10px;color:#4a6580">запуск...</span>';
+    logBody = document.createElement('div');
+    logBody.style.cssText = 'overflow-y:auto;max-height:290px;padding:6px 0';
+    logPanel.appendChild(hdr);
+    logPanel.appendChild(logBody);
+    document.body.appendChild(logPanel);
+  }
+
+  const COLORS = { info:'#c8d8e8', ok:'#00e676', warn:'#ffd600', err:'#ff1744', dim:'#4a6580' };
+  const ICONS  = { info:'→', ok:'✓', warn:'⚠', err:'✗', dim:'·' };
+
+  function log(msg, level='info') {
+    const t = new Date().toLocaleTimeString('ru',{hour12:false});
+    const fn = level==='err' ? console.error : level==='warn' ? console.warn : console.log;
+    fn('[RPT ' + t + '] ' + msg);
+    if (!logBody) return;
+    const line = document.createElement('div');
+    line.style.cssText = 'padding:2px 12px;color:'+COLORS[level]+';line-height:1.6';
+    line.innerHTML = '<span style="color:#4a6580">'+t+'</span> <span>'+ICONS[level]+'</span> '+msg.replace(/</g,'&lt;');
+    logBody.appendChild(line);
+    logBody.scrollTop = logBody.scrollHeight;
+    const badge = document.getElementById('rpt-badge');
+    if (badge && level !== 'dim') { badge.textContent = msg.substring(0,45); badge.style.color = COLORS[level]; }
+    // Пингуем родительское окно
+    try { window.opener?.postMessage({ type:'RPT_LOG', msg }, '*'); } catch(_) {}
+  }
+
+  function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+  function esc(s) { return String(s).replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+  // ── ПАРСИНГ ──────────────────────────────────────────────────────────────
+  function parsePosts(doc) {
+    const results = [];
+    // gipsyteam: посты в .ipbtable или отдельных div с data-author
+    const postBlocks = doc.querySelectorAll('.post_block, [id^="post_"], tr.post');
+
+    log('  блоков найдено: ' + postBlocks.length, 'dim');
+
+    postBlocks.forEach(block => {
+      try {
+        // Автор
+        const authorEl = block.querySelector('.post_author a, .member_title, [itemprop="name"], .normalname');
+        if (!authorEl) return;
+        const name = authorEl.textContent.trim();
+        if (AUTHOR && !name.toLowerCase().includes(AUTHOR.toLowerCase())) return;
+
+        // Тело поста
+        const bodyEl = block.querySelector('.post_body, .postcolor, [itemprop="text"]');
+        if (!bodyEl) return;
+        const text = (bodyEl.innerText || bodyEl.textContent || '').trim();
+        if (!text) return;
+
+        // Дата
+        const dateEl = block.querySelector('.post_date, [itemprop="datePublished"], .right_date');
+        const date = dateEl ? dateEl.textContent.trim() : '';
+
+        // ID поста
+        const idEl = block.id || '';
+        const idMatch = idEl.match(/\\d+/);
+        const postId = idMatch ? idMatch[0] : null;
+
+        // URL поста
+        const linkEl = block.querySelector('a[href*="viewtopic"]');
+        const url = linkEl ? linkEl.href : window.location.href;
+
+        // Ищем данные БР
+        const brMatch = text.match(/(?:\\$|\\€|€)\\s?([\\d,. ]+[kKмM]?)/);
+
+        results.push({ id: postId, author: name, date, text: text.substring(0, 600), bankroll: brMatch ? brMatch[0] : null, url });
+      } catch(e) {
+        log('  ошибка блока: ' + e.message, 'warn');
+      }
+    });
+
+    // Fallback: если не нашли посты по блокам — ищем по тексту страницы
+    if (results.length === 0) {
+      log('  основной селектор не сработал, пробуем fallback...', 'warn');
+      const allLinks = doc.querySelectorAll('a');
+      allLinks.forEach(a => {
+        if (a.textContent.includes(AUTHOR)) {
+          const row = a.closest('tr, div[id], article');
+          if (row && !results.find(r => r.url === window.location.href + '#' + row.id)) {
+            const text = row.innerText || '';
+            results.push({ id: row.id, author: AUTHOR, date: '', text: text.substring(0,400), bankroll: null, url: window.location.href });
+          }
+        }
+      });
+      log('  fallback нашёл: ' + results.length, results.length>0?'ok':'warn');
+    }
+
+    return results;
+  }
+
+  // ── GITHUB ───────────────────────────────────────────────────────────────
+  function ghGet(path) {
+    return new Promise((res, rej) => {
+      log('  GET data/' + path, 'dim');
+      GM_xmlhttpRequest({
+        method: 'GET',
+        url: 'https://api.github.com/repos/' + REPO + '/contents/data/' + path,
+        headers: { Authorization: 'token ' + TOKEN, Accept: 'application/vnd.github.v3+json' },
+        onload(r) {
+          if (r.status === 200) res(JSON.parse(r.responseText));
+          else if (r.status === 404) res(null);
+          else rej(new Error('GET ' + path + ': ' + r.status));
+        },
+        onerror(e) { rej(new Error('Сеть: ' + (e.error||'unknown'))); },
+      });
+    });
+  }
+
+  function ghPut(path, data, sha, msg) {
+    return new Promise((res, rej) => {
+      log('  PUT data/' + path, 'dim');
+      const body = {
+        message: msg || 'update ' + path,
+        content: btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2)))),
+      };
+      if (sha) body.sha = sha;
+      GM_xmlhttpRequest({
+        method: 'PUT',
+        url: 'https://api.github.com/repos/' + REPO + '/contents/data/' + path,
+        headers: { Authorization: 'token ' + TOKEN, 'Content-Type': 'application/json', Accept: 'application/vnd.github.v3+json' },
+        data: JSON.stringify(body),
+        onload(r) {
+          if (r.status === 200 || r.status === 201) { log('  ✓ ' + path, 'dim'); res(JSON.parse(r.responseText)); }
+          else rej(new Error('PUT ' + path + ': ' + r.status + ' — ' + r.responseText.substring(0,200)));
+        },
+        onerror(e) { rej(new Error('Сеть PUT: ' + (e.error||'unknown'))); },
+      });
+    });
+  }
+
+  async function upload(newPosts) {
+    log('📤 Загружаю в GitHub... (' + newPosts.length + ' новых постов)', 'info');
+
+    // Читаем существующие посты
+    let sha = null, existing = [];
+    try {
+      const cur = await ghGet('posts.json');
+      if (cur) { sha = cur.sha; existing = JSON.parse(atob(cur.content.replace(/\\n/g,''))); }
+      log('  в репо: ' + existing.length + ' постов', 'dim');
+    } catch(e) { log('  posts.json не найден, создаём', 'dim'); }
+
+    // Мерж (не дублируем по id)
+    const ids = new Set(existing.map(p => p.id).filter(Boolean));
+    const toAdd = newPosts.filter(p => !p.id || !ids.has(p.id));
+    const merged = [...existing, ...toAdd].sort((a,b) => (a.id > b.id ? 1 : -1));
+
+    await ghPut('posts.json', merged, sha, 'agent: +' + toAdd.length + ' posts (total ' + merged.length + ')');
+    log('✅ posts.json: ' + merged.length + ' постов', 'ok');
+
+    // Обновляем мету
+    let metaSha = null, meta = {};
+    try {
+      const m = await ghGet('meta.json');
+      if (m) { metaSha = m.sha; meta = JSON.parse(atob(m.content.replace(/\\n/g,''))); }
+    } catch(_) {}
+    meta.lastUpdated = new Date().toISOString();
+    meta.totalPosts = merged.length;
+    await ghPut('meta.json', meta, metaSha, 'agent: update meta');
+    log('✅ meta.json обновлён', 'ok');
+
+    return { total: merged.length, added: toAdd.length };
+  }
+
+  // ── ПАГИНАЦИЯ ────────────────────────────────────────────────────────────
+  function findNext() {
+    const selectors = [
+      'a[rel="next"]', 'a.next_page', 'span.next > a',
+      '.ipbpagination a:last-of-type', '.pagination a:last-child',
+      'a[title*="Следующ"]', 'a[title*="Next"]',
+    ];
+    for (const s of selectors) {
+      const el = document.querySelector(s);
+      if (el && el.href && !el.href.includes('#') && el.href !== window.location.href) {
+        log('  пагинация: ' + s, 'dim');
+        return el.href;
+      }
+    }
+    // По тексту
+    const found = [...document.querySelectorAll('a')].find(a =>
+      /следующ|›|»|next/i.test(a.textContent.trim()) && a.href && !a.href.includes('#') && a.href !== window.location.href
+    );
+    if (found) { log('  пагинация по тексту: "' + found.textContent.trim() + '"', 'dim'); return found.href; }
+    log('  следующей страницы нет', 'dim');
+    return null;
+  }
+
+  // ── ГЛАВНЫЙ ЦИКЛ ─────────────────────────────────────────────────────────
+  async function run() {
+    await sleep(600);
+    createPanel();
+
+    log('🚀 Агент запущен', 'info');
+    log('  режим: ' + MODE + ' | репо: ' + REPO, 'dim');
+    log('  URL: ' + window.location.href, 'dim');
+    log('  автор: ' + (AUTHOR || 'все'), 'dim');
+
+    if (!window.location.hostname.includes('gipsyteam')) {
+      log('❌ Не та страница. Ожидается forum.gipsyteam.ru', 'err');
+      return;
+    }
+    if (!TOKEN) { log('❌ Нет GitHub токена! Укажите в Admin Mode', 'err'); return; }
+    if (!REPO)  { log('❌ Нет репозитория! Укажите в Admin Mode', 'err'); return; }
+
+    const page = GM_getValue('rpt_page', 0);
+    const accumulated = GM_getValue('rpt_posts', []);
+
+    log('📄 Страница ' + (page + 1) + (MAX_PAGES ? ' из ' + MAX_PAGES : ''), 'info');
+
+    const posts = parsePosts(document);
+    log('  найдено постов: ' + posts.length, posts.length > 0 ? 'ok' : 'warn');
+
+    const allPosts = [...accumulated, ...posts];
+    GM_setValue('rpt_posts', allPosts);
+    GM_setValue('rpt_page', page + 1);
+
+    const nextUrl = findNext();
+    const shouldContinue = nextUrl && (MAX_PAGES === 0 || page + 1 < MAX_PAGES);
+
+    if (shouldContinue) {
+      log('  → следующая страница', 'dim');
+      await sleep(1200 + Math.random() * 800);
+      window.location.href = nextUrl;
+    } else {
+      log('🏁 Сбор завершён. Всего постов: ' + allPosts.length, 'ok');
+      try {
+        const result = await upload(allPosts);
+        GM_setValue('rpt_posts', []);
+        GM_setValue('rpt_page', 0);
+        log('🎉 Загружено! +' + result.added + ' новых, итого ' + result.total, 'ok');
+        try { window.opener?.postMessage({ type:'RPT_DONE', count: result.total }, '*'); } catch(_) {}
+      } catch(e) {
+        log('❌ Ошибка GitHub: ' + e.message, 'err');
+        try { window.opener?.postMessage({ type:'RPT_ERROR', msg: e.message }, '*'); } catch(_) {}
+      }
+    }
+  }
+
+  run().catch(e => {
+    console.error('[RPT] критическая ошибка:', e);
+    log('💥 ' + e.message, 'err');
+  });
+
+})();`
 }

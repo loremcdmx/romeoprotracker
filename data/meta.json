@@ -1,0 +1,12 @@
+{
+  "bankroll": 10000,
+  "startBankroll": 10000,
+  "targetBankroll": 10000000,
+  "day": 1,
+  "status": "active",
+  "lastUpdated": null,
+  "totalPosts": 0,
+  "scrapedPages": 0,
+  "chronicle": [],
+  "authorName": "Romeopro"
+}
