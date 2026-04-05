@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { loadConfig, fetchPublicData } from './storage.js'
 
 const css = `
@@ -172,11 +172,30 @@ const fmtPlain = n => {
 }
 
 // Извлекаем БР из текста поста
+// Ищем "БР после сессии" или "после сессии" с числом > 1000
 function extractBR(text) {
-  const m = text?.match(/\$\s?([\d,]+(?:\.\d+)?)\s*[kK]/)
-  if (m) return parseFloat(m[1].replace(',','')) * 1000
-  const m2 = text?.match(/банкролл[^$\d]*\$?\s*([\d,]+)/i)
-  if (m2) return parseFloat(m2[1].replace(',',''))
+  if (!text) return null
+  // Паттерн: "после сессии: 9957" или "C: 9957"
+  const m1 = text.match(/(?:после сессии|бр после|после)[:\s]+(\d[\d\s,]+)/i)
+  if (m1) {
+    const n = parseInt(m1[1].replace(/[\s,]/g,''))
+    if (n > 1000 && n < 10_000_000) return n
+  }
+  // Паттерн: "Всего ... 9957" (вторая колонка таблицы)
+  const m2 = text.match(/[Вв]сего\s+\d[\d\s,]+\s+(\d[\d\s,]+)/)
+  if (m2) {
+    const n = parseInt(m2[1].replace(/[\s,]/g,''))
+    if (n > 1000 && n < 10_000_000) return n
+  }
+  // Паттерн: "$10.5k" или "$9.9k"
+  const m3 = text.match(/\$\s?([\d.]+)\s*[kK]/)
+  if (m3) return parseFloat(m3[1]) * 1000
+  // Большое круглое число рядом со словом "банкролл"
+  const m4 = text.match(/(?:банкролл|бр)[^\d]{0,20}(\d{4,6})/i)
+  if (m4) {
+    const n = parseInt(m4[1])
+    if (n > 1000 && n < 10_000_000) return n
+  }
   return null
 }
 
@@ -186,50 +205,101 @@ function extractDay(text) {
   return m ? parseInt(m[1]) : null
 }
 
-// График активности
+// График активности с тултипами
 function ActivityChart({ posts }) {
+  const [tooltip, setTooltip] = useState(null)
+
   const data = useMemo(() => {
-    const counts = {}
+    const byDate = {}
     posts.forEach(p => {
       if (!p.timestamp) return
       const d = new Date(p.timestamp * 1000)
       const key = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
-      counts[key] = (counts[key] || 0) + 1
+      if (!byDate[key]) byDate[key] = { count: 0, posts: [] }
+      byDate[key].count++
+      byDate[key].posts.push(p)
     })
-    const sorted = Object.entries(counts).sort((a,b) => a[0] > b[0] ? 1 : -1)
-    return sorted.slice(-30) // последние 30 дней
+    return Object.entries(byDate).sort((a,b) => a[0] > b[0] ? 1 : -1).slice(-30)
   }, [posts])
 
   if (!data.length) return null
-  const max = Math.max(...data.map(d=>d[1]), 1)
-  const W = 600, H = 60, pad = 2
+  const max = Math.max(...data.map(d=>d[1].count), 1)
+  const W = 600, H = 70, pad = 3
 
   return (
-    <div className="chart-wrap">
+    <div className="chart-wrap" style={{position:'relative'}}>
       <div className="section-head" style={{marginBottom:8}}>
         <span className="section-title">Активность постов</span>
         <span className="section-count">последние {data.length} дней</span>
       </div>
-      <svg className="chart-svg" viewBox={`0 0 ${W} ${H+16}`}>
-        {data.map(([date, count], i) => {
+      <svg className="chart-svg" viewBox={`0 0 ${W} ${H+18}`}
+        onMouseLeave={()=>setTooltip(null)}>
+        {data.map(([date, {count, posts: dp}], i) => {
           const bw = (W - pad*(data.length-1)) / data.length
           const x = i * (bw + pad)
-          const bh = Math.max(2, (count/max) * H)
+          const bh = Math.max(3, (count/max) * H)
           const showLabel = i === 0 || i === data.length-1 || i % Math.ceil(data.length/6) === 0
+          // топ пост дня по лайкам
+          const topPost = [...dp].sort((a,b)=>(b.likes||0)-(a.likes||0))[0]
           return (
-            <g key={date}>
-              <rect x={x} y={H-bh} width={bw} height={bh} rx={2} fill="#e5393540">
-                <title>{date}: {count} постов</title>
-              </rect>
+            <g key={date}
+              onMouseEnter={e => setTooltip({ date, count, topPost, x: x + bw/2, i })}
+              style={{cursor:'pointer'}}
+              onClick={() => topPost?.url && window.open(topPost.url,'_blank')}
+            >
+              <rect x={x} y={H-bh} width={bw} height={bh} rx={2}
+                fill={tooltip?.date===date ? '#e5393580' : '#e5393535'}
+                style={{transition:'fill .1s'}}
+              />
               {showLabel && (
-                <text x={x+bw/2} y={H+12} className="chart-label">
-                  {date.slice(5)}
-                </text>
+                <text x={x+bw/2} y={H+14} className="chart-label">{date.slice(5)}</text>
               )}
             </g>
           )
         })}
       </svg>
+
+      {/* ТУЛТИП */}
+      {tooltip && (() => {
+        const bw = (W - pad*(data.length-1)) / data.length
+        const pct = (tooltip.x / W) * 100
+        const alignRight = pct > 65
+        return (
+          <div style={{
+            position:'absolute', bottom: 52,
+            left: alignRight ? 'auto' : `calc(${pct}% - 10px)`,
+            right: alignRight ? `calc(${100-pct}% - 10px)` : 'auto',
+            background:'#1a1a1a', border:'1px solid #444',
+            borderRadius:6, padding:'10px 12px', zIndex:10,
+            minWidth:200, maxWidth:260, pointerEvents:'none',
+            boxShadow:'0 4px 20px rgba(0,0,0,.6)'
+          }}>
+            <div style={{fontWeight:700, color:'#fff', marginBottom:6, fontSize:12}}>
+              📅 {tooltip.date}
+            </div>
+            <div style={{fontSize:11, color:'#888', marginBottom:6}}>
+              {tooltip.count} {tooltip.count===1?'пост':'постов'} от Romeopro
+            </div>
+            {tooltip.topPost && (
+              <>
+                <div style={{fontSize:11, color:'#e53935', fontWeight:600, marginBottom:3}}>
+                  🔥 Топ поста дня {tooltip.topPost.likes > 0 ? `(+${tooltip.topPost.likes} 👍)` : ''}
+                </div>
+                <div style={{fontSize:11, color:'#bbb', lineHeight:1.5,
+                  display:'-webkit-box', WebkitLineClamp:3, WebkitBoxOrient:'vertical', overflow:'hidden'
+                }}>
+                  {tooltip.topPost.text?.substring(0, 120)}…
+                </div>
+                {tooltip.topPost.url && (
+                  <div style={{marginTop:6, fontSize:10, color:'#e5393590'}}>
+                    кликни на столбик → перейти к посту
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        )
+      })()}
     </div>
   )
 }
