@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { fetchPublicData } from './storage.js'
 
 const REPO = 'loremcdmx/romeoprotracker'
@@ -488,35 +488,38 @@ function ActivityChart({ posts }) {
 
 
 // ─── FILTER BAR ──────────────────────────────────────────────────────────────
-function FilterBar({ sortBy, setSortBy, search, setSearch, romeoOnly, setRomeoOnly,
-                     minLikes, setMinLikes, minRating, setMinRating, count, showSort=true }) {
-  const hasFilters = romeoOnly || minLikes > 0 || minRating > 0 || search
+function FilterBar({ sortBy, setSortBy, search, setSearch, showSearch, setShowSearch,
+                     romeoOnly, setRomeoOnly, minLikes, setMinLikes,
+                     minRating, setMinRating, count, showSort=true }) {
+  const hasFilters = romeoOnly || minLikes !== 15 || minRating !== 1000 || search
   return (
     <div className="filter-bar">
       {showSort && (
         <select className="feed-select" value={sortBy} onChange={e=>setSortBy(e.target.value)}>
-          <option value="date_desc">Новые сначала</option>
           <option value="date_asc">Старые сначала</option>
+          <option value="date_desc">Новые сначала</option>
           <option value="likes">По лайкам</option>
         </select>
       )}
       <button className={`filter-pill ${romeoOnly?'on':'off'}`} onClick={()=>setRomeoOnly(s=>!s)}>
-        🎲 Только Ромео
+        🎲 Ромео
       </button>
-      <label>👍 мин:</label>
-      <input className="filter-num" type="number" min="0" placeholder="0"
-        value={minLikes||''} onChange={e=>setMinLikes(+e.target.value||0)} />
-      <label>⭐ репа мин:</label>
-      <input className="filter-num" type="number" min="0" placeholder="0"
-        value={minRating||''} onChange={e=>setMinRating(+e.target.value||0)} />
-      {showSort && (
-        <input className="feed-search" style={{minWidth:120}} placeholder="Поиск…"
-          value={search} onChange={e=>setSearch(e.target.value)} />
+      <label style={{fontSize:11,color:'var(--dim)',whiteSpace:'nowrap'}}>👍≥</label>
+      <input className="filter-num" type="number" min="0" value={minLikes}
+        onChange={e=>setMinLikes(+e.target.value||0)} />
+      <label style={{fontSize:11,color:'var(--dim)',whiteSpace:'nowrap'}}>⭐≥</label>
+      <input className="filter-num" type="number" min="0" value={minRating}
+        onChange={e=>setMinRating(+e.target.value||0)} />
+      <button className={`filter-pill ${showSearch?'on':'off'}`}
+        onClick={()=>setShowSearch(s=>!s)} title="Поиск по тексту">🔍</button>
+      {showSearch && (
+        <input className="feed-search" style={{minWidth:140}} placeholder="Поиск…"
+          value={search} onChange={e=>setSearch(e.target.value)} autoFocus/>
       )}
       {hasFilters && (
         <button className="filter-pill off" onClick={()=>{
-          setRomeoOnly(false); setMinLikes(0); setMinRating(0); setSearch('');
-        }}>✕ сбросить</button>
+          setRomeoOnly(false); setMinLikes(15); setMinRating(1000); setSearch(''); setShowSearch(false);
+        }}>✕</button>
       )}
       <span className="filter-active-count">{count} постов</span>
     </div>
@@ -619,30 +622,6 @@ function HotPostCard({ p, rank, setLightbox }) {
 }
 
 // Разбираем текст поста на цитаты и основной текст
-function parsePostContent(text) {
-  if (!text) return []
-  const parts = []
-  // Паттерн цитаты: "Автор @ дата\nтекст\n" или просто блоки с двойным переносом
-  // Gipsyteam хранит цитату как "Author @ DD.MM.YY\nquoted text\n\nreply"
-  const quoteRe = /^(.+?)\s*@\s*(\d{2}\.\d{2}\.?\d{0,4}.*?)\n([\s\S]*?)(?:\n\n|$)/
-  let remaining = text.trim()
-
-  // Ищем все цитаты в начале текста
-  while (remaining) {
-    const m = remaining.match(quoteRe)
-    if (m && m.index === 0) {
-      parts.push({ type: 'quote', author: m[1].trim(), date: m[2].trim(), text: m[3].trim() })
-      remaining = remaining.slice(m[0].length).trim()
-    } else {
-      // Всё остальное — обычный текст
-      parts.push({ type: 'text', text: remaining })
-      break
-    }
-  }
-  if (!parts.length) parts.push({ type: 'text', text })
-  return parts
-}
-
 // ─── POST CARD ────────────────────────────────────────────────────────────────
 function PostCard({ p, favorites, onFav, onIgnore, setLightbox }) {
   const [exp, setExp] = useState(false)
@@ -729,13 +708,20 @@ export default function App() {
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('feed')
   const [lightbox,  setLightbox]  = useState(null)
-  const [sortBy,  setSortBy]  = useState('date_desc')
+  const [sortBy,  setSortBy]  = useState('date_asc')   // старые сначала по умолчанию
   const [search,  setSearch]  = useState('')
+  const [showSearch, setShowSearch] = useState(false)
   const [romeoOnly, setRomeoOnly] = useState(false)
   const [page,    setPage]    = useState(1)
   const [perPage, setPerPage] = useState(20)
-  const [minLikes,  setMinLikes]  = useState(0)
-  const [minRating, setMinRating] = useState(0)
+  const [minLikes,  setMinLikes]  = useState(15)       // дефолт 15
+  const [minRating, setMinRating] = useState(1000)     // дефолт 1000
+
+  // Позиция чтения — запоминаем последний прочитанный пост на каждой вкладке
+  const [readPos, setReadPos] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('rpt_readpos')||'{}') } catch { return {} }
+  })
+
   const [ignored, setIgnored] = useState(() => {
     try { return new Set(JSON.parse(localStorage.getItem('rpt_ignored')||'[]')) } catch { return new Set() }
   })
@@ -777,11 +763,10 @@ export default function App() {
       .slice(0,10),
   [posts, minLikes, minRating])
 
-  const feedPosts = useMemo(() => {
-    setPage(1) // сброс страницы при смене фильтров
-    return posts
+  const feedPosts = useMemo(() =>
+    posts
       .filter(p => !ignored.has(p.author))
-      .filter(p => !romeoOnly || p.author?.toLowerCase().includes('romeopro'))
+      .filter(p => !romeoOnly || /romeopro/i.test(p.author))
       .filter(p => !search || p.text?.toLowerCase().includes(search.toLowerCase()))
       .filter(p => !minLikes  || (p.likes||0)  >= minLikes)
       .filter(p => !minRating || (p.rating||0) >= minRating)
@@ -790,85 +775,48 @@ export default function App() {
         if (sortBy==='date_asc')  return (a.timestamp||0)-(b.timestamp||0)
         if (sortBy==='likes')     return (b.likes||0)-(a.likes||0)
         return 0
-      })
-  }, [posts, ignored, search, sortBy, romeoOnly, minLikes, minRating])
+      }),
+  [posts, ignored, search, sortBy, romeoOnly, minLikes, minRating])
 
-  const totalPages   = Math.max(1, Math.ceil(feedPosts.length / perPage))
-  const pagedPosts   = feedPosts.slice((page-1)*perPage, page*perPage)
+  // Сбрасываем страницу при смене фильтров (правильный способ — useEffect)
+  useEffect(() => { setPage(1) },
+    [ignored, search, sortBy, romeoOnly, minLikes, minRating]) // eslint-disable-line
 
-  // ── КЛАССИФИКАЦИЯ ПО ТЕМАМ ───────────────────────────────────────────────
+  // Восстанавливаем позицию чтения при первой загрузке постов
+  useEffect(() => {
+    if (!feedPosts.length || !readPos.feed) return
+    const idx = feedPosts.findIndex(p => p.id === readPos.feed)
+    if (idx !== -1) setPage(Math.floor(idx / perPage) + 1)
+  }, [feedPosts.length > 0]) // только когда посты впервые появились
+
+  const totalPages = Math.max(1, Math.ceil(feedPosts.length / perPage))
+  const pagedPosts = feedPosts.slice((page-1)*perPage, page*perPage)
+
+  // ── КЛАССИФИКАЦИЯ ПО ТЕМАМ (один проход) ────────────────────────────────
   const ROMEO_RE = /romeopro/i
 
   const classifiedPosts = useMemo(() => {
     if (!posts.length) return { marathon:[], discussion:[], debate:[], flood:[] }
-
     const result = { marathon:[], discussion:[], debate:[], flood:[] }
 
-    // Проход 1: Ромео
-    const romeoIds = new Set(
-      posts.filter(p => ROMEO_RE.test(p.author)).map(p => p.id)
-    )
-
-    // Множество авторов постов в ветках с Ромео (для проверки цитат)
-    const romeoAuthors = new Set(
-      posts.filter(p => ROMEO_RE.test(p.author)).map(p => p.author?.toLowerCase())
-    )
-
     posts.forEach(p => {
-      // Пропускаем игнорируемых
       if (ignored.has(p.author)) return
-
-      const isRomeo = ROMEO_RE.test(p.author)
-
-      if (isRomeo) {
-        result.marathon.push({...p, _topic:'marathon'})
-        return
-      }
-
       const text = p.text || ''
-
-      // Цитирует или упоминает Ромео напрямую
-      const quotesRomeo = ROMEO_RE.test(text)
-      // Паттерн цитаты в начале: "Romeopro @ дата"
-      const directReply = /^romeopro\s*@/i.test(text.trim())
-
-      if (quotesRomeo || directReply) {
-        result.discussion.push({...p, _topic:'discussion'})
-        return
-      }
-
-      // Цитирует кого-то из discussion/marathon (2й уровень)
-      const quoteMatch = text.match(/^([\w\-. А-Яа-яёЁ]+?)\s*@\s*\d{2}\.\d{2}/i)
-      if (quoteMatch) {
-        const quotedAuthor = quoteMatch[1].trim().toLowerCase()
-        const quotedIsRomeo = romeoAuthors.has(quotedAuthor)
-        // Ищем пост процитированного автора
-        const quotedPost = posts.find(pp =>
-          pp.author?.toLowerCase() === quotedAuthor &&
-          (pp._topic === 'discussion' || pp._topic === 'marathon' || romeoIds.has(pp.id))
-        )
-        if (quotedIsRomeo || quotedPost) {
-          result.discussion.push({...p, _topic:'discussion'})
-          return
-        }
-      }
-
-      // Дебаты: длинный пост с хорошими лайками
       const likes = p.likes || 0
-      const textLen = text.length
-      if (textLen > 300 && likes >= 20) {
-        result.debate.push({...p, _topic:'debate'})
-        return
-      }
 
-      // Всё остальное — флуд
-      result.flood.push({...p, _topic:'flood'})
+      if (ROMEO_RE.test(p.author)) {
+        result.marathon.push(p)
+      } else if (ROMEO_RE.test(text)) {
+        result.discussion.push(p)
+      } else if (text.length > 300 && likes >= 20) {
+        result.debate.push(p)
+      } else {
+        result.flood.push(p)
+      }
     })
 
-    // Сортируем каждую категорию по дате (новые сначала)
-    const byDate = (a,b) => (b.timestamp||0) - (a.timestamp||0)
+    const byDate = (a,b) => (b.timestamp||0)-(a.timestamp||0)
     Object.keys(result).forEach(k => result[k].sort(byDate))
-
     return result
   }, [posts, ignored])
 
@@ -892,7 +840,23 @@ export default function App() {
 
   const goPage = p => {
     setPage(p)
-    window.scrollTo({top: document.querySelector('.feed-filters')?.offsetTop - 60 || 0, behavior:'smooth'})
+    window.scrollTo({top: document.querySelector('.filter-bar')?.offsetTop - 60 || 0, behavior:'smooth'})
+  }
+
+  // Сохраняем позицию чтения
+  const saveReadPos = (tab, postId) => {
+    setReadPos(prev => {
+      const next = {...prev, [tab]: postId}
+      localStorage.setItem('rpt_readpos', JSON.stringify(next))
+      return next
+    })
+  }
+
+  // При смене вкладки сбрасываем на страницу с последним прочитанным постом
+  const switchTab = (tab) => {
+    setActiveTab(tab)
+    setPage(1)
+    setTopicPage(1)
   }
 
   const toggleFav = id => {
@@ -944,8 +908,8 @@ export default function App() {
             </div>
           </div>
           <div className="topbar-tabs">
-            {[['feed','Лента'],['topics','Темы'],['romeo','Ромео'],['hot','Топ постов'],['settings','Настройки']].map(([id,label])=>(
-              <div key={id} className={`topbar-tab ${activeTab===id?'active':''}`} onClick={()=>setActiveTab(id)}>{label}</div>
+            {[['feed','Лента'],['topics','Темы'],['hot','Топ постов'],['settings','Настройки']].map(([id,label])=>(
+              <div key={id} className={`topbar-tab ${activeTab===id?'active':''}`} onClick={()=>switchTab(id)}>{label}</div>
             ))}
           </div>
           <div className="topbar-right">
@@ -1054,6 +1018,7 @@ export default function App() {
               <FilterBar
                 sortBy={sortBy} setSortBy={setSortBy}
                 search={search} setSearch={setSearch}
+                showSearch={showSearch} setShowSearch={setShowSearch}
                 romeoOnly={romeoOnly} setRomeoOnly={setRomeoOnly}
                 minLikes={minLikes} setMinLikes={setMinLikes}
                 minRating={minRating} setMinRating={setMinRating}
@@ -1074,37 +1039,6 @@ export default function App() {
               <ActivityChart posts={posts}/>
             </>}
 
-            {/* ПОСТЫ РОМЕО */}
-            {activeTab==='romeo' && (() => {
-              const romeoPosts = feedPosts.filter(p => p.author?.toLowerCase().includes('romeopro'))
-              const rTotal = Math.max(1, Math.ceil(romeoPosts.length / perPage))
-              const rPaged = romeoPosts.slice((page-1)*perPage, page*perPage)
-              return <>
-                <MarathonChart posts={posts} startBR={stats.startBR} setLightbox={setLightbox}/>
-                <FilterBar
-                  sortBy={sortBy} setSortBy={setSortBy}
-                  search={search} setSearch={setSearch}
-                  romeoOnly={false} setRomeoOnly={()=>{}}
-                  minLikes={minLikes} setMinLikes={setMinLikes}
-                  minRating={minRating} setMinRating={setMinRating}
-                  count={romeoPosts.length} showSort={true}
-                />
-                {romeoPosts.length===0
-                  ? <div className="empty-state">Постов Ромео нет — запустите скрапер</div>
-                  : <>
-                    <Paginator page={page} totalPages={rTotal} onPage={goPage}
-                      perPage={perPage} onPerPage={setPerPage} total={romeoPosts.length}/>
-                    {rPaged.map(p=>(
-                      <PostCard key={p.id||p.url} p={p}
-                        favorites={favorites} onFav={toggleFav}
-                        onIgnore={addIgnore} setLightbox={setLightbox}/>
-                    ))}
-                    <Paginator page={page} totalPages={rTotal} onPage={goPage}
-                      perPage={perPage} onPerPage={setPerPage} total={romeoPosts.length}/>
-                  </>
-                }
-              </>
-            })()}
 
             {/* ЛЕНТА */}
             {activeTab==='feed' && <>
@@ -1113,20 +1047,24 @@ export default function App() {
               <FilterBar
                 sortBy={sortBy} setSortBy={setSortBy}
                 search={search} setSearch={setSearch}
+                showSearch={showSearch} setShowSearch={setShowSearch}
                 romeoOnly={romeoOnly} setRomeoOnly={setRomeoOnly}
                 minLikes={minLikes} setMinLikes={setMinLikes}
                 minRating={minRating} setMinRating={setMinRating}
                 count={feedPosts.length} showSort={true}
               />
               {feedPosts.length===0
-                ? <div className="empty-state">Постов нет — запустите console_scraper_all.js или смягчите фильтры</div>
+                ? <div className="empty-state">Постов нет — смягчите фильтры или запустите скрапер</div>
                 : <>
                   <Paginator page={page} totalPages={totalPages} onPage={goPage}
                     perPage={perPage} onPerPage={setPerPage} total={feedPosts.length} />
-                  {pagedPosts.map(p=>(
-                    <PostCard key={p.id||p.url} p={p}
-                      favorites={favorites} onFav={toggleFav}
-                      onIgnore={addIgnore} setLightbox={setLightbox}/>
+                  {pagedPosts.map((p,i)=>(
+                    <div key={p.id||p.url} id={`post-${p.id}`}
+                      onMouseEnter={()=>{ if(i===pagedPosts.length-1) saveReadPos('feed',p.id) }}>
+                      <PostCard p={p}
+                        favorites={favorites} onFav={toggleFav}
+                        onIgnore={addIgnore} setLightbox={setLightbox}/>
+                    </div>
                   ))}
                   <Paginator page={page} totalPages={totalPages} onPage={goPage}
                     perPage={perPage} onPerPage={setPerPage} total={feedPosts.length} />
