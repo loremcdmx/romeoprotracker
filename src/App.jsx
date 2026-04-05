@@ -156,7 +156,7 @@ const css = `
   .pc-action{background:none;border:none;cursor:pointer;font-size:14px;padding:2px 3px;opacity:.35;transition:opacity .15s;color:var(--text)}
   .pc-action:hover,.pc-action.on{opacity:1}
   .pc-body{padding:10px 14px;font-size:13px;color:var(--text);line-height:1.65}
-  .pc-body.clamped{display:-webkit-box;-webkit-line-clamp:5;-webkit-box-orient:vertical;overflow:hidden}
+  .pc-body.clamped{display:-webkit-box;-webkit-line-clamp:8;-webkit-box-orient:vertical;overflow:hidden}
   .pc-images{display:flex;flex-wrap:wrap;gap:6px;padding:0 14px 10px}
   .pc-img{max-width:160px;max-height:120px;border-radius:4px;cursor:pointer;border:1px solid var(--border);object-fit:cover;transition:border-color .15s}
   .pc-img:hover{border-color:#555}
@@ -628,6 +628,7 @@ function PostCard({ p, favorites, onFav, onIgnore, setLightbox }) {
   const isFav = favorites.has(p.id)
   const likes = p.likes || 0
   const initial = (p.author||'?')[0].toUpperCase()
+  const isLong = (p.text?.length || 0) > 600  // сворачиваем только реально длинные
 
   return (
     <div className={`post-card ${isFav?'faved':''}`}>
@@ -651,7 +652,7 @@ function PostCard({ p, favorites, onFav, onIgnore, setLightbox }) {
           <button className="pc-action" onClick={()=>onIgnore(p.author)} title="Игнорировать">🚫</button>
         </div>
       </div>
-      <div className={`pc-body ${!exp?'clamped':''}`}>{renderPostText(p.text)}</div>
+      <div className={`pc-body ${!exp && isLong ? 'clamped' : ''}`}>{renderPostText(p.text)}</div>
       {p.images?.length>0 && (
         <div className="pc-images">
           {p.images.map((src,j)=>(
@@ -663,9 +664,11 @@ function PostCard({ p, favorites, onFav, onIgnore, setLightbox }) {
       <div className="pc-foot">
         <span className={`pc-likes ${likes>0?'pos':likes<0?'neg':'zero'}`}>{likes>0?'+':''}{likes} 👍</span>
         {p.brAfter && <span className="pc-br">БР: {fmtNum(p.brAfter)}</span>}
-        <button className="btn-expand" style={{marginLeft:4}} onClick={()=>setExp(s=>!s)}>
-          {exp?'▲ свернуть':'▼ читать'}
-        </button>
+        {isLong && (
+          <button className="btn-expand" style={{marginLeft:4}} onClick={()=>setExp(s=>!s)}>
+            {exp?'▲ свернуть':'▼ читать'}
+          </button>
+        )}
         {p.url&&<a className="pc-link" href={p.url} target="_blank" rel="noreferrer">→ форум</a>}
       </div>
     </div>
