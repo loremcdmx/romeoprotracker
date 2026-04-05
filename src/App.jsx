@@ -114,6 +114,14 @@ const css = `
   .feed-search:focus,.feed-select:focus{border-color:#444}
   .feed-count{font-size:11px;color:var(--dim);margin-left:auto;white-space:nowrap}
 
+  /* TOPIC TABS */
+  .topic-tabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+  .topic-tab{display:flex;align-items:center;gap:6px;padding:7px 14px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--bg2);color:var(--dim2);transition:all .15s;white-space:nowrap}
+  .topic-tab:hover{border-color:#444;color:var(--text)}
+  .topic-tab.active{border-color:var(--red);color:#fff;background:var(--red-dim)}
+  .topic-tab .tc{background:var(--bg3);border-radius:10px;padding:1px 7px;font-size:10px;color:var(--dim);margin-left:2px}
+  .topic-tab.active .tc{background:#ffffff20;color:#ffaaaa}
+
   /* PAGINATION */
   .pagination{display:flex;align-items:center;justify-content:center;gap:6px;padding:14px 0;flex-wrap:wrap}
   .page-btn{min-width:32px;height:32px;padding:0 8px;border-radius:6px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--border);background:var(--bg2);color:var(--dim2);font-family:inherit;transition:all .15s;display:flex;align-items:center;justify-content:center}
@@ -523,36 +531,31 @@ function renderPostText(text) {
   let remaining = text.trim()
 
   while (remaining.length > 0) {
-    // [quote]...[/quote] — новый скрапер
-    const qs = remaining.toLowerCase().indexOf('[quote]')
-    const qe = remaining.toLowerCase().indexOf('[/quote]')
-    if (qs !== -1 && qe > qs) {
-      if (qs > 0) parts.push({ type:'text', text: remaining.slice(0, qs).trim() })
-      const inner = remaining.slice(qs+7, qe).trim()
-      const lines = inner.split('\n')
-      const firstIsAuthor = /^[\w\-_А-Яа-яёЁ]/.test(lines[0]) && lines[0].length < 60
-      parts.push({ type:'quote', author: firstIsAuthor ? lines[0].trim() : '', body: firstIsAuthor ? lines.slice(1).join('\n').trim() : inner })
-      remaining = remaining.slice(qe+8).trim()
-      continue
-    }
+    // Формат из нового скрапера: [QUOTE]Автор|Автор @ дата\nтело цитаты[/QUOTE]ответ
+    const qs = remaining.indexOf('[QUOTE]')
+    const qe = remaining.indexOf('[/QUOTE]')
 
-    // Паттерн "Автор @ ДД.ММ.ГГ" — старые посты
-    // Цитата заканчивается либо на \n\n, либо мы берём до конца строки и остальное — ответ
-    const atRe = /^([\w\-_А-Яа-яёЁ.]+)\s*@\s*(\d{2}\.\d{2}\.?\d{0,4}[,\s\d:]*)([\s\S]*)/
-    const m = remaining.match(atRe)
-    if (m) {
-      const author = m[1].trim()
-      const afterDate = m[3]
-      // Ищем двойной перенос как границу цитата/ответ
-      const dbl = afterDate.indexOf('\n\n')
-      if (dbl !== -1) {
-        parts.push({ type:'quote', author, body: afterDate.slice(0, dbl).trim() })
-        remaining = afterDate.slice(dbl).trim()
-      } else {
-        // Нет двойного переноса — вся часть после "@дата" считается цитатой
-        parts.push({ type:'quote', author, body: afterDate.trim() })
-        remaining = ''
+    if (qs !== -1 && qe > qs) {
+      // Текст до цитаты
+      if (qs > 0) {
+        const before = remaining.slice(0, qs).trim()
+        if (before) parts.push({ type:'text', text: before })
       }
+
+      const inner = remaining.slice(qs + 7, qe)
+      const nlIdx = inner.indexOf('\n')
+      const header = nlIdx !== -1 ? inner.slice(0, nlIdx).trim() : ''
+      const body   = nlIdx !== -1 ? inner.slice(nlIdx + 1).trim() : inner.trim()
+
+      // header: "chup|chup @ 05.04.26" — берём часть до | как имя, после — дата
+      const pipeIdx = header.indexOf('|')
+      const author = pipeIdx !== -1 ? header.slice(0, pipeIdx).trim() : header.split('@')[0].trim()
+      const dateStr = pipeIdx !== -1
+        ? header.slice(pipeIdx + 1).replace(new RegExp('^' + author.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*@\\s*'), '').trim()
+        : (header.split('@')[1] || '').trim()
+
+      parts.push({ type:'quote', author, date: dateStr, body })
+      remaining = remaining.slice(qe + 8).trim()
       continue
     }
 
@@ -568,9 +571,9 @@ function renderPostText(text) {
         borderLeft:'3px solid #2a2a2a', background:'#151515',
         borderRadius:'0 4px 4px 0', padding:'8px 12px', margin:'2px 0 8px',
       }}>
-        {part.author && (
+        {(part.author || part.date) && (
           <div style={{fontSize:10,color:'#555',fontWeight:600,marginBottom:4,letterSpacing:'.04em'}}>
-            ↩ {part.author}
+            ↩ {part.author}{part.date ? ' · ' + part.date : ''}
           </div>
         )}
         <div style={{color:'#5a5a5a',fontSize:12,lineHeight:1.6,whiteSpace:'pre-wrap'}}>{part.body}</div>
@@ -793,6 +796,100 @@ export default function App() {
   const totalPages   = Math.max(1, Math.ceil(feedPosts.length / perPage))
   const pagedPosts   = feedPosts.slice((page-1)*perPage, page*perPage)
 
+  // ── КЛАССИФИКАЦИЯ ПО ТЕМАМ ───────────────────────────────────────────────
+  const ROMEO_RE = /romeopro/i
+
+  const classifiedPosts = useMemo(() => {
+    if (!posts.length) return { marathon:[], discussion:[], debate:[], flood:[] }
+
+    const result = { marathon:[], discussion:[], debate:[], flood:[] }
+
+    // Проход 1: Ромео
+    const romeoIds = new Set(
+      posts.filter(p => ROMEO_RE.test(p.author)).map(p => p.id)
+    )
+
+    // Множество авторов постов в ветках с Ромео (для проверки цитат)
+    const romeoAuthors = new Set(
+      posts.filter(p => ROMEO_RE.test(p.author)).map(p => p.author?.toLowerCase())
+    )
+
+    posts.forEach(p => {
+      // Пропускаем игнорируемых
+      if (ignored.has(p.author)) return
+
+      const isRomeo = ROMEO_RE.test(p.author)
+
+      if (isRomeo) {
+        result.marathon.push({...p, _topic:'marathon'})
+        return
+      }
+
+      const text = p.text || ''
+
+      // Цитирует или упоминает Ромео напрямую
+      const quotesRomeo = ROMEO_RE.test(text)
+      // Паттерн цитаты в начале: "Romeopro @ дата"
+      const directReply = /^romeopro\s*@/i.test(text.trim())
+
+      if (quotesRomeo || directReply) {
+        result.discussion.push({...p, _topic:'discussion'})
+        return
+      }
+
+      // Цитирует кого-то из discussion/marathon (2й уровень)
+      const quoteMatch = text.match(/^([\w\-. А-Яа-яёЁ]+?)\s*@\s*\d{2}\.\d{2}/i)
+      if (quoteMatch) {
+        const quotedAuthor = quoteMatch[1].trim().toLowerCase()
+        const quotedIsRomeo = romeoAuthors.has(quotedAuthor)
+        // Ищем пост процитированного автора
+        const quotedPost = posts.find(pp =>
+          pp.author?.toLowerCase() === quotedAuthor &&
+          (pp._topic === 'discussion' || pp._topic === 'marathon' || romeoIds.has(pp.id))
+        )
+        if (quotedIsRomeo || quotedPost) {
+          result.discussion.push({...p, _topic:'discussion'})
+          return
+        }
+      }
+
+      // Дебаты: длинный пост с хорошими лайками
+      const likes = p.likes || 0
+      const textLen = text.length
+      if (textLen > 300 && likes >= 20) {
+        result.debate.push({...p, _topic:'debate'})
+        return
+      }
+
+      // Всё остальное — флуд
+      result.flood.push({...p, _topic:'flood'})
+    })
+
+    // Сортируем каждую категорию по дате (новые сначала)
+    const byDate = (a,b) => (b.timestamp||0) - (a.timestamp||0)
+    Object.keys(result).forEach(k => result[k].sort(byDate))
+
+    return result
+  }, [posts, ignored])
+
+  const [topicTab, setTopicTab] = useState('marathon')
+  const [topicPage, setTopicPage] = useState(1)
+  const TOPIC_PER_PAGE = 20
+
+  const currentTopicPosts = useMemo(() => {
+    const all = classifiedPosts[topicTab] || []
+    return {
+      all,
+      paged: all.slice((topicPage-1)*TOPIC_PER_PAGE, topicPage*TOPIC_PER_PAGE),
+      totalPages: Math.max(1, Math.ceil(all.length / TOPIC_PER_PAGE))
+    }
+  }, [classifiedPosts, topicTab, topicPage])
+
+  const goTopicPage = p => {
+    setTopicPage(p)
+    window.scrollTo({ top: 300, behavior: 'smooth' })
+  }
+
   const goPage = p => {
     setPage(p)
     window.scrollTo({top: document.querySelector('.feed-filters')?.offsetTop - 60 || 0, behavior:'smooth'})
@@ -847,7 +944,7 @@ export default function App() {
             </div>
           </div>
           <div className="topbar-tabs">
-            {[['feed','Лента'],['romeo','Ромео'],['hot','Топ постов'],['settings','Настройки']].map(([id,label])=>(
+            {[['feed','Лента'],['topics','Темы'],['romeo','Ромео'],['hot','Топ постов'],['settings','Настройки']].map(([id,label])=>(
               <div key={id} className={`topbar-tab ${activeTab===id?'active':''}`} onClick={()=>setActiveTab(id)}>{label}</div>
             ))}
           </div>
@@ -903,6 +1000,54 @@ export default function App() {
                 </div>
               </div>
             </div>
+
+            {/* ТЕМЫ */}
+            {activeTab==='topics' && (() => {
+              const TABS = [
+                { id:'marathon',   icon:'📈', label:'Марафон',    desc:'Посты Ромео' },
+                { id:'discussion', icon:'💬', label:'Обсуждение', desc:'Реакции на Ромео' },
+                { id:'debate',     icon:'🔥', label:'Дебаты',     desc:'Топ-контент' },
+                { id:'flood',      icon:'💨', label:'Флуд',       desc:'Прочее' },
+              ]
+              const { paged, totalPages: tpg, all } = currentTopicPosts
+              return <>
+                {/* Выбор темы */}
+                <div className="topic-tabs">
+                  {TABS.map(t => (
+                    <div key={t.id}
+                      className={`topic-tab ${topicTab===t.id?'active':''}`}
+                      onClick={()=>{ setTopicTab(t.id); setTopicPage(1) }}>
+                      {t.icon} {t.label}
+                      <span className="tc">{classifiedPosts[t.id]?.length||0}</span>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Описание текущей темы */}
+                <div style={{fontSize:12,color:'var(--dim)',marginBottom:10}}>
+                  {TABS.find(t=>t.id===topicTab)?.desc} · {all.length} постов
+                  {topicTab==='marathon' && <span style={{marginLeft:8,color:'var(--dim2)'}}>— только апдейты Ромео о ходе марафона</span>}
+                  {topicTab==='discussion' && <span style={{marginLeft:8,color:'var(--dim2)'}}>— посты цитирующие или упоминающие Ромео</span>}
+                  {topicTab==='debate' && <span style={{marginLeft:8,color:'var(--dim2)'}}>— длинные посты с лайками (>300 симв, >20 👍)</span>}
+                  {topicTab==='flood' && <span style={{marginLeft:8,color:'var(--dim2)'}}>— короткие посты без явной связи с марафоном</span>}
+                </div>
+
+                {all.length===0
+                  ? <div className="empty-state">Постов в этой категории нет</div>
+                  : <>
+                    <Paginator page={topicPage} totalPages={tpg} onPage={goTopicPage}
+                      perPage={TOPIC_PER_PAGE} onPerPage={()=>{}} total={all.length}/>
+                    {paged.map(p=>(
+                      <PostCard key={p.id||p.url} p={p}
+                        favorites={favorites} onFav={toggleFav}
+                        onIgnore={addIgnore} setLightbox={setLightbox}/>
+                    ))}
+                    <Paginator page={topicPage} totalPages={tpg} onPage={goTopicPage}
+                      perPage={TOPIC_PER_PAGE} onPerPage={()=>{}} total={all.length}/>
+                  </>
+                }
+              </>
+            })()}
 
             {/* ТОП ПОСТОВ */}
             {activeTab==='hot' && <>
