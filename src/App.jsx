@@ -40,7 +40,7 @@ const css = `
   .hero{background:linear-gradient(135deg,#1a0a0a 0%,#1a1a1a 100%);border:1px solid var(--border);border-radius:var(--r);padding:20px;margin-bottom:16px;position:relative;overflow:hidden}
   .hero::before{content:'';position:absolute;top:-40px;right:-40px;width:200px;height:200px;background:radial-gradient(circle,#e5393520 0%,transparent 70%);pointer-events:none}
   .hero-top{display:flex;align-items:flex-start;gap:16px;margin-bottom:16px}
-  .hero-avatar{width:52px;height:52px;border-radius:50%;background:var(--red);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;border:2px solid #e5393540}
+  .hero-avatar{width:52px;height:52px;border-radius:50%;background:var(--red);display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;border:2px solid #e5393540;overflow:hidden;}
   .hero-info{flex:1}
   .hero-name{font-size:18px;font-weight:700;color:var(--white);display:flex;align-items:center;gap:8px}
   .hero-name-badge{background:var(--red);color:#fff;font-size:9px;font-weight:700;padding:2px 6px;border-radius:3px;text-transform:uppercase;letter-spacing:.05em}
@@ -488,7 +488,9 @@ export default function App() {
             {/* HERO */}
             <div className="hero">
               <div className="hero-top">
-                <div className="hero-avatar">🎲</div>
+                <div className="hero-avatar">
+                <img src="https://www.gipsyteam.ru/upload/Avatar/default/2/6/6/26670.jpg" alt="Romeopro" style={{width:'100%',height:'100%',objectFit:'cover'}} onError={e=>e.target.style.display='none'} />
+              </div>
                 <div className="hero-info">
                   <div className="hero-name">
                     Romeopro
