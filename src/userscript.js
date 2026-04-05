@@ -6,7 +6,8 @@ export function generateUserscript(cfg, mode) {
 // @version      2.1
 // @description  Парсит посты RomeoPro с gipsyteam.ru и загружает в GitHub
 // @author       RomeoPro Tracker
-// @match        https://forum.gipsyteam.ru/*
+// @match        *://forum.gipsyteam.ru/*
+// @match        *://www.gipsyteam.ru/*
 // @grant        GM_xmlhttpRequest
 // @grant        GM_setValue
 // @grant        GM_getValue
