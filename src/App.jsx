@@ -120,6 +120,8 @@ const css = `
   .page-btn:hover{border-color:#444;color:var(--text)}
   .page-btn.active{background:var(--red);border-color:var(--red);color:#fff}
   .page-btn:disabled{opacity:.3;cursor:default;pointer-events:none}
+  .page-info{font-size:11px;color:var(--dim);padding:0 4px}
+  .perpage-select{background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--dim2);font-family:inherit;font-size:11px;padding:4px 8px;cursor:pointer;margin-left:8px}
   .page-info{font-size:11px;color:var(--dim);padding:0 8px}
   .perpage-select{background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:inherit;font-size:11px;padding:4px 8px;outline:none;cursor:pointer}
 
@@ -520,63 +522,64 @@ function renderPostText(text) {
   const parts = []
   let remaining = text.trim()
 
-  // Паттерн 1: [QUOTE]...[/QUOTE] — явный маркер из нового скрапера
-  // Паттерн 2: Author @ DD.MM.YY (newline или пробелы) quoted text (\n\n или конец) reply
-  // Паттерн 3: Author @ DD.MM.YY quoted_on_same_line \n\n reply
-
   while (remaining.length > 0) {
-    // [QUOTE]...[/QUOTE]
-    const q1s = remaining.indexOf('[QUOTE]')
-    const q1e = remaining.indexOf('[/QUOTE]')
-    if (q1s !== -1 && q1e !== -1 && q1e > q1s) {
-      if (q1s > 0) parts.push({ type: 'text', text: remaining.slice(0, q1s).trim() })
-      const quoteContent = remaining.slice(q1s + 7, q1e).trim()
-      const authorLine = quoteContent.match(/^([^\n]+)/)
-      parts.push({ type: 'quote', author: authorLine?.[1]?.trim() || '', body: quoteContent.replace(/^[^\n]+\n?/, '').trim() || quoteContent })
-      remaining = remaining.slice(q1e + 8).trim()
+    // [quote]...[/quote] — новый скрапер
+    const qs = remaining.toLowerCase().indexOf('[quote]')
+    const qe = remaining.toLowerCase().indexOf('[/quote]')
+    if (qs !== -1 && qe > qs) {
+      if (qs > 0) parts.push({ type:'text', text: remaining.slice(0, qs).trim() })
+      const inner = remaining.slice(qs+7, qe).trim()
+      const lines = inner.split('\n')
+      const firstIsAuthor = /^[\w\-_А-Яа-яёЁ]/.test(lines[0]) && lines[0].length < 60
+      parts.push({ type:'quote', author: firstIsAuthor ? lines[0].trim() : '', body: firstIsAuthor ? lines.slice(1).join('\n').trim() : inner })
+      remaining = remaining.slice(qe+8).trim()
       continue
     }
 
-    // Author @ DD.MM.YY ... pattern
-    // Matches: "Name @ 05.04.26 text" or "Name @ 05.04.26\ntext"
-    const qRe = /^([\w\-. А-Яа-яёЁ]+?)\s*@\s*(\d{2}\.\d{2}\.?\d{0,4}[^\n]*?)(?:\n|  {2,})([\s\S]*?)(?:\n{2,}|$)/
-    const m = remaining.match(qRe)
+    // Паттерн "Автор @ ДД.ММ.ГГ" — старые посты
+    // Цитата заканчивается либо на \n\n, либо мы берём до конца строки и остальное — ответ
+    const atRe = /^([\w\-_А-Яа-яёЁ.]+)\s*@\s*(\d{2}\.\d{2}\.?\d{0,4}[,\s\d:]*)([\s\S]*)/
+    const m = remaining.match(atRe)
     if (m) {
-      parts.push({
-        type: 'quote',
-        author: m[1].trim() + ' @ ' + m[2].trim(),
-        body: m[3].trim()
-      })
-      remaining = remaining.slice(m[0].length).trim()
+      const author = m[1].trim()
+      const afterDate = m[3]
+      // Ищем двойной перенос как границу цитата/ответ
+      const dbl = afterDate.indexOf('\n\n')
+      if (dbl !== -1) {
+        parts.push({ type:'quote', author, body: afterDate.slice(0, dbl).trim() })
+        remaining = afterDate.slice(dbl).trim()
+      } else {
+        // Нет двойного переноса — вся часть после "@дата" считается цитатой
+        parts.push({ type:'quote', author, body: afterDate.trim() })
+        remaining = ''
+      }
       continue
     }
 
-    parts.push({ type: 'text', text: remaining })
+    parts.push({ type:'text', text: remaining })
     break
   }
 
-  if (!parts.length) parts.push({ type: 'text', text })
+  if (!parts.length) return <span style={{whiteSpace:'pre-wrap'}}>{text}</span>
 
   return parts.map((part, i) => {
     if (part.type === 'quote') return (
       <div key={i} style={{
-        borderLeft: '3px solid #2e2e2e',
-        background: '#161616',
-        borderRadius: '0 4px 4px 0',
-        padding: '8px 12px',
-        margin: '4px 0 8px',
+        borderLeft:'3px solid #2a2a2a', background:'#151515',
+        borderRadius:'0 4px 4px 0', padding:'8px 12px', margin:'2px 0 8px',
       }}>
         {part.author && (
-          <div style={{fontSize:10,color:'#555',fontWeight:600,marginBottom:4,textTransform:'uppercase',letterSpacing:'.05em'}}>
+          <div style={{fontSize:10,color:'#555',fontWeight:600,marginBottom:4,letterSpacing:'.04em'}}>
             ↩ {part.author}
           </div>
         )}
-        <div style={{color:'#666',fontSize:12,lineHeight:1.6}}>{part.body}</div>
+        <div style={{color:'#5a5a5a',fontSize:12,lineHeight:1.6,whiteSpace:'pre-wrap'}}>{part.body}</div>
       </div>
     )
     return <span key={i} style={{whiteSpace:'pre-wrap'}}>{part.text}</span>
   })
 }
+
 
 
 function HotPostCard({ p, rank, setLightbox }) {
@@ -844,7 +847,7 @@ export default function App() {
             </div>
           </div>
           <div className="topbar-tabs">
-            {[['feed','Лента'],['hot','Топ постов'],['settings','Настройки']].map(([id,label])=>(
+            {[['feed','Лента'],['romeo','Ромео'],['hot','Топ постов'],['settings','Настройки']].map(([id,label])=>(
               <div key={id} className={`topbar-tab ${activeTab===id?'active':''}`} onClick={()=>setActiveTab(id)}>{label}</div>
             ))}
           </div>
@@ -925,6 +928,38 @@ export default function App() {
               </div>
               <ActivityChart posts={posts}/>
             </>}
+
+            {/* ПОСТЫ РОМЕО */}
+            {activeTab==='romeo' && (() => {
+              const romeoPosts = feedPosts.filter(p => p.author?.toLowerCase().includes('romeopro'))
+              const rTotal = Math.max(1, Math.ceil(romeoPosts.length / perPage))
+              const rPaged = romeoPosts.slice((page-1)*perPage, page*perPage)
+              return <>
+                <MarathonChart posts={posts} startBR={stats.startBR} setLightbox={setLightbox}/>
+                <FilterBar
+                  sortBy={sortBy} setSortBy={setSortBy}
+                  search={search} setSearch={setSearch}
+                  romeoOnly={false} setRomeoOnly={()=>{}}
+                  minLikes={minLikes} setMinLikes={setMinLikes}
+                  minRating={minRating} setMinRating={setMinRating}
+                  count={romeoPosts.length} showSort={true}
+                />
+                {romeoPosts.length===0
+                  ? <div className="empty-state">Постов Ромео нет — запустите скрапер</div>
+                  : <>
+                    <Paginator page={page} totalPages={rTotal} onPage={goPage}
+                      perPage={perPage} onPerPage={setPerPage} total={romeoPosts.length}/>
+                    {rPaged.map(p=>(
+                      <PostCard key={p.id||p.url} p={p}
+                        favorites={favorites} onFav={toggleFav}
+                        onIgnore={addIgnore} setLightbox={setLightbox}/>
+                    ))}
+                    <Paginator page={page} totalPages={rTotal} onPage={goPage}
+                      perPage={perPage} onPerPage={setPerPage} total={romeoPosts.length}/>
+                  </>
+                }
+              </>
+            })()}
 
             {/* ЛЕНТА */}
             {activeTab==='feed' && <>
