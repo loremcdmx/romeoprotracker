@@ -628,7 +628,7 @@ function PostCard({ p, favorites, onFav, onIgnore, setLightbox }) {
   const isFav = favorites.has(p.id)
   const likes = p.likes || 0
   const initial = (p.author||'?')[0].toUpperCase()
-  const isLong = (p.text?.length || 0) > 600  // сворачиваем только реально длинные
+  const isLong = (p.text?.replace(/\[QUOTE\][\s\S]*?\[\/QUOTE\]/g, '').length || 0) > 600
 
   return (
     <div className={`post-card ${isFav?'faved':''}`}>
