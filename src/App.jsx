@@ -1,198 +1,439 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { loadConfig, saveConfig, fetchPublicData, githubPut } from './storage.js'
 import { generateUserscript } from './userscript.js'
 
 const ADMIN_KEY = 'romeo2026'
-const FORUM_URL = 'https://forum.gipsyteam.ru/index.php?viewtopic=181676'
 
-// ─── СТИЛИ ──────────────────────────────────────────────────────────────────
 const css = `
-  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Unbounded:wght@400;700;900&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto+Mono:wght@400;500&display=swap');
 
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
   :root {
-    --bg:       #060a0f;
-    --bg2:      #0d1520;
-    --bg3:      #111d2e;
-    --border:   #1a2d45;
-    --green:    #00e676;
-    --green2:   #00c853;
-    --red:      #ff1744;
-    --gold:     #ffd600;
-    --text:     #c8d8e8;
-    --dim:      #4a6580;
-    --accent:   #0d47a1;
+    --bg:       #141414;
+    --bg2:      #1c1c1c;
+    --bg3:      #242424;
+    --border:   #2e2e2e;
+    --red:      #d32f2f;
+    --red2:     #f44336;
+    --red-dim:  #3a1515;
+    --text:     #e0e0e0;
+    --dim:      #757575;
+    --dim2:     #9e9e9e;
+    --green:    #43a047;
+    --gold:     #f9a825;
+    --white:    #ffffff;
+    --radius:   4px;
   }
 
   html, body, #root {
-    height: 100%;
+    min-height: 100%;
     background: var(--bg);
     color: var(--text);
-    font-family: 'JetBrains Mono', monospace;
+    font-family: 'Inter', sans-serif;
     font-size: 13px;
-    line-height: 1.6;
+    line-height: 1.5;
   }
 
-  ::-webkit-scrollbar { width: 4px; }
-  ::-webkit-scrollbar-track { background: var(--bg); }
-  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+  a { color: var(--red2); text-decoration: none; }
+  a:hover { text-decoration: underline; }
 
-  .app { display: flex; flex-direction: column; min-height: 100vh; max-width: 900px; margin: 0 auto; padding: 0 16px 80px; }
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg2); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 
-  /* HEADER */
-  .header { display: flex; align-items: center; gap: 12px; padding: 20px 0 16px; border-bottom: 1px solid var(--border); }
-  .logo { font-size: 28px; cursor: pointer; user-select: none; filter: drop-shadow(0 0 8px #00e67640); }
-  .header-title { font-family: 'Unbounded', sans-serif; font-size: 15px; font-weight: 700; color: #fff; letter-spacing: -0.02em; }
-  .header-sub { font-size: 10px; color: var(--dim); }
-  .header-right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
-  .badge { padding: 3px 8px; border-radius: 3px; font-size: 10px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; }
-  .badge-admin { background: #1a2d45; color: var(--green); border: 1px solid var(--green); }
-  .badge-live  { background: #1a0a0a; color: var(--red);   border: 1px solid var(--red);   animation: pulse 2s infinite; }
-  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
+  /* LAYOUT */
+  .wrap { max-width: 960px; margin: 0 auto; padding: 0 12px 60px; }
 
-  /* STATS GRID */
-  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 16px 0; }
-  .stat { background: var(--bg2); border: 1px solid var(--border); border-radius: 6px; padding: 14px 16px; }
-  .stat-label { font-size: 9px; text-transform: uppercase; letter-spacing: .1em; color: var(--dim); margin-bottom: 6px; }
-  .stat-value { font-family: 'Unbounded', sans-serif; font-size: 20px; font-weight: 900; color: #fff; }
-  .stat-value.green { color: var(--green); }
-  .stat-value.gold  { color: var(--gold);  }
-  .stat-sub { font-size: 10px; color: var(--dim); margin-top: 4px; }
-  .progress-bar { height: 3px; background: var(--border); border-radius: 2px; margin-top: 10px; overflow: hidden; }
-  .progress-fill { height: 100%; background: linear-gradient(90deg, var(--green2), var(--green)); border-radius: 2px; transition: width .5s; }
+  /* TOP BAR */
+  .topbar {
+    background: #0d0d0d;
+    border-bottom: 2px solid var(--red);
+    padding: 0;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .topbar-inner {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 0 12px;
+    display: flex;
+    align-items: stretch;
+    height: 44px;
+    gap: 0;
+  }
+  .topbar-logo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 16px 0 0;
+    border-right: 1px solid #222;
+    cursor: pointer;
+    user-select: none;
+    flex-shrink: 0;
+  }
+  .topbar-logo-icon {
+    background: var(--red);
+    color: #fff;
+    font-size: 15px;
+    width: 28px;
+    height: 28px;
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+  }
+  .topbar-logo-text {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--white);
+    letter-spacing: 0.01em;
+  }
+  .topbar-logo-sub {
+    font-size: 10px;
+    color: var(--dim);
+    font-weight: 400;
+  }
+  .topbar-nav {
+    display: flex;
+    align-items: stretch;
+    flex: 1;
+    padding-left: 4px;
+  }
+  .topbar-nav-item {
+    display: flex;
+    align-items: center;
+    padding: 0 14px;
+    font-size: 12px;
+    color: var(--dim2);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    transition: color .15s, border-color .15s;
+  }
+  .topbar-nav-item:hover { color: var(--text); }
+  .topbar-nav-item.active { color: var(--white); border-bottom-color: var(--red); }
+  .topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+  }
+  .badge {
+    padding: 2px 8px;
+    border-radius: 2px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+  .badge-admin { background: var(--red-dim); color: var(--red2); border: 1px solid var(--red); }
+  .badge-live  { background: #1a2f1a; color: #66bb6a; border: 1px solid #43a047; animation: blink 2s infinite; }
+  .badge-author { background: var(--red); color: #fff; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.6} }
 
-  /* SECTION */
-  .section { margin-top: 20px; }
-  .section-title { font-size: 9px; text-transform: uppercase; letter-spacing: .15em; color: var(--dim); padding-bottom: 10px; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
+  /* BREADCRUMB */
+  .breadcrumb {
+    padding: 10px 0 8px;
+    font-size: 11px;
+    color: var(--dim);
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 14px;
+  }
+  .breadcrumb span { color: var(--dim); }
+  .breadcrumb a { color: var(--dim2); }
+  .breadcrumb a:hover { color: var(--red2); text-decoration: none; }
 
-  /* STATUS */
-  .status-block { background: var(--bg2); border: 1px solid var(--border); border-left: 3px solid var(--green); border-radius: 0 6px 6px 0; padding: 14px 16px; font-size: 12px; color: var(--text); line-height: 1.7; }
+  /* TOPIC HEADER */
+  .topic-header {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    margin-bottom: 14px;
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+  }
+  .topic-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--red);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+    border: 2px solid var(--border);
+  }
+  .topic-info { flex: 1; }
+  .topic-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--white);
+    margin-bottom: 4px;
+  }
+  .topic-meta { font-size: 11px; color: var(--dim); display: flex; gap: 12px; flex-wrap: wrap; }
+  .topic-meta span { display: flex; align-items: center; gap: 4px; }
+  .topic-stat-val { color: var(--text); font-weight: 600; }
+
+  /* STATS ROW */
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  .stat-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 14px;
+    text-align: center;
+  }
+  .stat-card-label { font-size: 10px; color: var(--dim); text-transform: uppercase; letter-spacing: .08em; margin-bottom: 6px; }
+  .stat-card-value { font-size: 22px; font-weight: 700; color: var(--white); font-family: 'Roboto Mono', monospace; }
+  .stat-card-value.red   { color: var(--red2); }
+  .stat-card-value.green { color: #66bb6a; }
+  .stat-card-value.gold  { color: var(--gold); }
+  .stat-card-sub { font-size: 10px; color: var(--dim); margin-top: 4px; }
+  .progress-wrap { height: 3px; background: var(--border); border-radius: 2px; margin-top: 8px; overflow:hidden; }
+  .progress-fill { height: 100%; background: var(--green); border-radius: 2px; transition: width .5s; }
+
+  /* CONTENT AREA */
+  .content-cols { display: grid; grid-template-columns: 1fr 280px; gap: 12px; align-items: start; }
+
+  /* POST BLOCK */
+  .post-block {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 8px;
+    overflow: hidden;
+  }
+  .post-head {
+    background: var(--bg3);
+    padding: 8px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .post-author-name { font-weight: 600; color: var(--white); font-size: 13px; }
+  .post-author-rank { font-size: 10px; color: var(--dim); }
+  .post-date { margin-left: auto; font-size: 11px; color: var(--dim); font-family: 'Roboto Mono', monospace; }
+  .post-body { padding: 12px 14px; font-size: 13px; color: var(--text); line-height: 1.65; }
+  .post-br-tag { display: inline-block; background: var(--red-dim); color: var(--red2); border: 1px solid var(--red); border-radius: 2px; padding: 1px 6px; font-size: 11px; font-weight: 700; margin-left: 6px; font-family: 'Roboto Mono', monospace; }
+  .post-footer { padding: 6px 14px; border-top: 1px solid var(--border); display: flex; align-items: center; gap: 8px; }
+  .post-link { font-size: 11px; color: var(--dim); }
+  .post-link:hover { color: var(--red2); }
+  .btn-expand { background: none; border: none; color: var(--dim); font-size: 11px; cursor: pointer; font-family: inherit; padding: 0; }
+  .btn-expand:hover { color: var(--red2); }
+
+  /* SIDEBAR */
+  .sidebar { display: flex; flex-direction: column; gap: 10px; }
+  .side-block {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+  .side-title {
+    background: var(--bg3);
+    padding: 8px 12px;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--dim2);
+    text-transform: uppercase;
+    letter-spacing: .08em;
+    border-bottom: 1px solid var(--border);
+  }
+  .side-body { padding: 12px; }
+  .side-row { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+  .side-row:last-child { border-bottom: none; }
+  .side-key { color: var(--dim); }
+  .side-val { color: var(--text); font-weight: 600; font-family: 'Roboto Mono', monospace; }
+  .side-val.red { color: var(--red2); }
+  .side-val.green { color: #66bb6a; }
 
   /* CHRONICLE */
-  .chronicle-list { display: flex; flex-direction: column; gap: 8px; }
-  .chronicle-item { display: flex; gap: 12px; align-items: flex-start; }
-  .chronicle-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); margin-top: 5px; flex-shrink: 0; }
-  .chronicle-date { color: var(--dim); font-size: 11px; flex-shrink: 0; min-width: 90px; }
-  .chronicle-text { font-size: 12px; color: var(--text); }
+  .chron-item { display: flex; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--border); font-size: 12px; }
+  .chron-item:last-child { border-bottom: none; }
+  .chron-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--red); margin-top: 5px; flex-shrink: 0; }
+  .chron-date { color: var(--dim); min-width: 80px; flex-shrink: 0; }
+  .chron-text { color: var(--text); }
 
-  /* POSTS */
-  .posts-list { display: flex; flex-direction: column; gap: 1px; }
-  .post-item { background: var(--bg2); border: 1px solid var(--border); border-radius: 6px; padding: 12px 14px; transition: border-color .15s; }
-  .post-item:hover { border-color: #2a4060; }
-  .post-meta { display: flex; gap: 10px; align-items: center; margin-bottom: 6px; }
-  .post-date { color: var(--dim); font-size: 10px; }
-  .post-br { color: var(--green); font-weight: 700; font-size: 11px; }
-  .post-text { font-size: 11px; color: #8a9bb0; line-height: 1.6; }
-  .post-text.expanded { color: var(--text); }
-  .post-expand { background: none; border: none; color: var(--dim); font-size: 10px; cursor: pointer; margin-top: 4px; font-family: inherit; }
-  .post-expand:hover { color: var(--green); }
+  /* STATUS */
+  .status-text { font-size: 12px; color: var(--text); line-height: 1.7; }
 
-  /* ADMIN PANEL */
-  .admin-panel { background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 20px; margin-top: 20px; }
-  .admin-title { font-family: 'Unbounded', sans-serif; font-size: 12px; color: var(--green); margin-bottom: 16px; }
-  .admin-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-  .field { display: flex; flex-direction: column; gap: 5px; }
-  .field-label { font-size: 10px; color: var(--dim); text-transform: uppercase; letter-spacing: .08em; }
-  .field input, .field textarea, .field select {
-    background: var(--bg3); border: 1px solid var(--border); border-radius: 4px;
-    color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 12px;
-    padding: 8px 10px; outline: none; transition: border-color .15s;
+  /* PAGINATION TABS */
+  .forum-tabs {
+    display: flex;
+    border-bottom: 2px solid var(--border);
+    margin-bottom: 12px;
+    gap: 0;
   }
-  .field input:focus, .field textarea:focus { border-color: var(--green); }
-  .field textarea { resize: vertical; min-height: 80px; }
-  .field-full { grid-column: 1 / -1; }
-  .btn { padding: 9px 16px; border-radius: 4px; font-family: 'JetBrains Mono', monospace; font-size: 12px; font-weight: 700; cursor: pointer; border: none; transition: all .15s; }
-  .btn-green  { background: var(--green2); color: #000; }
-  .btn-green:hover  { background: var(--green); }
-  .btn-red    { background: #c62828; color: #fff; }
-  .btn-red:hover    { background: var(--red); }
-  .btn-outline{ background: transparent; color: var(--text); border: 1px solid var(--border); }
-  .btn-outline:hover{ border-color: var(--green); color: var(--green); }
-  .btn-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px; }
+  .forum-tab {
+    padding: 8px 16px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--dim2);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+    transition: all .15s;
+  }
+  .forum-tab:hover { color: var(--text); }
+  .forum-tab.active { color: var(--white); border-bottom-color: var(--red); }
+  .tab-count { background: var(--bg3); border: 1px solid var(--border); border-radius: 10px; padding: 1px 6px; font-size: 10px; margin-left: 5px; color: var(--dim); }
+
+  /* ADMIN */
+  .admin-wrap {
+    background: var(--bg2);
+    border: 1px solid var(--red);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin-top: 14px;
+  }
+  .admin-head {
+    background: var(--red-dim);
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid var(--red);
+  }
+  .admin-head-title { font-size: 13px; font-weight: 700; color: var(--red2); }
+  .admin-body { padding: 16px; }
+  .admin-section { margin-bottom: 18px; }
+  .admin-section-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: var(--dim); margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .form-full { grid-column: 1 / -1; }
+  .form-field { display: flex; flex-direction: column; gap: 5px; }
+  .form-label { font-size: 11px; color: var(--dim2); }
+  .form-input, .form-textarea, .form-select {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    padding: 7px 10px;
+    outline: none;
+    transition: border-color .15s;
+    width: 100%;
+  }
+  .form-input:focus, .form-textarea:focus { border-color: var(--red2); }
+  .form-textarea { resize: vertical; min-height: 80px; font-family: 'Roboto Mono', monospace; font-size: 11px; }
+  .btn-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+  .btn {
+    padding: 7px 14px;
+    border-radius: var(--radius);
+    font-family: 'Inter', sans-serif;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: all .15s;
+    white-space: nowrap;
+  }
+  .btn-red     { background: var(--red); color: #fff; }
+  .btn-red:hover { background: var(--red2); }
+  .btn-stop    { background: #7f0000; color: #fff; }
+  .btn-stop:hover { background: #b71c1c; }
+  .btn-ghost   { background: transparent; color: var(--dim2); border: 1px solid var(--border); }
+  .btn-ghost:hover { border-color: var(--red2); color: var(--text); }
+  .btn-green   { background: #1b5e20; color: #fff; }
+  .btn-green:hover { background: #2e7d32; }
 
   /* AGENT */
-  .agent-block { background: var(--bg3); border: 1px solid var(--border); border-radius: 6px; padding: 14px 16px; margin-top: 14px; }
-  .agent-title { font-size: 10px; text-transform: uppercase; letter-spacing: .1em; color: var(--dim); margin-bottom: 10px; }
-  .agent-modes { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
-  .mode-btn { padding: 6px 12px; border-radius: 3px; font-size: 11px; cursor: pointer; border: 1px solid var(--border); background: var(--bg2); color: var(--text); font-family: inherit; transition: all .15s; }
-  .mode-btn.active { border-color: var(--green); color: var(--green); background: #00e67610; }
-  .agent-status { font-size: 11px; color: var(--dim); min-height: 18px; }
-  .agent-status.running { color: var(--gold); }
-  .agent-status.done    { color: var(--green); }
-  .agent-status.error   { color: var(--red); }
+  .agent-section { background: var(--bg3); border: 1px solid var(--border); border-radius: var(--radius); padding: 14px; margin-top: 12px; }
+  .agent-modes { display: flex; gap: 6px; flex-wrap: wrap; margin: 10px 0; }
+  .agent-mode-btn { padding: 5px 12px; border-radius: var(--radius); font-size: 11px; cursor: pointer; border: 1px solid var(--border); background: var(--bg2); color: var(--dim2); font-family: inherit; transition: all .15s; }
+  .agent-mode-btn.active { border-color: var(--red2); color: var(--red2); background: var(--red-dim); }
+  .agent-log { margin-top: 10px; font-size: 11px; font-family: 'Roboto Mono', monospace; }
+  .agent-log.run  { color: var(--gold); }
+  .agent-log.done { color: #66bb6a; }
+  .agent-log.err  { color: var(--red2); }
+  .code-preview { margin-top:10px; width:100%; min-height:160px; background:var(--bg); border:1px solid var(--border); color:var(--dim); font-size:10px; padding:8px; border-radius:var(--radius); font-family:'Roboto Mono',monospace; resize:vertical; }
 
-  /* META EDIT */
-  .meta-edit { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
-
-  /* AUTH SCREEN */
-  .auth-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; gap: 16px; }
-  .auth-input { background: var(--bg2); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 14px; padding: 12px 16px; width: 260px; outline: none; text-align: center; letter-spacing: .1em; }
-  .auth-input:focus { border-color: var(--green); }
-  .auth-hint { font-size: 10px; color: var(--dim); }
-  .auth-error { font-size: 11px; color: var(--red); }
+  /* AUTH */
+  .auth-overlay { position:fixed; inset:0; background:#000a; display:flex; align-items:center; justify-content:center; z-index:200; }
+  .auth-box { background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius); padding:28px 32px; display:flex; flex-direction:column; gap:14px; align-items:center; min-width:280px; }
+  .auth-title { font-size:14px; font-weight:700; color:var(--white); }
+  .auth-input { background:var(--bg3); border:1px solid var(--border); border-radius:var(--radius); color:var(--text); font-family:inherit; font-size:14px; padding:9px 14px; outline:none; width:100%; text-align:center; letter-spacing:.1em; }
+  .auth-input:focus { border-color:var(--red2); }
+  .auth-err { font-size:11px; color:var(--red2); }
+  .auth-hint { font-size:10px; color:var(--dim); }
 
   /* TOAST */
-  .toast { position: fixed; bottom: 24px; right: 24px; background: var(--bg2); border: 1px solid var(--green); border-radius: 6px; padding: 10px 16px; font-size: 12px; color: var(--green); z-index: 1000; animation: slideIn .2s ease; }
-  .toast.error { border-color: var(--red); color: var(--red); }
-  @keyframes slideIn { from { transform: translateY(16px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-
-  /* TABS */
-  .tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 14px; }
-  .tab { padding: 8px 14px; font-size: 11px; color: var(--dim); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: all .15s; }
-  .tab.active { color: var(--green); border-bottom-color: var(--green); }
+  .toast { position:fixed; bottom:20px; right:20px; background:var(--bg2); border:1px solid var(--green); border-radius:var(--radius); padding:9px 14px; font-size:12px; color:#66bb6a; z-index:300; animation:fadeUp .2s ease; }
+  .toast.err { border-color:var(--red); color:var(--red2); }
+  @keyframes fadeUp { from{transform:translateY(10px);opacity:0} to{transform:translateY(0);opacity:1} }
 
   /* UPDATED */
-  .last-updated { font-size: 10px; color: var(--dim); text-align: right; padding: 8px 0; }
+  .last-updated { font-size:10px; color:var(--dim); text-align:right; padding:6px 0 2px; font-family:'Roboto Mono',monospace; }
 
-  @media (max-width: 600px) {
-    .stats { grid-template-columns: repeat(2, 1fr); }
-    .admin-grid, .meta-edit { grid-template-columns: 1fr; }
+  /* EMPTY */
+  .empty { padding:24px; text-align:center; color:var(--dim); font-size:12px; }
+
+  @media(max-width:640px){
+    .content-cols { grid-template-columns:1fr; }
+    .stats-row { grid-template-columns:1fr 1fr; }
+    .form-grid { grid-template-columns:1fr; }
+    .topbar-nav { display:none; }
   }
 `
 
-// ─── HELPERS ─────────────────────────────────────────────────────────────────
 function fmt(n) {
   if (!n && n !== 0) return '—'
-  if (n >= 1_000_000) return `$${(n/1_000_000).toFixed(2)}M`
-  if (n >= 1_000)     return `$${(n/1_000).toFixed(1)}k`
-  return `$${n}`
+  if (n >= 1_000_000) return '$' + (n/1_000_000).toFixed(2) + 'M'
+  if (n >= 1_000)     return '$' + (n/1_000).toFixed(1) + 'k'
+  return '$' + n
+}
+
+function fmtNum(n) {
+  if (!n) return '—'
+  return Number(n).toLocaleString('ru')
 }
 
 function useToast() {
-  const [toast, setToast] = useState(null)
-  const show = useCallback((msg, err = false) => {
-    setToast({ msg, err })
-    setTimeout(() => setToast(null), 3000)
+  const [t, setT] = useState(null)
+  const show = useCallback((msg, err=false) => {
+    setT({msg,err}); setTimeout(() => setT(null), 3000)
   }, [])
-  return [toast, show]
+  return [t, show]
 }
 
-// ─── APP ─────────────────────────────────────────────────────────────────────
 export default function App() {
   const [meta, setMeta]         = useState(null)
   const [posts, setPosts]       = useState([])
   const [loading, setLoading]   = useState(true)
+  const [activeTab, setActiveTab] = useState('status')
+  const [expanded, setExpanded] = useState({})
+
   const [adminMode, setAdminMode] = useState(false)
   const [showAuth, setShowAuth] = useState(false)
   const [authVal, setAuthVal]   = useState('')
   const [authErr, setAuthErr]   = useState('')
-  const [logoClicks, setLogoClicks] = useState(0)
-  const [cfg, setCfg]           = useState(() => loadConfig() || { repo: '', token: '', authorName: 'Romeopro' })
-  const [agentMode, setAgentMode] = useState('author')
+  const [clicks, setClicks]     = useState(0)
+
+  const [cfg, setCfg] = useState(() => loadConfig() || { repo: 'loremcdmx/romeoprotracker', token: '', authorName: 'Romeopro' })
+  const [editMeta, setEditMeta]       = useState({})
+  const [editChronicle, setEditChronicle] = useState('')
+  const [agentMode, setAgentMode]     = useState('author')
   const [agentStatus, setAgentStatus] = useState('')
   const [agentRunning, setAgentRunning] = useState(false)
-  const [scriptCode, setScriptCode] = useState('')
-  const [showScript, setShowScript] = useState(false)
-  const [editMeta, setEditMeta] = useState({})
-  const [editChronicle, setEditChronicle] = useState('')
-  const [activeTab, setActiveTab] = useState('status')
-  const [expandedPosts, setExpandedPosts] = useState({})
+  const [showCode, setShowCode]       = useState(false)
+  const [code, setCode]               = useState('')
   const [toast, showToast] = useToast()
-  const agentWindow = useRef(null)
-  const agentTimer  = useRef(null)
 
-  // Загружаем данные
   useEffect(() => {
     const repo = cfg.repo || 'loremcdmx/romeoprotracker'
     fetchPublicData(repo)
@@ -202,373 +443,397 @@ export default function App() {
         setEditMeta(meta || {})
         setEditChronicle((meta?.chronicle || []).map(c => `${c.date}|${c.text}`).join('\n'))
       })
-      .catch(() => setMeta({}))
+      .catch(() => { setMeta({}); setPosts([]) })
       .finally(() => setLoading(false))
   }, [])
 
-  // Клики по лого → открыть auth
   const handleLogoClick = () => {
-    const n = logoClicks + 1
-    setLogoClicks(n)
-    if (n >= 5) { setShowAuth(true); setLogoClicks(0) }
+    const n = clicks + 1; setClicks(n)
+    if (n >= 5) { setShowAuth(true); setClicks(0) }
   }
 
   const handleAuth = (e) => {
-    if (e.key === 'Enter' || e.type === 'click') {
-      if (authVal === ADMIN_KEY) {
-        setAdminMode(true); setShowAuth(false); setAuthErr(''); setAuthVal('')
-      } else {
-        setAuthErr('Неверный пароль')
-      }
-    }
+    if (e.key !== 'Enter' && e.type !== 'click') return
+    if (authVal === ADMIN_KEY) { setAdminMode(true); setShowAuth(false); setAuthErr(''); setAuthVal('') }
+    else setAuthErr('Неверный пароль')
   }
 
-  // Сохраняем конфиг
-  const handleSaveCfg = () => {
-    saveConfig(cfg)
-    showToast('✓ Конфиг сохранён')
-  }
+  const handleSaveCfg = () => { saveConfig(cfg); showToast('Конфиг сохранён') }
 
-  // Сохраняем мету в GitHub
   const handleSaveMeta = async () => {
     if (!cfg.repo || !cfg.token) return showToast('Укажите репо и токен', true)
     try {
-      const chronicle = editChronicle
-        .split('\n')
-        .filter(l => l.trim())
-        .map(l => { const [date, ...rest] = l.split('|'); return { date: date.trim(), text: rest.join('|').trim() } })
+      const chronicle = editChronicle.split('\n').filter(l=>l.trim()).map(l=>{
+        const [date,...rest] = l.split('|'); return {date:date.trim(), text:rest.join('|').trim()}
+      })
       const newMeta = { ...editMeta, chronicle, lastUpdated: new Date().toISOString() }
       await githubPut(cfg.repo, cfg.token, 'data/meta.json', newMeta, 'admin: update meta')
       setMeta(newMeta)
-      showToast('✓ Мета сохранена в GitHub')
-    } catch (e) {
-      showToast(e.message, true)
-    }
+      showToast('Мета сохранена в GitHub')
+    } catch(e) { showToast(e.message, true) }
   }
 
-  // Агент
+  const handleCopy = () => {
+    const c = generateUserscript(cfg, agentMode)
+    setCode(c)
+    navigator.clipboard.writeText(c).then(() => showToast('Скопировано в буфер'))
+  }
+
   const handleStartAgent = () => {
     if (!cfg.repo || !cfg.token) return showToast('Укажите репо и токен', true)
-    const code = generateUserscript(cfg, agentMode)
-    setScriptCode(code)
-
-    // Сохраняем конфиг для userscript (через GM_setValue симулируем через URL)
-    const params = new URLSearchParams({
-      rpt_mode: agentMode,
-      rpt_repo: cfg.repo,
-      rpt_token: cfg.token,
-      rpt_author: cfg.authorName || 'Romeopro',
-      rpt_maxpages: agentMode === 'last10' ? 10 : agentMode === 'all' ? 999 : 0,
-    })
-
-    const forumUrl = `${FORUM_URL}&${params.toString()}`
-    agentWindow.current = window.open(forumUrl, 'rpt_agent')
-    setAgentRunning(true)
-    setAgentStatus('Агент запущен, ожидаем данные...')
-
-    // Слушаем сообщения от агента
+    const c = generateUserscript(cfg, agentMode)
+    setCode(c); setAgentRunning(true); setAgentStatus('Запускаю вкладку форума...')
+    const w = window.open('https://forum.gipsyteam.ru/index.php?viewtopic=181676&filter=author&rp_mode=author', 'rpt_agent')
     const onMsg = (e) => {
-      if (e.data?.type === 'RPT_LOG') {
-        setAgentStatus(e.data.msg)
-      }
+      if (e.data?.type === 'RPT_LOG')  setAgentStatus(e.data.msg)
       if (e.data?.type === 'RPT_DONE') {
         setAgentRunning(false)
-        setAgentStatus(`✓ Готово! Загружено ${e.data.count} постов`)
+        setAgentStatus('✓ Готово! Загружено ' + e.data.count + ' постов')
         window.removeEventListener('message', onMsg)
-        // Перезагружаем данные
-        setTimeout(() => {
-          fetchPublicData(cfg.repo).then(({ posts, meta }) => {
-            setPosts(posts || []); setMeta(meta || {})
-          })
-        }, 3000)
+        setTimeout(() => fetchPublicData(cfg.repo).then(({posts,meta}) => { setPosts(posts||[]); setMeta(meta||{}) }), 3000)
       }
       if (e.data?.type === 'RPT_ERROR') {
-        setAgentRunning(false)
-        setAgentStatus(`✗ Ошибка: ${e.data.msg}`)
+        setAgentRunning(false); setAgentStatus('✗ ' + e.data.msg)
         window.removeEventListener('message', onMsg)
       }
     }
     window.addEventListener('message', onMsg)
   }
 
-  const handleStopAgent = () => {
-    agentWindow.current?.close()
-    clearInterval(agentTimer.current)
-    setAgentRunning(false)
-    setAgentStatus('Остановлен')
-  }
-
-  const handleCopyScript = () => {
-    const code = generateUserscript(cfg, agentMode)
-    navigator.clipboard.writeText(code).then(() => showToast('✓ Скопировано в буфер'))
-  }
-
-  const handleInsertManual = () => {
-    const input = prompt('Вставьте данные поста (JSON или текст):')
-    if (!input) return
-    // TODO: parse and push
-    showToast('Вставка вручную — в разработке')
-  }
-
-  // Прогресс марафона
-  const progress = meta ? ((meta.bankroll - meta.startBankroll) / (meta.targetBankroll - meta.startBankroll)) * 100 : 0
-  const progressPct = Math.min(100, Math.max(0, progress)).toFixed(4)
-
-  if (showAuth) {
-    return (
-      <>
-        <style>{css}</style>
-        <div className="auth-screen">
-          <div style={{ fontSize: 36 }}>🎲</div>
-          <div style={{ fontFamily: 'Unbounded', fontSize: 13, color: '#fff' }}>Admin Mode</div>
-          <input
-            className="auth-input"
-            type="password"
-            placeholder="пароль"
-            value={authVal}
-            onChange={e => setAuthVal(e.target.value)}
-            onKeyDown={handleAuth}
-            autoFocus
-          />
-          {authErr && <div className="auth-error">{authErr}</div>}
-          <div className="auth-hint">или нажмите Enter</div>
-          <button className="btn btn-outline" onClick={() => setShowAuth(false)}>Отмена</button>
-        </div>
-      </>
-    )
-  }
+  const progress = meta ? Math.min(100, ((meta.bankroll - meta.startBankroll) / (meta.targetBankroll - meta.startBankroll)) * 100) : 0
 
   return (
     <>
       <style>{css}</style>
-      <div className="app">
 
-        {/* HEADER */}
-        <header className="header">
-          <div className="logo" onClick={handleLogoClick} title="Кликните 5 раз для Admin Mode">🎲</div>
-          <div>
-            <div className="header-title">RomeoPro Tracker</div>
-            <div className="header-sub">марафон $10k → $10M · From Hero to Zero</div>
+      {/* AUTH */}
+      {showAuth && (
+        <div className="auth-overlay" onClick={() => setShowAuth(false)}>
+          <div className="auth-box" onClick={e => e.stopPropagation()}>
+            <div className="auth-title">🔐 Admin Mode</div>
+            <input className="auth-input" type="password" placeholder="пароль" value={authVal} autoFocus
+              onChange={e=>setAuthVal(e.target.value)} onKeyDown={handleAuth} />
+            {authErr && <div className="auth-err">{authErr}</div>}
+            <button className="btn btn-red" onClick={handleAuth}>Войти</button>
+            <div className="auth-hint">или Enter</div>
           </div>
-          <div className="header-right">
-            {adminMode && <span className="badge badge-admin">ADMIN</span>}
-            {meta?.status === 'active' && <span className="badge badge-live">LIVE</span>}
-          </div>
-        </header>
+        </div>
+      )}
 
-        {/* STATS */}
+      {/* TOP BAR */}
+      <div className="topbar">
+        <div className="topbar-inner">
+          <div className="topbar-logo" onClick={handleLogoClick} title="5 кликов → Admin Mode">
+            <div className="topbar-logo-icon">GT</div>
+            <div>
+              <div className="topbar-logo-text">RomeoPro Tracker</div>
+              <div className="topbar-logo-sub">марафон $10k → $10M</div>
+            </div>
+          </div>
+          <nav className="topbar-nav">
+            {[['status','Статус'],['chronicle','Хроника'],['posts','Посты']].map(([id,label])=>(
+              <div key={id} className={`topbar-nav-item ${activeTab===id?'active':''}`} onClick={()=>setActiveTab(id)}>
+                {label}{id==='posts'&&<span className="tab-count">{posts.length}</span>}
+              </div>
+            ))}
+          </nav>
+          <div className="topbar-right">
+            {adminMode && <span className="badge badge-admin">Admin</span>}
+            {meta?.status === 'active' && <span className="badge badge-live">Live</span>}
+          </div>
+        </div>
+      </div>
+
+      <div className="wrap">
+        {/* BREADCRUMB */}
+        <div className="breadcrumb">
+          <a href="https://forum.gipsyteam.ru">GipsyTeam</a>
+          <span>›</span>
+          <a href="https://forum.gipsyteam.ru">Форум</a>
+          <span>›</span>
+          <a href="https://forum.gipsyteam.ru">Долги и споры</a>
+          <span>›</span>
+          <span style={{color:'var(--dim2)'}}>From Hero to Zero — RomeoPro</span>
+        </div>
+
         {loading ? (
-          <div style={{ padding: '40px 0', color: 'var(--dim)', textAlign: 'center' }}>Загружаем данные марафона…</div>
+          <div className="empty">Загружаем данные марафона…</div>
         ) : (
           <>
-            <div className="stats">
-              <div className="stat">
-                <div className="stat-label">Банкролл</div>
-                <div className="stat-value green">{fmt(meta?.bankroll)}</div>
-                <div className="stat-sub">старт: {fmt(meta?.startBankroll)}</div>
-                <div className="progress-bar">
-                  <div className="progress-fill" style={{ width: `${progressPct}%` }} />
+            {/* TOPIC HEADER */}
+            <div className="topic-header">
+              <div className="topic-avatar">🎲</div>
+              <div className="topic-info">
+                <div className="topic-title">From Hero to Zero. Последний покерный марафон RomeoPro. С 10к$ до 10кк$.</div>
+                <div className="topic-meta">
+                  <span>Автор: <strong style={{color:'var(--red2)'}}>Romeopro</strong></span>
+                  <span>Просмотров: <span className="topic-stat-val">{fmtNum(meta?.views || 1870000)}</span></span>
+                  <span>Постов: <span className="topic-stat-val">{fmtNum(posts.length || meta?.totalPosts)}</span></span>
+                  <span>Подписчиков: <span className="topic-stat-val">{fmtNum(meta?.subscribers || 1240)}</span></span>
+                  {meta?.lastUpdated && <span>Обновлено: <span className="topic-stat-val">{new Date(meta.lastUpdated).toLocaleDateString('ru')}</span></span>}
                 </div>
               </div>
-              <div className="stat">
-                <div className="stat-label">День марафона</div>
-                <div className="stat-value gold">#{meta?.day || '—'}</div>
-                <div className="stat-sub">цель: $10M</div>
-              </div>
-              <div className="stat">
-                <div className="stat-label">Постов</div>
-                <div className="stat-value">{posts.length || meta?.totalPosts || '—'}</div>
-                <div className="stat-sub">на форуме GT</div>
-              </div>
-              <div className="stat">
-                <div className="stat-label">Подписчики</div>
-                <div className="stat-value">{meta?.subscribers ? meta.subscribers.toLocaleString('ru') : '—'}</div>
-                <div className="stat-sub">темы на GipsyTeam</div>
-              </div>
+              <span className="badge badge-author">АВТОР</span>
             </div>
 
-            {meta?.lastUpdated && (
-              <div className="last-updated">
-                обновлено: {new Date(meta.lastUpdated).toLocaleString('ru')}
+            {/* STATS */}
+            <div className="stats-row">
+              <div className="stat-card">
+                <div className="stat-card-label">Банкролл</div>
+                <div className="stat-card-value green">{fmt(meta?.bankroll)}</div>
+                <div className="stat-card-sub">старт: {fmt(meta?.startBankroll)}</div>
+                <div className="progress-wrap"><div className="progress-fill" style={{width: (progress||0)+'%'}} /></div>
               </div>
-            )}
+              <div className="stat-card">
+                <div className="stat-card-label">Цель</div>
+                <div className="stat-card-value" style={{fontSize:18}}>$10M</div>
+                <div className="stat-card-sub">{(progress||0).toFixed(4)}% пути</div>
+              </div>
+              <div className="stat-card">
+                <div className="stat-card-label">День марафона</div>
+                <div className="stat-card-value gold">#{meta?.day || '—'}</div>
+                <div className="stat-card-sub">с 10 марта 2026</div>
+              </div>
+              <div className="stat-card">
+                <div className="stat-card-label">Постов в теме</div>
+                <div className="stat-card-value">{fmtNum(posts.length || meta?.totalPosts || 0)}</div>
+                <div className="stat-card-sub">на GipsyTeam</div>
+              </div>
+            </div>
 
             {/* TABS */}
-            <div className="tabs">
-              <div className={`tab ${activeTab==='status'?'active':''}`} onClick={()=>setActiveTab('status')}>Статус</div>
-              <div className={`tab ${activeTab==='chronicle'?'active':''}`} onClick={()=>setActiveTab('chronicle')}>Хроника</div>
-              <div className={`tab ${activeTab==='posts'?'active':''}`} onClick={()=>setActiveTab('posts')}>Посты ({posts.length})</div>
+            <div className="forum-tabs">
+              {[['status','Статус'],['chronicle','Хроника'],['posts','Посты']].map(([id,label])=>(
+                <div key={id} className={`forum-tab ${activeTab===id?'active':''}`} onClick={()=>setActiveTab(id)}>
+                  {label}{id==='posts'&&<span className="tab-count">{posts.length}</span>}
+                </div>
+              ))}
             </div>
 
-            {activeTab === 'status' && meta?.currentStatus && (
-              <div className="status-block">{meta.currentStatus}</div>
-            )}
-
-            {activeTab === 'chronicle' && (
-              <div className="chronicle-list">
-                {(meta?.chronicle || []).length === 0 && (
-                  <div style={{ color: 'var(--dim)', fontSize: 12 }}>Хроника пуста</div>
-                )}
-                {(meta?.chronicle || []).map((c, i) => (
-                  <div key={i} className="chronicle-item">
-                    <div className="chronicle-dot" />
-                    <div className="chronicle-date">{c.date}</div>
-                    <div className="chronicle-text">{c.text}</div>
+            {/* CONTENT */}
+            <div className="content-cols">
+              <div>
+                {/* STATUS TAB */}
+                {activeTab === 'status' && (
+                  <div className="post-block">
+                    <div className="post-head">
+                      <div>
+                        <div className="post-author-name">Romeopro</div>
+                        <div className="post-author-rank">Легенда форума · 25 445 постов · 15 лет на сайте</div>
+                      </div>
+                      <span className="badge badge-author" style={{marginLeft:'auto'}}>АВТОР</span>
+                    </div>
+                    <div className="post-body">
+                      {meta?.currentStatus
+                        ? <div className="status-text">{meta.currentStatus}</div>
+                        : <div style={{color:'var(--dim)'}}>Текущий статус не указан. Добавьте в Admin Mode.</div>
+                      }
+                    </div>
                   </div>
-                ))}
-              </div>
-            )}
-
-            {activeTab === 'posts' && (
-              <div className="posts-list">
-                {posts.length === 0 && (
-                  <div style={{ color: 'var(--dim)', fontSize: 12 }}>Постов нет — запустите агента в Admin Mode</div>
                 )}
-                {posts.slice().reverse().map((p, i) => {
-                  const exp = expandedPosts[i]
-                  const text = p.text || ''
-                  return (
-                    <div key={i} className="post-item">
-                      <div className="post-meta">
-                        <span className="post-date">{p.date}</span>
-                        {p.bankroll && <span className="post-br">{p.bankroll}</span>}
-                        {p.url && <a href={p.url} target="_blank" rel="noreferrer" style={{color:'var(--dim)',fontSize:10,textDecoration:'none'}}>→ форум</a>}
-                      </div>
-                      <div className={`post-text ${exp?'expanded':''}`}>
-                        {exp ? text : text.substring(0,160) + (text.length>160?'…':'')}
-                      </div>
-                      {text.length > 160 && (
-                        <button className="post-expand" onClick={()=>setExpandedPosts(s=>({...s,[i]:!s[i]}))}>
-                          {exp ? '▲ свернуть' : '▼ развернуть'}
-                        </button>
+
+                {/* CHRONICLE TAB */}
+                {activeTab === 'chronicle' && (
+                  <div className="post-block">
+                    <div className="post-head">
+                      <div className="post-author-name">Хроника марафона</div>
+                    </div>
+                    <div className="post-body">
+                      {(meta?.chronicle || []).length === 0 ? (
+                        <div style={{color:'var(--dim)'}}>Хроника пуста. Добавьте записи в Admin Mode.</div>
+                      ) : (
+                        (meta?.chronicle || []).map((c,i) => (
+                          <div key={i} className="chron-item">
+                            <div className="chron-dot" />
+                            <div className="chron-date">{c.date}</div>
+                            <div className="chron-text">{c.text}</div>
+                          </div>
+                        ))
                       )}
                     </div>
+                  </div>
+                )}
+
+                {/* POSTS TAB */}
+                {activeTab === 'posts' && (
+                  posts.length === 0 ? (
+                    <div className="post-block"><div className="empty">Постов нет — запустите агента в Admin Mode</div></div>
+                  ) : (
+                    posts.slice().reverse().map((p,i) => {
+                      const exp = expanded[i]
+                      const text = p.text || ''
+                      return (
+                        <div key={i} className="post-block">
+                          <div className="post-head">
+                            <div>
+                              <div className="post-author-name">
+                                {p.author || 'Romeopro'}
+                                {p.bankroll && <span className="post-br-tag">{p.bankroll}</span>}
+                              </div>
+                              <div className="post-author-rank">Легенда форума</div>
+                            </div>
+                            <div className="post-date">{p.date}</div>
+                          </div>
+                          <div className="post-body">
+                            <div className="status-text">
+                              {exp ? text : text.substring(0,200) + (text.length>200?'…':'')}
+                            </div>
+                          </div>
+                          <div className="post-footer">
+                            {text.length>200 && (
+                              <button className="btn-expand" onClick={()=>setExpanded(s=>({...s,[i]:!s[i]}))}>
+                                {exp ? '▲ свернуть' : '▼ развернуть'}
+                              </button>
+                            )}
+                            {p.url && <a className="post-link" href={p.url} target="_blank" rel="noreferrer">→ форум</a>}
+                          </div>
+                        </div>
+                      )
+                    })
                   )
-                })}
+                )}
+              </div>
+
+              {/* SIDEBAR */}
+              <div className="sidebar">
+                <div className="side-block">
+                  <div className="side-title">📊 Статистика</div>
+                  <div className="side-body">
+                    <div className="side-row"><span className="side-key">БР сейчас</span><span className="side-val green">{fmt(meta?.bankroll)}</span></div>
+                    <div className="side-row"><span className="side-key">Стартовый БР</span><span className="side-val">{fmt(meta?.startBankroll)}</span></div>
+                    <div className="side-row"><span className="side-key">Цель</span><span className="side-val">$10M</span></div>
+                    <div className="side-row"><span className="side-key">День</span><span className="side-val gold">#{meta?.day || '—'}</span></div>
+                    <div className="side-row"><span className="side-key">Прогресс</span><span className="side-val">{(progress||0).toFixed(4)}%</span></div>
+                    <div className="side-row"><span className="side-key">Постов</span><span className="side-val">{fmtNum(posts.length || meta?.totalPosts)}</span></div>
+                    <div className="side-row"><span className="side-key">Подписчики</span><span className="side-val">{fmtNum(meta?.subscribers)}</span></div>
+                  </div>
+                </div>
+
+                <div className="side-block">
+                  <div className="side-title">🔗 Ссылки</div>
+                  <div className="side-body">
+                    <div style={{display:'flex',flexDirection:'column',gap:6}}>
+                      <a href="https://forum.gipsyteam.ru/index.php?viewtopic=181676" target="_blank" rel="noreferrer" style={{fontSize:12}}>→ Тема на GipsyTeam</a>
+                      <a href={`https://github.com/${cfg.repo || 'loremcdmx/romeoprotracker'}`} target="_blank" rel="noreferrer" style={{fontSize:12}}>→ Репозиторий GitHub</a>
+                    </div>
+                  </div>
+                </div>
+
+                {!adminMode && (
+                  <div className="side-block" style={{cursor:'pointer'}} onClick={handleLogoClick}>
+                    <div className="side-body" style={{textAlign:'center',padding:'14px',color:'var(--dim)',fontSize:11}}>
+                      🔐 Admin Mode<br/><span style={{fontSize:10}}>кликните лого 5 раз</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* ADMIN PANEL */}
+            {adminMode && (
+              <div className="admin-wrap">
+                <div className="admin-head">
+                  <span>⚙</span>
+                  <span className="admin-head-title">Admin Mode</span>
+                  <button className="btn btn-ghost" style={{marginLeft:'auto',padding:'4px 10px'}} onClick={()=>setAdminMode(false)}>Выйти</button>
+                </div>
+                <div className="admin-body">
+
+                  {/* GITHUB CONFIG */}
+                  <div className="admin-section">
+                    <div className="admin-section-title">GitHub (для сохранения данных)</div>
+                    <div className="form-grid">
+                      <div className="form-field">
+                        <label className="form-label">Репозиторий</label>
+                        <input className="form-input" value={cfg.repo} onChange={e=>setCfg(s=>({...s,repo:e.target.value}))} placeholder="username/romeoprotracker" />
+                      </div>
+                      <div className="form-field">
+                        <label className="form-label">GitHub PAT (ghp_...)</label>
+                        <input className="form-input" type="password" value={cfg.token} onChange={e=>setCfg(s=>({...s,token:e.target.value}))} placeholder="ghp_xxxxxxxxxxxx" />
+                      </div>
+                      <div className="form-field">
+                        <label className="form-label">Имя автора (для парсинга)</label>
+                        <input className="form-input" value={cfg.authorName} onChange={e=>setCfg(s=>({...s,authorName:e.target.value}))} placeholder="Romeopro" />
+                      </div>
+                    </div>
+                    <div className="btn-row">
+                      <button className="btn btn-red" onClick={handleSaveCfg}>Сохранить конфиг</button>
+                    </div>
+                  </div>
+
+                  {/* META EDIT */}
+                  <div className="admin-section">
+                    <div className="admin-section-title">Данные марафона</div>
+                    <div className="form-grid">
+                      <div className="form-field">
+                        <label className="form-label">Банкролл ($)</label>
+                        <input className="form-input" type="number" value={editMeta.bankroll||''} onChange={e=>setEditMeta(s=>({...s,bankroll:+e.target.value}))} />
+                      </div>
+                      <div className="form-field">
+                        <label className="form-label">День марафона</label>
+                        <input className="form-input" type="number" value={editMeta.day||''} onChange={e=>setEditMeta(s=>({...s,day:+e.target.value}))} />
+                      </div>
+                      <div className="form-field">
+                        <label className="form-label">Стартовый БР ($)</label>
+                        <input className="form-input" type="number" value={editMeta.startBankroll||10000} onChange={e=>setEditMeta(s=>({...s,startBankroll:+e.target.value}))} />
+                      </div>
+                      <div className="form-field">
+                        <label className="form-label">Подписчиков</label>
+                        <input className="form-input" type="number" value={editMeta.subscribers||''} onChange={e=>setEditMeta(s=>({...s,subscribers:+e.target.value}))} />
+                      </div>
+                      <div className="form-field form-full">
+                        <label className="form-label">Текущий статус</label>
+                        <textarea className="form-textarea" value={editMeta.currentStatus||''} onChange={e=>setEditMeta(s=>({...s,currentStatus:e.target.value}))} />
+                      </div>
+                      <div className="form-field form-full">
+                        <label className="form-label">Хроника (дата|текст, каждая запись с новой строки)</label>
+                        <textarea className="form-textarea" style={{minHeight:100}} value={editChronicle} onChange={e=>setEditChronicle(e.target.value)} placeholder={"10 марта 2026|Объявил о марафоне\n15 марта 2026|Достиг $15k"} />
+                      </div>
+                    </div>
+                    <div className="btn-row">
+                      <button className="btn btn-green" onClick={handleSaveMeta}>Сохранить в GitHub</button>
+                    </div>
+                  </div>
+
+                  {/* AGENT */}
+                  <div className="admin-section">
+                    <div className="admin-section-title">Скрипт Tampermonkey</div>
+                    <div className="agent-section">
+                      <div style={{fontSize:11,color:'var(--dim)'}}>Режим сбора постов:</div>
+                      <div className="agent-modes">
+                        {[['author','Посты автора (~1-3 мин)'],['last10','Последние 10 стр.'],['all','Все страницы (~40 мин)']].map(([id,label])=>(
+                          <button key={id} className={`agent-mode-btn ${agentMode===id?'active':''}`} onClick={()=>setAgentMode(id)}>{label}</button>
+                        ))}
+                      </div>
+                      <div className="btn-row">
+                        <button className="btn btn-ghost" onClick={()=>{ setCode(generateUserscript(cfg,agentMode)); setShowCode(s=>!s) }}>
+                          {showCode ? 'Скрыть код' : 'Показать код'}
+                        </button>
+                        <button className="btn btn-red" onClick={handleCopy}>📋 Скопировать код</button>
+                        {agentRunning
+                          ? <button className="btn btn-stop" onClick={()=>setAgentRunning(false)}>■ Остановить</button>
+                          : <button className="btn btn-red" onClick={handleStartAgent}>▶ Запустить агента</button>
+                        }
+                      </div>
+                      {agentStatus && (
+                        <div className={`agent-log ${agentRunning?'run':agentStatus.startsWith('✓')?'done':agentStatus.startsWith('✗')?'err':''}`}>
+                          {agentStatus}
+                        </div>
+                      )}
+                      {showCode && code && (
+                        <textarea className="code-preview" readOnly value={code} />
+                      )}
+                    </div>
+                  </div>
+
+                </div>
               </div>
             )}
           </>
         )}
-
-        {/* ADMIN PANEL */}
-        {adminMode && (
-          <div className="admin-panel">
-            <div className="admin-title">⚙ Admin Mode</div>
-
-            {/* Конфиг GitHub */}
-            <div className="section-title">GitHub (для сохранения данных)</div>
-            <div className="admin-grid">
-              <div className="field">
-                <label className="field-label">Репозиторий</label>
-                <input
-                  value={cfg.repo}
-                  onChange={e => setCfg(s => ({...s, repo: e.target.value}))}
-                  placeholder="username/romeoprotracker"
-                />
-              </div>
-              <div className="field">
-                <label className="field-label">GitHub PAT (ghp_...)</label>
-                <input
-                  type="password"
-                  value={cfg.token}
-                  onChange={e => setCfg(s => ({...s, token: e.target.value}))}
-                  placeholder="ghp_xxxxxxxxxxxx"
-                />
-              </div>
-              <div className="field">
-                <label className="field-label">Имя автора (для парсинга)</label>
-                <input
-                  value={cfg.authorName}
-                  onChange={e => setCfg(s => ({...s, authorName: e.target.value}))}
-                  placeholder="Romeopro"
-                />
-              </div>
-            </div>
-            <div className="btn-row">
-              <button className="btn btn-green" onClick={handleSaveCfg}>Сохранить конфиг</button>
-              <button className="btn btn-outline" onClick={() => setAdminMode(false)}>Выйти</button>
-            </div>
-
-            {/* Редактирование меты */}
-            <div className="section-title" style={{marginTop:20}}>Данные марафона</div>
-            <div className="meta-edit">
-              <div className="field">
-                <label className="field-label">Банкролл ($)</label>
-                <input type="number" value={editMeta.bankroll||''} onChange={e=>setEditMeta(s=>({...s,bankroll:+e.target.value}))} />
-              </div>
-              <div className="field">
-                <label className="field-label">День (#)</label>
-                <input type="number" value={editMeta.day||''} onChange={e=>setEditMeta(s=>({...s,day:+e.target.value}))} />
-              </div>
-              <div className="field">
-                <label className="field-label">Стартовый БР ($)</label>
-                <input type="number" value={editMeta.startBankroll||''} onChange={e=>setEditMeta(s=>({...s,startBankroll:+e.target.value}))} />
-              </div>
-              <div className="field">
-                <label className="field-label">Подписчиков</label>
-                <input type="number" value={editMeta.subscribers||''} onChange={e=>setEditMeta(s=>({...s,subscribers:+e.target.value}))} />
-              </div>
-              <div className="field field-full">
-                <label className="field-label">Текущий статус</label>
-                <textarea value={editMeta.currentStatus||''} onChange={e=>setEditMeta(s=>({...s,currentStatus:e.target.value}))} />
-              </div>
-              <div className="field field-full">
-                <label className="field-label">Хроника (формат: дата|текст, каждая запись с новой строки)</label>
-                <textarea
-                  style={{minHeight:120}}
-                  value={editChronicle}
-                  onChange={e=>setEditChronicle(e.target.value)}
-                  placeholder={"10 марта 2026|Объявил о марафоне\n15 марта 2026|Достиг $15k"}
-                />
-              </div>
-            </div>
-            <div className="btn-row">
-              <button className="btn btn-green" onClick={handleSaveMeta}>Сохранить в GitHub</button>
-            </div>
-
-            {/* Агент */}
-            <div className="agent-block">
-              <div className="agent-title">Скрипт Tampermonkey</div>
-              <div className="agent-modes">
-                {[
-                  { id: 'author', label: 'Посты автора (~1-3 мин)' },
-                  { id: 'last10', label: 'Последние 10 стр.' },
-                  { id: 'all',    label: 'Все страницы (~40 мин)' },
-                ].map(m => (
-                  <button key={m.id} className={`mode-btn ${agentMode===m.id?'active':''}`} onClick={()=>setAgentMode(m.id)}>
-                    {m.label}
-                  </button>
-                ))}
-              </div>
-              <div className="btn-row">
-                <button className="btn btn-outline" onClick={()=>setShowScript(s=>!s)}>
-                  {showScript ? 'Скрыть код' : 'Показать код'}
-                </button>
-                <button className="btn btn-green" onClick={handleCopyScript}>📋 Скопировать код</button>
-                {agentRunning
-                  ? <button className="btn btn-red" onClick={handleStopAgent}>■ Остановить</button>
-                  : <button className="btn btn-green" onClick={handleStartAgent}>▶ Запустить агента</button>
-                }
-                <button className="btn btn-outline" onClick={handleInsertManual}>📝 Вставить вручную</button>
-              </div>
-              {agentStatus && (
-                <div className={`agent-status ${agentRunning?'running':agentStatus.startsWith('✓')?'done':agentStatus.startsWith('✗')?'error':''}`}>
-                  {agentStatus}
-                </div>
-              )}
-              {showScript && scriptCode && (
-                <textarea
-                  readOnly
-                  value={scriptCode}
-                  style={{ marginTop:10, width:'100%', minHeight:200, background:'var(--bg)', border:'1px solid var(--border)', color:'var(--dim)', fontSize:10, padding:8, borderRadius:4, fontFamily:'JetBrains Mono, monospace' }}
-                />
-              )}
-            </div>
-          </div>
-        )}
       </div>
 
-      {toast && <div className={`toast ${toast.err?'error':''}`}>{toast.msg}</div>}
+      {toast && <div className={`toast ${toast.err?'err':''}`}>{toast.msg}</div>}
     </>
   )
 }
