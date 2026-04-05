@@ -2790,9 +2790,9 @@
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_03_2026/post-6195-17732366087635_thumb.webp"
     ],
-    "brBefore": null,
-    "brAfter": null,
-    "sessionResult": null,
+    "brBefore": 10000,
+    "brAfter": 9954,
+    "sessionResult": -46,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8193547"
   },
   {
@@ -4028,9 +4028,9 @@
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_03_2026/post-6195-1773313574f10b_thumb.webp"
     ],
-    "brBefore": null,
-    "brAfter": null,
-    "sessionResult": null,
+    "brBefore": 9954,
+    "brAfter": 8710,
+    "sessionResult": -1244,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8193981"
   },
   {
@@ -5681,9 +5681,9 @@
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_03_2026/post-6195-1773404418fc8d_thumb.webp"
     ],
-    "brBefore": null,
-    "brAfter": null,
-    "sessionResult": null,
+    "brBefore": 8710,
+    "brAfter": 9099,
+    "sessionResult": 389,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8194529"
   },
   {
@@ -6418,9 +6418,9 @@
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_03_2026/post-6195-17734909564385_thumb.webp"
     ],
-    "brBefore": null,
-    "brAfter": null,
-    "sessionResult": null,
+    "brBefore": 9099,
+    "brAfter": 12321,
+    "sessionResult": 3222,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8194971"
   },
   {
@@ -7055,9 +7055,9 @@
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_03_2026/post-6195-17735810373078_thumb.webp"
     ],
-    "brBefore": null,
-    "brAfter": null,
-    "sessionResult": null,
+    "brBefore": 12321,
+    "brAfter": 6737,
+    "sessionResult": -5584,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8195516"
   },
   {
@@ -7811,9 +7811,9 @@
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_03_2026/post-6195-17736646294bf5_thumb.webp"
     ],
-    "brBefore": null,
-    "brAfter": null,
-    "sessionResult": null,
+    "brBefore": 6737,
+    "brAfter": 5257,
+    "sessionResult": -1480,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8196021"
   },
   {
@@ -9903,9 +9903,9 @@
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_03_2026/post-6195-177375189726c8_thumb.webp"
     ],
-    "brBefore": null,
-    "brAfter": null,
-    "sessionResult": null,
+    "brBefore": 5257,
+    "brAfter": 3020,
+    "sessionResult": -2237,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8196561"
   },
   {
@@ -11583,9 +11583,9 @@
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_03_2026/post-6195-17738377035c97_thumb.webp"
     ],
-    "brBefore": null,
-    "brAfter": null,
-    "sessionResult": null,
+    "brBefore": 3020,
+    "brAfter": 3211,
+    "sessionResult": 191,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8197110"
   },
   {
@@ -14183,9 +14183,9 @@
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_03_2026/post-6195-1773925928960b_thumb.webp"
     ],
-    "brBefore": null,
-    "brAfter": null,
-    "sessionResult": null,
+    "brBefore": 3211,
+    "brAfter": 2876,
+    "sessionResult": -335,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8197728"
   },
   {
@@ -21715,9 +21715,9 @@
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_03_2026/post-6195-1774091666dfc1_thumb.webp"
     ],
-    "brBefore": null,
-    "brAfter": null,
-    "sessionResult": null,
+    "brBefore": 2876,
+    "brAfter": 4192,
+    "sessionResult": 1316,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8198956"
   },
   {
@@ -25917,9 +25917,9 @@
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_03_2026/post-6195-1774191606ae85_thumb.webp"
     ],
-    "brBefore": null,
-    "brAfter": null,
-    "sessionResult": null,
+    "brBefore": 4192,
+    "brAfter": 6902,
+    "sessionResult": 2710,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8199618"
   },
   {
@@ -28524,9 +28524,9 @@
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_03_2026/post-6195-17742700961c53_thumb.webp"
     ],
-    "brBefore": null,
-    "brAfter": null,
-    "sessionResult": null,
+    "brBefore": 6902,
+    "brAfter": 7277,
+    "sessionResult": 375,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8200086"
   },
   {
@@ -29516,9 +29516,9 @@
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_03_2026/post-6195-177431663244a7_thumb.webp"
     ],
-    "brBefore": null,
-    "brAfter": null,
-    "sessionResult": null,
+    "brBefore": 6902,
+    "brAfter": 7504,
+    "sessionResult": 602,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8200442"
   },
   {
@@ -40645,9 +40645,9 @@
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_03_2026/post-6195-1774611614b09b_thumb.webp"
     ],
-    "brBefore": null,
-    "brAfter": null,
-    "sessionResult": null,
+    "brBefore": 7504,
+    "brAfter": 6894,
+    "sessionResult": -610,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8203224"
   },
   {
@@ -41519,9 +41519,9 @@
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_03_2026/post-6195-17747064169b64_thumb.webp"
     ],
-    "brBefore": null,
-    "brAfter": null,
-    "sessionResult": null,
+    "brBefore": 6894,
+    "brAfter": 6304,
+    "sessionResult": -590,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8203871"
   },
   {
@@ -51767,9 +51767,9 @@
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_04_2026/post-6195-17750395526bd1_thumb.webp"
     ],
-    "brBefore": null,
-    "brAfter": null,
-    "sessionResult": null,
+    "brBefore": 6304,
+    "brAfter": 6591,
+    "sessionResult": 287,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8206633"
   },
   {
@@ -54778,9 +54778,9 @@
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_04_2026/post-6195-1775127516a2a0_thumb.webp"
     ],
-    "brBefore": null,
-    "brAfter": null,
-    "sessionResult": null,
+    "brBefore": 6591,
+    "brAfter": 7342,
+    "sessionResult": 751,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8207321"
   },
   {
@@ -57395,9 +57395,9 @@
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_04_2026/post-6195-1775185179617a_thumb.webp"
     ],
-    "brBefore": null,
-    "brAfter": null,
-    "sessionResult": null,
+    "brBefore": 7342,
+    "brAfter": 10371,
+    "sessionResult": 3029,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8207918"
   },
   {
@@ -61740,9 +61740,9 @@
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_04_2026/post-6195-177538675511c0_thumb.webp"
     ],
-    "brBefore": null,
-    "brAfter": null,
-    "sessionResult": null,
+    "brBefore": 10371,
+    "brAfter": 9957,
+    "sessionResult": -414,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8209598"
   },
   {
