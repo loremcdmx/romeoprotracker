@@ -1,13 +1,186 @@
 {
-  "bankroll": 10000,
+  "bankroll": 9957,
   "startBankroll": 10000,
   "targetBankroll": 10000000,
   "day": 1,
   "status": "active",
-  "lastUpdated": "2026-04-05T23:17:58.183Z",
+  "lastUpdated": "2026-04-05T23:46:58.212Z",
   "totalPosts": 3627,
   "scrapedPages": 0,
   "chronicle": [],
   "authorName": "Romeopro",
-  "pages": 182
+  "pages": 182,
+  "brHistory": [
+    {
+      "id": "8193547",
+      "date": "11 марта, 17:43",
+      "timestamp": 1773236621,
+      "brBefore": 10000,
+      "brAfter": 9954,
+      "sessionResult": -46,
+      "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8193547"
+    },
+    {
+      "id": "8193981",
+      "date": "12 марта, 15:08",
+      "timestamp": 1773313736,
+      "brBefore": 9954,
+      "brAfter": 8710,
+      "sessionResult": -1244,
+      "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8193981"
+    },
+    {
+      "id": "8194529",
+      "date": "13 марта, 16:20",
+      "timestamp": 1773404430,
+      "brBefore": 8710,
+      "brAfter": 9099,
+      "sessionResult": 389,
+      "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8194529"
+    },
+    {
+      "id": "8194971",
+      "date": "14 марта, 16:22",
+      "timestamp": 1773490973,
+      "brBefore": 9099,
+      "brAfter": 12321,
+      "sessionResult": 3222,
+      "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8194971"
+    },
+    {
+      "id": "8195516",
+      "date": "15 марта, 17:24",
+      "timestamp": 1773581082,
+      "brBefore": 12321,
+      "brAfter": 6737,
+      "sessionResult": -5584,
+      "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8195516"
+    },
+    {
+      "id": "8196021",
+      "date": "16 марта, 16:37",
+      "timestamp": 1773664652,
+      "brBefore": 6737,
+      "brAfter": 5257,
+      "sessionResult": -1480,
+      "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8196021"
+    },
+    {
+      "id": "8196561",
+      "date": "17 марта, 16:53",
+      "timestamp": 1773751998,
+      "brBefore": 5257,
+      "brAfter": 3020,
+      "sessionResult": -2237,
+      "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8196561"
+    },
+    {
+      "id": "8197110",
+      "date": "18 марта, 16:41",
+      "timestamp": 1773837712,
+      "brBefore": 3020,
+      "brAfter": 3211,
+      "sessionResult": 191,
+      "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8197110"
+    },
+    {
+      "id": "8197728",
+      "date": "19 марта, 17:13",
+      "timestamp": 1773926033,
+      "brBefore": 3211,
+      "brAfter": 2876,
+      "sessionResult": -335,
+      "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8197728"
+    },
+    {
+      "id": "8198956",
+      "date": "21 марта, 15:14",
+      "timestamp": 1774091674,
+      "brBefore": 2876,
+      "brAfter": 4192,
+      "sessionResult": 1316,
+      "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8198956"
+    },
+    {
+      "id": "8199618",
+      "date": "22 марта, 19:00",
+      "timestamp": 1774191638,
+      "brBefore": 4192,
+      "brAfter": 6902,
+      "sessionResult": 2710,
+      "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8199618"
+    },
+    {
+      "id": "8200086",
+      "date": "23 марта, 16:48",
+      "timestamp": 1774270102,
+      "brBefore": 6902,
+      "brAfter": 7277,
+      "sessionResult": 375,
+      "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8200086"
+    },
+    {
+      "id": "8200442",
+      "date": "24 марта, 05:44",
+      "timestamp": 1774316643,
+      "brBefore": 6902,
+      "brAfter": 7504,
+      "sessionResult": 602,
+      "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8200442"
+    },
+    {
+      "id": "8203224",
+      "date": "27 марта, 15:40",
+      "timestamp": 1774611628,
+      "brBefore": 7504,
+      "brAfter": 6894,
+      "sessionResult": -610,
+      "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8203224"
+    },
+    {
+      "id": "8203871",
+      "date": "28 марта, 18:02",
+      "timestamp": 1774706526,
+      "brBefore": 6894,
+      "brAfter": 6304,
+      "sessionResult": -590,
+      "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8203871"
+    },
+    {
+      "id": "8206633",
+      "date": "1 апреля, 14:32",
+      "timestamp": 1775039557,
+      "brBefore": 6304,
+      "brAfter": 6591,
+      "sessionResult": 287,
+      "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8206633"
+    },
+    {
+      "id": "8207321",
+      "date": "2 апреля, 14:58",
+      "timestamp": 1775127521,
+      "brBefore": 6591,
+      "brAfter": 7342,
+      "sessionResult": 751,
+      "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8207321"
+    },
+    {
+      "id": "8207918",
+      "date": "3 апреля, 07:03",
+      "timestamp": 1775185390,
+      "brBefore": 7342,
+      "brAfter": 10371,
+      "sessionResult": 3029,
+      "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8207918"
+    },
+    {
+      "id": "8209598",
+      "date": "4 апреля, 14:59",
+      "timestamp": 1775386759,
+      "brBefore": 10371,
+      "brAfter": 9957,
+      "sessionResult": -414,
+      "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8209598"
+    }
+  ]
 }
