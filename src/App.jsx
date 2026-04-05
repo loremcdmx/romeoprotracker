@@ -254,12 +254,26 @@ function extractBR(text) {
 }
 
 // ─── MARATHON CHART ───────────────────────────────────────────────────────────
-function MarathonChart({ posts, startBR, setLightbox }) {
+function MarathonChart({ posts, meta, startBR, setLightbox }) {
   const [tip, setTip] = useState(null)
 
   const points = useMemo(() => {
+    // Приоритет: meta.brHistory (уже готовые данные) → posts с brAfter (из OCR)
+    if (meta?.brHistory?.length) {
+      return meta.brHistory
+        .sort((a,b) => (a.timestamp||0) - (b.timestamp||0))
+        .map((h, i, arr) => ({
+          br:     h.brAfter,
+          brPrev: i === 0 ? startBR : arr[i-1].brAfter,
+          date:   h.date,
+          text:   h.text || '',
+          url:    h.url,
+          images: [],
+          sessionResult: h.sessionResult,
+        }))
+    }
     return posts
-      .filter(p => p.author?.toLowerCase().includes('romeopro') && p.brAfter)
+      .filter(p => /romeopro/i.test(p.author) && p.brAfter)
       .sort((a,b) => (a.timestamp||0) - (b.timestamp||0))
       .map((p, i, arr) => ({
         br:     p.brAfter,
@@ -268,8 +282,9 @@ function MarathonChart({ posts, startBR, setLightbox }) {
         text:   p.text,
         url:    p.url,
         images: p.images || [],
+        sessionResult: p.sessionResult,
       }))
-  }, [posts, startBR])
+  }, [posts, meta, startBR])
 
   if (!points.length) return (
     <div className="marathon-chart">
@@ -443,10 +458,32 @@ function ActivityChart({ posts }) {
             left:  right?'auto':`calc(${pct}% - 8px)`,
             right: right?`calc(${100-pct}% - 8px)`:'auto',
           }}>
-            <div style={{fontWeight:700,color:'#fff',fontSize:12,marginBottom:4}}>📅 {tip.date}</div>
-            <div style={{fontSize:11,color:'#888'}}>
-              {tip.count} {tip.count===1?'пост':'постов'} · кликни для деталей
+            <div style={{fontWeight:700,color:'#fff',fontSize:12,marginBottom:5}}>📅 {tip.date}</div>
+            <div style={{fontSize:11,color:'#888',marginBottom: tip.posts.length ? 5 : 0}}>
+              {tip.count} {tip.count===1?'пост':'постов'}
+              {(() => {
+                const romeoPs = tip.posts.filter(p=>/romeopro/i.test(p.author))
+                const top = [...tip.posts].sort((a,b)=>(b.likes||0)-(a.likes||0))[0]
+                const parts = []
+                if (romeoPs.length) parts.push(`Ромео написал ${romeoPs.length}`)
+                if (top?.likes >= 5) parts.push(`топ +${top.likes} 👍`)
+                return parts.length ? ' · ' + parts.join(', ') : ''
+              })()}
             </div>
+            {(() => {
+              const top = [...tip.posts].sort((a,b)=>(b.likes||0)-(a.likes||0))[0]
+              if (!top) return null
+              const clean = (top.text||'').replace(/\[QUOTE\][\s\S]*?\[\/QUOTE\]/gi,'').trim()
+              if (!clean) return null
+              return (
+                <div style={{fontSize:11,color:'#bbb',lineHeight:1.55,
+                  display:'-webkit-box',WebkitLineClamp:3,WebkitBoxOrient:'vertical',overflow:'hidden'}}>
+                  <span style={{color:'#666',fontSize:10}}>{top.author}: </span>
+                  {clean.substring(0,120)}
+                </div>
+              )
+            })()}
+            <div style={{fontSize:10,color:'#444',marginTop:5}}>кликни → детали дня</div>
           </div>
         )
       })()}
@@ -1045,7 +1082,7 @@ export default function App() {
 
             {/* ЛЕНТА */}
             {activeTab==='feed' && <>
-              <MarathonChart posts={posts} startBR={stats.startBR} setLightbox={setLightbox}/>
+              <MarathonChart posts={posts} meta={meta} startBR={stats.startBR} setLightbox={setLightbox}/>
               <ActivityChart posts={posts}/>
               <FilterBar
                 sortBy={sortBy} setSortBy={setSortBy}
