@@ -580,7 +580,7 @@ export default function App() {
               {ignored.size > 0 && (
                 <div className="sblock">
                   <div className="sblock-title">🚫 Игнор-лист ({ignored.size})</div>
-                  <div className="sblock-body" style={{display:'flex',flex-wrap:'wrap',gap:6}}>
+                  <div className="sblock-body" style={{display:'flex',flexWrap:'wrap',gap:6}}>
                     {[...ignored].map(n=>(
                       <span key={n} style={{background:'var(--bg3)',border:'1px solid var(--border)',borderRadius:12,padding:'2px 8px',fontSize:11,display:'flex',gap:4,alignItems:'center'}}>
                         {n}<button style={{background:'none',border:'none',cursor:'pointer',color:'var(--dim)',fontSize:11}} onClick={()=>removeIgnore(n)}>✕</button>
