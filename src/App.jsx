@@ -357,10 +357,17 @@ const css = `
   .agent-modes { display: flex; gap: 6px; flex-wrap: wrap; margin: 10px 0; }
   .agent-mode-btn { padding: 5px 12px; border-radius: var(--radius); font-size: 11px; cursor: pointer; border: 1px solid var(--border); background: var(--bg2); color: var(--dim2); font-family: inherit; transition: all .15s; }
   .agent-mode-btn.active { border-color: var(--red2); color: var(--red2); background: var(--red-dim); }
-  .agent-log { margin-top: 10px; font-size: 11px; font-family: 'Roboto Mono', monospace; }
-  .agent-log.run  { color: var(--gold); }
-  .agent-log.done { color: #66bb6a; }
-  .agent-log.err  { color: var(--red2); }
+  .agent-log-panel { margin-top:10px; background:var(--bg); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; }
+  .agent-log-head { background:#0a0a0a; padding:5px 10px; font-size:10px; color:var(--dim); display:flex; justify-content:space-between; border-bottom:1px solid var(--border); }
+  .agent-log-body { max-height:180px; overflow-y:auto; padding:6px 0; font-family:'Roboto Mono',monospace; font-size:11px; }
+  .agent-log-line { padding:2px 10px; line-height:1.6; display:flex; gap:8px; }
+  .agent-log-time { color:#555; flex-shrink:0; }
+  .agent-log-msg  { }
+  .log-info  { color:#c8d8e8; }
+  .log-ok    { color:#66bb6a; }
+  .log-warn  { color:var(--gold); }
+  .log-err   { color:var(--red2); }
+  .log-dim   { color:#555; }
   .code-preview { margin-top:10px; width:100%; min-height:160px; background:var(--bg); border:1px solid var(--border); color:var(--dim); font-size:10px; padding:8px; border-radius:var(--radius); font-family:'Roboto Mono',monospace; resize:vertical; }
 
   /* AUTH */
@@ -428,8 +435,17 @@ export default function App() {
   const [editMeta, setEditMeta]       = useState({})
   const [editChronicle, setEditChronicle] = useState('')
   const [agentMode, setAgentMode]     = useState('author')
-  const [agentStatus, setAgentStatus] = useState('')
+  const [agentLogs, setAgentLogs]     = useState([])
   const [agentRunning, setAgentRunning] = useState(false)
+  const agentWin  = useRef(null)
+  const agentTimer = useRef(null)
+  const msgListener = useRef(null)
+
+  const addLog = useCallback((msg, level='info') => {
+    const time = new Date().toLocaleTimeString('ru', {hour12:false})
+    console.log(`[RPT ${time}] ${msg}`)
+    setAgentLogs(prev => [...prev.slice(-80), {time, msg, level}])
+  }, [])
   const [showCode, setShowCode]       = useState(false)
   const [code, setCode]               = useState('')
   const [toast, showToast] = useToast()
@@ -481,23 +497,108 @@ export default function App() {
 
   const handleStartAgent = () => {
     if (!cfg.repo || !cfg.token) return showToast('Укажите репо и токен', true)
+
+    setAgentLogs([])
+    setAgentRunning(true)
+
+    addLog('Агент запускается...', 'info')
+    addLog(`Режим: ${agentMode} | Репо: ${cfg.repo}`, 'dim')
+    addLog(`Токен: ${cfg.token ? cfg.token.substring(0,8)+'...' : '❌ НЕ ЗАДАН'}`, cfg.token ? 'dim' : 'err')
+
     const c = generateUserscript(cfg, agentMode)
-    setCode(c); setAgentRunning(true); setAgentStatus('Запускаю вкладку форума...')
-    const w = window.open('https://forum.gipsyteam.ru/index.php?viewtopic=181676&filter=author&rp_mode=author', 'rpt_agent')
-    const onMsg = (e) => {
-      if (e.data?.type === 'RPT_LOG')  setAgentStatus(e.data.msg)
-      if (e.data?.type === 'RPT_DONE') {
+    setCode(c)
+
+    addLog('Открываю вкладку форума...', 'info')
+    try {
+      agentWin.current = window.open(
+        'https://forum.gipsyteam.ru/index.php?viewtopic=181676&filter=author&rp_mode=author',
+        'rpt_agent'
+      )
+      if (!agentWin.current) {
+        addLog('❌ Браузер заблокировал открытие вкладки! Разрешите всплывающие окна для этого сайта.', 'err')
         setAgentRunning(false)
-        setAgentStatus('✓ Готово! Загружено ' + e.data.count + ' постов')
-        window.removeEventListener('message', onMsg)
+        return
+      }
+      addLog('✓ Вкладка открыта. Ждём ответа от Tampermonkey-скрипта...', 'ok')
+      addLog('  (если через 15 сек нет ответа — скрипт не установлен или не активен)', 'dim')
+    } catch(e) {
+      addLog('❌ Ошибка открытия вкладки: ' + e.message, 'err')
+      setAgentRunning(false)
+      return
+    }
+
+    // Таймаут — если за 15 сек нет ответа
+    agentTimer.current = setTimeout(() => {
+      if (agentRunning) {
+        addLog('⏱ 15 секунд без ответа. Возможные причины:', 'warn')
+        addLog('  1. Tampermonkey-скрипт не установлен', 'warn')
+        addLog('  2. Скрипт установлен, но не совпадает URL (@match)', 'warn')
+        addLog('  3. Tampermonkey отключён на этой странице', 'warn')
+        addLog('  → Откройте вкладку форума → F12 → Console — должны быть строки [RPT ...]', 'warn')
+      }
+    }, 15000)
+
+    // Слушаем postMessage от агента
+    if (msgListener.current) window.removeEventListener('message', msgListener.current)
+    msgListener.current = (e) => {
+      // Показываем все входящие сообщения для диагностики
+      if (e.data?.type?.startsWith('RPT_')) {
+        addLog(`← postMessage: ${JSON.stringify(e.data)}`, 'dim')
+      }
+      if (e.data?.type === 'RPT_LOG') {
+        addLog(e.data.msg, e.data.level || 'info')
+      }
+      if (e.data?.type === 'RPT_DONE') {
+        clearTimeout(agentTimer.current)
+        addLog(`🎉 Готово! Загружено ${e.data.count} постов`, 'ok')
+        setAgentRunning(false)
+        window.removeEventListener('message', msgListener.current)
         setTimeout(() => fetchPublicData(cfg.repo).then(({posts,meta}) => { setPosts(posts||[]); setMeta(meta||{}) }), 3000)
       }
       if (e.data?.type === 'RPT_ERROR') {
-        setAgentRunning(false); setAgentStatus('✗ ' + e.data.msg)
-        window.removeEventListener('message', onMsg)
+        clearTimeout(agentTimer.current)
+        addLog('❌ Ошибка агента: ' + e.data.msg, 'err')
+        setAgentRunning(false)
+        window.removeEventListener('message', msgListener.current)
       }
     }
-    window.addEventListener('message', onMsg)
+    window.addEventListener('message', msgListener.current)
+
+    // Дополнительно: опрашиваем localStorage каждые 2 сек (если postMessage не работает)
+    const lsPoll = setInterval(() => {
+      try {
+        const done = localStorage.getItem('rpt_agent_done')
+        if (done) {
+          const data = JSON.parse(done)
+          clearInterval(lsPoll)
+          clearTimeout(agentTimer.current)
+          addLog(`🎉 (localStorage) Готово! ${data.count} постов`, 'ok')
+          setAgentRunning(false)
+          localStorage.removeItem('rpt_agent_done')
+          fetchPublicData(cfg.repo).then(({posts,meta}) => { setPosts(posts||[]); setMeta(meta||{}) })
+        }
+        const lastLog = localStorage.getItem('rpt_agent_log')
+        if (lastLog) {
+          const entry = JSON.parse(lastLog)
+          // показываем только новые
+          if (entry.t > (lsPoll._lastT || 0)) {
+            lsPoll._lastT = entry.t
+            addLog('(ls) ' + entry.msg, entry.level || 'info')
+          }
+          localStorage.removeItem('rpt_agent_log')
+        }
+      } catch(_) {}
+    }, 1500)
+    agentTimer._lsPoll = lsPoll
+  }
+
+  const handleStopAgent = () => {
+    clearTimeout(agentTimer.current)
+    if (agentTimer._lsPoll) clearInterval(agentTimer._lsPoll)
+    agentWin.current?.close()
+    if (msgListener.current) window.removeEventListener('message', msgListener.current)
+    setAgentRunning(false)
+    addLog('■ Агент остановлен вручную', 'warn')
   }
 
   const progress = meta ? Math.min(100, ((meta.bankroll - meta.startBankroll) / (meta.targetBankroll - meta.startBankroll)) * 100) : 0
@@ -811,13 +912,26 @@ export default function App() {
                         </button>
                         <button className="btn btn-red" onClick={handleCopy}>📋 Скопировать код</button>
                         {agentRunning
-                          ? <button className="btn btn-stop" onClick={()=>setAgentRunning(false)}>■ Остановить</button>
+                          ? <button className="btn btn-stop" onClick={handleStopAgent}>■ Остановить</button>
                           : <button className="btn btn-red" onClick={handleStartAgent}>▶ Запустить агента</button>
                         }
                       </div>
-                      {agentStatus && (
-                        <div className={`agent-log ${agentRunning?'run':agentStatus.startsWith('✓')?'done':agentStatus.startsWith('✗')?'err':''}`}>
-                          {agentStatus}
+
+                      {/* LOG PANEL */}
+                      {agentLogs.length > 0 && (
+                        <div className="agent-log-panel">
+                          <div className="agent-log-head">
+                            <span>🎲 Лог агента</span>
+                            <span style={{cursor:'pointer',color:'var(--dim)'}} onClick={()=>setAgentLogs([])}>очистить</span>
+                          </div>
+                          <div className="agent-log-body" ref={el => { if(el) el.scrollTop = el.scrollHeight }}>
+                            {agentLogs.map((l,i) => (
+                              <div key={i} className={`agent-log-line log-${l.level}`}>
+                                <span className="agent-log-time">{l.time}</span>
+                                <span className="agent-log-msg">{l.msg}</span>
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       )}
                       {showCode && code && (

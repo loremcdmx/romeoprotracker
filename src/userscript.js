@@ -55,8 +55,10 @@ export function generateUserscript(cfg, mode) {
     logBody.scrollTop = logBody.scrollHeight;
     const badge = document.getElementById('rpt-badge');
     if (badge && level !== 'dim') { badge.textContent = msg.substring(0,45); badge.style.color = COLORS[level]; }
-    // Пингуем родительское окно
-    try { window.opener?.postMessage({ type:'RPT_LOG', msg }, '*'); } catch(_) {}
+    // Пингуем родительское окно (postMessage)
+    try { window.opener?.postMessage({ type:'RPT_LOG', msg, level }, '*'); } catch(_) {}
+    // Резервный канал: localStorage (если postMessage заблокирован cross-origin)
+    try { localStorage.setItem('rpt_agent_log', JSON.stringify({msg, level, t: Date.now()})); } catch(_) {}
   }
 
   function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
@@ -265,6 +267,7 @@ export function generateUserscript(cfg, mode) {
         GM_setValue('rpt_page', 0);
         log('🎉 Загружено! +' + result.added + ' новых, итого ' + result.total, 'ok');
         try { window.opener?.postMessage({ type:'RPT_DONE', count: result.total }, '*'); } catch(_) {}
+        try { localStorage.setItem('rpt_agent_done', JSON.stringify({count: result.total, t: Date.now()})); } catch(_) {}
       } catch(e) {
         log('❌ Ошибка GitHub: ' + e.message, 'err');
         try { window.opener?.postMessage({ type:'RPT_ERROR', msg: e.message }, '*'); } catch(_) {}
