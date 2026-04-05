@@ -98,12 +98,39 @@ const css = `
   .btn-expand{background:none;border:none;color:var(--dim);font-size:11px;cursor:pointer;font-family:inherit;padding:0;margin-top:4px;display:block}
   .btn-expand:hover{color:var(--text)}
 
-  /* FEED */
+  /* GLOBAL FILTER BAR */
+  .filter-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:10px 14px;margin-bottom:14px}
+  .filter-bar label{font-size:11px;color:var(--dim);white-space:nowrap}
+  .filter-num{width:70px;background:var(--bg3);border:1px solid var(--border);border-radius:20px;color:var(--text);font-family:inherit;font-size:11px;padding:4px 10px;outline:none;text-align:center}
+  .filter-num:focus{border-color:#444}
+  .filter-pill{padding:5px 12px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;white-space:nowrap}
+  .filter-pill.off{background:var(--bg3);color:var(--dim2);border:1px solid var(--border)}
+  .filter-pill.off:hover{border-color:#444;color:var(--text)}
+  .filter-pill.on{background:var(--red);color:#fff;border:1px solid var(--red)}
+  .filter-active-count{font-size:11px;color:var(--dim);margin-left:auto;white-space:nowrap}
   .feed-filters{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;align-items:center}
   .feed-select{background:var(--bg3);border:1px solid var(--border);border-radius:20px;color:var(--text);font-family:inherit;font-size:11px;padding:5px 10px;outline:none;cursor:pointer}
   .feed-search{background:var(--bg3);border:1px solid var(--border);border-radius:20px;color:var(--text);font-family:inherit;font-size:11px;padding:5px 12px;outline:none;flex:1;min-width:140px}
   .feed-search:focus,.feed-select:focus{border-color:#444}
   .feed-count{font-size:11px;color:var(--dim);margin-left:auto;white-space:nowrap}
+
+  /* PAGINATION */
+  .pagination{display:flex;align-items:center;justify-content:center;gap:6px;padding:14px 0;flex-wrap:wrap}
+  .page-btn{min-width:32px;height:32px;padding:0 8px;border-radius:6px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--border);background:var(--bg2);color:var(--dim2);font-family:inherit;transition:all .15s;display:flex;align-items:center;justify-content:center}
+  .page-btn:hover{border-color:#444;color:var(--text)}
+  .page-btn.active{background:var(--red);border-color:var(--red);color:#fff}
+  .page-btn:disabled{opacity:.3;cursor:default;pointer-events:none}
+  .page-info{font-size:11px;color:var(--dim);padding:0 8px}
+  .perpage-select{background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:inherit;font-size:11px;padding:4px 8px;outline:none;cursor:pointer}
+
+  /* CHART DAY TILES */
+  .day-posts-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;margin-top:10px}
+  .day-tile{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:10px 12px;cursor:pointer;transition:border-color .15s}
+  .day-tile:hover{border-color:var(--border2)}
+  .day-tile-author{font-size:11px;font-weight:600;color:var(--white);margin-bottom:3px}
+  .day-tile-text{font-size:11px;color:var(--dim2);line-height:1.5;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+  .day-tile-likes{font-size:11px;color:var(--green);font-weight:700;margin-top:5px}
+  .day-summary{font-size:12px;color:var(--text);line-height:1.6;padding:10px 12px;background:var(--bg3);border-radius:var(--r);margin-bottom:10px;border-left:3px solid var(--red)}
 
   /* POST CARD */
   .post-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);margin-bottom:6px;overflow:hidden;transition:border-color .15s}
@@ -152,7 +179,9 @@ const css = `
   .btn-sm{padding:5px 12px;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-family:inherit;transition:all .15s}
   .btn-sm:hover{border-color:#555;color:var(--white)}
 
-  /* LIGHTBOX */
+  /* QUOTE */
+  .pc-quote{background:var(--bg3);border-left:3px solid var(--border2);border-radius:0 4px 4px 0;padding:8px 12px;margin-bottom:8px;font-size:12px;color:var(--dim2)}
+  .pc-quote-author{font-size:10px;color:var(--dim);margin-bottom:4px;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
   .lightbox{position:fixed;inset:0;background:#000d;display:flex;align-items:center;justify-content:center;z-index:500;cursor:zoom-out}
   .lightbox img{max-width:92vw;max-height:92vh;border-radius:4px;box-shadow:0 0 60px rgba(0,0,0,.8)}
 
@@ -168,6 +197,16 @@ const css = `
 `
 
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
+function timeAgo(timestamp) {
+  if (!timestamp) return null
+  const sec  = Math.floor((Date.now() / 1000) - timestamp)
+  if (sec < 60)   return 'только что'
+  if (sec < 3600) return Math.floor(sec/60) + ' мин назад'
+  if (sec < 86400) return Math.floor(sec/3600) + ' ч назад'
+  if (sec < 2592000) return Math.floor(sec/86400) + ' дн назад'
+  if (sec < 31536000) return Math.floor(sec/2592000) + ' мес назад'
+  return Math.floor(sec/31536000) + ' г назад'
+}
 const fmtBR = n => {
   if (!n && n !== 0) return '—'
   const abs = Math.abs(n)
@@ -319,7 +358,8 @@ function MarathonChart({ posts, startBR, setLightbox }) {
 
 // ─── ACTIVITY CHART ───────────────────────────────────────────────────────────
 function ActivityChart({ posts }) {
-  const [tip, setTip] = useState(null)
+  const [tip,      setTip]      = useState(null)
+  const [selected, setSelected] = useState(null)
 
   const data = useMemo(() => {
     const byDate = {}
@@ -338,11 +378,30 @@ function ActivityChart({ posts }) {
   const max = Math.max(...data.map(d=>d[1].count), 1)
   const W=600, H=70, pad=3
 
+  // Простое локальное саммари дня
+  function makeSummary(ps) {
+    const authors = [...new Set(ps.map(p=>p.author))].slice(0,4)
+    const popular = ps.filter(p=>(p.likes||0)>=20).sort((a,b)=>(b.likes||0)-(a.likes||0))
+    const topLikes = ps.reduce((m,p)=>Math.max(m,p.likes||0),0)
+    const romeoPost = ps.find(p=>p.author?.toLowerCase().includes('romeopro'))
+    let summary = `${ps.length} постов от ${authors.length} участников.`
+    if (romeoPost) summary += ` Ромео написал ${ps.filter(p=>p.author?.toLowerCase().includes('romeopro')).length} пост(а).`
+    if (topLikes > 0) summary += ` Пик активности: +${topLikes} лайков на топ-посте.`
+    if (popular.length) summary += ` ${popular.length} постов набрали 20+ лайков.`
+    return summary
+  }
+
   return (
     <div className="chart-wrap">
       <div className="section-head" style={{marginBottom:8}}>
         <span className="section-title">Активность постов</span>
         <span className="section-count">последние {data.length} дней</span>
+        {selected && (
+          <button onClick={()=>setSelected(null)}
+            style={{marginLeft:'auto',background:'none',border:'none',color:'var(--dim)',fontSize:11,cursor:'pointer',fontFamily:'inherit'}}>
+            ✕ закрыть
+          </button>
+        )}
       </div>
       <svg className="chart-svg" viewBox={`0 0 ${W} ${H+18}`} onMouseLeave={()=>setTip(null)}>
         {data.map(([date, {count, posts:dp}], i) => {
@@ -350,19 +409,22 @@ function ActivityChart({ posts }) {
           const x  = i*(bw+pad)
           const bh = Math.max(3,(count/max)*H)
           const showL = i===0||i===data.length-1||i%Math.ceil(data.length/6)===0
-          const top   = [...dp].sort((a,b)=>(b.likes||0)-(a.likes||0))[0]
+          const isSelected = selected?.date === date
           return (
             <g key={date} style={{cursor:'pointer'}}
-              onMouseEnter={()=>setTip({date,count,top,x:x+bw/2})}
-              onClick={()=>top?.url&&window.open(top.url,'_blank')}>
+              onMouseEnter={()=>setTip({date,count,posts:dp,x:x+bw/2})}
+              onClick={()=>setSelected(selected?.date===date ? null : {date,posts:dp})}>
               <rect x={x} y={H-bh} width={bw} height={bh} rx={2}
-                fill={tip?.date===date?'#e5393570':'#e5393530'} style={{transition:'fill .1s'}}/>
+                fill={isSelected?'#e53935':tip?.date===date?'#e5393570':'#e5393530'}
+                style={{transition:'fill .1s'}}/>
               {showL&&<text x={x+bw/2} y={H+14} className="chart-label">{date.slice(5)}</text>}
             </g>
           )
         })}
       </svg>
-      {tip && (() => {
+
+      {/* HOVER TOOLTIP */}
+      {tip && !selected && (() => {
         const pct = (tip.x/W)*100
         const right = pct>65
         return (
@@ -371,20 +433,42 @@ function ActivityChart({ posts }) {
             left:  right?'auto':`calc(${pct}% - 8px)`,
             right: right?`calc(${100-pct}% - 8px)`:'auto',
           }}>
-            <div style={{fontWeight:700,color:'#fff',fontSize:12,marginBottom:5}}>📅 {tip.date}</div>
-            <div style={{fontSize:11,color:'#888',marginBottom:tip.top?6:0}}>
-              {tip.count} {tip.count===1?'пост':'постов'}
+            <div style={{fontWeight:700,color:'#fff',fontSize:12,marginBottom:4}}>📅 {tip.date}</div>
+            <div style={{fontSize:11,color:'#888'}}>
+              {tip.count} {tip.count===1?'пост':'постов'} · кликни для деталей
             </div>
-            {tip.top&&<>
-              <div style={{fontSize:11,color:'#e53935',fontWeight:600,marginBottom:3}}>
-                🔥 Топ {tip.top.likes>0?`+${tip.top.likes} 👍`:''}
-              </div>
-              <div style={{fontSize:11,color:'#bbb',lineHeight:1.5,
-                display:'-webkit-box',WebkitLineClamp:3,WebkitBoxOrient:'vertical',overflow:'hidden'}}>
-                {tip.top.text?.substring(0,120)}
-              </div>
-              <div style={{fontSize:10,color:'#555',marginTop:5}}>кликни → форум</div>
-            </>}
+          </div>
+        )
+      })()}
+
+      {/* EXPANDED DAY VIEW */}
+      {selected && (() => {
+        const popular = selected.posts.filter(p=>(p.likes||0)>=20).sort((a,b)=>(b.likes||0)-(a.likes||0))
+        const summary = makeSummary(selected.posts)
+        return (
+          <div style={{marginTop:12}}>
+            <div style={{fontSize:11,fontWeight:700,color:'var(--dim2)',textTransform:'uppercase',letterSpacing:'.1em',marginBottom:8}}>
+              📅 {selected.date} — {selected.posts.length} постов
+            </div>
+            <div className="day-summary">{summary}</div>
+            {popular.length > 0 ? (
+              <>
+                <div style={{fontSize:11,color:'var(--dim)',marginBottom:6}}>
+                  Посты с 20+ лайками ({popular.length}):
+                </div>
+                <div className="day-posts-grid">
+                  {popular.map((p,i) => (
+                    <div key={i} className="day-tile" onClick={()=>p.url&&window.open(p.url,'_blank')}>
+                      <div className="day-tile-author">{p.author}</div>
+                      <div className="day-tile-text">{p.text?.substring(0,140)}</div>
+                      <div className="day-tile-likes">+{p.likes} 👍 · {p.date}</div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <div style={{fontSize:12,color:'var(--dim)'}}>Нет постов с 20+ лайками в этот день</div>
+            )}
           </div>
         )
       })()}
@@ -392,7 +476,109 @@ function ActivityChart({ posts }) {
   )
 }
 
-// ─── HOT POST CARD ────────────────────────────────────────────────────────────
+
+// ─── FILTER BAR ──────────────────────────────────────────────────────────────
+function FilterBar({ sortBy, setSortBy, search, setSearch, romeoOnly, setRomeoOnly,
+                     minLikes, setMinLikes, minRating, setMinRating, count, showSort=true }) {
+  const hasFilters = romeoOnly || minLikes > 0 || minRating > 0 || search
+  return (
+    <div className="filter-bar">
+      {showSort && (
+        <select className="feed-select" value={sortBy} onChange={e=>setSortBy(e.target.value)}>
+          <option value="date_desc">Новые сначала</option>
+          <option value="date_asc">Старые сначала</option>
+          <option value="likes">По лайкам</option>
+        </select>
+      )}
+      <button className={`filter-pill ${romeoOnly?'on':'off'}`} onClick={()=>setRomeoOnly(s=>!s)}>
+        🎲 Только Ромео
+      </button>
+      <label>👍 мин:</label>
+      <input className="filter-num" type="number" min="0" placeholder="0"
+        value={minLikes||''} onChange={e=>setMinLikes(+e.target.value||0)} />
+      <label>⭐ репа мин:</label>
+      <input className="filter-num" type="number" min="0" placeholder="0"
+        value={minRating||''} onChange={e=>setMinRating(+e.target.value||0)} />
+      {showSort && (
+        <input className="feed-search" style={{minWidth:120}} placeholder="Поиск…"
+          value={search} onChange={e=>setSearch(e.target.value)} />
+      )}
+      {hasFilters && (
+        <button className="filter-pill off" onClick={()=>{
+          setRomeoOnly(false); setMinLikes(0); setMinRating(0); setSearch('');
+        }}>✕ сбросить</button>
+      )}
+      <span className="filter-active-count">{count} постов</span>
+    </div>
+  )
+}
+
+// ─── POST TEXT RENDERER ──────────────────────────────────────────────────────
+function renderPostText(text) {
+  if (!text) return null
+
+  const parts = []
+  let remaining = text.trim()
+
+  // Паттерн 1: [QUOTE]...[/QUOTE] — явный маркер из нового скрапера
+  // Паттерн 2: Author @ DD.MM.YY (newline или пробелы) quoted text (\n\n или конец) reply
+  // Паттерн 3: Author @ DD.MM.YY quoted_on_same_line \n\n reply
+
+  while (remaining.length > 0) {
+    // [QUOTE]...[/QUOTE]
+    const q1s = remaining.indexOf('[QUOTE]')
+    const q1e = remaining.indexOf('[/QUOTE]')
+    if (q1s !== -1 && q1e !== -1 && q1e > q1s) {
+      if (q1s > 0) parts.push({ type: 'text', text: remaining.slice(0, q1s).trim() })
+      const quoteContent = remaining.slice(q1s + 7, q1e).trim()
+      const authorLine = quoteContent.match(/^([^\n]+)/)
+      parts.push({ type: 'quote', author: authorLine?.[1]?.trim() || '', body: quoteContent.replace(/^[^\n]+\n?/, '').trim() || quoteContent })
+      remaining = remaining.slice(q1e + 8).trim()
+      continue
+    }
+
+    // Author @ DD.MM.YY ... pattern
+    // Matches: "Name @ 05.04.26 text" or "Name @ 05.04.26\ntext"
+    const qRe = /^([\w\-. А-Яа-яёЁ]+?)\s*@\s*(\d{2}\.\d{2}\.?\d{0,4}[^\n]*?)(?:\n|  {2,})([\s\S]*?)(?:\n{2,}|$)/
+    const m = remaining.match(qRe)
+    if (m) {
+      parts.push({
+        type: 'quote',
+        author: m[1].trim() + ' @ ' + m[2].trim(),
+        body: m[3].trim()
+      })
+      remaining = remaining.slice(m[0].length).trim()
+      continue
+    }
+
+    parts.push({ type: 'text', text: remaining })
+    break
+  }
+
+  if (!parts.length) parts.push({ type: 'text', text })
+
+  return parts.map((part, i) => {
+    if (part.type === 'quote') return (
+      <div key={i} style={{
+        borderLeft: '3px solid #2e2e2e',
+        background: '#161616',
+        borderRadius: '0 4px 4px 0',
+        padding: '8px 12px',
+        margin: '4px 0 8px',
+      }}>
+        {part.author && (
+          <div style={{fontSize:10,color:'#555',fontWeight:600,marginBottom:4,textTransform:'uppercase',letterSpacing:'.05em'}}>
+            ↩ {part.author}
+          </div>
+        )}
+        <div style={{color:'#666',fontSize:12,lineHeight:1.6}}>{part.body}</div>
+      </div>
+    )
+    return <span key={i} style={{whiteSpace:'pre-wrap'}}>{part.text}</span>
+  })
+}
+
+
 function HotPostCard({ p, rank, setLightbox }) {
   const [exp, setExp] = useState(false)
   return (
@@ -426,6 +612,31 @@ function HotPostCard({ p, rank, setLightbox }) {
   )
 }
 
+// Разбираем текст поста на цитаты и основной текст
+function parsePostContent(text) {
+  if (!text) return []
+  const parts = []
+  // Паттерн цитаты: "Автор @ дата\nтекст\n" или просто блоки с двойным переносом
+  // Gipsyteam хранит цитату как "Author @ DD.MM.YY\nquoted text\n\nreply"
+  const quoteRe = /^(.+?)\s*@\s*(\d{2}\.\d{2}\.?\d{0,4}.*?)\n([\s\S]*?)(?:\n\n|$)/
+  let remaining = text.trim()
+
+  // Ищем все цитаты в начале текста
+  while (remaining) {
+    const m = remaining.match(quoteRe)
+    if (m && m.index === 0) {
+      parts.push({ type: 'quote', author: m[1].trim(), date: m[2].trim(), text: m[3].trim() })
+      remaining = remaining.slice(m[0].length).trim()
+    } else {
+      // Всё остальное — обычный текст
+      parts.push({ type: 'text', text: remaining })
+      break
+    }
+  }
+  if (!parts.length) parts.push({ type: 'text', text })
+  return parts
+}
+
 // ─── POST CARD ────────────────────────────────────────────────────────────────
 function PostCard({ p, favorites, onFav, onIgnore, setLightbox }) {
   const [exp, setExp] = useState(false)
@@ -449,13 +660,13 @@ function PostCard({ p, favorites, onFav, onIgnore, setLightbox }) {
             {p.rating != null && <span>· ⭐{p.rating}</span>}
           </div>
         </div>
-        <div className="pc-date">{p.date}</div>
+        <div className="pc-date" title={p.date}>{timeAgo(p.timestamp) || p.date}</div>
         <div className="pc-actions">
           <button className={`pc-action ${isFav?'on':''}`} onClick={()=>onFav(p.id)} title="Избранное">⭐</button>
           <button className="pc-action" onClick={()=>onIgnore(p.author)} title="Игнорировать">🚫</button>
         </div>
       </div>
-      <div className={`pc-body ${!exp?'clamped':''}`}>{p.text}</div>
+      <div className={`pc-body ${!exp?'clamped':''}`}>{renderPostText(p.text)}</div>
       {p.images?.length>0 && (
         <div className="pc-images">
           {p.images.map((src,j)=>(
@@ -476,6 +687,35 @@ function PostCard({ p, favorites, onFav, onIgnore, setLightbox }) {
   )
 }
 
+// ─── PAGINATOR ────────────────────────────────────────────────────────────────
+function Paginator({ page, totalPages, onPage, perPage, onPerPage, total }) {
+  const pages = []
+  const delta = 2
+  for (let i = 1; i <= totalPages; i++) {
+    if (i === 1 || i === totalPages || (i >= page - delta && i <= page + delta)) {
+      pages.push(i)
+    } else if (pages[pages.length-1] !== '…') {
+      pages.push('…')
+    }
+  }
+  return (
+    <div className="pagination">
+      <button className="page-btn" disabled={page===1} onClick={()=>onPage(1)}>«</button>
+      <button className="page-btn" disabled={page===1} onClick={()=>onPage(page-1)}>‹</button>
+      {pages.map((p,i) => p === '…'
+        ? <span key={`e${i}`} className="page-info">…</span>
+        : <button key={p} className={`page-btn ${p===page?'active':''}`} onClick={()=>onPage(p)}>{p}</button>
+      )}
+      <button className="page-btn" disabled={page===totalPages} onClick={()=>onPage(page+1)}>›</button>
+      <button className="page-btn" disabled={page===totalPages} onClick={()=>onPage(totalPages)}>»</button>
+      <span className="page-info">{(page-1)*perPage+1}–{Math.min(page*perPage,total)} из {total}</span>
+      <select className="perpage-select" value={perPage} onChange={e=>{onPerPage(+e.target.value);onPage(1)}}>
+        {[10,20,50,100].map(n=><option key={n} value={n}>{n} на стр.</option>)}
+      </select>
+    </div>
+  )
+}
+
 // ─── APP ─────────────────────────────────────────────────────────────────────
 export default function App() {
   const [posts, setPosts]   = useState([])
@@ -485,6 +725,11 @@ export default function App() {
   const [lightbox,  setLightbox]  = useState(null)
   const [sortBy,  setSortBy]  = useState('date_desc')
   const [search,  setSearch]  = useState('')
+  const [romeoOnly, setRomeoOnly] = useState(false)
+  const [page,    setPage]    = useState(1)
+  const [perPage, setPerPage] = useState(20)
+  const [minLikes,  setMinLikes]  = useState(0)
+  const [minRating, setMinRating] = useState(0)
   const [ignored, setIgnored] = useState(() => {
     try { return new Set(JSON.parse(localStorage.getItem('rpt_ignored')||'[]')) } catch { return new Set() }
   })
@@ -519,20 +764,36 @@ export default function App() {
   }, [posts, meta])
 
   const hotPosts = useMemo(() =>
-    [...posts].filter(p=>(p.likes||0)>0).sort((a,b)=>(b.likes||0)-(a.likes||0)).slice(0,10),
-  [posts])
+    [...posts]
+      .filter(p => (p.likes||0) >= Math.max(minLikes, 1))
+      .filter(p => !minRating || (p.rating||0) >= minRating)
+      .sort((a,b)=>(b.likes||0)-(a.likes||0))
+      .slice(0,10),
+  [posts, minLikes, minRating])
 
-  const feedPosts = useMemo(() =>
-    posts
+  const feedPosts = useMemo(() => {
+    setPage(1) // сброс страницы при смене фильтров
+    return posts
       .filter(p => !ignored.has(p.author))
+      .filter(p => !romeoOnly || p.author?.toLowerCase().includes('romeopro'))
       .filter(p => !search || p.text?.toLowerCase().includes(search.toLowerCase()))
+      .filter(p => !minLikes  || (p.likes||0)  >= minLikes)
+      .filter(p => !minRating || (p.rating||0) >= minRating)
       .sort((a,b) => {
         if (sortBy==='date_desc') return (b.timestamp||0)-(a.timestamp||0)
         if (sortBy==='date_asc')  return (a.timestamp||0)-(b.timestamp||0)
         if (sortBy==='likes')     return (b.likes||0)-(a.likes||0)
         return 0
-      }),
-  [posts, ignored, search, sortBy])
+      })
+  }, [posts, ignored, search, sortBy, romeoOnly, minLikes, minRating])
+
+  const totalPages   = Math.max(1, Math.ceil(feedPosts.length / perPage))
+  const pagedPosts   = feedPosts.slice((page-1)*perPage, page*perPage)
+
+  const goPage = p => {
+    setPage(p)
+    window.scrollTo({top: document.querySelector('.feed-filters')?.offsetTop - 60 || 0, behavior:'smooth'})
+  }
 
   const toggleFav = id => {
     setFavorites(prev => {
@@ -642,13 +903,21 @@ export default function App() {
 
             {/* ТОП ПОСТОВ */}
             {activeTab==='hot' && <>
+              <FilterBar
+                sortBy={sortBy} setSortBy={setSortBy}
+                search={search} setSearch={setSearch}
+                romeoOnly={romeoOnly} setRomeoOnly={setRomeoOnly}
+                minLikes={minLikes} setMinLikes={setMinLikes}
+                minRating={minRating} setMinRating={setMinRating}
+                count={hotPosts.length} showSort={false}
+              />
               <div className="section-head">
                 <span className="section-title">🔥 Топ постов по лайкам</span>
                 <span className="section-count">{hotPosts.length}</span>
               </div>
               <div className="hot-grid">
                 {hotPosts.length===0
-                  ? <div className="empty-state">Нет постов с лайками — запустите скрапер</div>
+                  ? <div className="empty-state">Нет постов с такими фильтрами</div>
                   : hotPosts.map((p,i)=>(
                     <HotPostCard key={p.id||i} p={p} rank={i} setLightbox={setLightbox}/>
                   ))
@@ -661,22 +930,27 @@ export default function App() {
             {activeTab==='feed' && <>
               <MarathonChart posts={posts} startBR={stats.startBR} setLightbox={setLightbox}/>
               <ActivityChart posts={posts}/>
-              <div className="feed-filters">
-                <select className="feed-select" value={sortBy} onChange={e=>setSortBy(e.target.value)}>
-                  <option value="date_desc">Новые сначала</option>
-                  <option value="date_asc">Старые сначала</option>
-                  <option value="likes">По лайкам</option>
-                </select>
-                <input className="feed-search" placeholder="Поиск по тексту…" value={search} onChange={e=>setSearch(e.target.value)}/>
-                <span className="feed-count">{feedPosts.length} постов</span>
-              </div>
+              <FilterBar
+                sortBy={sortBy} setSortBy={setSortBy}
+                search={search} setSearch={setSearch}
+                romeoOnly={romeoOnly} setRomeoOnly={setRomeoOnly}
+                minLikes={minLikes} setMinLikes={setMinLikes}
+                minRating={minRating} setMinRating={setMinRating}
+                count={feedPosts.length} showSort={true}
+              />
               {feedPosts.length===0
-                ? <div className="empty-state">Постов нет — запустите console_scraper_all.js</div>
-                : feedPosts.map(p=>(
-                  <PostCard key={p.id||p.url} p={p}
-                    favorites={favorites} onFav={toggleFav}
-                    onIgnore={addIgnore} setLightbox={setLightbox}/>
-                ))
+                ? <div className="empty-state">Постов нет — запустите console_scraper_all.js или смягчите фильтры</div>
+                : <>
+                  <Paginator page={page} totalPages={totalPages} onPage={goPage}
+                    perPage={perPage} onPerPage={setPerPage} total={feedPosts.length} />
+                  {pagedPosts.map(p=>(
+                    <PostCard key={p.id||p.url} p={p}
+                      favorites={favorites} onFav={toggleFav}
+                      onIgnore={addIgnore} setLightbox={setLightbox}/>
+                  ))}
+                  <Paginator page={page} totalPages={totalPages} onPage={goPage}
+                    perPage={perPage} onPerPage={setPerPage} total={feedPosts.length} />
+                </>
               }
             </>}
 
