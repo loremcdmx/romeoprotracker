@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { loadConfig, saveConfig, fetchPublicData, githubPut } from './storage.js'
 import { generateUserscript } from './userscript.js'
 
