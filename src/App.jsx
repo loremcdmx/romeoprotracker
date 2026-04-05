@@ -234,6 +234,12 @@ const fmtNum = n => {
   return '$' + abs
 }
 
+// Точный формат БР до доллара
+const fmtExact = n => {
+  if (!n && n !== 0) return '—'
+  return '$' + Math.round(n).toLocaleString('ru-RU').replace(/\s/g, ',')
+}
+
 function extractDay(text) {
   const m = text?.match(/(?:[Дд]ень|[Dd]ay)\s*#?\s*(\d+)/i)
   return m ? parseInt(m[1]) : null
@@ -525,6 +531,8 @@ function ActivityChart({ posts }) {
 
 
 // ─── FILTER BAR ──────────────────────────────────────────────────────────────
+const ROMEO_AVATAR = 'https://www.gipsyteam.ru/upload/Avatar/default/2/6/6/26670.jpg'
+
 function FilterBar({ sortBy, setSortBy, search, setSearch, showSearch, setShowSearch,
                      romeoOnly, setRomeoOnly, minLikes, setMinLikes,
                      minRating, setMinRating, count, showSort=true }) {
@@ -538,23 +546,30 @@ function FilterBar({ sortBy, setSortBy, search, setSearch, showSearch, setShowSe
           <option value="likes">По лайкам</option>
         </select>
       )}
-      <button className={`filter-pill ${romeoOnly?'on':'off'}`} onClick={()=>setRomeoOnly(s=>!s)}>
-        🎲 Ромео
+      <button className={`filter-pill ${romeoOnly?'on':'off'}`} onClick={()=>setRomeoOnly(s=>!s)}
+        title="Показывать только посты Romeopro" style={{display:'flex',alignItems:'center',gap:5}}>
+        <img src={ROMEO_AVATAR} alt="" style={{width:15,height:15,borderRadius:'50%',objectFit:'cover'}}
+          onError={e=>e.target.style.display='none'} />
+        Ромео
       </button>
-      <label style={{fontSize:11,color:'var(--dim)',whiteSpace:'nowrap'}}>👍≥</label>
-      <input className="filter-num" type="number" min="0" value={minLikes}
-        onChange={e=>setMinLikes(+e.target.value||0)} />
-      <label style={{fontSize:11,color:'var(--dim)',whiteSpace:'nowrap'}}>⭐≥</label>
-      <input className="filter-num" type="number" min="0" value={minRating}
-        onChange={e=>setMinRating(+e.target.value||0)} />
+      <div style={{display:'flex',alignItems:'center',gap:4}}>
+        <label style={{fontSize:11,color:'var(--dim)',whiteSpace:'nowrap'}} title="Минимум лайков на посте">👍 мин.</label>
+        <input className="filter-num" type="number" min="0" value={minLikes}
+          onChange={e=>setMinLikes(+e.target.value||0)} title="Минимум лайков на посте"/>
+      </div>
+      <div style={{display:'flex',alignItems:'center',gap:4}}>
+        <label style={{fontSize:11,color:'var(--dim)',whiteSpace:'nowrap'}} title="Минимальная репутация автора">⭐ репа</label>
+        <input className="filter-num" type="number" min="0" value={minRating}
+          onChange={e=>setMinRating(+e.target.value||0)} title="Минимальная репутация автора"/>
+      </div>
       <button className={`filter-pill ${showSearch?'on':'off'}`}
-        onClick={()=>setShowSearch(s=>!s)} title="Поиск по тексту">🔍</button>
+        onClick={()=>setShowSearch(s=>!s)} title="Поиск по тексту постов">🔍</button>
       {showSearch && (
         <input className="feed-search" style={{minWidth:140}} placeholder="Поиск…"
           value={search} onChange={e=>setSearch(e.target.value)} autoFocus/>
       )}
       {hasFilters && (
-        <button className="filter-pill off" onClick={()=>{
+        <button className="filter-pill off" title="Сбросить все фильтры" onClick={()=>{
           setRomeoOnly(false); setMinLikes(15); setMinRating(1000); setSearch(''); setShowSearch(false);
         }}>✕</button>
       )}
@@ -780,9 +795,26 @@ export default function App() {
   // Stats из постов Ромео
   const stats = useMemo(() => {
     const startBR = meta?.startBankroll || 10000
+
+    // Точный БР из brHistory (приоритет)
+    const brHistory = meta?.brHistory
+    if (brHistory?.length) {
+      const last = [...brHistory].sort((a,b)=>(a.timestamp||0)-(b.timestamp||0)).slice(-1)[0]
+      const br = last.brAfter
+      const profit = br - startBR
+      const totalTourneys = meta?.totalTournaments || null
+
+      // День из постов Ромео
+      const romeoByDate = posts.filter(p=>/romeopro/i.test(p.author)).sort((a,b)=>(b.timestamp||0)-(a.timestamp||0))
+      let day = null
+      for (const p of romeoByDate) { day = extractDay(p.text); if (day) break }
+
+      return { br, profit, startBR, day, lastDate: last.date, totalTourneys }
+    }
+
     if (!posts.length) return { startBR }
     const romeoByDate = posts
-      .filter(p => p.author?.toLowerCase().includes('romeopro'))
+      .filter(p => /romeopro/i.test(p.author))
       .sort((a,b) => (b.timestamp||0)-(a.timestamp||0))
 
     let day = null, br = null
@@ -792,7 +824,7 @@ export default function App() {
       if (day && br) break
     }
     const profit = br ? br - startBR : null
-    return { day, br, profit, startBR, lastDate: romeoByDate[0]?.date }
+    return { day, br, profit, startBR, lastDate: romeoByDate[0]?.date, totalTourneys: null }
   }, [posts, meta])
 
   const hotPosts = useMemo(() =>
@@ -952,9 +984,7 @@ export default function App() {
               <div key={id} className={`topbar-tab ${activeTab===id?'active':''}`} onClick={()=>switchTab(id)}>{label}</div>
             ))}
           </div>
-          <div className="topbar-right">
-            <div className="live-dot"/><span className="live-label">LIVE</span>
-          </div>
+          <div className="topbar-right"></div>
         </div>
       </div>
 
@@ -982,15 +1012,19 @@ export default function App() {
               <div className="hero-stats">
                 <div className="hstat">
                   <div className="hstat-label">Банкролл</div>
-                  <div className={`hstat-value ${stats.br?'green':''}`}>{fmtNum(stats.br||meta?.bankroll)}</div>
-                  <div className="hstat-sub">старт: {fmtNum(stats.startBR)}</div>
+                  <div className={`hstat-value ${stats.br?'green':''}`} style={{fontSize:18}}>
+                    {fmtExact(stats.br||meta?.bankroll)}
+                  </div>
+                  <div className="hstat-sub">старт: {fmtExact(stats.startBR)}</div>
                 </div>
                 <div className="hstat">
                   <div className="hstat-label">Профит</div>
-                  <div className={`hstat-value ${!stats.profit?'':stats.profit>=0?'green':'red'}`}>
+                  <div className={`hstat-value ${!stats.profit?'':stats.profit>=0?'green':'red'}`} style={{fontSize:18}}>
                     {fmtBR(stats.profit)}
                   </div>
-                  <div className="hstat-sub">от старта марафона</div>
+                  {stats.totalTourneys != null && (
+                    <div className="hstat-sub">{stats.totalTourneys.toLocaleString()} турниров</div>
+                  )}
                 </div>
                 <div className="hstat">
                   <div className="hstat-label">День марафона</div>
@@ -1015,6 +1049,15 @@ export default function App() {
               ]
               const { paged, totalPages: tpg, all } = currentTopicPosts
               return <>
+                <FilterBar
+                  sortBy={sortBy} setSortBy={setSortBy}
+                  search={search} setSearch={setSearch}
+                  showSearch={showSearch} setShowSearch={setShowSearch}
+                  romeoOnly={false} setRomeoOnly={()=>{}}
+                  minLikes={minLikes} setMinLikes={setMinLikes}
+                  minRating={minRating} setMinRating={setMinRating}
+                  count={all.length} showSort={true}
+                />
                 {/* Выбор темы */}
                 <div className="topic-tabs">
                   {TABS.map(t => (
@@ -1144,7 +1187,7 @@ export default function App() {
                 <div className="sblock-title">📊 Статистика</div>
                 <div className="sblock-body">
                   {[
-                    ['БР', <span key="br" className={`srow-val ${stats.br?'green':''}`}>{fmtNum(stats.br||meta?.bankroll)}</span>],
+                    ['БР', <span key="br" className={`srow-val ${stats.br?'green':''}`}>{fmtExact(stats.br||meta?.bankroll)}</span>],
                     ['Профит', <span key="pr" className={`srow-val ${!stats.profit?'':stats.profit>=0?'green':'red'}`}>{fmtBR(stats.profit)}</span>],
                     ['День', <span key="d" className="srow-val gold">#{stats.day||meta?.day||'—'}</span>],
                     ['Постов', <span key="p" className="srow-val">{posts.length}</span>],
@@ -1159,15 +1202,25 @@ export default function App() {
                 <div className="sblock">
                   <div className="sblock-title">🔥 Топ 5</div>
                   <div className="sblock-body" style={{padding:'6px 14px'}}>
-                    {hotPosts.slice(0,5).map((p,i)=>(
-                      <div key={i} style={{display:'flex',gap:8,padding:'6px 0',borderBottom:'1px solid var(--border)',cursor:'pointer'}}
-                        onClick={()=>p.url&&window.open(p.url,'_blank')}>
-                        <span style={{color:'var(--gold)',fontWeight:700,fontSize:11,minWidth:16,flexShrink:0}}>{i+1}</span>
-                        <span style={{fontSize:11,color:'var(--text)',flex:1,overflow:'hidden',
-                          display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical'}}>{p.text?.substring(0,80)}</span>
-                        <span style={{color:'var(--green)',fontSize:10,fontWeight:700,flexShrink:0}}>+{p.likes}</span>
-                      </div>
-                    ))}
+                    {hotPosts.slice(0,5).map((p,i)=>{
+                      // Текст без цитат
+                      const clean = (p.text||'').replace(/\[QUOTE\][\s\S]*?\[\/QUOTE\]/gi,'').trim()
+                      return (
+                        <div key={i} style={{display:'flex',gap:8,padding:'6px 0',borderBottom:'1px solid var(--border)',cursor:'pointer',alignItems:'flex-start'}}
+                          onClick={()=>p.url&&window.open(p.url,'_blank')}>
+                          <span style={{color:'var(--gold)',fontWeight:700,fontSize:11,minWidth:16,flexShrink:0,paddingTop:2}}>{i+1}</span>
+                          {/* Показываем картинку если нет текста */}
+                          {!clean && p.images?.[0] ? (
+                            <img src={p.images[0]} alt="" style={{width:48,height:36,objectFit:'cover',borderRadius:3,flexShrink:0}} onError={e=>e.target.style.display='none'}/>
+                          ) : null}
+                          <span style={{fontSize:11,color:'var(--text)',flex:1,overflow:'hidden',
+                            display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical'}}>
+                            {clean.substring(0,80) || p.text?.substring(0,80)}
+                          </span>
+                          <span style={{color:'var(--green)',fontSize:10,fontWeight:700,flexShrink:0}}>+{p.likes}</span>
+                        </div>
+                      )
+                    })}
                   </div>
                 </div>
               )}
