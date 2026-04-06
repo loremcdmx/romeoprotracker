@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { fetchPublicData } from './storage.js'
 
 
@@ -34,7 +34,6 @@ const css = `
   /* ADMIN */
   .admin-lock{background:none;border:none;cursor:pointer;color:var(--dim);font-size:14px;padding:4px;opacity:.4;transition:opacity .2s}
   .admin-lock:hover{opacity:.8}
-  @media(max-width:720px){.admin-lock{display:none}}
 
   /* LAYOUT */
   .page{max-width:1280px;margin:0 auto;padding:10px 16px 60px;display:grid;grid-template-columns:1fr 240px;gap:12px;align-items:start}
@@ -77,7 +76,7 @@ const css = `
   .chart-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:16px;position:relative}
   .chart-svg{width:100%;overflow:visible}
   .chart-label{font-size:9px;fill:#555;text-anchor:middle;font-family:'Roboto Mono',monospace}
-  .chart-tooltip{position:absolute;background:#1c1c1c;border:1px solid #3a3a3a;border-radius:6px;padding:10px 12px;pointer-events:none;z-index:20;min-width:220px;max-width:300px;box-shadow:0 4px 20px rgba(0,0,0,.6)}
+  .chart-tooltip{position:absolute;background:#1c1c1c;border:1px solid #3a3a3a;border-radius:6px;padding:10px 12px;pointer-events:none;z-index:20;min-width:180px;max-width:240px;box-shadow:0 4px 20px rgba(0,0,0,.6)}
 
   /* GLOBAL FILTER BAR */
   .filter-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:10px 14px;margin-bottom:14px}
@@ -184,74 +183,10 @@ const css = `
   .empty-state{padding:30px;text-align:center;color:var(--dim);font-size:12px}
 
   @media(max-width:720px){
-    html,body,#root{font-size:14px}
-    .page{grid-template-columns:1fr;padding:8px 10px 90px}
+    .page{grid-template-columns:1fr}
     .hero-stats{grid-template-columns:1fr 1fr}
-    .hero{padding:12px}
-    .hero-top{gap:10px;margin-bottom:12px}
-    .hstat{padding:10px}
-    .hstat-value{font-size:14px}
-    .topbar-inner{padding:0 10px;gap:8px}
     .topbar-tabs{display:none}
-    .logo-text{font-size:12px}
-    .logo-sub{display:none}
-
-    /* Bottom nav for mobile */
-    .mobile-nav{display:flex !important}
-
-    /* Filters */
-    .filter-bar{gap:6px;padding:8px 10px}
-    .filter-num{width:56px;font-size:10px;padding:3px 6px}
-    .filter-pill{padding:4px 8px;font-size:10px}
-    .feed-search{font-size:10px}
-
-    /* Post card */
-    .pc-head{padding:8px 10px}
-    .pc-body{padding:8px 10px;font-size:12px}
-    .pc-foot{padding:6px 10px;flex-wrap:wrap;gap:6px}
-    .pc-images{padding:0 10px 8px;gap:4px}
-    .pc-img{max-width:120px;max-height:90px}
-    .pc-author{font-size:12px}
-
-    /* Topic tabs */
-    .topic-tabs{gap:4px}
-    .topic-tab{padding:5px 10px;font-size:11px}
-
-    /* Sidebar hides on mobile */
-    .sidebar{display:none}
-
-    /* Marathon chart */
-    .marathon-chart{padding:10px}
-    .mc-label,.mc-ylabel{font-size:8px}
-
-    /* Pagination */
-    .pagination{gap:3px;padding:10px 0}
-    .page-btn{min-width:28px;height:28px;font-size:11px}
-    .page-info{font-size:10px}
-    .perpage-select{font-size:10px;padding:3px 5px}
-
-    /* Admin */
-    .admin-box{width:95vw;padding:16px}
   }
-
-  /* Mobile bottom nav — sits above iOS browser chrome */
-  .mobile-nav{
-    display:none;
-    position:fixed;bottom:0;left:0;right:0;
-    background:#0a0a0a;border-top:1px solid var(--border);
-    z-index:150;
-    padding:8px 0;
-    padding-bottom:calc(8px + env(safe-area-inset-bottom, 0px));
-    justify-content:space-around;
-  }
-  .mobile-nav-btn{
-    display:flex;flex-direction:column;align-items:center;gap:2px;
-    background:none;border:none;cursor:pointer;color:var(--dim);
-    font-family:inherit;font-size:9px;padding:4px 12px;
-    transition:color .15s;min-width:60px;
-  }
-  .mobile-nav-btn.active{color:var(--red)}
-  .mobile-nav-btn span:first-child{font-size:18px;line-height:1}
 `
 
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
@@ -280,12 +215,6 @@ const fmtNum = n => {
   if (abs >= 1_000_000) return '$' + (abs/1_000_000).toFixed(2) + 'M'
   if (abs >= 1_000)     return '$' + (abs/1_000).toFixed(1) + 'k'
   return '$' + abs
-}
-
-// Целое число с тонким пробелом как разделитель тысяч
-const fmtInt = n => {
-  if (n == null || n === '') return '—'
-  return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, '\u202F')
 }
 
 // Точный формат БР до доллара
@@ -488,19 +417,20 @@ function makeDaySummary(ps) {
     .slice(0, 3)
     .map(([name, d]) => `${name}${d.rating ? ' ⭐'+d.rating : ''}`)
 
-  let summary = ''
-  if (romeoCount) summary += `Ромео: ${romeoCount} пост${romeoCount > 1 ? 'а' : ''}. `
-  if (topLikes > 0) summary += `Топ: +${topLikes} 👍. `
-  if (popular.length) summary += `${popular.length} постов набрали 20+ лайков. `
-  if (topAuthors.length) summary += `Активные: ${topAuthors.join(', ')}.`
-  return summary || `${ps.length} постов.`
+  let summary = `${ps.length} постов`
+  if (totalUniq > 0) summary += `, ${totalUniq} авторов`
+  summary += '.'
+  if (romeoCount) summary += ` Ромео: ${romeoCount} пост${romeoCount > 1 ? 'а' : ''}.`
+  if (topLikes > 0) summary += ` Топ: +${topLikes} 👍.`
+  if (popular.length) summary += ` ${popular.length} постов набрали 20+ лайков.`
+  if (topAuthors.length) summary += ` Активные: ${topAuthors.join(', ')}.`
+  return summary
 }
 
 function ActivityChart({ posts, favorites, onFav, onIgnore, setLightbox,
-                         sortBy, setSortBy, minLikes, setMinLikes, minRating, setMinRating, search }) {
+                         sortBy, minLikes, minRating, search }) {
   const [tip,      setTip]      = useState(null)
   const [selected, setSelected] = useState(null)
-  const isMobile = typeof window !== 'undefined' && window.innerWidth <= 720
 
   const data = useMemo(() => {
     const byDate = {}
@@ -517,96 +447,6 @@ function ActivityChart({ posts, favorites, onFav, onIgnore, setLightbox,
 
   if (!data.length) return null
   const max = Math.max(...data.map(d=>d[1].count), 1)
-
-  const scrollRef = useRef(null)
-  useEffect(() => {
-    if (isMobile && scrollRef.current) {
-      scrollRef.current.scrollLeft = scrollRef.current.scrollWidth
-    }
-  }, [isMobile, data.length])
-
-  // ── MOBILE: горизонтальный скролл, последние 7 дней видны сразу ─────────────
-  if (isMobile) {
-    const BAR_W = 36
-    const BAR_MAX_H = 80
-
-    return (
-      <div className="chart-wrap">
-        <div className="section-head" style={{marginBottom:8}}>
-          <span className="section-title">Активность постов</span>
-          <span className="section-count">{data.length} дней</span>
-          {selected && (
-            <button onClick={()=>setSelected(null)}
-              style={{marginLeft:'auto',background:'none',border:'none',color:'var(--dim)',fontSize:13,cursor:'pointer',fontFamily:'inherit'}}>
-              ✕ закрыть
-            </button>
-          )}
-        </div>
-
-        {/* Горизонтальный скролл — скроллится к правому краю (последние дни) */}
-        <div ref={scrollRef} style={{overflowX:'auto',WebkitOverflowScrolling:'touch',paddingBottom:4}}>
-          <div style={{display:'flex',gap:6,alignItems:'flex-end',minWidth:'max-content',padding:'4px 8px 0'}}>
-            {data.map(([date, {count, posts:dp}]) => {
-              const bh = Math.max(6, Math.round((count/max)*BAR_MAX_H))
-              const isSelected = selected?.date === date
-              return (
-                <div key={date} style={{display:'flex',flexDirection:'column',alignItems:'center',gap:4,cursor:'pointer',minWidth:BAR_W}}
-                  onClick={()=>setSelected(selected?.date===date ? null : {date,posts:dp})}>
-                  {/* Число постов над баром */}
-                  <span style={{fontSize:10,color:isSelected?'#fff':'#666',fontFamily:"'Roboto Mono',monospace",fontWeight:isSelected?700:400}}>
-                    {count}
-                  </span>
-                  <div style={{
-                    width:BAR_W-6, height:bh, borderRadius:3,
-                    background:isSelected?'#e53935':'#e5393540',
-                    border: isSelected?'2px solid #e53935':'1px solid #e5393530',
-                    transition:'all .15s',
-                    boxShadow: isSelected?'0 0 8px #e5393580':'none'
-                  }}/>
-                  {/* Дата под баром */}
-                  <span style={{fontSize:11,color:isSelected?'var(--text)':'#666',fontFamily:"'Roboto Mono',monospace",whiteSpace:'nowrap'}}>
-                    {date.slice(5)}
-                  </span>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-        <div style={{fontSize:11,color:'#444',textAlign:'center',padding:'4px 0 6px'}}>← скролль для старых дней · тап = детали</div>
-
-        {/* Selected day posts */}
-        {/* Selected day posts */}
-        {selected && (() => {
-          const summary = makeDaySummary(selected.posts)
-          let dayPosts = [...selected.posts]
-            .filter(p => !minLikes  || (p.likes||0)  >= minLikes)
-            .filter(p => !minRating || (p.rating||0) >= minRating)
-            .filter(p => !search    || p.text?.toLowerCase().includes(search?.toLowerCase()))
-          dayPosts.sort((a,b) => (b.likes||0)-(a.likes||0))
-          return (
-            <div style={{marginTop:8}}>
-              <div style={{fontSize:11,fontWeight:700,color:'var(--dim2)',textTransform:'uppercase',letterSpacing:'.1em',marginBottom:6}}>
-                📅 {selected.date} — {selected.posts.length} постов
-              </div>
-              <div style={{fontSize:11,color:'var(--text)',lineHeight:1.5,padding:'8px 10px',background:'var(--bg3)',borderRadius:'var(--r)',marginBottom:8,borderLeft:'3px solid var(--red)'}}>
-                {summary}
-              </div>
-              {dayPosts.length === 0
-                ? <div className="empty-state">Нет постов по фильтрам</div>
-                : dayPosts.map(p => (
-                  <PostCard key={p.id||p.url} p={p}
-                    favorites={favorites||new Set()} onFav={onFav||(() =>{})}
-                    onIgnore={onIgnore||(() =>{})} setLightbox={setLightbox||(() =>{})}/>
-                ))
-              }
-            </div>
-          )
-        })()}
-      </div>
-    )
-  }
-
-  // ── DESKTOP: SVG bar chart ─────────────────────────────────────────────────
   const W=600, H=70, pad=3
 
   return (
@@ -626,7 +466,7 @@ function ActivityChart({ posts, favorites, onFav, onIgnore, setLightbox,
           const bw = (W-pad*(data.length-1))/data.length
           const x  = i*(bw+pad)
           const bh = Math.max(3,(count/max)*H)
-          const maxLabels = Math.floor(W / 50)
+          const maxLabels = Math.floor(W / 38)
           const step = Math.max(1, Math.ceil(data.length / maxLabels))
           const showL = i % step === 0 || i === data.length - 1
           const isSelected = selected?.date === date
@@ -647,49 +487,37 @@ function ActivityChart({ posts, favorites, onFav, onIgnore, setLightbox,
       {tip && !selected && (() => {
         const pct = (tip.x/W)*100
         const right = pct>65
-        const romeoPs   = tip.posts.filter(p => ROMEO_RE.test(p.author))
-        const topPost   = [...tip.posts].sort((a,b) => (b.likes||0)-(a.likes||0))[0]
-        const topClean  = (topPost?.text||'').replace(/\[QUOTE\][\s\S]*?\[\/QUOTE\]/gi,'').replace(/\[QUOTE\]/gi,'').replace(/\[\/QUOTE\]/gi,'').trim()
-        // Топ авторов по репе
-        const byAuthor = {}
-        tip.posts.filter(p=>p.author).forEach(p => {
-          if (!byAuthor[p.author] || (p.rating||0) > (byAuthor[p.author]||0))
-            byAuthor[p.author] = p.rating||0
-        })
-        const topAuthors = Object.entries(byAuthor)
-          .filter(([,r]) => r >= 10000)
-          .sort((a,b) => b[1]-a[1])
         return (
           <div className="chart-tooltip" style={{
             bottom:52,
             left:  right?'auto':`calc(${pct}% - 8px)`,
             right: right?`calc(${100-pct}% - 8px)`:'auto',
           }}>
-            <div style={{fontWeight:700,color:'#fff',fontSize:12,marginBottom:4}}>📅 {tip.date}</div>
-            <div style={{fontSize:11,color:'#888',marginBottom:6}}>
-              {tip.count} постов
-              {romeoPs.length ? ` · Ромео: ${romeoPs.length}` : ''}
-              {topPost?.likes >= 5 ? ` · топ +${topPost.likes} 👍` : ''}
+            <div style={{fontWeight:700,color:'#fff',fontSize:12,marginBottom:5}}>📅 {tip.date}</div>
+            <div style={{fontSize:11,color:'#888',marginBottom: tip.posts.length ? 5 : 0}}>
+              {tip.count} {tip.count===1?'пост':'постов'}
+              {(() => {
+                const romeoPs = tip.posts.filter(p=>/romeopro/i.test(p.author))
+                const top = [...tip.posts].sort((a,b)=>(b.likes||0)-(a.likes||0))[0]
+                const parts = []
+                if (romeoPs.length) parts.push(`Ромео написал ${romeoPs.length}`)
+                if (top?.likes >= 5) parts.push(`топ +${top.likes} 👍`)
+                return parts.length ? ' · ' + parts.join(', ') : ''
+              })()}
             </div>
-            {topAuthors.length > 0 && (
-              <div style={{marginBottom:6}}>
-                <div style={{fontSize:9,color:'#555',textTransform:'uppercase',letterSpacing:'.08em',marginBottom:4}}>авторитетные авторы</div>
-                {topAuthors.map(([name, rating]) => (
-                  <div key={name} style={{fontSize:11,color:'#bbb',display:'flex',justifyContent:'space-between',gap:8,lineHeight:1.6}}>
-                    <span style={{color:'#ddd'}}>{name}</span>
-                    <span style={{color:'#4caf50',fontSize:10,fontFamily:"'Roboto Mono',monospace"}}>⭐{fmtInt(rating)}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-            {topClean && (
-              <div style={{fontSize:11,color:'#bbb',lineHeight:1.6,borderTop:'1px solid #2a2a2a',paddingTop:6,marginTop:2}}>
-                <div style={{color:'#666',fontSize:10,marginBottom:3}}>{topPost.author} · <span style={{color:'#4caf50',fontWeight:700}}>+{topPost.likes} 👍</span></div>
-                <div style={{display:'-webkit-box',WebkitLineClamp:5,WebkitBoxOrient:'vertical',overflow:'hidden'}}>
-                  {topClean.substring(0,300)}
+            {(() => {
+              const top = [...tip.posts].sort((a,b)=>(b.likes||0)-(a.likes||0))[0]
+              if (!top) return null
+              const clean = (top.text||'').replace(/\[QUOTE\][\s\S]*?\[\/QUOTE\]/gi,'').trim()
+              if (!clean) return null
+              return (
+                <div style={{fontSize:11,color:'#bbb',lineHeight:1.55,
+                  display:'-webkit-box',WebkitLineClamp:3,WebkitBoxOrient:'vertical',overflow:'hidden'}}>
+                  <span style={{color:'#666',fontSize:10}}>{top.author}: </span>
+                  {clean.substring(0,120)}
                 </div>
-              </div>
-            )}
+              )
+            })()}
             <div style={{fontSize:10,color:'#444',marginTop:5}}>кликни → детали дня</div>
           </div>
         )
@@ -702,40 +530,16 @@ function ActivityChart({ posts, favorites, onFav, onIgnore, setLightbox,
           .filter(p => !minLikes  || (p.likes||0)  >= minLikes)
           .filter(p => !minRating || (p.rating||0) >= minRating)
           .filter(p => !search    || p.text?.toLowerCase().includes(search?.toLowerCase()))
-        if (sortBy === 'likes')          dayPosts.sort((a,b) => (b.likes||0)-(a.likes||0))
+        if (sortBy === 'likes')     dayPosts.sort((a,b) => (b.likes||0)-(a.likes||0))
         else if (sortBy === 'date_asc')  dayPosts.sort((a,b) => (a.timestamp||0)-(b.timestamp||0))
-        else                             dayPosts.sort((a,b) => (b.timestamp||0)-(a.timestamp||0))
-        const btnStyle = (active) => ({
-          background: active ? 'var(--red)' : 'var(--bg3)',
-          border: '1px solid ' + (active ? 'var(--red)' : 'var(--border)'),
-          borderRadius: 20, color: active ? '#fff' : 'var(--dim2)',
-          fontSize: 11, padding: '4px 10px', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600
-        })
+        else dayPosts.sort((a,b) => (b.timestamp||0)-(a.timestamp||0))
         return (
           <div style={{marginTop:12}}>
             <div style={{fontSize:11,fontWeight:700,color:'var(--dim2)',textTransform:'uppercase',letterSpacing:'.1em',marginBottom:8}}>
               📅 {selected.date} — {selected.posts.length} постов
             </div>
             <div style={{fontSize:12,color:'var(--text)',lineHeight:1.6,padding:'10px 12px',background:'var(--bg3)',borderRadius:'var(--r)',marginBottom:10,borderLeft:'3px solid var(--red)'}}>{summary}</div>
-            {/* Мини-фильтры */}
-            <div style={{display:'flex',gap:6,flexWrap:'wrap',alignItems:'center',marginBottom:10,padding:'8px 0'}}>
-              <button style={btnStyle(sortBy==='date_desc')} onClick={()=>setSortBy?.('date_desc')}>Новые</button>
-              <button style={btnStyle(sortBy==='date_asc')}  onClick={()=>setSortBy?.('date_asc')}>Старые</button>
-              <button style={btnStyle(sortBy==='likes')}     onClick={()=>setSortBy?.('likes')}>По лайкам</button>
-              <div style={{width:1,height:16,background:'var(--border)',margin:'0 4px'}}/>
-              <div style={{display:'flex',alignItems:'center',gap:4}}>
-                <span style={{fontSize:11,color:'var(--dim)'}}>👍 мин.</span>
-                <input type="number" min="0" value={minLikes} onChange={e=>setMinLikes?.(+e.target.value||0)}
-                  style={{width:52,background:'var(--bg3)',border:'1px solid var(--border)',borderRadius:20,color:'var(--text)',fontFamily:'inherit',fontSize:11,padding:'4px 8px',outline:'none',textAlign:'center'}}/>
-              </div>
-              <div style={{display:'flex',alignItems:'center',gap:4}}>
-                <span style={{fontSize:11,color:'var(--dim)'}}>⭐ репа</span>
-                <input type="number" min="0" step="100" value={minRating} onChange={e=>setMinRating?.(+e.target.value||0)}
-                  style={{width:62,background:'var(--bg3)',border:'1px solid var(--border)',borderRadius:20,color:'var(--text)',fontFamily:'inherit',fontSize:11,padding:'4px 8px',outline:'none',textAlign:'center'}}/>
-              </div>
-              <span style={{fontSize:11,color:'var(--dim)',marginLeft:'auto'}}>{dayPosts.length} постов</span>
-            </div>
-            <div style={{marginTop:4}}>
+            <div style={{marginTop:10}}>
               {dayPosts.length === 0
                 ? <div className="empty-state">Нет постов по текущим фильтрам</div>
                 : dayPosts.map(p => (
@@ -775,21 +579,19 @@ function FilterBar({ sortBy, setSortBy, search, setSearch, showSearch, setShowSe
           onError={e=>e.target.style.display='none'} />
         Ромео
       </button>
-      <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'nowrap'}}>
-        <div style={{display:'flex',alignItems:'center',gap:4}}>
-          <label style={{fontSize:11,color:'var(--dim)',whiteSpace:'nowrap'}} title="Минимум лайков на посте">👍 мин.</label>
-          <input className="filter-num" type="number" min="0" value={minLikes}
-            onChange={e=>setMinLikes(+e.target.value||0)} title="Минимум лайков на посте"/>
-        </div>
-        <div style={{display:'flex',alignItems:'center',gap:4}}>
-          <label style={{fontSize:11,color:'var(--dim)',whiteSpace:'nowrap',display:'flex',alignItems:'center',gap:3}} title="Минимальная репутация автора">
-            <img src="https://www.gipsyteam.ru/public/style_images/master/reputation_pos.png" alt="rep"
-              style={{width:12,height:12,objectFit:'contain'}} onError={e=>{e.target.style.display='none'}}/>
-            репа
-          </label>
-          <input className="filter-num" type="number" min="0" step="100" value={minRating}
-            onChange={e=>setMinRating(+e.target.value||0)} title="Минимальная репутация автора"/>
-        </div>
+      <div style={{display:'flex',alignItems:'center',gap:4}}>
+        <label style={{fontSize:11,color:'var(--dim)',whiteSpace:'nowrap'}} title="Минимум лайков на посте">👍 мин.</label>
+        <input className="filter-num" type="number" min="0" value={minLikes}
+          onChange={e=>setMinLikes(+e.target.value||0)} title="Минимум лайков на посте"/>
+      </div>
+      <div style={{display:'flex',alignItems:'center',gap:4}}>
+        <label style={{fontSize:11,color:'var(--dim)',whiteSpace:'nowrap',display:'flex',alignItems:'center',gap:3}} title="Минимальная репутация автора">
+          <img src="https://www.gipsyteam.ru/public/style_images/master/reputation_pos.png" alt="rep"
+            style={{width:12,height:12,objectFit:'contain'}} onError={e=>e.target.replaceWith(Object.assign(document.createElement('span'),{textContent:'⭐'}))}/>
+          репа
+        </label>
+        <input className="filter-num" type="number" min="0" value={minRating}
+          onChange={e=>setMinRating(+e.target.value||0)} title="Минимальная репутация автора"/>
       </div>
       <button className={`filter-pill ${showSearch?'on':'off'}`}
         onClick={()=>setShowSearch(s=>!s)} title="Поиск по тексту постов">🔍</button>
@@ -887,19 +689,9 @@ function PostCard({ p, favorites, onFav, onIgnore, setLightbox, noClamp=false })
         <div style={{flex:1,minWidth:0}}>
           <div className="pc-author">{p.author}</div>
           <div className="pc-author-meta">
-            {p.msgCount && <span>{fmtInt(p.msgCount)} постов</span>}
+            {p.msgCount && <span>{p.msgCount.toLocaleString()} постов</span>}
             {p.regData  && <span>· {p.regData}</span>}
-            {p.rating != null && (
-              <span style={{color:'#4caf50',display:'inline-flex',alignItems:'center',gap:2}}>·
-                <svg viewBox="0 0 12 10" style={{width:11,height:10,fill:'#4caf50',flexShrink:0}}>
-                  <rect x="0" y="6" width="2.5" height="4"/>
-                  <rect x="3.2" y="3" width="2.5" height="7"/>
-                  <rect x="6.4" y="1" width="2.5" height="9"/>
-                  <rect x="9.6" y="0" width="2.5" height="10"/>
-                </svg>
-                <span style={{fontFamily:"'Roboto Mono',monospace",fontWeight:700}}>{p.rating.toLocaleString()}</span>
-              </span>
-            )}
+            {p.rating != null && <span>· ⭐{p.rating}</span>}
           </div>
         </div>
         <div className="pc-date" title={p.date}>{timeAgo(p.timestamp) || p.date}</div>
@@ -956,90 +748,6 @@ function Paginator({ page, totalPages, onPage, perPage, onPerPage, total }) {
       <select className="perpage-select" value={perPage} onChange={e=>{onPerPage(+e.target.value);onPage(1)}}>
         {[10,20,50,100].map(n=><option key={n} value={n}>{n} на стр.</option>)}
       </select>
-    </div>
-  )
-}
-
-// ─── SIDEBAR TOP LIST ─────────────────────────────────────────────────────────
-function SidebarTopList({ posts, setLightbox }) {
-  const [hovered, setHovered] = useState(null)
-  const [mousePos, setMousePos] = useState({x:0, y:0})
-
-  const stripQuotes = t => (t||'')
-    .replace(/\[QUOTE\][\s\S]*?\[\/QUOTE\]/gi,'')
-    .replace(/\[QUOTE\][^\]]*\]/gi,'')
-    .replace(/\[\/QUOTE\]/gi,'')
-    .replace(/\[QUOTE\]/gi,'')
-    .trim()
-
-  return (
-    <div style={{padding:'6px 14px'}}>
-      {/* Fixed popup — не зависит от overflow:hidden родителей */}
-      {hovered !== null && (() => {
-        const p = posts[hovered]
-        if (!p) return null
-        const full = stripQuotes(p.text)
-        const left = Math.max(8, mousePos.x - 320)
-        const top  = Math.min(mousePos.y - 20, window.innerHeight - 350)
-        return (
-          <div style={{
-            position:'fixed', left, top,
-            width:300, background:'#1c1c1c', border:'1px solid #3a3a3a',
-            borderRadius:8, padding:14, zIndex:9999,
-            boxShadow:'0 8px 32px rgba(0,0,0,.9)', pointerEvents:'none',
-          }}>
-            <div style={{fontWeight:700,color:'var(--white)',fontSize:13,marginBottom:4}}>{p.author}</div>
-            <div style={{fontSize:11,color:'var(--green)',marginBottom:8,fontFamily:"'Roboto Mono',monospace"}}>
-              +{p.likes} 👍 · {p.date}
-            </div>
-            {p.images?.[0] && (
-              <img src={p.images[0]} alt="" style={{maxWidth:'100%',borderRadius:4,marginBottom:8,display:'block'}}
-                onError={e=>e.target.style.display='none'}/>
-            )}
-            <div style={{fontSize:12,color:'var(--text)',lineHeight:1.65,maxHeight:250,overflow:'hidden'}}>
-              {full.substring(0,500) || '→ открыть на форуме'}
-            </div>
-          </div>
-        )
-      })()}
-
-      {posts.map((p, i) => {
-        const clean = stripQuotes(p.text)
-        const preview = clean || (p.images?.[0] ? '→ форум' : '↩ цитата')
-        const initial = (p.author||'?')[0].toUpperCase()
-        return (
-          <div key={i}
-            style={{display:'flex',gap:8,padding:'7px 0',borderBottom:'1px solid var(--border)',
-              alignItems:'flex-start',cursor:'pointer'}}
-            onClick={()=>p.url&&window.open(p.url,'_blank')}
-            onMouseEnter={e=>{ setHovered(i); setMousePos({x:e.clientX,y:e.clientY}) }}
-            onMouseMove={e=>setMousePos({x:e.clientX,y:e.clientY})}
-            onMouseLeave={()=>setHovered(null)}>
-            <span style={{color:'var(--gold)',fontWeight:700,fontSize:11,minWidth:16,flexShrink:0,paddingTop:10}}>{i+1}</span>
-            <div style={{width:28,height:28,borderRadius:'50%',background:'var(--red)',flexShrink:0,
-              overflow:'hidden',display:'flex',alignItems:'center',justifyContent:'center',
-              fontSize:11,fontWeight:700,color:'#fff',marginTop:2}}>
-              {p.avatar
-                ? <img src={p.avatar} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}} onError={e=>e.target.style.display='none'}/>
-                : initial}
-            </div>
-            <div style={{flex:1,minWidth:0}}>
-              <div style={{fontSize:10,color:'var(--dim2)',fontWeight:600,marginBottom:2}}>{p.author}</div>
-              {p.images?.[0] && !clean && (
-                <img src={p.images[0]} alt=""
-                  style={{width:48,height:36,objectFit:'cover',borderRadius:3,marginBottom:3,display:'block'}}
-                  onClick={e=>{e.stopPropagation();setLightbox(p.images[0])}}
-                  onError={e=>e.target.style.display='none'}/>
-              )}
-              <div style={{fontSize:11,color:'var(--text)',overflow:'hidden',
-                display:'-webkit-box',WebkitLineClamp:4,WebkitBoxOrient:'vertical'}}>
-                {preview.substring(0,80)}
-              </div>
-            </div>
-            <span style={{color:'var(--green)',fontSize:10,fontWeight:700,flexShrink:0,paddingTop:10}}>+{p.likes}</span>
-          </div>
-        )
-      })}
     </div>
   )
 }
@@ -1160,30 +868,7 @@ else console.error('❌ Ошибка: '+putRes.status);
 await scrape();
 const id=setInterval(scrape,30*60*1000);
 window._scraperInterval=id;
-
-// Плавающий виджет с таймером
-const widget=document.createElement('div');
-widget.id='_scraper_widget';
-widget.style.cssText='position:fixed;bottom:20px;right:20px;background:#1a1a1a;border:1px solid #e53935;border-radius:10px;padding:12px 16px;z-index:99999;font-family:monospace;font-size:13px;color:#fff;min-width:220px;box-shadow:0 4px 20px rgba(0,0,0,.6);user-select:none';
-document.body.appendChild(widget);
-
-let nextRun=Date.now()+30*60*1000;
-function updateWidget(status='⏳ ожидание'){
-  const left=Math.max(0,nextRun-Date.now());
-  const m=Math.floor(left/60000),s=Math.floor((left%60000)/1000);
-  widget.innerHTML='<div style="color:#e53935;font-weight:bold;margin-bottom:6px">🕷 Scraper</div>'
-    +'<div style="color:#aaa;font-size:11px">'+status+'</div>'
-    +'<div style="margin-top:8px;color:#fff">⏱ следующий запуск: <b>'+m+'м '+String(s).padStart(2,'0')+'с</b></div>'
-    +'<div style="margin-top:6px;display:flex;gap:6px">'
-    +'<button onclick="scrape().then(()=>{nextRun=Date.now()+30*60*1000})" style="background:#e53935;border:none;border-radius:5px;color:#fff;padding:4px 10px;cursor:pointer;font-size:11px">▶ сейчас</button>'
-    +'<button onclick="clearInterval(window._scraperInterval);clearInterval(window._timerInterval);document.getElementById(\'_scraper_widget\').remove()" style="background:#333;border:none;border-radius:5px;color:#aaa;padding:4px 10px;cursor:pointer;font-size:11px">✕ стоп</button>'
-    +'</div>';
-}
-updateWidget('активен');
-window._timerInterval=setInterval(updateWidget,1000);
-const _origScrape=scrape;
-scrape=async function(){nextRun=Date.now()+30*60*1000;updateWidget('🔄 скрапим...');await _origScrape();updateWidget('✅ готово');};
-console.log('%c⏱ Автозапуск каждые 30 мин. Виджет на странице. Остановить: clearInterval(window._scraperInterval)','color:#ff9800;font-weight:bold');
+console.log('%c⏱ Автозапуск каждые 30 мин. Остановить: clearInterval(window._scraperInterval)','color:#ff9800;font-weight:bold');
 })();`
   }
 
@@ -1272,14 +957,6 @@ export default function App() {
       .then(({posts, meta}) => { setPosts(posts||[]); setMeta(meta||{}) })
       .catch(() => setMeta({}))
       .finally(() => setLoading(false))
-
-    // Обновляем данные каждые 5 минут (лайки обновляются скрапером)
-    const interval = setInterval(() => {
-      fetchPublicData()
-        .then(({posts, meta}) => { setPosts(posts||[]); setMeta(meta||{}) })
-        .catch(() => {})
-    }, 5 * 60 * 1000)
-    return () => clearInterval(interval)
   }, [])
 
   // Stats из постов Ромео
@@ -1405,12 +1082,12 @@ export default function App() {
 
   const goTopicPage = p => {
     setTopicPage(p)
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+    window.scrollTo({ top: 300, behavior: 'smooth' })
   }
 
   const goPage = p => {
     setPage(p)
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+    window.scrollTo({top: document.querySelector('.filter-bar')?.offsetTop - 60 || 0, behavior:'smooth'})
   }
 
   // Сохраняем позицию чтения
@@ -1462,20 +1139,6 @@ export default function App() {
     <>
       <style>{css}</style>
 
-      {/* MOBILE BOTTOM NAV */}
-      <nav className="mobile-nav">
-        {[
-          ['feed',     '🏠', 'Лента'],
-          ['topics',   '📂', 'Темы'],
-          ['settings', '⚙️', 'Настройки'],
-        ].map(([id, icon, label]) => (
-          <button key={id} className={`mobile-nav-btn ${activeTab===id?'active':''}`} onClick={()=>switchTab(id)}>
-            <span>{icon}</span>
-            <span>{label}</span>
-          </button>
-        ))}
-      </nav>
-
       {lightbox && (
         <div className="lightbox" onClick={()=>setLightbox(null)}>
           <img src={lightbox} alt=""/>
@@ -1485,11 +1148,10 @@ export default function App() {
       <div className="topbar">
         <div className="topbar-inner">
           <div className="logo">
-            <div className="logo-badge" style={{background:'var(--red)',padding:0,width:32,height:32,overflow:'hidden',borderRadius:6,display:'flex',alignItems:'center',justifyContent:'center'}}>
-              <img src="https://www.gipsyteam.ru/favicon.ico" alt="GT"
-                style={{width:32,height:32,objectFit:'contain'}}
-                onError={e=>{e.target.style.display='none'}}/>
-              <span style={{position:'absolute',color:'#fff',fontWeight:900,fontSize:14,fontFamily:'Arial,sans-serif',display:'none'}} className="_gt_fallback">G</span>
+            <div className="logo-badge" style={{background:'none',padding:0,overflow:'hidden'}}>
+              <img src="https://www.gipsyteam.ru/public/style_images/master/logo_icon.png"
+                alt="GT" style={{width:26,height:26,objectFit:'cover'}}
+                onError={e=>{e.target.style.display='none';e.target.parentNode.textContent='GT';e.target.parentNode.style.background='var(--red)';}}/>
             </div>
             <div>
               <div className="logo-text">RomeoPro Tracker</div>
@@ -1542,7 +1204,7 @@ export default function App() {
                     {fmtBR(stats.profit)}
                   </div>
                   {stats.totalTourneys != null && (
-                    <div className="hstat-sub">{fmtInt(stats.totalTourneys)} турниров</div>
+                    <div className="hstat-sub">{stats.totalTourneys.toLocaleString()} турниров</div>
                   )}
                 </div>
                 <div className="hstat">
@@ -1552,7 +1214,7 @@ export default function App() {
                 </div>
                 <div className="hstat">
                   <div className="hstat-label">Сыграно МТТ</div>
-                  <div className="hstat-value">{fmtInt(meta?.totalTournaments ?? 3565)}</div>
+                  <div className="hstat-value">{stats.totalTourneys != null ? stats.totalTourneys.toLocaleString() : (meta?.totalTournaments?.toLocaleString() || '—')}</div>
                   <div className="hstat-sub">всего за марафон</div>
                 </div>
               </div>
@@ -1622,10 +1284,7 @@ export default function App() {
               <ActivityChart posts={posts}
                 favorites={favorites} onFav={toggleFav}
                 onIgnore={addIgnore} setLightbox={setLightbox}
-                sortBy={sortBy} setSortBy={setSortBy}
-                minLikes={minLikes} setMinLikes={setMinLikes}
-                minRating={minRating} setMinRating={setMinRating}
-                search={search}/>
+                sortBy={sortBy} minLikes={minLikes} minRating={minRating} search={search}/>
               <FilterBar
                 sortBy={sortBy} setSortBy={setSortBy}
                 search={search} setSearch={setSearch}
@@ -1689,8 +1348,8 @@ export default function App() {
                     ['БР', <span key="br" className={`srow-val ${stats.br?'green':''}`}>{fmtExact(stats.br||meta?.bankroll)}</span>],
                     ['Профит', <span key="pr" className={`srow-val ${!stats.profit?'':stats.profit>=0?'green':'red'}`}>{fmtBR(stats.profit)}</span>],
                     ['День', <span key="d" className="srow-val gold">#{stats.day||meta?.day||'—'}</span>],
-                    ['Сыграно МТТ', <span key="mtt" className="srow-val">{fmtInt(meta?.totalTournaments ?? 3565)}</span>],
-                    ['Постов', <span key="p" className="srow-val">{fmtInt(posts.length)}</span>],
+                    ['Сыграно МТТ', <span key="mtt" className="srow-val">{stats.totalTourneys != null ? stats.totalTourneys.toLocaleString() : (meta?.totalTournaments?.toLocaleString() || '3\u202F565')}</span>],
+                    ['Постов', <span key="p" className="srow-val">{posts.length}</span>],
                     ['Топ лайков', <span key="l" className="srow-val">{hotPosts[0]?`+${hotPosts[0].likes}`:'—'}</span>],
                   ].map(([k,v])=>(
                     <div key={k} className="srow"><span className="srow-key">{k}</span>{v}</div>
@@ -1704,7 +1363,6 @@ export default function App() {
                 const cutoffs = { day: now-86400, week: now-604800, month: now-2592000, all: 0 }
                 const labels = { day:'День', week:'Неделя', month:'Месяц', all:'Всегда' }
                 const filtered = hotPosts.filter(p => (p.timestamp||0) >= cutoffs[sideTopPeriod])
-                const topList = (filtered.length ? filtered : hotPosts).slice(0,10)
                 return (
                   <div className="sblock">
                     <div className="sblock-title" style={{display:'flex',flexDirection:'column',alignItems:'center',gap:8,padding:'10px 14px'}}>
@@ -1718,7 +1376,44 @@ export default function App() {
                         ))}
                       </div>
                     </div>
-                    <SidebarTopList posts={topList} setLightbox={setLightbox}/>
+                    <div className="sblock-body" style={{padding:'6px 14px'}}>
+                      {(filtered.length ? filtered : hotPosts).slice(0,10).map((p,i)=>{
+                        const clean = (p.text||'')
+                          .replace(/\[QUOTE\][\s\S]*?\[\/QUOTE\]/gi,'')
+                          .replace(/\[QUOTE\][^\]]*\]/gi,'')
+                          .replace(/\[\/QUOTE\]/gi,'')
+                          .replace(/\[QUOTE\]/gi,'')
+                          .trim()
+                        const preview = clean || (p.images?.[0] ? '→ форум' : '↩ цитата')
+                        const initial = (p.author||'?')[0].toUpperCase()
+                        return (
+                          <div key={i} style={{display:'flex',gap:8,padding:'7px 0',borderBottom:'1px solid var(--border)',alignItems:'flex-start',cursor:'pointer'}}
+                            onClick={()=>p.url&&window.open(p.url,'_blank')}>
+                            <span style={{color:'var(--gold)',fontWeight:700,fontSize:11,minWidth:16,flexShrink:0,paddingTop:10}}>{i+1}</span>
+                            {/* аватарка */}
+                            <div style={{width:28,height:28,borderRadius:'50%',background:'var(--red)',flexShrink:0,overflow:'hidden',display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:700,color:'#fff',marginTop:2}}>
+                              {p.avatar
+                                ? <img src={p.avatar} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}} onError={e=>e.target.style.display='none'}/>
+                                : initial}
+                            </div>
+                            <div style={{flex:1,minWidth:0}}>
+                              <div style={{fontSize:10,color:'var(--dim2)',fontWeight:600,marginBottom:2}}>{p.author}</div>
+                              {p.images?.[0] && !clean && (
+                                <img src={p.images[0]} alt=""
+                                  style={{width:48,height:36,objectFit:'cover',borderRadius:3,marginBottom:3,display:'block'}}
+                                  onClick={e=>{e.stopPropagation();setLightbox(p.images[0])}}
+                                  onError={e=>e.target.style.display='none'}/>
+                              )}
+                              <div style={{fontSize:11,color:'var(--text)',overflow:'hidden',
+                                display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical'}}>
+                                {preview.substring(0,80)}
+                              </div>
+                            </div>
+                            <span style={{color:'var(--green)',fontSize:10,fontWeight:700,flexShrink:0,paddingTop:10}}>+{p.likes}</span>
+                          </div>
+                        )
+                      })}
+                    </div>
                   </div>
                 )
               })()}
