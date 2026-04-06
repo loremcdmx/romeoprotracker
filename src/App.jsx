@@ -34,7 +34,6 @@ const css = `
   /* ADMIN */
   .admin-lock{background:none;border:none;cursor:pointer;color:var(--dim);font-size:14px;padding:4px;opacity:.4;transition:opacity .2s}
   .admin-lock:hover{opacity:.8}
-  @media(max-width:720px){.admin-lock{display:none}}
 
   /* LAYOUT */
   .page{max-width:1280px;margin:0 auto;padding:10px 16px 60px;display:grid;grid-template-columns:1fr 240px;gap:12px;align-items:start}
@@ -186,52 +185,17 @@ const css = `
   @media(max-width:720px){
     .page{grid-template-columns:1fr;padding:8px 10px 90px}
     .hero-stats{grid-template-columns:1fr 1fr}
-    .hero{padding:12px}
-    .hero-top{gap:10px;margin-bottom:12px}
-    .hstat{padding:10px}
-    .hstat-value{font-size:14px}
-    .topbar-inner{padding:0 10px;gap:8px}
     .topbar-tabs{display:none}
-    .logo-text{font-size:12px}
+    .topbar-inner{padding:0 10px;gap:8px}
     .logo-sub{display:none}
-
-    /* Bottom nav for mobile */
-    .mobile-nav{display:flex !important}
-
-    /* Filters */
-    .filter-bar{gap:6px;padding:8px 10px}
-    .filter-num{width:56px;font-size:10px;padding:3px 6px}
-    .filter-pill{padding:4px 8px;font-size:10px}
-    .feed-search{font-size:10px}
-
-    /* Post card */
-    .pc-head{padding:8px 10px}
-    .pc-body{padding:8px 10px;font-size:12px}
-    .pc-foot{padding:6px 10px;flex-wrap:wrap;gap:6px}
-    .pc-images{padding:0 10px 8px;gap:4px}
-    .pc-img{max-width:120px;max-height:90px}
-    .pc-author{font-size:12px}
-
-    /* Topic tabs */
-    .topic-tabs{gap:4px}
-    .topic-tab{padding:5px 10px;font-size:11px}
-
-    /* Sidebar hides on mobile */
     .sidebar{display:none}
-
-    /* Marathon chart */
+    .admin-lock{display:none}
+    .admin-box{width:95vw;padding:16px}
+    .mobile-nav{display:flex !important}
     .marathon-chart{padding:10px}
-    .chart-wrap{overflow:visible}
     .mc-label,.mc-ylabel{font-size:8px}
-
-    /* Pagination */
     .pagination{gap:3px;padding:10px 0}
     .page-btn{min-width:28px;height:28px;font-size:11px}
-    .page-info{font-size:10px}
-    .perpage-select{font-size:10px;padding:3px 5px}
-
-    /* Admin */
-    .admin-box{width:95vw;padding:16px}
   }
 
   /* Mobile bottom nav — sits above iOS browser chrome */
@@ -1393,9 +1357,21 @@ export default function App() {
       }),
   [posts, ignored, search, sortBy, romeoOnly, minLikes, minRating])
 
-  // Сбрасываем страницу при смене фильтров (правильный способ — useEffect)
-  useEffect(() => { setPage(1) },
-    [ignored, search, sortBy, romeoOnly, minLikes, minRating]) // eslint-disable-line
+  // При смене фильтров — умный сброс страницы
+  // Если были в конце — остаёмся в конце, если в начале — в начале
+  useEffect(() => {
+    const currentTotal = Math.max(1, Math.ceil(feedPosts.length / perPage))
+    if (page >= currentTotal - 1) {
+      // Были близко к концу — идём на новый конец
+      setPage(currentTotal)
+    } else if (page > 1) {
+      // Были в середине — пересчитываем позицию пропорционально
+      const ratio = (page - 1) / Math.max(1, currentTotal - 1)
+      const newTotal = currentTotal // пересчитается после render
+      setPage(Math.max(1, Math.round(ratio * newTotal)))
+    }
+    // Если page === 1 — ничего не делаем, остаёмся на 1
+  }, [ignored, search, sortBy, romeoOnly, minLikes, minRating]) // eslint-disable-line
 
   // Восстанавливаем позицию чтения при первой загрузке постов
   useEffect(() => {
@@ -1459,7 +1435,11 @@ export default function App() {
 
   const goPage = p => {
     setPage(p)
-    window.scrollTo({ top: 0, behavior: 'smooth' })
+    const filterBar = document.querySelector('.filter-bar')
+    if (filterBar) {
+      const top = filterBar.getBoundingClientRect().top + window.scrollY - 60
+      window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' })
+    }
   }
 
   // Сохраняем позицию чтения
@@ -1810,15 +1790,15 @@ export default function App() {
               <div style={{fontSize:11,color:'var(--dim)',fontFamily:"'Roboto Mono',monospace",marginBottom:4}}>
                 <span style={{color:'var(--dim2)',fontWeight:600}}>RomeoPro Tracker</span>
                 {' '}
-                <span style={{color:'#444'}}>v1.4.6</span>
+                <span style={{color:'#444'}}>v1.2.9</span>
               </div>
               <div style={{fontSize:10,color:'#444',marginBottom:4}}>
                 made by{' '}
-                <a href="https://github.com/loremcdmx" target="_blank" rel="noreferrer"
+                <a href="https://t.me/loremnopoker" target="_blank" rel="noreferrer"
                   style={{color:'var(--dim)',textDecoration:'none'}}>LoremCDMX</a>
               </div>
               <div style={{fontSize:10,color:'#333'}}>
-                обновлено: 06.04.2026
+                обновлено: 07.04.2026
               </div>
             </div>
 
@@ -1828,12 +1808,18 @@ export default function App() {
                 Changelog
               </div>
               {[
-                ['v1.4.6', '06.04', 'Фикс цитат в попапе, свёрнутые цитаты, мобильный чарт активности'],
-                ['v1.4.0', '06.04', 'Попап предпросмотра постов в топе, мобильная навигация, автообновление'],
-                ['v1.3.0', '06.04', 'Топ постов с периодами, виджет активности, фильтр по репе'],
-                ['v1.2.0', '06.04', 'Скрапер с автозапуском каждые 10/30мин/6ч, обновление лайков'],
-                ['v1.1.0', '05.04', 'График марафона, темы, избранное, игнор-лист'],
-                ['v1.0.0', '05.04', 'Первый релиз — лента постов, фильтры, пагинация'],
+                ['v1.2.9', '07.04', 'Скрапер v2 с 4 задачами, draggable виджет, фикс мобильного CSS'],
+                ['v1.2.8', '06.04', 'Фикс цитат в попапе, auto-close незакрытых QUOTE, чистка 49 постов'],
+                ['v1.2.7', '06.04', 'Попап предпросмотра постов в топе (fixed позиция), свёрнутые цитаты'],
+                ['v1.2.6', '06.04', 'Мобильный чарт активности с горизонтальным скроллом'],
+                ['v1.2.5', '06.04', 'Футер с версией и чейнджлогом, автообновление данных каждые 5 мин'],
+                ['v1.2.4', '06.04', 'Скрапер с таймерами 10м/30м/6ч, обновление лайков'],
+                ['v1.2.3', '06.04', 'Топ постов с фильтрами по периоду, виджет активности, репа GT-стиль'],
+                ['v1.2.2', '06.04', 'График марафона день #N, мобильная навигация, фикс пагинации'],
+                ['v1.2.1', '05.04', 'Темы (марафон/обсуждение/дебаты/флуд), избранное, игнор-лист'],
+                ['v1.2.0', '05.04', 'График марафона, фильтры по лайкам/репе, поиск'],
+                ['v1.1.0', '05.04', 'Лента постов с пагинацией, цитаты, аватарки'],
+                ['v1.0.0', '05.04', 'Первый релиз'],
               ].map(([ver, date, desc]) => (
                 <div key={ver} style={{display:'flex',gap:8,marginBottom:5,alignItems:'baseline'}}>
                   <span style={{fontSize:9,color:'var(--dim)',fontFamily:"'Roboto Mono',monospace",minWidth:40,flexShrink:0}}>{ver}</span>
