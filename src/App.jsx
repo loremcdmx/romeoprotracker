@@ -34,6 +34,7 @@ const css = `
   /* ADMIN */
   .admin-lock{background:none;border:none;cursor:pointer;color:var(--dim);font-size:14px;padding:4px;opacity:.4;transition:opacity .2s}
   .admin-lock:hover{opacity:.8}
+  @media(max-width:720px){.admin-lock{display:none}}
 
   /* LAYOUT */
   .page{max-width:1280px;margin:0 auto;padding:10px 16px 60px;display:grid;grid-template-columns:1fr 240px;gap:12px;align-items:start}
@@ -183,7 +184,7 @@ const css = `
   .empty-state{padding:30px;text-align:center;color:var(--dim);font-size:12px}
 
   @media(max-width:720px){
-    .page{grid-template-columns:1fr;padding:8px 10px 80px}
+    .page{grid-template-columns:1fr;padding:8px 10px 90px}
     .hero-stats{grid-template-columns:1fr 1fr}
     .hero{padding:12px}
     .hero-top{gap:10px;margin-bottom:12px}
@@ -215,7 +216,7 @@ const css = `
     .topic-tabs{gap:4px}
     .topic-tab{padding:5px 10px;font-size:11px}
 
-    /* Sidebar hides on mobile, replaced by bottom tabs */
+    /* Sidebar hides on mobile */
     .sidebar{display:none}
 
     /* Marathon chart */
@@ -232,12 +233,14 @@ const css = `
     .admin-box{width:95vw;padding:16px}
   }
 
-  /* Mobile bottom nav */
+  /* Mobile bottom nav — sits above iOS browser chrome */
   .mobile-nav{
     display:none;
     position:fixed;bottom:0;left:0;right:0;
     background:#0a0a0a;border-top:1px solid var(--border);
-    z-index:150;padding:8px 0 env(safe-area-inset-bottom,8px);
+    z-index:150;
+    padding:8px 0;
+    padding-bottom:calc(8px + env(safe-area-inset-bottom, 0px));
     justify-content:space-around;
   }
   .mobile-nav-btn{
@@ -1091,6 +1094,14 @@ export default function App() {
       .then(({posts, meta}) => { setPosts(posts||[]); setMeta(meta||{}) })
       .catch(() => setMeta({}))
       .finally(() => setLoading(false))
+
+    // Обновляем данные каждые 5 минут (лайки обновляются скрапером)
+    const interval = setInterval(() => {
+      fetchPublicData()
+        .then(({posts, meta}) => { setPosts(posts||[]); setMeta(meta||{}) })
+        .catch(() => {})
+    }, 5 * 60 * 1000)
+    return () => clearInterval(interval)
   }, [])
 
   // Stats из постов Ромео
