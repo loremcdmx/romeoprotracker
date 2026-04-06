@@ -1,31 +1,30 @@
-# 🎲 RomeoPro Tracker
+# RomeoPro Tracker
 
-Трекер покерного марафона [RomeoPro](https://forum.gipsyteam.ru/index.php?viewtopic=181676) — From Hero to Zero. С $10,000 до $10,000,000.
+Трекер покерного марафона [Romeopro](https://forum.gipsyteam.ru/index.php?viewtopic=181676) на GipsyTeam — From Hero to Zero. С $10,000 до $10,000,000.
 
-## Быстрый деплой (Vercel, 5 минут)
+**Сайт:** [romeoprotracker.vercel.app](https://romeoprotracker.vercel.app)
 
-1. Форкните или загрузите репо на GitHub
-2. Зайдите на [vercel.com](https://vercel.com) → **Add New Project** → выберите репо → **Deploy**
-3. Сайт готов по адресу `https://romeoprotracker.vercel.app`
+## Что умеет
 
-## Настройка
+- 📈 График марафона с данными по румам (ГГ, ПС, Кинг, Коин)
+- 💬 Лента постов с фильтрами по лайкам, репе, автору
+- 🔥 Топ постов с фильтрами по периоду (сегодня / неделя / месяц / мемы)
+- 📊 Разбивка по темам (марафон / обсуждение / дебаты / флуд)
+- 🕷 Встроенный скрапер новых постов (через замочек в топбаре)
 
-1. Откройте сайт → нажмите логотип 🎲 **5 раз** → введите пароль `romeo2026`
-2. Заполните:
-   - **Репозиторий**: `ваш-username/romeoprotracker`
-   - **GitHub PAT**: токен из [github.com/settings/tokens](https://github.com/settings/tokens) (scope: `repo`)
-3. Нажмите **Сохранить**
+## Стек
 
-## Использование агента
+- React + Vite → деплой на Vercel
+- Данные хранятся как JSON в этом репо (`data/posts.json`, `data/meta.json`)
+- Чтение публичное (raw GitHub), запись через GitHub API + PAT
 
-1. Установите [Tampermonkey](https://www.tampermonkey.net/)
-2. В Admin Mode нажмите **«Показать/скопировать код»**
-3. Tampermonkey → Создать новый скрипт → Ctrl+A → Ctrl+V → Ctrl+S
-4. Нажмите **▶ Запустить агента** — агент сам пройдёт по форуму и загрузит данные
+## Данные
 
-## Смена пароля
+`data/posts.json` — посты форума (автор, текст, лайки, аватарка, рейтинг, изображения)  
+`data/meta.json` — метаданные + история БР по сессиям с разбивкой по румам
 
-В `src/App.jsx` найдите строку:
-```js
-const ADMIN_KEY = 'romeo2026'
-```
+## Деплой своего форка
+
+1. Fork → Vercel → Add New Project → Deploy
+2. Замените `REPO` в `src/App.jsx` и скраперах на свой репозиторий
+3. Замените ссылку на форум в `FORUM_BASE`
