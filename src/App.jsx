@@ -8,9 +8,9 @@ const css = `
   *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
   :root{
     --bg:#111;--bg2:#1a1a1a;--bg3:#222;
-    --border:#2d2d2d;--border2:#383838;
+    --border:#2d2d2d;--border2:#444;
     --red:#e53935;--red2:#ff5252;--red-dim:#2a1010;
-    --text:#d4d4d4;--dim:#666;--dim2:#888;
+    --text:#d4d4d4;--dim:#888;--dim2:#aaa;
     --green:#4caf50;--gold:#ffb300;--white:#f0f0f0;
     --r:6px;
   }
@@ -1180,13 +1180,16 @@ export default function App() {
   const TOPIC_PER_PAGE = 20
 
   const currentTopicPosts = useMemo(() => {
-    const all = classifiedPosts[topicTab] || []
+    let all = [...(classifiedPosts[topicTab] || [])]
+    if (sortBy === 'date_asc')  all.sort((a,b) => (a.timestamp||0) - (b.timestamp||0))
+    else if (sortBy === 'date_desc') all.sort((a,b) => (b.timestamp||0) - (a.timestamp||0))
+    else if (sortBy === 'likes') all.sort((a,b) => (b.likes||0) - (a.likes||0))
     return {
       all,
       paged: all.slice((topicPage-1)*TOPIC_PER_PAGE, topicPage*TOPIC_PER_PAGE),
       totalPages: Math.max(1, Math.ceil(all.length / TOPIC_PER_PAGE))
     }
-  }, [classifiedPosts, topicTab, topicPage])
+  }, [classifiedPosts, topicTab, topicPage, sortBy])
 
   const goTopicPage = p => {
     setTopicPage(p)
@@ -1469,12 +1472,12 @@ export default function App() {
                 const filtered = hotPosts.filter(p => (p.timestamp||0) >= cutoffs[sideTopPeriod])
                 return (
                   <div className="sblock">
-                    <div className="sblock-title" style={{display:'flex',alignItems:'center',justifyContent:'space-between'}}>
-                      <span>🔥 Топ 10</span>
-                      <div style={{display:'flex',gap:3}}>
+                    <div className="sblock-title" style={{display:'flex',flexDirection:'column',alignItems:'center',gap:8,padding:'10px 14px'}}>
+                      <span>🔥 Больше всего плюсиков</span>
+                      <div style={{display:'flex',gap:4}}>
                         {Object.keys(cutoffs).map(k => (
                           <button key={k} onClick={()=>setSidebarTopPeriod(k)}
-                            style={{background:sideTopPeriod===k?'var(--red)':'var(--bg2)',border:'1px solid '+(sideTopPeriod===k?'var(--red)':'var(--border)'),borderRadius:4,color:sideTopPeriod===k?'#fff':'var(--dim)',fontSize:9,padding:'2px 5px',cursor:'pointer',fontFamily:'inherit'}}>
+                            style={{background:sideTopPeriod===k?'var(--red)':'var(--bg3)',border:'1px solid '+(sideTopPeriod===k?'var(--red)':'var(--border2)'),borderRadius:4,color:sideTopPeriod===k?'#fff':'var(--dim2)',fontSize:10,padding:'3px 7px',cursor:'pointer',fontFamily:'inherit',fontWeight:600}}>
                             {labels[k]}
                           </button>
                         ))}
