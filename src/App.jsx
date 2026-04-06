@@ -31,8 +31,22 @@ const css = `
   .topbar-tab:hover{color:var(--text);background:var(--bg3)}
   .topbar-tab.active{color:var(--white);background:var(--bg3)}
   .topbar-right{margin-left:auto;display:flex;align-items:center;gap:6px}
-  .live-dot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:pulse 2s infinite}
-  .live-label{font-size:11px;color:var(--green);font-weight:600}
+
+  /* ADMIN */
+  .admin-lock{background:none;border:none;cursor:pointer;color:var(--dim);font-size:14px;padding:4px;opacity:.4;transition:opacity .2s}
+  .admin-lock:hover{opacity:.8}
+  .admin-modal{position:fixed;inset:0;background:#000c;display:flex;align-items:center;justify-content:center;z-index:200}
+  .admin-box{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:24px;width:420px;max-width:90vw}
+  .admin-title{font-size:14px;font-weight:700;color:var(--white);margin-bottom:16px}
+  .admin-input{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:inherit;font-size:12px;padding:8px 12px;outline:none;margin-bottom:8px}
+  .admin-input:focus{border-color:#444}
+  .admin-btn{width:100%;padding:9px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;border:none;font-family:inherit;transition:all .15s;margin-bottom:6px}
+  .admin-btn.primary{background:var(--red);color:#fff}
+  .admin-btn.primary:hover{background:#c62828}
+  .admin-btn.primary:disabled{opacity:.5;cursor:default}
+  .admin-btn.secondary{background:var(--bg3);color:var(--dim2);border:1px solid var(--border)}
+  .admin-log{background:var(--bg3);border-radius:6px;padding:10px;font-family:'Roboto Mono',monospace;font-size:10px;max-height:180px;overflow-y:auto;margin-top:10px}
+  .al-ok{color:#4caf50}.al-err{color:#f44336}.al-dim{color:#666}.al-warn{color:#ff9800}
   @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.6;transform:scale(.85)}}
 
   /* LAYOUT */
@@ -62,7 +76,7 @@ const css = `
 
   /* MARATHON CHART */
   .marathon-chart{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:12px;position:relative}
-  .mc-svg{width:100%;overflow:visible;cursor:crosshair}
+  .mc-svg{width:100%;overflow:visible}
   .mc-area{fill:url(#mcGrad);opacity:.25}
   .mc-line{fill:none;stroke:#e53935;stroke-width:2;stroke-linejoin:round}
   .mc-dot{stroke:#111;stroke-width:2;cursor:pointer;transition:r .1s}
@@ -198,6 +212,24 @@ const css = `
   /* QUOTE */
   .pc-quote{background:var(--bg3);border-left:3px solid var(--border2);border-radius:0 4px 4px 0;padding:8px 12px;margin-bottom:8px;font-size:12px;color:var(--dim2)}
   .pc-quote-author{font-size:10px;color:var(--dim);margin-bottom:4px;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+  /* ADMIN PANEL */
+  .admin-modal{position:fixed;inset:0;background:#000b;z-index:200;display:flex;align-items:center;justify-content:center}
+  .admin-box{background:#1a1a1a;border:1px solid #333;border-radius:10px;padding:24px;width:420px;max-width:95vw}
+  .admin-title{font-size:14px;font-weight:700;color:var(--white);margin-bottom:16px;display:flex;justify-content:space-between;align-items:center}
+  .admin-close{background:none;border:none;color:var(--dim);font-size:18px;cursor:pointer;line-height:1}
+  .admin-log{background:#111;border-radius:6px;padding:10px 12px;font-family:'Roboto Mono',monospace;font-size:11px;max-height:180px;overflow-y:auto;margin-top:12px}
+  .al-ok{color:#4caf50}.al-err{color:#f44336}.al-dim{color:#555}.al-warn{color:#ff9800}
+  .admin-input{width:100%;background:#111;border:1px solid #333;border-radius:5px;color:var(--text);font-family:inherit;font-size:12px;padding:8px 12px;outline:none;margin-bottom:8px}
+  .admin-input:focus{border-color:#444}
+  .admin-btn{width:100%;padding:9px;border-radius:5px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;border:none;transition:all .15s}
+  .admin-btn.primary{background:var(--red);color:#fff}
+  .admin-btn.primary:hover{background:#c62828}
+  .admin-btn.primary:disabled{background:#333;color:var(--dim);cursor:default}
+  .admin-btn.secondary{background:var(--bg3);color:var(--dim2);border:1px solid var(--border);margin-top:6px}
+  .admin-btn.secondary:hover{color:var(--text)}
+  .lock-btn{background:none;border:none;cursor:pointer;color:var(--dim);font-size:13px;padding:3px 5px;border-radius:4px;transition:color .15s;line-height:1}
+  .lock-btn:hover{color:var(--text)}
+
   .lightbox{position:fixed;inset:0;background:#000d;display:flex;align-items:center;justify-content:center;z-index:500;cursor:zoom-out}
   .lightbox img{max-width:92vw;max-height:92vh;border-radius:4px;box-shadow:0 0 60px rgba(0,0,0,.8)}
 
@@ -243,7 +275,7 @@ const fmtNum = n => {
 // Точный формат БР до доллара
 const fmtExact = n => {
   if (!n && n !== 0) return '—'
-  return '$' + Math.round(n).toLocaleString('ru-RU').replace(/\s/g, ',')
+  const rounded = Math.round(n); if(rounded>=1000) return '$'+Math.floor(rounded/1000)+','+String(rounded%1000).padStart(3,'0'); return '$'+rounded
 }
 
 function extractDay(text) {
@@ -282,6 +314,7 @@ function MarathonChart({ posts, meta, startBR, setLightbox }) {
           url:    h.url,
           images: [],
           sessionResult: h.sessionResult,
+          rooms:  h.rooms || null,
         }))
     }
     return posts
@@ -360,6 +393,13 @@ function MarathonChart({ posts, meta, startBR, setLightbox }) {
       {tip && (() => {
         const pct = (tip.x/W)*100
         const right = pct>60
+        const rooms = tip.p.rooms
+        const roomDeltas = rooms ? [
+          {name:'ГГ',   v: rooms.after.gg   - rooms.before.gg},
+          {name:'ПС',   v: rooms.after.ps   - rooms.before.ps},
+          {name:'Кинг', v: rooms.after.king - rooms.before.king},
+          {name:'Коин', v: rooms.after.coin - rooms.before.coin},
+        ].filter(r => r.v !== 0) : []
         return (
           <div className="mc-tooltip" style={{
             bottom: (H-tip.y+16)+'px',
@@ -367,28 +407,92 @@ function MarathonChart({ posts, meta, startBR, setLightbox }) {
             right: right?`calc(${100-pct}% - 8px)`:'auto',
           }}>
             <div style={{fontWeight:700,color:'#fff',fontSize:13,marginBottom:5}}>{tip.p.date}</div>
-            <div style={{display:'flex',gap:12,fontSize:12,marginBottom:8}}>
+            <div style={{display:'flex',gap:12,fontSize:12,marginBottom:roomDeltas.length?8:4}}>
               <span style={{color:'#888'}}>БР: <b style={{color:'#fff'}}>{fk(tip.p.br)}</b></span>
               <span style={{color:tip.profit>=0?'#66bb6a':'#ff5252',fontWeight:700}}>
                 {tip.profit>=0?'+':''}{fk(tip.profit)}
               </span>
             </div>
-            {tip.p.text && (
-              <div style={{fontSize:11,color:'#bbb',lineHeight:1.6,
-                display:'-webkit-box',WebkitLineClamp:4,WebkitBoxOrient:'vertical',overflow:'hidden',
-                marginBottom:tip.p.images.length?8:0}}>
-                {tip.p.text.substring(0,200)}
+            {roomDeltas.length > 0 && (
+              <div style={{display:'flex',flexWrap:'wrap',gap:'3px 10px',marginBottom:8}}>
+                {roomDeltas.map(r => (
+                  <span key={r.name} style={{fontSize:11,color:r.v>=0?'#66bb6a':'#ff5252'}}>
+                    {r.name}: {r.v>=0?'+':''}{fk(r.v)}
+                  </span>
+                ))}
               </div>
             )}
-            {tip.p.images[0] && (
-              <img src={tip.p.images[0]} alt="" onClick={()=>setLightbox(tip.p.images[0])}
-                style={{maxWidth:'100%',maxHeight:90,objectFit:'cover',borderRadius:4,cursor:'pointer',marginTop:4}}
-                onError={e=>e.target.style.display='none'} />
+            {tip.p.text && (
+              <div style={{fontSize:11,color:'#bbb',lineHeight:1.6,
+                display:'-webkit-box',WebkitLineClamp:3,WebkitBoxOrient:'vertical',overflow:'hidden'}}>
+                {tip.p.text.substring(0,180)}
+              </div>
             )}
-            <div style={{fontSize:10,color:'#555',marginTop:6}}>кликни на точку → форум</div>
+            <div style={{fontSize:10,color:'#555',marginTop:5}}>кликни на точку → форум</div>
           </div>
         )
       })()}
+    </div>
+  )
+}
+
+// ─── ROOM WIDGET ─────────────────────────────────────────────────────────────
+function RoomWidget({ meta }) {
+  const history = meta?.brHistory
+  if (!history?.length) return null
+
+  const last = [...history].sort((a,b)=>(a.timestamp||0)-(b.timestamp||0)).slice(-1)[0]
+  if (!last?.rooms) return null
+
+  const rooms = [
+    { name:'ГГ',   key:'gg',   emoji:'🟢' },
+    { name:'ПС',   key:'ps',   emoji:'🔵' },
+    { name:'Кинг', key:'king', emoji:'🟡' },
+    { name:'Коин', key:'coin', emoji:'🟠' },
+  ]
+
+  // Считаем P&L каждого рума за всё время (сумма дельт по сессиям, исключая люксон)
+  const pnl = {gg:0, ps:0, king:0, coin:0}
+  history.forEach(h => {
+    if (!h.rooms) return
+    rooms.forEach(r => { pnl[r.key] += (h.rooms.after[r.key]||0) - (h.rooms.before[r.key]||0) })
+  })
+
+  const fk = n => {
+    const a=Math.abs(n), s=n<0?'-':n>0?'+':''
+    return a>=1000?s+'$'+(a/1000).toFixed(1)+'k':s+'$'+a
+  }
+
+  const total = rooms.reduce((s,r)=>s+last.rooms.after[r.key],0)
+
+  return (
+    <div style={{background:'var(--bg2)',border:'1px solid var(--border)',borderRadius:'var(--r)',padding:'12px 14px',marginBottom:12}}>
+      <div className="section-head" style={{marginBottom:10}}>
+        <span className="section-title">🏦 Балансы по румам</span>
+        <span className="section-count">последний отчёт</span>
+        <span style={{marginLeft:'auto',fontSize:11,color:'var(--dim)'}}>итого: ${total.toLocaleString()}</span>
+      </div>
+      <div style={{display:'grid',gridTemplateColumns:'repeat(4,1fr)',gap:8}}>
+        {rooms.map(r => {
+          const bal = last.rooms.after[r.key] || 0
+          const p   = pnl[r.key]
+          const pct = total > 0 ? Math.round(bal/total*100) : 0
+          return (
+            <div key={r.key} style={{background:'var(--bg3)',borderRadius:5,padding:'8px 10px'}}>
+              <div style={{fontSize:10,color:'var(--dim)',marginBottom:3}}>{r.emoji} {r.name}</div>
+              <div style={{fontSize:15,fontWeight:700,color:'var(--white)',fontFamily:"'Roboto Mono',monospace"}}>
+                ${bal.toLocaleString()}
+              </div>
+              <div style={{fontSize:10,marginTop:2,color:p>=0?'#66bb6a':'#ff5252'}}>
+                {fk(p)} за марафон
+              </div>
+              <div style={{marginTop:5,height:3,background:'var(--border)',borderRadius:2}}>
+                <div style={{height:'100%',width:pct+'%',background:p>=0?'#4caf50':'#e53935',borderRadius:2}}/>
+              </div>
+            </div>
+          )
+        })}
+      </div>
     </div>
   )
 }
@@ -779,6 +883,367 @@ function Paginator({ page, totalPages, onPage, perPage, onPerPage, total }) {
   )
 }
 
+// ─── ADMIN PANEL ─────────────────────────────────────────────────────────────
+const ADMIN_PASS = 'romeo2026'
+
+function AdminPanel({ onClose, posts, onPostsUpdated }) {
+  const [step, setStep]   = useState('auth') // auth | panel
+  const [pass, setPass]   = useState('')
+  const [token, setToken] = useState(() => sessionStorage.getItem('rpt_token')||'')
+  const [running, setRunning] = useState(false)
+  const [log, setLog]     = useState([])
+
+  const L = (msg, cls='al-dim') => setLog(prev => [...prev.slice(-60), {msg, cls}])
+
+  const auth = () => {
+    if (pass === ADMIN_PASS) { setStep('panel'); setPass('') }
+    else { L('Неверный пароль', 'al-err') }
+  }
+
+  const b64enc = s => btoa(unescape(encodeURIComponent(typeof s==='string'?s:JSON.stringify(s,null,2))))
+  const sleep = ms => new Promise(r=>setTimeout(r,ms))
+
+  async function scrapeNew() {
+    if (!token) { L('Введите GitHub токен', 'al-err'); return }
+    sessionStorage.setItem('rpt_token', token)
+    setRunning(true)
+    setLog([])
+
+    try {
+      // Определяем самый новый пост
+      const sorted = [...posts].sort((a,b)=>(b.timestamp||0)-(a.timestamp||0))
+      const lastTs = sorted[0]?.timestamp || 0
+      const lastId = sorted[0]?.id
+      L(`Последний пост: ${sorted[0]?.date||'—'} (id ${lastId})`)
+      L('Скрапим форум...')
+
+      const BASE = 'https://forum.gipsyteam.ru/index.php?viewtopic=181676'
+      const seenIds = new Set(posts.map(p=>p.id).filter(Boolean))
+      const newPosts = []
+      let url = BASE, page = 1, done = false
+
+      while (url && !done) {
+        L(`Страница ${page}...`)
+        const html = await fetch(url, {credentials:'include'}).then(r=>{
+          if(!r.ok) throw new Error('HTTP '+r.status); return r.text()
+        })
+        const doc = new DOMParser().parseFromString(html, 'text/html')
+
+        for (const b of doc.querySelectorAll('li.post')) {
+          const anchor = b.querySelector('a.anchor')
+          const postId = anchor?.getAttribute('data-pid')
+          if (!postId) continue
+          if (seenIds.has(postId)) { done = true; break }
+
+          const authorEl = b.querySelector('.post-author--link')
+          const bodyEl   = b.querySelector('.comment_text')
+          if (!authorEl || !bodyEl) continue
+
+          // Конвертируем цитаты
+          const tmp = document.createElement('div')
+          tmp.innerHTML = bodyEl.innerHTML
+          tmp.querySelectorAll('blockquote').forEach(bq => {
+            const citeEl = bq.querySelector('em.cite,.cite')
+            const author = citeEl?.querySelector('strong,b')?.textContent?.trim()||''
+            const dateRaw = citeEl?.querySelector('.em-cite,span')?.textContent?.trim()||''
+            if(citeEl) citeEl.remove()
+            const body = bq.innerText?.trim()||''
+            const m = document.createElement('div')
+            m.textContent = `[QUOTE]${author}|${dateRaw}\n${body}[/QUOTE]`
+            bq.replaceWith(m)
+          })
+
+          const dateEl  = b.querySelector('.post-date--item')
+          const ts      = dateEl?.getAttribute('data-timestamp')
+          const likesEl = b.querySelector('.post-vote--rating')
+          const avatarEl= b.querySelector('.post-author--avatar img')
+          const ratingEl= b.querySelector('.post-author--rating')
+          const msgEl   = b.querySelector('.post-author--messages')
+          const regEl   = b.querySelector('.post-author--regdata')
+          const imgs    = [...b.querySelectorAll('.comment_text img')]
+            .map(i=>i.src).filter(s=>s?.startsWith('http')&&!s.includes('smil'))
+
+          newPosts.push({
+            id: postId, author: authorEl.textContent.trim(),
+            avatar: avatarEl?.src||null,
+            rating: ratingEl?parseInt(ratingEl.textContent.replace(/[^\d-]/g,''))||null:null,
+            msgCount: msgEl?parseInt(msgEl.textContent.replace(/[^\d]/g,''))||null:null,
+            regData: regEl?.textContent.trim()||null,
+            date: dateEl?.textContent.trim()||'', timestamp: ts?parseInt(ts):null,
+            text: tmp.innerText?.trim().substring(0,1200)||'',
+            likes: likesEl?parseInt(likesEl.textContent.trim())||0:0,
+            images: imgs, brBefore:null, brAfter:null, sessionResult:null,
+            url:`https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=${postId}`
+          })
+          seenIds.add(postId)
+        }
+
+        if (done) break
+        const nextEl = [...doc.querySelectorAll('a.theme-pagination--pager')].find(a=>a.textContent.trim()==='→')
+        if (!nextEl) break
+        url = nextEl.href; page++
+        await sleep(400)
+      }
+
+      if (!newPosts.length) { L('Новых постов нет', 'al-warn'); setRunning(false); return }
+      L(`Найдено ${newPosts.length} новых постов`, 'al-ok')
+
+      // Читаем SHA через API, данные через raw
+      L('Читаю posts.json...')
+      const raw = await fetch(`https://raw.githubusercontent.com/${REPO}/main/data/posts.json?t=${Date.now()}`)
+      if (!raw.ok) throw new Error('raw fetch: '+raw.status)
+      const existing = await raw.json()
+      const merged = [...newPosts.reverse(), ...existing] // новые в начало
+
+      const sha = await fetch(`https://api.github.com/repos/${REPO}/contents/data/posts.json`,{
+        headers:{Authorization:`token ${token}`,Accept:'application/vnd.github.v3+json'}
+      }).then(r=>r.json()).then(j=>j.sha)
+
+      await fetch(`https://api.github.com/repos/${REPO}/contents/data/posts.json`,{
+        method:'PUT',
+        headers:{Authorization:`token ${token}`,'Content-Type':'application/json',Accept:'application/vnd.github.v3+json'},
+        body:JSON.stringify({message:`scraper: +${newPosts.length} new posts`,content:b64enc(merged),sha})
+      })
+
+      // Обновляем meta
+      const metaRaw = await fetch(`https://raw.githubusercontent.com/${REPO}/main/data/meta.json?t=${Date.now()}`).then(r=>r.json()).catch(()=>({}))
+      metaRaw.lastUpdated = new Date().toISOString()
+      metaRaw.totalPosts  = merged.length
+      const metaSha = await fetch(`https://api.github.com/repos/${REPO}/contents/data/meta.json`,{
+        headers:{Authorization:`token ${token}`,Accept:'application/vnd.github.v3+json'}
+      }).then(r=>r.json()).then(j=>j.sha)
+      await fetch(`https://api.github.com/repos/${REPO}/contents/data/meta.json`,{
+        method:'PUT',
+        headers:{Authorization:`token ${token}`,'Content-Type':'application/json',Accept:'application/vnd.github.v3+json'},
+        body:JSON.stringify({message:'scraper: update meta',content:b64enc(metaRaw),sha:metaSha})
+      })
+
+      L(`✓ Сохранено! Всего постов: ${merged.length}`, 'al-ok')
+      L('Обновляю данные...', 'al-dim')
+      onPostsUpdated()
+    } catch(e) {
+      L('Ошибка: '+e.message, 'al-err')
+    }
+    setRunning(false)
+  }
+
+  return (
+    <div className="admin-modal" onClick={e=>e.target===e.currentTarget&&onClose()}>
+      <div className="admin-box">
+        <div className="admin-title">
+          🔧 Админ-панель
+          <button className="admin-close" onClick={onClose}>×</button>
+        </div>
+
+        {step==='auth' ? <>
+          <input className="admin-input" type="password" placeholder="Пароль..."
+            value={pass} onChange={e=>setPass(e.target.value)}
+            onKeyDown={e=>e.key==='Enter'&&auth()} autoFocus/>
+          <button className="admin-btn primary" onClick={auth}>Войти</button>
+          {log.length>0 && <div className="admin-log">{log.map((l,i)=><div key={i} className={l.cls}>{l.msg}</div>)}</div>}
+        </> : <>
+          <input className="admin-input" type="password" placeholder="GitHub токен ghp_..."
+            value={token} onChange={e=>setToken(e.target.value)}/>
+          <button className="admin-btn primary" onClick={scrapeNew} disabled={running}>
+            {running ? '⏳ Скрапим...' : '⬇ Заскрабить новые посты'}
+          </button>
+          <button className="admin-btn secondary" onClick={onClose}>Закрыть</button>
+          {log.length>0 && (
+            <div className="admin-log" ref={el=>el&&(el.scrollTop=el.scrollHeight)}>
+              {log.map((l,i)=><div key={i} className={l.cls}>{l.msg}</div>)}
+            </div>
+          )}
+        </>}
+      </div>
+    </div>
+  )
+}
+
+// ─── ADMIN PANEL ─────────────────────────────────────────────────────────────
+const ADMIN_PASS = 'romeo26'
+const FORUM_BASE = 'https://forum.gipsyteam.ru/index.php?viewtopic=181676'
+const REPO       = 'loremcdmx/romeoprotracker'
+
+function AdminPanel({ onNewPosts }) {
+  const [step, setStep]     = useState('lock')  // lock | auth | panel
+  const [pass, setPass]     = useState('')
+  const [token, setToken]   = useState('')
+  const [running, setRunning] = useState(false)
+  const [log, setLog]       = useState([])
+
+  const L = (msg, cls='dim') => setLog(prev => [...prev, { msg, cls }])
+
+  const b64enc = s => btoa(unescape(encodeURIComponent(
+    typeof s === 'string' ? s : JSON.stringify(s, null, 2)
+  )))
+
+  const tryAuth = () => {
+    if (pass.trim() === ADMIN_PASS) { setStep('panel'); setPass('') }
+    else { setPass(''); L('Неверный пароль', 'err') }
+  }
+
+  const scrapeNew = async () => {
+    if (!token.trim()) { L('Введите GitHub токен', 'err'); return }
+    setRunning(true)
+    setLog([])
+    try {
+      // 1. Загружаем текущие посты
+      L('Загружаю текущие посты...')
+      const r = await fetch(`https://raw.githubusercontent.com/${REPO}/main/data/posts.json?t=${Date.now()}`)
+      if (!r.ok) throw new Error(`posts.json: ${r.status}`)
+      const existing = await r.json()
+      const knownIds = new Set(existing.map(p => p.id).filter(Boolean))
+      L(`Известно ${knownIds.size} постов. Иду на форум...`)
+
+      // 2. Скрапим последние страницы форума пока не натолкнёмся на известные посты
+      const newPosts = []
+      const visited  = new Set()
+      let   url      = FORUM_BASE + '&st=99999999' // последняя страница — форум сам перенаправит
+      let   page     = 1
+
+      // Находим реальную последнюю страницу через первую
+      const firstPage = await fetch(FORUM_BASE, { credentials: 'include' })
+      if (!firstPage.ok) throw new Error(`Форум недоступен: ${firstPage.status}`)
+      const firstHtml = await firstPage.text()
+      const firstDoc  = new DOMParser().parseFromString(firstHtml, 'text/html')
+      const pagers = [...firstDoc.querySelectorAll('a.theme-pagination--pager')]
+      const lastLink = pagers.reverse().find(a => /\d+/.test(a.textContent))
+      const lastSt = lastLink?.href?.match(/st=(\d+)/)?.[1]
+      url = lastSt ? `${FORUM_BASE}&st=${lastSt}` : FORUM_BASE
+
+      while (url && page <= 5) {
+        const normUrl = url.split('#')[0]
+        if (visited.has(normUrl)) break
+        visited.add(normUrl)
+
+        L(`Страница ${page}: ${normUrl}`)
+        const res = await fetch(normUrl, { credentials: 'include' })
+        if (!res.ok) { L(`HTTP ${res.status}`, 'err'); break }
+        const html = await res.text()
+        const doc  = new DOMParser().parseFromString(html, 'text/html')
+
+        let foundOld = false
+        for (const b of doc.querySelectorAll('li.post')) {
+          const anchor = b.querySelector('a.anchor')
+          const postId = anchor?.getAttribute('data-pid')
+          if (!postId) continue
+
+          if (knownIds.has(postId)) { foundOld = true; continue }
+
+          const authorEl = b.querySelector('.post-author--link')
+          const bodyEl   = b.querySelector('.comment_text')
+          if (!authorEl || !bodyEl) continue
+
+          const tmp = document.createElement('div')
+          tmp.innerHTML = bodyEl.innerHTML
+          tmp.querySelectorAll('blockquote').forEach(bq => {
+            const cite   = bq.querySelector('em.cite, .cite')
+            const author = cite?.querySelector('strong, b')?.textContent?.trim() || ''
+            const dateRaw = cite?.querySelector('.em-cite, span')?.textContent?.trim() || ''
+            if (cite) cite.remove()
+            const body = bq.innerText?.trim() || ''
+            const mk   = document.createElement('div')
+            mk.textContent = `[QUOTE]${author}|${dateRaw}\n${body}[/QUOTE]`
+            bq.replaceWith(mk)
+          })
+
+          const dateEl   = b.querySelector('.post-date--item')
+          const likesEl  = b.querySelector('.post-vote--rating')
+          const avatarEl = b.querySelector('.post-author--avatar img')
+          const ratingEl = b.querySelector('.post-author--rating')
+          const msgEl    = b.querySelector('.post-author--messages')
+          const regEl    = b.querySelector('.post-author--regdata')
+          const imgs     = [...b.querySelectorAll('.comment_text img')]
+            .map(i => i.src).filter(s => s?.startsWith('http') && !s.includes('smil'))
+
+          newPosts.push({
+            id:        postId,
+            author:    authorEl.textContent.trim(),
+            avatar:    avatarEl?.src || null,
+            rating:    ratingEl ? parseInt(ratingEl.textContent.replace(/[^\d-]/g,'')) || null : null,
+            msgCount:  msgEl    ? parseInt(msgEl.textContent.replace(/[^\d]/g,''))    || null : null,
+            regData:   regEl    ? regEl.textContent.trim() : null,
+            date:      dateEl?.textContent.trim() || '',
+            timestamp: dateEl?.getAttribute('data-timestamp') ? parseInt(dateEl.getAttribute('data-timestamp')) : null,
+            text:      tmp.innerText?.trim().substring(0, 1200) || '',
+            likes:     likesEl ? parseInt(likesEl.textContent.trim()) || 0 : 0,
+            images:    imgs,
+            brBefore: null, brAfter: null, sessionResult: null,
+            url: `https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=${postId}`,
+          })
+        }
+
+        L(`  +${newPosts.length} новых постов`, 'ok')
+        if (foundOld && newPosts.length > 0) { L('Дошли до известных постов — стоп'); break }
+
+        // Идём на предыдущую страницу
+        const prevLink = [...doc.querySelectorAll('a.theme-pagination--pager')]
+          .find(a => a.textContent.trim() === '←')
+        if (!prevLink || visited.has(prevLink.href.split('#')[0])) break
+        url = prevLink.href
+        page++
+        await new Promise(r => setTimeout(r, 500))
+      }
+
+      if (!newPosts.length) { L('Новых постов нет', 'warn'); setRunning(false); return }
+
+      // 3. Сохраняем в GitHub
+      L(`Сохраняю ${newPosts.length} новых постов...`, 'warn')
+      const merged = [...existing, ...newPosts]
+      const sha    = await fetch(`https://api.github.com/repos/${REPO}/contents/data/posts.json`, {
+        headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github.v3+json' }
+      }).then(r => r.json()).then(j => j.sha)
+
+      await fetch(`https://api.github.com/repos/${REPO}/contents/data/posts.json`, {
+        method: 'PUT',
+        headers: { Authorization: `token ${token}`, 'Content-Type': 'application/json', Accept: 'application/vnd.github.v3+json' },
+        body: JSON.stringify({ message: `scraper: +${newPosts.length} new posts`, content: b64enc(merged), sha })
+      })
+
+      L(`✓ Готово! +${newPosts.length} постов (всего ${merged.length})`, 'ok')
+      onNewPosts(newPosts)
+    } catch(e) {
+      L(`Ошибка: ${e.message}`, 'err')
+    }
+    setRunning(false)
+  }
+
+  if (step === 'lock') return (
+    <button className="admin-lock" title="Админ" onClick={() => setStep('auth')}>🔒</button>
+  )
+
+  return (
+    <div className="admin-modal" onClick={e => e.target.className==='admin-modal'&&setStep('lock')}>
+      <div className="admin-box">
+        {step === 'auth' ? <>
+          <div className="admin-title">🔒 Доступ</div>
+          <input className="admin-input" type="password" placeholder="Пароль"
+            value={pass} onChange={e=>setPass(e.target.value)}
+            onKeyDown={e=>e.key==='Enter'&&tryAuth()} autoFocus/>
+          <button className="admin-btn primary" onClick={tryAuth}>Войти</button>
+          {log.map((l,i)=><div key={i} className={`al-${l.cls}`} style={{fontSize:11,marginTop:4}}>{l.msg}</div>)}
+        </> : <>
+          <div className="admin-title" style={{display:'flex',justifyContent:'space-between'}}>
+            ⚙️ Скрапер
+            <button onClick={()=>setStep('lock')} style={{background:'none',border:'none',color:'var(--dim)',cursor:'pointer',fontSize:16}}>✕</button>
+          </div>
+          <input className="admin-input" type="password" placeholder="GitHub токен (ghp_...)"
+            value={token} onChange={e=>setToken(e.target.value)}/>
+          <button className="admin-btn primary" onClick={scrapeNew} disabled={running}>
+            {running ? '⏳ Скрапим...' : '🕷 Скрапить новые посты'}
+          </button>
+          <button className="admin-btn secondary" onClick={()=>setStep('lock')}>Закрыть</button>
+          {log.length > 0 && (
+            <div className="admin-log">
+              {log.map((l,i)=><div key={i} className={`al-${l.cls}`}>{l.msg}</div>)}
+            </div>
+          )}
+        </>}
+      </div>
+    </div>
+  )
+}
+
 // ─── APP ─────────────────────────────────────────────────────────────────────
 export default function App() {
   const [posts, setPosts]   = useState([])
@@ -786,6 +1251,7 @@ export default function App() {
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('feed')
   const [lightbox,  setLightbox]  = useState(null)
+  const [showAdmin, setShowAdmin] = useState(false)
   const [sortBy,  setSortBy]  = useState('date_asc')   // старые сначала по умолчанию
   const [search,  setSearch]  = useState('')
   const [showSearch, setShowSearch] = useState(false)
@@ -1040,9 +1506,27 @@ export default function App() {
               <div key={id} className={`topbar-tab ${activeTab===id?'active':''}`} onClick={()=>switchTab(id)}>{label}</div>
             ))}
           </div>
-          <div className="topbar-right"></div>
+          <div className="topbar-right">
+            <AdminPanel onNewPosts={newPosts => {
+              setPosts(prev => {
+                const ids = new Set(prev.map(p=>p.id))
+                return [...prev, ...newPosts.filter(p=>!ids.has(p.id))]
+              })
+            }}/>
+          </div>
         </div>
       </div>
+
+      {showAdmin && (
+        <AdminPanel
+          onClose={()=>setShowAdmin(false)}
+          posts={posts}
+          onPostsUpdated={()=>{
+            fetchPublicData().then(({posts,meta})=>{setPosts(posts||[]);setMeta(meta||{})})
+            setShowAdmin(false)
+          }}
+        />
+      )}
 
       {loading
         ? <div className="loading">Загружаем данные марафона…</div>
@@ -1199,6 +1683,7 @@ export default function App() {
             {/* ЛЕНТА */}
             {activeTab==='feed' && <>
               <MarathonChart posts={posts} meta={meta} startBR={stats.startBR} setLightbox={setLightbox}/>
+              <RoomWidget meta={meta}/>
               <ActivityChart posts={posts}/>
               <FilterBar
                 sortBy={sortBy} setSortBy={setSortBy}
