@@ -183,10 +183,71 @@ const css = `
   .empty-state{padding:30px;text-align:center;color:var(--dim);font-size:12px}
 
   @media(max-width:720px){
-    .page{grid-template-columns:1fr}
+    .page{grid-template-columns:1fr;padding:8px 10px 80px}
     .hero-stats{grid-template-columns:1fr 1fr}
+    .hero{padding:12px}
+    .hero-top{gap:10px;margin-bottom:12px}
+    .hstat{padding:10px}
+    .hstat-value{font-size:14px}
+    .topbar-inner{padding:0 10px;gap:8px}
     .topbar-tabs{display:none}
+    .logo-text{font-size:12px}
+    .logo-sub{display:none}
+
+    /* Bottom nav for mobile */
+    .mobile-nav{display:flex !important}
+
+    /* Filters */
+    .filter-bar{gap:6px;padding:8px 10px}
+    .filter-num{width:56px;font-size:10px;padding:3px 6px}
+    .filter-pill{padding:4px 8px;font-size:10px}
+    .feed-search{font-size:10px}
+
+    /* Post card */
+    .pc-head{padding:8px 10px}
+    .pc-body{padding:8px 10px;font-size:12px}
+    .pc-foot{padding:6px 10px;flex-wrap:wrap;gap:6px}
+    .pc-images{padding:0 10px 8px;gap:4px}
+    .pc-img{max-width:120px;max-height:90px}
+    .pc-author{font-size:12px}
+
+    /* Topic tabs */
+    .topic-tabs{gap:4px}
+    .topic-tab{padding:5px 10px;font-size:11px}
+
+    /* Sidebar hides on mobile, replaced by bottom tabs */
+    .sidebar{display:none}
+
+    /* Marathon chart */
+    .marathon-chart{padding:10px}
+    .mc-label,.mc-ylabel{font-size:8px}
+
+    /* Pagination */
+    .pagination{gap:3px;padding:10px 0}
+    .page-btn{min-width:28px;height:28px;font-size:11px}
+    .page-info{font-size:10px}
+    .perpage-select{font-size:10px;padding:3px 5px}
+
+    /* Admin */
+    .admin-box{width:95vw;padding:16px}
   }
+
+  /* Mobile bottom nav */
+  .mobile-nav{
+    display:none;
+    position:fixed;bottom:0;left:0;right:0;
+    background:#0a0a0a;border-top:1px solid var(--border);
+    z-index:150;padding:8px 0 env(safe-area-inset-bottom,8px);
+    justify-content:space-around;
+  }
+  .mobile-nav-btn{
+    display:flex;flex-direction:column;align-items:center;gap:2px;
+    background:none;border:none;cursor:pointer;color:var(--dim);
+    font-family:inherit;font-size:9px;padding:4px 12px;
+    transition:color .15s;min-width:60px;
+  }
+  .mobile-nav-btn.active{color:var(--red)}
+  .mobile-nav-btn span:first-child{font-size:18px;line-height:1}
 `
 
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
@@ -470,7 +531,7 @@ function ActivityChart({ posts, favorites, onFav, onIgnore, setLightbox,
           const bw = (W-pad*(data.length-1))/data.length
           const x  = i*(bw+pad)
           const bh = Math.max(3,(count/max)*H)
-          const maxLabels = Math.floor(W / 38)
+          const maxLabels = Math.floor(W / 50)
           const step = Math.max(1, Math.ceil(data.length / maxLabels))
           const showL = i % step === 0 || i === data.length - 1
           const isSelected = selected?.date === date
@@ -574,7 +635,7 @@ function ActivityChart({ posts, favorites, onFav, onIgnore, setLightbox,
               </div>
               <div style={{display:'flex',alignItems:'center',gap:4}}>
                 <span style={{fontSize:11,color:'var(--dim)'}}>⭐ репа</span>
-                <input type="number" min="0" value={minRating} onChange={e=>setMinRating?.(+e.target.value||0)}
+                <input type="number" min="0" step="100" value={minRating} onChange={e=>setMinRating?.(+e.target.value||0)}
                   style={{width:62,background:'var(--bg3)',border:'1px solid var(--border)',borderRadius:20,color:'var(--text)',fontFamily:'inherit',fontSize:11,padding:'4px 8px',outline:'none',textAlign:'center'}}/>
               </div>
               <span style={{fontSize:11,color:'var(--dim)',marginLeft:'auto'}}>{dayPosts.length} постов</span>
@@ -630,7 +691,7 @@ function FilterBar({ sortBy, setSortBy, search, setSearch, showSearch, setShowSe
             style={{width:12,height:12,objectFit:'contain'}} onError={e=>e.target.replaceWith(Object.assign(document.createElement('span'),{textContent:'⭐'}))}/>
           репа
         </label>
-        <input className="filter-num" type="number" min="0" value={minRating}
+        <input className="filter-num" type="number" min="0" step="100" value={minRating}
           onChange={e=>setMinRating(+e.target.value||0)} title="Минимальная репутация автора"/>
       </div>
       <button className={`filter-pill ${showSearch?'on':'off'}`}
@@ -1212,6 +1273,20 @@ export default function App() {
     <>
       <style>{css}</style>
 
+      {/* MOBILE BOTTOM NAV */}
+      <nav className="mobile-nav">
+        {[
+          ['feed',     '🏠', 'Лента'],
+          ['topics',   '📂', 'Темы'],
+          ['settings', '⚙️', 'Настройки'],
+        ].map(([id, icon, label]) => (
+          <button key={id} className={`mobile-nav-btn ${activeTab===id?'active':''}`} onClick={()=>switchTab(id)}>
+            <span>{icon}</span>
+            <span>{label}</span>
+          </button>
+        ))}
+      </nav>
+
       {lightbox && (
         <div className="lightbox" onClick={()=>setLightbox(null)}>
           <img src={lightbox} alt=""/>
@@ -1482,7 +1557,7 @@ export default function App() {
                                   onError={e=>e.target.style.display='none'}/>
                               )}
                               <div style={{fontSize:11,color:'var(--text)',overflow:'hidden',
-                                display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical'}}>
+                                display:'-webkit-box',WebkitLineClamp:4,WebkitBoxOrient:'vertical'}}>
                                 {preview.substring(0,80)}
                               </div>
                             </div>
