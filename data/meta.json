@@ -4,7 +4,7 @@
   "targetBankroll": 10000000,
   "day": 1,
   "status": "active",
-  "lastUpdated": "2026-04-05T23:47:04.576Z",
+  "lastUpdated": "2026-04-06T00:12:12.477Z",
   "totalPosts": 3627,
   "scrapedPages": 0,
   "chronicle": [],
@@ -18,6 +18,22 @@
       "brBefore": 10000,
       "brAfter": 9954,
       "sessionResult": -46,
+      "rooms": {
+        "before": {
+          "gg": 5001,
+          "ps": 3581,
+          "king": 1115,
+          "coin": 303,
+          "lux": 0
+        },
+        "after": {
+          "gg": 6059,
+          "ps": 2495,
+          "king": 990,
+          "coin": 410,
+          "lux": 0
+        }
+      },
       "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8193547"
     },
     {
@@ -27,6 +43,22 @@
       "brBefore": 9954,
       "brAfter": 8710,
       "sessionResult": -1244,
+      "rooms": {
+        "before": {
+          "gg": 6059,
+          "ps": 2495,
+          "king": 990,
+          "coin": 410,
+          "lux": 0
+        },
+        "after": {
+          "gg": 5862,
+          "ps": 2192,
+          "king": 504,
+          "coin": 152,
+          "lux": 0
+        }
+      },
       "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8193981"
     },
     {
@@ -36,6 +68,22 @@
       "brBefore": 8710,
       "brAfter": 9099,
       "sessionResult": 389,
+      "rooms": {
+        "before": {
+          "gg": 5862,
+          "ps": 2192,
+          "king": 504,
+          "coin": 152,
+          "lux": 0
+        },
+        "after": {
+          "gg": 3203,
+          "ps": 4093,
+          "king": 183,
+          "coin": 1620,
+          "lux": 0
+        }
+      },
       "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8194529"
     },
     {
@@ -45,6 +93,22 @@
       "brBefore": 9099,
       "brAfter": 12321,
       "sessionResult": 3222,
+      "rooms": {
+        "before": {
+          "gg": 3203,
+          "ps": 4093,
+          "king": 183,
+          "coin": 1620,
+          "lux": 0
+        },
+        "after": {
+          "gg": 3825,
+          "ps": 4088,
+          "king": 1314,
+          "coin": 2620,
+          "lux": 474
+        }
+      },
       "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8194971"
     },
     {
@@ -54,6 +118,22 @@
       "brBefore": 12321,
       "brAfter": 6737,
       "sessionResult": -5584,
+      "rooms": {
+        "before": {
+          "gg": 3825,
+          "ps": 4088,
+          "king": 1314,
+          "coin": 2620,
+          "lux": 474
+        },
+        "after": {
+          "gg": 1740,
+          "ps": 3625,
+          "king": 735,
+          "coin": 637,
+          "lux": 0
+        }
+      },
       "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8195516"
     },
     {
@@ -63,6 +143,22 @@
       "brBefore": 6737,
       "brAfter": 5257,
       "sessionResult": -1480,
+      "rooms": {
+        "before": {
+          "gg": 1740,
+          "ps": 3625,
+          "king": 735,
+          "coin": 637,
+          "lux": 0
+        },
+        "after": {
+          "gg": 1150,
+          "ps": 3583,
+          "king": 507,
+          "coin": 17,
+          "lux": 0
+        }
+      },
       "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8196021"
     },
     {
@@ -72,6 +168,22 @@
       "brBefore": 5257,
       "brAfter": 3020,
       "sessionResult": -2237,
+      "rooms": {
+        "before": {
+          "gg": 1150,
+          "ps": 3583,
+          "king": 507,
+          "coin": 17,
+          "lux": 0
+        },
+        "after": {
+          "gg": 51,
+          "ps": 2442,
+          "king": 510,
+          "coin": 17,
+          "lux": 0
+        }
+      },
       "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8196561"
     },
     {
@@ -81,6 +193,22 @@
       "brBefore": 3020,
       "brAfter": 3211,
       "sessionResult": 191,
+      "rooms": {
+        "before": {
+          "gg": 51,
+          "ps": 2442,
+          "king": 510,
+          "coin": 17,
+          "lux": 0
+        },
+        "after": {
+          "gg": 51,
+          "ps": 2960,
+          "king": 183,
+          "coin": 17,
+          "lux": 0
+        }
+      },
       "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8197110"
     },
     {
@@ -90,6 +218,22 @@
       "brBefore": 3211,
       "brAfter": 2876,
       "sessionResult": -335,
+      "rooms": {
+        "before": {
+          "gg": 51,
+          "ps": 2960,
+          "king": 183,
+          "coin": 17,
+          "lux": 0
+        },
+        "after": {
+          "gg": 51,
+          "ps": 2774,
+          "king": 34,
+          "coin": 17,
+          "lux": 0
+        }
+      },
       "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8197728"
     },
     {
@@ -99,6 +243,22 @@
       "brBefore": 2876,
       "brAfter": 4192,
       "sessionResult": 1316,
+      "rooms": {
+        "before": {
+          "gg": 51,
+          "ps": 2774,
+          "king": 34,
+          "coin": 17,
+          "lux": 0
+        },
+        "after": {
+          "gg": 78,
+          "ps": 4063,
+          "king": 34,
+          "coin": 17,
+          "lux": 0
+        }
+      },
       "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8198956"
     },
     {
@@ -108,6 +268,22 @@
       "brBefore": 4192,
       "brAfter": 6902,
       "sessionResult": 2710,
+      "rooms": {
+        "before": {
+          "gg": 78,
+          "ps": 4063,
+          "king": 34,
+          "coin": 17,
+          "lux": 0
+        },
+        "after": {
+          "gg": 1691,
+          "ps": 3788,
+          "king": 926,
+          "coin": 17,
+          "lux": 480
+        }
+      },
       "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8199618"
     },
     {
@@ -117,6 +293,22 @@
       "brBefore": 6902,
       "brAfter": 7277,
       "sessionResult": 375,
+      "rooms": {
+        "before": {
+          "gg": 1691,
+          "ps": 3788,
+          "king": 926,
+          "coin": 17,
+          "lux": 480
+        },
+        "after": {
+          "gg": 670,
+          "ps": 3725,
+          "king": 320,
+          "coin": 17,
+          "lux": 2545
+        }
+      },
       "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8200086"
     },
     {
@@ -126,6 +318,22 @@
       "brBefore": 6902,
       "brAfter": 7504,
       "sessionResult": 602,
+      "rooms": {
+        "before": {
+          "gg": 1691,
+          "ps": 3788,
+          "king": 926,
+          "coin": 17,
+          "lux": 480
+        },
+        "after": {
+          "gg": 670,
+          "ps": 3952,
+          "king": 320,
+          "coin": 17,
+          "lux": 2545
+        }
+      },
       "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8200442"
     },
     {
@@ -135,6 +343,22 @@
       "brBefore": 7504,
       "brAfter": 6894,
       "sessionResult": -610,
+      "rooms": {
+        "before": {
+          "gg": 670,
+          "ps": 3952,
+          "king": 320,
+          "coin": 17,
+          "lux": 2545
+        },
+        "after": {
+          "gg": 5457,
+          "ps": 1188,
+          "king": 232,
+          "coin": 17,
+          "lux": 0
+        }
+      },
       "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8203224"
     },
     {
@@ -144,6 +368,22 @@
       "brBefore": 6894,
       "brAfter": 6304,
       "sessionResult": -590,
+      "rooms": {
+        "before": {
+          "gg": 5457,
+          "ps": 1188,
+          "king": 232,
+          "coin": 17,
+          "lux": 0
+        },
+        "after": {
+          "gg": 4867,
+          "ps": 1188,
+          "king": 232,
+          "coin": 17,
+          "lux": 0
+        }
+      },
       "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8203871"
     },
     {
@@ -153,6 +393,22 @@
       "brBefore": 6304,
       "brAfter": 6591,
       "sessionResult": 287,
+      "rooms": {
+        "before": {
+          "gg": 4867,
+          "ps": 1188,
+          "king": 232,
+          "coin": 17,
+          "lux": 0
+        },
+        "after": {
+          "gg": 5154,
+          "ps": 1188,
+          "king": 232,
+          "coin": 17,
+          "lux": 0
+        }
+      },
       "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8206633"
     },
     {
@@ -162,6 +418,22 @@
       "brBefore": 6591,
       "brAfter": 7342,
       "sessionResult": 751,
+      "rooms": {
+        "before": {
+          "gg": 5154,
+          "ps": 1188,
+          "king": 232,
+          "coin": 17,
+          "lux": 0
+        },
+        "after": {
+          "gg": 5905,
+          "ps": 1188,
+          "king": 232,
+          "coin": 17,
+          "lux": 0
+        }
+      },
       "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8207321"
     },
     {
@@ -171,6 +443,22 @@
       "brBefore": 7342,
       "brAfter": 10371,
       "sessionResult": 3029,
+      "rooms": {
+        "before": {
+          "gg": 5905,
+          "ps": 1188,
+          "king": 232,
+          "coin": 17,
+          "lux": 0
+        },
+        "after": {
+          "gg": 8934,
+          "ps": 1188,
+          "king": 232,
+          "coin": 17,
+          "lux": 0
+        }
+      },
       "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8207918"
     },
     {
@@ -180,6 +468,22 @@
       "brBefore": 10371,
       "brAfter": 9957,
       "sessionResult": -414,
+      "rooms": {
+        "before": {
+          "gg": 8934,
+          "ps": 1188,
+          "king": 232,
+          "coin": 17,
+          "lux": 0
+        },
+        "after": {
+          "gg": 8520,
+          "ps": 1188,
+          "king": 232,
+          "coin": 17,
+          "lux": 0
+        }
+      },
       "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8209598"
     }
   ]
