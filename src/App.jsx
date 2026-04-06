@@ -1797,6 +1797,54 @@ export default function App() {
           )}
         </div>
       )}
+
+      {/* FOOTER */}
+      {!loading && (
+        <footer style={{
+          maxWidth:1280,margin:'0 auto',padding:'24px 16px 40px',
+          borderTop:'1px solid var(--border)',marginTop:8,
+        }}>
+          <div style={{display:'flex',flexWrap:'wrap',gap:24,alignItems:'flex-start',justifyContent:'space-between'}}>
+            {/* Левая часть — версия и автор */}
+            <div>
+              <div style={{fontSize:11,color:'var(--dim)',fontFamily:"'Roboto Mono',monospace",marginBottom:4}}>
+                <span style={{color:'var(--dim2)',fontWeight:600}}>RomeoPro Tracker</span>
+                {' '}
+                <span style={{color:'#444'}}>v1.4.6</span>
+              </div>
+              <div style={{fontSize:10,color:'#444',marginBottom:4}}>
+                made by{' '}
+                <a href="https://github.com/loremcdmx" target="_blank" rel="noreferrer"
+                  style={{color:'var(--dim)',textDecoration:'none'}}>LoremCDMX</a>
+              </div>
+              <div style={{fontSize:10,color:'#333'}}>
+                обновлено: 06.04.2026
+              </div>
+            </div>
+
+            {/* Правая часть — чейнджлог */}
+            <div style={{maxWidth:420}}>
+              <div style={{fontSize:10,color:'#444',textTransform:'uppercase',letterSpacing:'.1em',marginBottom:8,fontWeight:600}}>
+                Changelog
+              </div>
+              {[
+                ['v1.4.6', '06.04', 'Фикс цитат в попапе, свёрнутые цитаты, мобильный чарт активности'],
+                ['v1.4.0', '06.04', 'Попап предпросмотра постов в топе, мобильная навигация, автообновление'],
+                ['v1.3.0', '06.04', 'Топ постов с периодами, виджет активности, фильтр по репе'],
+                ['v1.2.0', '06.04', 'Скрапер с автозапуском каждые 10/30мин/6ч, обновление лайков'],
+                ['v1.1.0', '05.04', 'График марафона, темы, избранное, игнор-лист'],
+                ['v1.0.0', '05.04', 'Первый релиз — лента постов, фильтры, пагинация'],
+              ].map(([ver, date, desc]) => (
+                <div key={ver} style={{display:'flex',gap:8,marginBottom:5,alignItems:'baseline'}}>
+                  <span style={{fontSize:9,color:'var(--dim)',fontFamily:"'Roboto Mono',monospace",minWidth:40,flexShrink:0}}>{ver}</span>
+                  <span style={{fontSize:9,color:'#333',minWidth:32,flexShrink:0}}>{date}</span>
+                  <span style={{fontSize:10,color:'#555',lineHeight:1.4}}>{desc}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </footer>
+      )}
     </>
   )
 }
