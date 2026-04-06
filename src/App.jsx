@@ -973,8 +973,9 @@ function SidebarTopList({ posts, setLightbox }) {
     .trim()
 
   return (
-    <div style={{padding:'6px 14px'}}>
-      {/* Fixed popup — позиция фиксируется при наведении, не двигается */}
+    <div style={{padding:'6px 14px'}}
+      onMouseLeave={()=>setHovered(null)}>
+
       {hovered !== null && (() => {
         const p = posts[hovered]
         if (!p) return null
@@ -987,11 +988,10 @@ function SidebarTopList({ posts, setLightbox }) {
             width:300, background:'#1c1c1c', border:'1px solid #3a3a3a',
             borderRadius:8, padding:14, zIndex:9999,
             boxShadow:'0 8px 32px rgba(0,0,0,.9)',
-            pointerEvents:'auto',  // позволяет скроллить попап
+            pointerEvents:'auto',
             maxHeight: Math.min(window.innerHeight - top - 16, 480),
             display:'flex', flexDirection:'column',
-          }}
-          onMouseLeave={()=>setHovered(null)}>
+          }}>
             <div style={{fontWeight:700,color:'var(--white)',fontSize:13,marginBottom:4}}>{p.author}</div>
             <div style={{fontSize:11,color:'var(--green)',marginBottom:8,fontFamily:"'Roboto Mono',monospace"}}>
               +{p.likes} 👍 · {p.date}
@@ -1020,17 +1020,7 @@ function SidebarTopList({ posts, setLightbox }) {
             style={{display:'flex',gap:8,padding:'7px 0',borderBottom:'1px solid var(--border)',
               alignItems:'flex-start',cursor:'pointer'}}
             onClick={()=>p.url&&window.open(p.url,'_blank')}
-            onMouseEnter={e=>{
-              setHovered(i)
-              // Фиксируем позицию один раз при входе мыши
-              setPopupPos({x: e.clientX, y: e.clientY})
-            }}
-            onMouseLeave={e=>{
-              // Не скрываем если мышь ушла к попапу
-              const related = e.relatedTarget
-              if (related?.closest?.('[data-popup]')) return
-              setHovered(null)
-            }}>
+            onMouseEnter={e=>{ setHovered(i); setPopupPos({x:e.clientX, y:e.clientY}) }}>
             <span style={{color:'var(--gold)',fontWeight:700,fontSize:11,minWidth:16,flexShrink:0,paddingTop:10}}>{i+1}</span>
             <div style={{width:28,height:28,borderRadius:'50%',background:'var(--red)',flexShrink:0,
               overflow:'hidden',display:'flex',alignItems:'center',justifyContent:'center',
