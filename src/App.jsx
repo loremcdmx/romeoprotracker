@@ -183,19 +183,67 @@ const css = `
   .empty-state{padding:30px;text-align:center;color:var(--dim);font-size:12px}
 
   @media(max-width:720px){
-    .page{grid-template-columns:1fr;padding:8px 10px 90px}
-    .hero-stats{grid-template-columns:1fr 1fr}
-    .topbar-tabs{display:none}
-    .topbar-inner{padding:0 10px;gap:8px}
-    .logo-sub{display:none}
+    .page{grid-template-columns:1fr;padding:6px 8px 80px}
     .sidebar{display:none}
+    .topbar-tabs{display:none}
     .admin-lock{display:none}
-    .admin-box{width:95vw;padding:16px}
     .mobile-nav{display:flex !important}
-    .marathon-chart{padding:10px}
-    .mc-label,.mc-ylabel{font-size:8px}
-    .pagination{gap:3px;padding:10px 0}
-    .page-btn{min-width:28px;height:28px;font-size:11px}
+    .admin-box{width:95vw;padding:16px}
+
+    /* Topbar */
+    .topbar-inner{padding:0 8px;gap:6px}
+    .logo-badge{width:22px;height:22px}
+    .logo-text{font-size:11px}
+    .logo-sub{display:none}
+
+    /* Hero */
+    .hero{padding:10px}
+    .hero-top{gap:8px;margin-bottom:10px}
+    .hero-avatar{width:32px;height:32px}
+    .hero-name{font-size:13px}
+    .hero-desc{font-size:10px}
+    .hero-stats{grid-template-columns:1fr 1fr;gap:6px}
+    .hstat{padding:8px 10px}
+    .hstat-label{font-size:9px}
+    .hstat-value{font-size:15px}
+    .hstat-sub{font-size:9px}
+
+    /* Filter bar */
+    .filter-bar{flex-wrap:wrap;gap:5px;padding:8px}
+    .filter-num{width:48px;font-size:11px;padding:3px 5px}
+    .filter-pill{padding:4px 8px;font-size:11px}
+    .feed-select{font-size:11px;padding:4px 6px}
+    .feed-search{font-size:11px;min-width:80px}
+    .filter-active-count{font-size:10px}
+
+    /* Post card */
+    .post-card{margin-bottom:4px}
+    .pc-head{padding:8px 10px;gap:8px}
+    .pc-avatar{width:28px;height:28px;font-size:11px}
+    .pc-author{font-size:12px}
+    .pc-author-meta{font-size:9px}
+    .pc-date{font-size:9px}
+    .pc-body{padding:8px 10px;font-size:12px}
+    .pc-foot{padding:5px 10px;gap:6px;flex-wrap:wrap}
+    .pc-images{padding:0 10px 8px;gap:4px}
+    .pc-img{max-width:100px;max-height:75px}
+    .pc-likes{font-size:11px}
+
+    /* Topic tabs */
+    .topic-tabs{gap:4px;overflow-x:auto;flex-wrap:nowrap;padding-bottom:2px}
+    .topic-tab{padding:5px 10px;font-size:11px;white-space:nowrap}
+    .section-title{font-size:11px}
+
+    /* Charts */
+    .marathon-chart{padding:8px}
+    .mc-label,.mc-ylabel{font-size:7px}
+    .chart-wrap{padding:10px 8px}
+
+    /* Pagination */
+    .pagination{gap:2px;padding:8px 0;flex-wrap:wrap}
+    .page-btn{min-width:26px;height:26px;font-size:10px;padding:0 4px}
+    .page-info{font-size:10px;padding:0 4px}
+    .perpage-select{font-size:10px;padding:2px 4px}
   }
 
   /* Mobile bottom nav — sits above iOS browser chrome */
