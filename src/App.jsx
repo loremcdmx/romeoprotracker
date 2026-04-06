@@ -1001,7 +1001,7 @@ function SidebarTopList({ posts, setLightbox }) {
                 onError={e=>e.target.style.display='none'}/>
             )}
             <div style={{fontSize:12,color:'var(--text)',lineHeight:1.7,overflowY:'auto',flex:1,paddingRight:4}}>
-              {full || '→ открыть на форуме'}
+              {renderPostText(p.text) || '→ открыть на форуме'}
             </div>
             <div style={{marginTop:8,paddingTop:8,borderTop:'1px solid #2a2a2a'}}>
               <a href={p.url} target="_blank" rel="noreferrer"
