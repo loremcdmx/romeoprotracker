@@ -1,7 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { fetchPublicData } from './storage.js'
 
-const REPO = 'loremcdmx/romeoprotracker'
 
 // ─── CSS ─────────────────────────────────────────────────────────────────────
 const css = `
@@ -884,7 +883,6 @@ function Paginator({ page, totalPages, onPage, perPage, onPerPage, total }) {
 }
 
 // ─── ADMIN PANEL ─────────────────────────────────────────────────────────────
-const ADMIN_PASS = 'romeo2026'
 
 function AdminPanel({ onClose, posts, onPostsUpdated }) {
   const [step, setStep]   = useState('auth') // auth | panel
