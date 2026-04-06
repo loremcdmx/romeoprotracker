@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { fetchPublicData } from './storage.js'
+// v2.1 — single AdminPanel, no duplicate declarations
 
 
 // ─── CSS ─────────────────────────────────────────────────────────────────────
