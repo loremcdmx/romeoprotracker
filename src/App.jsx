@@ -184,6 +184,7 @@ const css = `
   .empty-state{padding:30px;text-align:center;color:var(--dim);font-size:12px}
 
   @media(max-width:720px){
+    html,body,#root{font-size:14px}
     .page{grid-template-columns:1fr;padding:8px 10px 90px}
     .hero-stats{grid-template-columns:1fr 1fr}
     .hero{padding:12px}
@@ -517,35 +518,53 @@ function ActivityChart({ posts, favorites, onFav, onIgnore, setLightbox,
   if (!data.length) return null
   const max = Math.max(...data.map(d=>d[1].count), 1)
 
-  // ── MOBILE: горизонтальный скролл с карточками дней ───────────────────────
+  const scrollRef = React.useRef(null)
+  React.useEffect(() => {
+    if (isMobile && scrollRef.current) {
+      scrollRef.current.scrollLeft = scrollRef.current.scrollWidth
+    }
+  }, [isMobile, data.length])
+
+  // ── MOBILE: горизонтальный скролл, последние 7 дней видны сразу ─────────────
   if (isMobile) {
+    const BAR_W = 36
+    const BAR_MAX_H = 80
+
     return (
       <div className="chart-wrap">
         <div className="section-head" style={{marginBottom:8}}>
           <span className="section-title">Активность постов</span>
-          <span className="section-count">последние {data.length} дней</span>
+          <span className="section-count">{data.length} дней</span>
           {selected && (
             <button onClick={()=>setSelected(null)}
-              style={{marginLeft:'auto',background:'none',border:'none',color:'var(--dim)',fontSize:11,cursor:'pointer',fontFamily:'inherit'}}>
+              style={{marginLeft:'auto',background:'none',border:'none',color:'var(--dim)',fontSize:13,cursor:'pointer',fontFamily:'inherit'}}>
               ✕ закрыть
             </button>
           )}
         </div>
-        {/* Горизонтальный скролл баров */}
-        <div style={{overflowX:'auto',WebkitOverflowScrolling:'touch',marginBottom:selected?10:0}}>
-          <div style={{display:'flex',gap:4,alignItems:'flex-end',height:60,paddingBottom:20,minWidth:'max-content'}}>
+
+        {/* Горизонтальный скролл — скроллится к правому краю (последние дни) */}
+        <div ref={scrollRef} style={{overflowX:'auto',WebkitOverflowScrolling:'touch',paddingBottom:4}}>
+          <div style={{display:'flex',gap:6,alignItems:'flex-end',minWidth:'max-content',padding:'4px 8px 0'}}>
             {data.map(([date, {count, posts:dp}]) => {
-              const bh = Math.max(4, Math.round((count/max)*40))
+              const bh = Math.max(6, Math.round((count/max)*BAR_MAX_H))
               const isSelected = selected?.date === date
               return (
-                <div key={date} style={{display:'flex',flexDirection:'column',alignItems:'center',gap:3,cursor:'pointer'}}
+                <div key={date} style={{display:'flex',flexDirection:'column',alignItems:'center',gap:4,cursor:'pointer',minWidth:BAR_W}}
                   onClick={()=>setSelected(selected?.date===date ? null : {date,posts:dp})}>
+                  {/* Число постов над баром */}
+                  <span style={{fontSize:10,color:isSelected?'#fff':'#666',fontFamily:"'Roboto Mono',monospace",fontWeight:isSelected?700:400}}>
+                    {count}
+                  </span>
                   <div style={{
-                    width:18,height:bh,borderRadius:2,
-                    background:isSelected?'#e53935':'#e5393550',
-                    transition:'background .1s'
+                    width:BAR_W-6, height:bh, borderRadius:3,
+                    background:isSelected?'#e53935':'#e5393540',
+                    border: isSelected?'2px solid #e53935':'1px solid #e5393530',
+                    transition:'all .15s',
+                    boxShadow: isSelected?'0 0 8px #e5393580':'none'
                   }}/>
-                  <span style={{fontSize:8,color:'#555',fontFamily:"'Roboto Mono',monospace",whiteSpace:'nowrap',transform:'rotate(-45deg)',transformOrigin:'top left',marginTop:4,marginLeft:6}}>
+                  {/* Дата под баром */}
+                  <span style={{fontSize:11,color:isSelected?'var(--text)':'#666',fontFamily:"'Roboto Mono',monospace",whiteSpace:'nowrap'}}>
                     {date.slice(5)}
                   </span>
                 </div>
@@ -553,6 +572,9 @@ function ActivityChart({ posts, favorites, onFav, onIgnore, setLightbox,
             })}
           </div>
         </div>
+        <div style={{fontSize:11,color:'#444',textAlign:'center',padding:'4px 0 6px'}}>← скролль для старых дней · тап = детали</div>
+
+        {/* Selected day posts */}
         {/* Selected day posts */}
         {selected && (() => {
           const summary = makeDaySummary(selected.posts)
@@ -941,6 +963,7 @@ function Paginator({ page, totalPages, onPage, perPage, onPerPage, total }) {
 // ─── SIDEBAR TOP LIST ─────────────────────────────────────────────────────────
 function SidebarTopList({ posts, setLightbox }) {
   const [hovered, setHovered] = useState(null)
+  const [mousePos, setMousePos] = useState({x:0, y:0})
 
   const stripQuotes = t => (t||'')
     .replace(/\[QUOTE\][\s\S]*?\[\/QUOTE\]/gi,'')
@@ -950,18 +973,20 @@ function SidebarTopList({ posts, setLightbox }) {
     .trim()
 
   return (
-    <div style={{padding:'6px 14px',position:'relative'}}>
-      {/* Popup portal-style — absolute to sblock */}
+    <div style={{padding:'6px 14px'}}>
+      {/* Fixed popup — не зависит от overflow:hidden родителей */}
       {hovered !== null && (() => {
         const p = posts[hovered]
         if (!p) return null
         const full = stripQuotes(p.text)
+        const left = Math.max(8, mousePos.x - 320)
+        const top  = Math.min(mousePos.y - 20, window.innerHeight - 350)
         return (
           <div style={{
-            position:'absolute',right:'calc(100% + 8px)',top:0,
-            width:300,background:'#1c1c1c',border:'1px solid #3a3a3a',
-            borderRadius:8,padding:14,zIndex:500,
-            boxShadow:'0 8px 32px rgba(0,0,0,.9)',pointerEvents:'none',
+            position:'fixed', left, top,
+            width:300, background:'#1c1c1c', border:'1px solid #3a3a3a',
+            borderRadius:8, padding:14, zIndex:9999,
+            boxShadow:'0 8px 32px rgba(0,0,0,.9)', pointerEvents:'none',
           }}>
             <div style={{fontWeight:700,color:'var(--white)',fontSize:13,marginBottom:4}}>{p.author}</div>
             <div style={{fontSize:11,color:'var(--green)',marginBottom:8,fontFamily:"'Roboto Mono',monospace"}}>
@@ -971,8 +996,8 @@ function SidebarTopList({ posts, setLightbox }) {
               <img src={p.images[0]} alt="" style={{maxWidth:'100%',borderRadius:4,marginBottom:8,display:'block'}}
                 onError={e=>e.target.style.display='none'}/>
             )}
-            <div style={{fontSize:12,color:'var(--text)',lineHeight:1.65,maxHeight:300,overflow:'hidden'}}>
-              {full.substring(0,600) || '→ открыть на форуме'}
+            <div style={{fontSize:12,color:'var(--text)',lineHeight:1.65,maxHeight:250,overflow:'hidden'}}>
+              {full.substring(0,500) || '→ открыть на форуме'}
             </div>
           </div>
         )
@@ -987,7 +1012,8 @@ function SidebarTopList({ posts, setLightbox }) {
             style={{display:'flex',gap:8,padding:'7px 0',borderBottom:'1px solid var(--border)',
               alignItems:'flex-start',cursor:'pointer'}}
             onClick={()=>p.url&&window.open(p.url,'_blank')}
-            onMouseEnter={()=>setHovered(i)}
+            onMouseEnter={e=>{ setHovered(i); setMousePos({x:e.clientX,y:e.clientY}) }}
+            onMouseMove={e=>setMousePos({x:e.clientX,y:e.clientY})}
             onMouseLeave={()=>setHovered(null)}>
             <span style={{color:'var(--gold)',fontWeight:700,fontSize:11,minWidth:16,flexShrink:0,paddingTop:10}}>{i+1}</span>
             <div style={{width:28,height:28,borderRadius:'50%',background:'var(--red)',flexShrink:0,
