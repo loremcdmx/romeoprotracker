@@ -1091,6 +1091,18 @@ const TOKEN='${t}';
 const FORUM='https://forum.gipsyteam.ru/index.php?viewtopic=181676';
 const b64=s=>btoa(unescape(encodeURIComponent(typeof s==='string'?s:JSON.stringify(s,null,2))));
 
+// Конвертируем HTML в текст с сохранением форматирования абзацев
+function htmlToText(el){
+  const c=el.cloneNode(true);
+  // <br> → \n
+  c.querySelectorAll('br').forEach(br=>br.replaceWith('\\n'));
+  // <p>, <div> → добавляем \n\n после
+  c.querySelectorAll('p,div').forEach(b=>{
+    if(b.nextSibling)b.insertAdjacentText('afterend','\\n\\n');
+  });
+  return c.textContent.replace(/\\n{3,}/g,'\\n\\n').trim();
+}
+
 async function scrape(){
 const ts=new Date().toLocaleTimeString();
 console.log('%c🕷 Скрапер '+ts,'color:#e53935;font-weight:bold');
@@ -1131,7 +1143,7 @@ while(url){
       const author=cite?.querySelector('strong,b')?.textContent?.trim()||'';
       const dateRaw=cite?.querySelector('.em-cite,span')?.textContent?.trim()||'';
       if(cite)cite.remove();
-      const body=bq.innerText?.trim()||'';
+      const body=htmlToText(bq);
       const mk=document.createElement('div');
       mk.textContent='[QUOTE]'+author+'|'+dateRaw+'\\n'+body+'[/QUOTE]';
       bq.replaceWith(mk);
@@ -1143,12 +1155,14 @@ while(url){
     const msgEl=b.querySelector('.post-author--messages');
     const regEl=b.querySelector('.post-author--regdata');
     const imgs=[...b.querySelectorAll('.comment_text img')].map(i=>i.src).filter(s=>s?.startsWith('http')&&!s.includes('smil'));
+    const isRomeo=/romeopro/i.test(authorEl.textContent.trim());
+    const maxLen=isRomeo?8000:2400;
     newPosts.push({id:postId,author:authorEl.textContent.trim(),avatar:avatarEl?.src||null,
       rating:ratingEl?parseInt(ratingEl.textContent.replace(/[^\\d-]/g,''))||null:null,
       msgCount:msgEl?parseInt(msgEl.textContent.replace(/[^\\d]/g,''))||null:null,
       regData:regEl?regEl.textContent.trim():null,date:dateEl?.textContent.trim()||'',
       timestamp:dateEl?.getAttribute('data-timestamp')?parseInt(dateEl.getAttribute('data-timestamp')):null,
-      text:(()=>{const t=tmp.innerText?.trim()||'';if(t.length<=1200)return t;const cut=t.substring(0,1200);const lastClose=cut.lastIndexOf('[/QUOTE]');return lastClose>600?cut.substring(0,lastClose+'[/QUOTE]'.length):cut})()||'',
+      text:(()=>{const t=htmlToText(tmp);if(t.length<=maxLen)return t;const cut=t.substring(0,maxLen);const lastClose=cut.lastIndexOf('[/QUOTE]');return lastClose>600?cut.substring(0,lastClose+'[/QUOTE]'.length):cut})()||'',
       likes:likesEl?parseInt(likesEl.textContent.trim())||0:0,images:imgs,
       brBefore:null,brAfter:null,sessionResult:null,
       url:'https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p='+postId});
@@ -1812,16 +1826,16 @@ export default function App() {
                 Changelog
               </div>
               {[
-                ['v1.2.9', '07.04', 'Скрапер v2 с 4 задачами, draggable виджет, фикс мобильного CSS'],
-                ['v1.2.8', '06.04', 'Фикс цитат в попапе, auto-close незакрытых QUOTE, чистка 49 постов'],
-                ['v1.2.7', '06.04', 'Попап предпросмотра постов в топе (fixed позиция), свёрнутые цитаты'],
-                ['v1.2.6', '06.04', 'Мобильный чарт активности с горизонтальным скроллом'],
-                ['v1.2.5', '06.04', 'Футер с версией и чейнджлогом, автообновление данных каждые 5 мин'],
-                ['v1.2.4', '06.04', 'Скрапер с таймерами 10м/30м/6ч, обновление лайков'],
-                ['v1.2.3', '06.04', 'Топ постов с фильтрами по периоду, виджет активности, репа GT-стиль'],
-                ['v1.2.2', '06.04', 'График марафона день #N, мобильная навигация, фикс пагинации'],
+                ['v1.2.9', '07.04', 'Фикс цитат, попап постов, мобильная навигация, сохранение фильтров'],
+                ['v1.2.8', '06.04', 'Свёрнутые цитаты в превью, автозакрытие обрезанных QUOTE'],
+                ['v1.2.7', '06.04', 'Попап предпросмотра постов в топе с полным текстом'],
+                ['v1.2.6', '06.04', 'Виджет активности постов с детализацией по дням'],
+                ['v1.2.5', '06.04', 'Футер с версией, чейнджлогом и авторством'],
+                ['v1.2.4', '06.04', 'Топ постов с фильтрами по периоду и авторитетными авторами'],
+                ['v1.2.3', '06.04', 'График марафона день #N, мобильная навигация'],
+                ['v1.2.2', '06.04', 'Фильтры по лайкам и репутации, репа в стиле GT'],
                 ['v1.2.1', '05.04', 'Темы (марафон/обсуждение/дебаты/флуд), избранное, игнор-лист'],
-                ['v1.2.0', '05.04', 'График марафона, фильтры по лайкам/репе, поиск'],
+                ['v1.2.0', '05.04', 'График марафона, поиск, сортировка'],
                 ['v1.1.0', '05.04', 'Лента постов с пагинацией, цитаты, аватарки'],
                 ['v1.0.0', '05.04', 'Первый релиз'],
               ].map(([ver, date, desc]) => (
