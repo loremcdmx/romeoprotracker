@@ -811,8 +811,16 @@ function FilterBar({ sortBy, setSortBy, search, setSearch, showSearch, setShowSe
 function renderPostText(text) {
   if (!text) return null
 
+  // Автозакрываем незакрытые [QUOTE] (текст обрезан скрапером на 1200 симв внутри цитаты)
+  let safe = text.trim()
+  const openCount  = (safe.match(/\[QUOTE\]/gi)||[]).length
+  const closeCount = (safe.match(/\[\/QUOTE\]/gi)||[]).length
+  if (openCount > closeCount) {
+    safe += '[/QUOTE]'.repeat(openCount - closeCount)
+  }
+
   const parts = []
-  let remaining = text.trim()
+  let remaining = safe
 
   while (remaining.length > 0) {
     // Формат из нового скрапера: [QUOTE]Автор|Автор @ дата\nтело цитаты[/QUOTE]ответ
@@ -1141,7 +1149,7 @@ while(url){
       msgCount:msgEl?parseInt(msgEl.textContent.replace(/[^\\d]/g,''))||null:null,
       regData:regEl?regEl.textContent.trim():null,date:dateEl?.textContent.trim()||'',
       timestamp:dateEl?.getAttribute('data-timestamp')?parseInt(dateEl.getAttribute('data-timestamp')):null,
-      text:tmp.innerText?.trim().substring(0,1200)||'',
+      text:(()=>{const t=tmp.innerText?.trim()||'';if(t.length<=1200)return t;const cut=t.substring(0,1200);const lastClose=cut.lastIndexOf('[/QUOTE]');return lastClose>600?cut.substring(0,lastClose+'[/QUOTE]'.length):cut})()||'',
       likes:likesEl?parseInt(likesEl.textContent.trim())||0:0,images:imgs,
       brBefore:null,brAfter:null,sessionResult:null,
       url:'https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p='+postId});
