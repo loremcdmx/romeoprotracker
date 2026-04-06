@@ -865,7 +865,10 @@ const REPO='${REPO}';
 const TOKEN='${t}';
 const FORUM='https://forum.gipsyteam.ru/index.php?viewtopic=181676';
 const b64=s=>btoa(unescape(encodeURIComponent(typeof s==='string'?s:JSON.stringify(s,null,2))));
-console.log('📥 Загружаю известные посты...');
+
+async function scrape(){
+const ts=new Date().toLocaleTimeString();
+console.log('%c🕷 Скрапер '+ts,'color:#e53935;font-weight:bold');
 const r=await fetch('https://raw.githubusercontent.com/'+REPO+'/main/data/posts.json?t='+Date.now());
 const existing=await r.json();
 const knownIds=new Set(existing.map(p=>p.id).filter(Boolean));
@@ -873,20 +876,16 @@ console.log('Известно: '+knownIds.size+' постов');
 const newPosts=[];
 const visited=new Set();
 let url=FORUM;
-// Ищем последнюю страницу
-const fp=await fetch(FORUM);
-const fh=await fp.text();
-const fd=new DOMParser().parseFromString(fh,'text/html');
-const pagers=[...fd.querySelectorAll('a.theme-pagination--pager')];
-const lastLink=pagers.reverse().find(a=>/\\d+/.test(a.textContent));
-const lastSt=lastLink?.href?.match(/st=(\\d+)/)?.[1];
-if(lastSt)url=FORUM+'&st='+lastSt;
+const lastKnown=[...existing].filter(p=>p.url).sort((a,b)=>(b.timestamp||0)-(a.timestamp||0))[0];
+const lastSt=lastKnown?.url?.match(/st=(\\d+)/)?.[1];
+if(lastSt){url=FORUM+'&st='+lastSt;console.log('📌 Стартую со st='+lastSt);}
+else{const fp=await fetch(FORUM);const fh=await fp.text();const fd=new DOMParser().parseFromString(fh,'text/html');const ll=[...fd.querySelectorAll('a.theme-pagination--pager')].reverse().find(a=>/\\d+/.test(a.textContent));const st=ll?.href?.match(/st=(\\d+)/)?.[1];if(st)url=FORUM+'&st='+st;}
 let page=1;
-while(url&&page<=10){
+while(url){
   const normUrl=url.split('#')[0];
   if(visited.has(normUrl))break;
   visited.add(normUrl);
-  console.log('📄 Страница '+page+': '+normUrl);
+  console.log('📄 Стр '+page+': '+normUrl);
   const res=await fetch(normUrl);
   if(!res.ok){console.error('HTTP '+res.status);break;}
   const html=await res.text();
@@ -919,38 +918,37 @@ while(url&&page<=10){
     const msgEl=b.querySelector('.post-author--messages');
     const regEl=b.querySelector('.post-author--regdata');
     const imgs=[...b.querySelectorAll('.comment_text img')].map(i=>i.src).filter(s=>s?.startsWith('http')&&!s.includes('smil'));
-    newPosts.push({
-      id:postId,
-      author:authorEl.textContent.trim(),
-      avatar:avatarEl?.src||null,
+    newPosts.push({id:postId,author:authorEl.textContent.trim(),avatar:avatarEl?.src||null,
       rating:ratingEl?parseInt(ratingEl.textContent.replace(/[^\\d-]/g,''))||null:null,
       msgCount:msgEl?parseInt(msgEl.textContent.replace(/[^\\d]/g,''))||null:null,
-      regData:regEl?regEl.textContent.trim():null,
-      date:dateEl?.textContent.trim()||'',
+      regData:regEl?regEl.textContent.trim():null,date:dateEl?.textContent.trim()||'',
       timestamp:dateEl?.getAttribute('data-timestamp')?parseInt(dateEl.getAttribute('data-timestamp')):null,
       text:tmp.innerText?.trim().substring(0,1200)||'',
-      likes:likesEl?parseInt(likesEl.textContent.trim())||0:0,
-      images:imgs,
+      likes:likesEl?parseInt(likesEl.textContent.trim())||0:0,images:imgs,
       brBefore:null,brAfter:null,sessionResult:null,
-      url:'https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p='+postId,
-    });
+      url:'https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p='+postId});
   }
-  console.log('  Новых: '+newPosts.length);
-  if(foundOld&&newPosts.length>0){console.log('Дошли до известных — стоп');break;}
-  const prevLink=[...doc.querySelectorAll('a.theme-pagination--pager')].find(a=>a.textContent.trim()==='←');
-  if(!prevLink||visited.has(prevLink.href.split('#')[0]))break;
-  url=prevLink.href;
-  page++;
+  console.log('  +'+newPosts.length+' новых');
+  if(foundOld&&newPosts.length>0){console.log('✓ Нашли известные — стоп');break;}
+  const nextLink=[...doc.querySelectorAll('a.theme-pagination--pager')].find(a=>a.textContent.trim()==='→');
+  if(!nextLink||visited.has(nextLink.href.split('#')[0]))break;
+  url=nextLink.href;page++;
   await new Promise(r=>setTimeout(r,400));
 }
 if(!newPosts.length){console.log('⚠️ Новых постов нет');return;}
-console.log('💾 Сохраняю '+newPosts.length+' постов в GitHub...');
+console.log('💾 Сохраняю '+newPosts.length+'...');
 const merged=[...existing,...newPosts];
 const shaRes=await fetch('https://api.github.com/repos/'+REPO+'/contents/data/posts.json',{headers:{Authorization:'token '+TOKEN,Accept:'application/vnd.github.v3+json'}});
 const {sha}=await shaRes.json();
 const putRes=await fetch('https://api.github.com/repos/'+REPO+'/contents/data/posts.json',{method:'PUT',headers:{Authorization:'token '+TOKEN,'Content-Type':'application/json',Accept:'application/vnd.github.v3+json'},body:JSON.stringify({message:'scraper: +'+newPosts.length+' new posts',content:b64(merged),sha})});
-if(putRes.ok)console.log('✅ Готово! +'+newPosts.length+' постов (всего '+merged.length+')');
-else console.error('❌ Ошибка сохранения: '+putRes.status);
+if(putRes.ok)console.log('%c✅ +'+newPosts.length+' постов (всего '+merged.length+')','color:#4caf50;font-weight:bold');
+else console.error('❌ Ошибка: '+putRes.status);
+}
+
+await scrape();
+const id=setInterval(scrape,30*60*1000);
+window._scraperInterval=id;
+console.log('%c⏱ Автозапуск каждые 30 мин. Остановить: clearInterval(window._scraperInterval)','color:#ff9800;font-weight:bold');
 })();`
   }
 
