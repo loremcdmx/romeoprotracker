@@ -287,31 +287,6 @@
       "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8199618"
     },
     {
-      "id": "8200086",
-      "date": "23 марта, 16:48",
-      "timestamp": 1774270102,
-      "brBefore": 6902,
-      "brAfter": 7277,
-      "sessionResult": 375,
-      "rooms": {
-        "before": {
-          "gg": 1691,
-          "ps": 3788,
-          "king": 926,
-          "coin": 17,
-          "lux": 480
-        },
-        "after": {
-          "gg": 670,
-          "ps": 3725,
-          "king": 320,
-          "coin": 17,
-          "lux": 2545
-        }
-      },
-      "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8200086"
-    },
-    {
       "id": "8200442",
       "date": "24 марта, 05:44",
       "timestamp": 1774316643,
