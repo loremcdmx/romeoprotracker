@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { fetchPublicData } from './storage.js'
 
 
@@ -518,8 +518,8 @@ function ActivityChart({ posts, favorites, onFav, onIgnore, setLightbox,
   if (!data.length) return null
   const max = Math.max(...data.map(d=>d[1].count), 1)
 
-  const scrollRef = React.useRef(null)
-  React.useEffect(() => {
+  const scrollRef = useRef(null)
+  useEffect(() => {
     if (isMobile && scrollRef.current) {
       scrollRef.current.scrollLeft = scrollRef.current.scrollWidth
     }
