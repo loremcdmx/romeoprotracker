@@ -76,7 +76,7 @@ const css = `
   .chart-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:16px;position:relative}
   .chart-svg{width:100%;overflow:visible}
   .chart-label{font-size:9px;fill:#555;text-anchor:middle;font-family:'Roboto Mono',monospace}
-  .chart-tooltip{position:absolute;background:#1c1c1c;border:1px solid #3a3a3a;border-radius:6px;padding:10px 12px;pointer-events:none;z-index:20;min-width:180px;max-width:240px;box-shadow:0 4px 20px rgba(0,0,0,.6)}
+  .chart-tooltip{position:absolute;background:#1c1c1c;border:1px solid #3a3a3a;border-radius:6px;padding:10px 12px;pointer-events:none;z-index:20;min-width:220px;max-width:300px;box-shadow:0 4px 20px rgba(0,0,0,.6)}
 
   /* GLOBAL FILTER BAR */
   .filter-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:10px 14px;margin-bottom:14px}
@@ -527,9 +527,11 @@ function ActivityChart({ posts, favorites, onFav, onIgnore, setLightbox,
               </div>
             )}
             {topClean && (
-              <div style={{fontSize:11,color:'#777',lineHeight:1.5,borderTop:'1px solid #2a2a2a',paddingTop:5,
-                display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical',overflow:'hidden'}}>
-                <span style={{color:'#555',fontSize:10}}>{topPost.author}: </span>{topClean.substring(0,100)}
+              <div style={{fontSize:11,color:'#bbb',lineHeight:1.6,borderTop:'1px solid #2a2a2a',paddingTop:6,marginTop:2}}>
+                <div style={{color:'#666',fontSize:10,marginBottom:3}}>{topPost.author} · <span style={{color:'#4caf50',fontWeight:700}}>+{topPost.likes} 👍</span></div>
+                <div style={{display:'-webkit-box',WebkitLineClamp:5,WebkitBoxOrient:'vertical',overflow:'hidden'}}>
+                  {topClean.substring(0,300)}
+                </div>
               </div>
             )}
             <div style={{fontSize:10,color:'#444',marginTop:5}}>кликни → детали дня</div>
