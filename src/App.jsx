@@ -1263,7 +1263,7 @@ export default function App() {
             </div>
           </div>
           <div className="topbar-tabs">
-            {[['feed','Лента'],['topics','Темы'],['hot','Топ постов'],['settings','Настройки']].map(([id,label])=>(
+            {[['feed','Лента'],['topics','Темы'],['settings','Настройки']].map(([id,label])=>(
               <div key={id} className={`topbar-tab ${activeTab===id?'active':''}`} onClick={()=>switchTab(id)}>{label}</div>
             ))}
           </div>
@@ -1385,50 +1385,6 @@ export default function App() {
                 }
               </>
             })()}
-
-            {/* ТОП ПОСТОВ */}
-            {activeTab==='hot' && <>
-              <FilterBar
-                sortBy={sortBy} setSortBy={setSortBy}
-                search={search} setSearch={setSearch}
-                showSearch={showSearch} setShowSearch={setShowSearch}
-                romeoOnly={romeoOnly} setRomeoOnly={setRomeoOnly}
-                minLikes={minLikes} setMinLikes={setMinLikes}
-                minRating={minRating} setMinRating={setMinRating}
-                count={hotPosts.length} showSort={false}
-              />
-              <div className="period-tabs">
-                {[
-                  ['all',   '🔥 Все время'],
-                  ['month', '📅 Месяц'],
-                  ['week',  '📅 Неделя'],
-                  ['today', '📅 Сегодня'],
-                  ['memes', '😂 Мемы'],
-                ].map(([id, label]) => (
-                  <div key={id}
-                    className={`period-tab ${hotPeriod===id?'active':''}`}
-                    onClick={()=>{ setHotPeriod(id); setHotPage(1) }}>
-                    {label}
-                  </div>
-                ))}
-              </div>
-              {hotPosts.length===0
-                ? <div className="empty-state">Нет постов с такими фильтрами</div>
-                : <>
-                  <Paginator page={hotPage} totalPages={hotTotalPages} onPage={goHotPage}
-                    perPage={HOT_PER_PAGE} onPerPage={()=>{}} total={hotPosts.length}/>
-                  <div className="hot-grid">
-                    {hotPagedPosts.map((p,i)=>(
-                      <HotPostCard key={p.id||i} p={p} rank={(hotPage-1)*HOT_PER_PAGE+i} setLightbox={setLightbox}/>
-                    ))}
-                  </div>
-                  <Paginator page={hotPage} totalPages={hotTotalPages} onPage={goHotPage}
-                    perPage={HOT_PER_PAGE} onPerPage={()=>{}} total={hotPosts.length}/>
-                </>
-              }
-              <ActivityChart posts={posts}/>
-            </>}
-
 
             {/* ЛЕНТА */}
             {activeTab==='feed' && <>
