@@ -1258,14 +1258,18 @@ export default function App() {
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('feed')
   const [lightbox,  setLightbox]  = useState(null)
-  const [sortBy,  setSortBy]  = useState('date_asc')   // старые сначала по умолчанию
+  const [sortBy,  setSortByRaw]  = useState(() => { try { return localStorage.getItem('rpt_sortby') || 'date_asc' } catch { return 'date_asc' } })
   const [search,  setSearch]  = useState('')
   const [showSearch, setShowSearch] = useState(false)
   const [romeoOnly, setRomeoOnly] = useState(false)
   const [page,    setPage]    = useState(1)
   const [perPage, setPerPage] = useState(20)
-  const [minLikes,  setMinLikes]  = useState(15)       // дефолт 15
-  const [minRating, setMinRating] = useState(0)        // дефолт 0 (скрывает отриц. репу)
+  const [minLikes,  setMinLikesRaw]  = useState(() => { try { return parseInt(localStorage.getItem('rpt_minlikes') ?? '15') } catch { return 15 } })
+  const [minRating, setMinRatingRaw] = useState(() => { try { return parseInt(localStorage.getItem('rpt_minrating') ?? '0') } catch { return 0 } })
+
+  const setSortBy   = v => { setSortByRaw(v);   try { localStorage.setItem('rpt_sortby', v) }   catch {} }
+  const setMinLikes  = v => { setMinLikesRaw(v);  try { localStorage.setItem('rpt_minlikes', v) }  catch {} }
+  const setMinRating = v => { setMinRatingRaw(v); try { localStorage.setItem('rpt_minrating', v) } catch {} }
 
   // Позиция чтения — запоминаем последний прочитанный пост на каждой вкладке
   const [readPos, setReadPos] = useState(() => {
