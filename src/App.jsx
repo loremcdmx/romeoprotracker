@@ -78,26 +78,6 @@ const css = `
   .chart-label{font-size:9px;fill:#555;text-anchor:middle;font-family:'Roboto Mono',monospace}
   .chart-tooltip{position:absolute;background:#1c1c1c;border:1px solid #3a3a3a;border-radius:6px;padding:10px 12px;pointer-events:none;z-index:20;min-width:180px;max-width:240px;box-shadow:0 4px 20px rgba(0,0,0,.6)}
 
-  /* HOT POSTS */
-  .hot-grid{display:flex;flex-direction:column;gap:10px;margin-bottom:20px}
-  .hot-item{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;transition:border-color .15s}
-  .hot-item:hover{border-color:var(--border2)}
-  .hot-head{display:flex;gap:10px;align-items:flex-start;padding:14px 14px 10px}
-  .hot-rank{font-size:22px;font-weight:800;color:var(--border2);font-family:'Roboto Mono',monospace;min-width:28px;flex-shrink:0;line-height:1.1}
-  .hot-rank.top3{color:var(--gold)}
-  .hot-body{flex:1;min-width:0}
-  .hot-text{font-size:13px;color:var(--text);line-height:1.65}
-  .hot-images{display:flex;gap:6px;flex-wrap:wrap;padding:0 14px 10px}
-  .hot-img{max-width:200px;max-height:150px;border-radius:4px;border:1px solid var(--border);object-fit:cover;cursor:pointer;transition:border-color .15s}
-  .hot-img:hover{border-color:#555}
-  .hot-foot{display:flex;gap:10px;padding:8px 14px;border-top:1px solid var(--border);align-items:center;background:#ffffff03}
-  .hot-likes{font-size:12px;color:var(--green);font-weight:700;font-family:'Roboto Mono',monospace}
-  .hot-date{font-size:11px;color:var(--dim)}
-  .hot-br-tag{background:var(--red-dim);color:var(--red2);border:1px solid #e5393540;border-radius:3px;padding:2px 8px;font-size:11px;font-weight:700;font-family:'Roboto Mono',monospace}
-  .hot-link{font-size:11px;color:var(--dim);margin-left:auto}.hot-link:hover{color:var(--red2)}
-  .btn-expand{background:none;border:none;color:var(--dim);font-size:11px;cursor:pointer;font-family:inherit;padding:0;margin-top:4px;display:block}
-  .btn-expand:hover{color:var(--text)}
-
   /* GLOBAL FILTER BAR */
   .filter-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:10px 14px;margin-bottom:14px}
   .filter-bar label{font-size:11px;color:var(--dim);white-space:nowrap}
@@ -113,12 +93,6 @@ const css = `
   .feed-search{background:var(--bg3);border:1px solid var(--border);border-radius:20px;color:var(--text);font-family:inherit;font-size:11px;padding:5px 12px;outline:none;flex:1;min-width:140px}
   .feed-search:focus,.feed-select:focus{border-color:#444}
   .feed-count{font-size:11px;color:var(--dim);margin-left:auto;white-space:nowrap}
-
-  /* PERIOD TABS */
-  .period-tabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
-  .period-tab{padding:5px 14px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--bg2);color:var(--dim2);transition:all .15s;white-space:nowrap}
-  .period-tab:hover{border-color:#444;color:var(--text)}
-  .period-tab.active{border-color:var(--red);color:#fff;background:var(--red-dim)}
 
   /* TOPIC TABS */
   .topic-tabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
@@ -495,12 +469,14 @@ function ActivityChart({ posts }) {
           </button>
         )}
       </div>
-      <svg className="chart-svg" viewBox={`0 0 ${W} ${H+18}`} onMouseLeave={()=>setTip(null)}>
+      <svg className="chart-svg" viewBox={`0 0 ${W} ${H+22}`} onMouseLeave={()=>setTip(null)}>
         {data.map(([date, {count, posts:dp}], i) => {
           const bw = (W-pad*(data.length-1))/data.length
           const x  = i*(bw+pad)
           const bh = Math.max(3,(count/max)*H)
-          const showL = i===0||i===data.length-1||i%Math.ceil(data.length/6)===0
+          const maxLabels = Math.floor(W / 38)
+          const step = Math.max(1, Math.ceil(data.length / maxLabels))
+          const showL = i % step === 0 || i === data.length - 1
           const isSelected = selected?.date === date
           return (
             <g key={date} style={{cursor:'pointer'}}
@@ -509,7 +485,7 @@ function ActivityChart({ posts }) {
               <rect x={x} y={H-bh} width={bw} height={bh} rx={2}
                 fill={isSelected?'#e53935':tip?.date===date?'#e5393570':'#e5393530'}
                 style={{transition:'fill .1s'}}/>
-              {showL&&<text x={x+bw/2} y={H+14} className="chart-label">{date.slice(5)}</text>}
+              {showL&&<text x={Math.min(x+bw/2, W-16)} y={H+16} className="chart-label">{date.slice(5)}</text>}
             </g>
           )
         })}
@@ -704,47 +680,13 @@ function renderPostText(text) {
 }
 
 
-
-function HotPostCard({ p, rank, setLightbox }) {
-  const [exp, setExp] = useState(false)
-  return (
-    <div className="hot-item">
-      <div className="hot-head">
-        <div className={`hot-rank ${rank<3?'top3':''}`}>{rank+1}</div>
-        <div className="hot-body">
-          <div className="hot-text">{exp ? renderPostText(p.text) : renderPostText(p.text?.substring(0,300))}{!exp&&p.text?.length>300?'…':''}</div>
-          {p.text?.length>300 && (
-            <button className="btn-expand" onClick={()=>setExp(s=>!s)}>
-              {exp?'▲ свернуть':'▼ читать полностью'}
-            </button>
-          )}
-        </div>
-      </div>
-      {p.images?.length>0 && (
-        <div className="hot-images">
-          {p.images.map((src,j)=>(
-            <img key={j} className="hot-img" src={src} alt=""
-              onClick={()=>setLightbox(src)} onError={e=>e.target.style.display='none'}/>
-          ))}
-        </div>
-      )}
-      <div className="hot-foot">
-        <span className="hot-likes">+{p.likes||0} 👍</span>
-        {p.brAfter && <span className="hot-br-tag">БР: {fmtNum(p.brAfter)}</span>}
-        <span className="hot-date">{p.date}</span>
-        {p.url&&<a className="hot-link" href={p.url} target="_blank" rel="noreferrer">→ форум</a>}
-      </div>
-    </div>
-  )
-}
-
 // ─── POST CARD ────────────────────────────────────────────────────────────────
-function PostCard({ p, favorites, onFav, onIgnore, setLightbox }) {
+function PostCard({ p, favorites, onFav, onIgnore, setLightbox, noClamp=false }) {
   const [exp, setExp] = useState(false)
   const isFav = favorites.has(p.id)
   const likes = p.likes || 0
   const initial = (p.author||'?')[0].toUpperCase()
-  const isLong = (p.text?.replace(/\[QUOTE\][\s\S]*?\[\/QUOTE\]/gi, '').length || 0) > 600
+  const isLong = !noClamp && (p.text?.replace(/\[QUOTE\][\s\S]*?\[\/QUOTE\]/gi, '').length || 0) > 600
 
   return (
     <div className={`post-card ${isFav?'faved':''}`}>
@@ -825,14 +767,11 @@ const ADMIN_HASH = '407b01cfc12336c25bb7978682cfc41584e14a7558ad502daa3e3dbc4c71
 const FORUM_BASE = 'https://forum.gipsyteam.ru/index.php?viewtopic=181676'
 const REPO       = 'loremcdmx/romeoprotracker'
 
-function AdminPanel({ onNewPosts }) {
-  const [step, setStep]     = useState('lock')  // lock | auth | panel
-  const [pass, setPass]     = useState('')
-  const [token, setToken]   = useState('')
-  const [cookie, setCookie] = useState(() => { try { return localStorage.getItem('gt_cookie')||'' } catch { return '' } })
-  const [running, setRunning] = useState(false)
-  const [log, setLog]       = useState([])
-
+function AdminPanel() {
+  const [step, setStep] = useState('lock')
+  const [pass, setPass] = useState('')
+  const [token, setToken] = useState('')
+  const [log, setLog] = useState([])
   const L = (msg, cls='dim') => setLog(prev => [...prev, { msg, cls }])
 
   const tryAuth = async () => {
@@ -848,15 +787,6 @@ function AdminPanel({ onNewPosts }) {
     }
   }
 
-  const saveCookie = (val) => {
-    setCookie(val)
-    try { localStorage.setItem('gt_cookie', val) } catch {}
-  }
-
-  const PROXY = 'https://corsproxy.io/?url='
-  const proxyFetch = (url) => fetch(PROXY + encodeURIComponent(url), {
-    headers: cookie.trim() ? { 'x-cors-headers': JSON.stringify({ Cookie: cookie.trim() }) } : {}
-  })
 
   const getScript = () => {
     const t = token.trim()
@@ -1075,44 +1005,16 @@ export default function App() {
     return { day, br, profit, startBR, lastDate: romeoByDate[0]?.date, totalTourneys: null }
   }, [posts, meta])
 
-  const [hotPeriod, setHotPeriod] = useState('all')
-  const [sidebarTopPeriod, setSidebarTopPeriod] = useState('all') // today | week | month | all | memes
-  const [hotPage, setHotPage] = useState(1)
-  const HOT_PER_PAGE = 20
+  const [sidebarTopPeriod, setSidebarTopPeriod] = useState('all')
 
-  const hotPosts = useMemo(() => {
-    const now = Date.now() / 1000
-    const cutoff = {
-      today: now - 86400,
-      week:  now - 604800,
-      month: now - 2592000,
-      all:   0,
-      memes: 0,
-    }[hotPeriod] || 0
-
-    let filtered = posts
+  // hotPosts — для сайдбара "Больше всего плюсиков"
+  const hotPosts = useMemo(() =>
+    posts
       .filter(p => !ignored.has(p.author))
       .filter(p => !minRating || (p.rating||0) >= minRating)
-      .filter(p => (p.timestamp||0) >= cutoff)
-
-    if (hotPeriod === 'memes') {
-      // Мемы: посты с картинками ИЛИ короткий смешной текст с хорошими лайками
-      filtered = filtered.filter(p => {
-        const hasImg = p.images?.length > 0
-        const isShort = (p.text?.replace(/\[QUOTE\][\s\S]*?\[\/QUOTE\]/gi,'').trim().length||0) < 200
-        const goodLikes = (p.likes||0) >= Math.max(minLikes, 5)
-        return goodLikes && (hasImg || isShort)
-      })
-    } else {
-      filtered = filtered.filter(p => (p.likes||0) >= Math.max(minLikes, 1))
-    }
-
-    return filtered.sort((a,b) => (b.likes||0) - (a.likes||0))
-  }, [posts, ignored, minLikes, minRating, hotPeriod])
-
-  const hotTotalPages = Math.max(1, Math.ceil(hotPosts.length / HOT_PER_PAGE))
-  const hotPagedPosts = hotPosts.slice((hotPage-1)*HOT_PER_PAGE, hotPage*HOT_PER_PAGE)
-  const goHotPage = p => { setHotPage(p); window.scrollTo({top:300,behavior:'smooth'}) }
+      .filter(p => (p.likes||0) >= Math.max(minLikes, 1))
+      .sort((a,b) => (b.likes||0) - (a.likes||0))
+  , [posts, ignored, minLikes, minRating])
 
   const feedPosts = useMemo(() =>
     posts
@@ -1132,9 +1034,6 @@ export default function App() {
   // Сбрасываем страницу при смене фильтров (правильный способ — useEffect)
   useEffect(() => { setPage(1) },
     [ignored, search, sortBy, romeoOnly, minLikes, minRating]) // eslint-disable-line
-
-  useEffect(() => { setHotPage(1) },
-    [minLikes, minRating, hotPeriod]) // eslint-disable-line
 
   // Восстанавливаем позицию чтения при первой загрузке постов
   useEffect(() => {
@@ -1259,7 +1158,11 @@ export default function App() {
       <div className="topbar">
         <div className="topbar-inner">
           <div className="logo">
-            <div className="logo-badge">GT</div>
+            <div className="logo-badge" style={{background:'none',padding:0,overflow:'hidden'}}>
+              <img src="https://www.gipsyteam.ru/public/style_images/master/logo_icon.png"
+                alt="GT" style={{width:26,height:26,objectFit:'cover'}}
+                onError={e=>{e.target.style.display='none';e.target.parentNode.textContent='GT';e.target.parentNode.style.background='var(--red)';}}/>
+            </div>
             <div>
               <div className="logo-text">RomeoPro Tracker</div>
               <div className="logo-sub">марафон $10k → $10M</div>
@@ -1271,12 +1174,7 @@ export default function App() {
             ))}
           </div>
           <div className="topbar-right">
-            <AdminPanel onNewPosts={newPosts => {
-              setPosts(prev => {
-                const ids = new Set(prev.map(p=>p.id))
-                return [...prev, ...newPosts.filter(p=>!ids.has(p.id))]
-              })
-            }}/>
+            <AdminPanel />
           </div>
         </div>
       </div>
@@ -1380,7 +1278,8 @@ export default function App() {
                     {paged.map(p=>(
                       <PostCard key={p.id||p.url} p={p}
                         favorites={favorites} onFav={toggleFav}
-                        onIgnore={addIgnore} setLightbox={setLightbox}/>
+                        onIgnore={addIgnore} setLightbox={setLightbox}
+                        noClamp={topicTab==='marathon'}/>
                     ))}
                     <Paginator page={topicPage} totalPages={tpg} onPage={goTopicPage}
                       perPage={TOPIC_PER_PAGE} onPerPage={()=>{}} total={all.length}/>
@@ -1456,6 +1355,7 @@ export default function App() {
                     ['БР', <span key="br" className={`srow-val ${stats.br?'green':''}`}>{fmtExact(stats.br||meta?.bankroll)}</span>],
                     ['Профит', <span key="pr" className={`srow-val ${!stats.profit?'':stats.profit>=0?'green':'red'}`}>{fmtBR(stats.profit)}</span>],
                     ['День', <span key="d" className="srow-val gold">#{stats.day||meta?.day||'—'}</span>],
+                    ['Сыграно МТТ', <span key="mtt" className="srow-val">{stats.totalTourneys != null ? stats.totalTourneys.toLocaleString() : (meta?.totalTournaments?.toLocaleString() || '—')}</span>],
                     ['Постов', <span key="p" className="srow-val">{posts.length}</span>],
                     ['Топ лайков', <span key="l" className="srow-val">{hotPosts[0]?`+${hotPosts[0].likes}`:'—'}</span>],
                   ].map(([k,v])=>(
