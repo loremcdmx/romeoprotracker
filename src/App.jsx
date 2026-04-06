@@ -111,15 +111,6 @@ const css = `
   .page-info{font-size:11px;color:var(--dim);padding:0 8px}
   .perpage-select{background:var(--bg3);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:inherit;font-size:11px;padding:4px 8px;outline:none;cursor:pointer}
 
-  /* CHART DAY TILES */
-  .day-posts-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:8px;margin-top:10px}
-  .day-tile{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:10px 12px;cursor:pointer;transition:border-color .15s}
-  .day-tile:hover{border-color:var(--border2)}
-  .day-tile-author{font-size:11px;font-weight:600;color:var(--white);margin-bottom:3px}
-  .day-tile-text{font-size:11px;color:var(--dim2);line-height:1.5;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
-  .day-tile-likes{font-size:11px;color:var(--green);font-weight:700;margin-top:5px}
-  .day-summary{font-size:12px;color:var(--text);line-height:1.6;padding:10px 12px;background:var(--bg3);border-radius:var(--r);margin-bottom:10px;border-left:3px solid var(--red)}
-
   /* POST CARD */
   .post-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);margin-bottom:6px;overflow:hidden;transition:border-color .15s}
   .post-card:hover{border-color:var(--border2)}
@@ -328,7 +319,7 @@ function MarathonChart({ posts, meta, startBR, setLightbox }) {
           {fkAbs(startBR)} → {fkAbs(points[points.length-1]?.br)}
         </span>
       </div>
-      <svg className="mc-svg" viewBox={`0 0 ${W} ${H}`} onMouseLeave={()=>setTip(null)}>
+      <svg className="mc-svg" viewBox={`0 0 ${W} ${H+22}`} onMouseLeave={()=>setTip(null)}>
         <defs>
           <linearGradient id="mcGrad" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="#e53935" stopOpacity=".5"/>
@@ -346,7 +337,7 @@ function MarathonChart({ posts, meta, startBR, setLightbox }) {
         <polyline points={poly} className="mc-line"/>
         {points.map((p,i) => {
           const profit = p.br - p.brPrev
-          const showL = i===0 || i===points.length-1 || i%Math.ceil(points.length/8)===0
+          const showL = i===0 || i===points.length-1 || i%Math.max(1,Math.ceil(points.length/8))===0
           return (
             <g key={i}>
               <circle cx={xOf(i)} cy={yOf(p.br)} r={4} className="mc-dot"
@@ -354,7 +345,7 @@ function MarathonChart({ posts, meta, startBR, setLightbox }) {
                 onMouseEnter={()=>setTip({p,profit,x:xOf(i),y:yOf(p.br)})}
                 onClick={()=>p.url&&window.open(p.url,'_blank')}
               />
-              {showL && <text x={xOf(i)} y={H+14} className="mc-label">{p.date?.slice(0,5)}</text>}
+              {showL && <text x={Math.min(Math.max(xOf(i), pL), W-pR)} y={H+16} className="mc-label">{p.date?.slice(0,5)}</text>}
             </g>
           )
         })}
@@ -436,7 +427,8 @@ function makeDaySummary(ps) {
   return summary
 }
 
-function ActivityChart({ posts }) {
+function ActivityChart({ posts, favorites, onFav, onIgnore, setLightbox,
+                         sortBy, minLikes, minRating, search }) {
   const [tip,      setTip]      = useState(null)
   const [selected, setSelected] = useState(null)
 
@@ -533,32 +525,30 @@ function ActivityChart({ posts }) {
 
       {/* EXPANDED DAY VIEW */}
       {selected && (() => {
-        const popular = selected.posts.filter(p=>(p.likes||0)>=20).sort((a,b)=>(b.likes||0)-(a.likes||0))
         const summary = makeDaySummary(selected.posts)
+        let dayPosts = [...selected.posts]
+          .filter(p => !minLikes  || (p.likes||0)  >= minLikes)
+          .filter(p => !minRating || (p.rating||0) >= minRating)
+          .filter(p => !search    || p.text?.toLowerCase().includes(search?.toLowerCase()))
+        if (sortBy === 'likes')     dayPosts.sort((a,b) => (b.likes||0)-(a.likes||0))
+        else if (sortBy === 'date_asc')  dayPosts.sort((a,b) => (a.timestamp||0)-(b.timestamp||0))
+        else dayPosts.sort((a,b) => (b.timestamp||0)-(a.timestamp||0))
         return (
           <div style={{marginTop:12}}>
             <div style={{fontSize:11,fontWeight:700,color:'var(--dim2)',textTransform:'uppercase',letterSpacing:'.1em',marginBottom:8}}>
               📅 {selected.date} — {selected.posts.length} постов
             </div>
-            <div className="day-summary">{summary}</div>
-            {popular.length > 0 ? (
-              <>
-                <div style={{fontSize:11,color:'var(--dim)',marginBottom:6}}>
-                  Посты с 20+ лайками ({popular.length}):
-                </div>
-                <div className="day-posts-grid">
-                  {popular.map((p,i) => (
-                    <div key={i} className="day-tile" onClick={()=>p.url&&window.open(p.url,'_blank')}>
-                      <div className="day-tile-author">{p.author}</div>
-                      <div className="day-tile-text">{p.text?.substring(0,140)}</div>
-                      <div className="day-tile-likes">+{p.likes} 👍 · {p.date}</div>
-                    </div>
-                  ))}
-                </div>
-              </>
-            ) : (
-              <div style={{fontSize:12,color:'var(--dim)'}}>Нет постов с 20+ лайками в этот день</div>
-            )}
+            <div style={{fontSize:12,color:'var(--text)',lineHeight:1.6,padding:'10px 12px',background:'var(--bg3)',borderRadius:'var(--r)',marginBottom:10,borderLeft:'3px solid var(--red)'}}>{summary}</div>
+            <div style={{marginTop:10}}>
+              {dayPosts.length === 0
+                ? <div className="empty-state">Нет постов по текущим фильтрам</div>
+                : dayPosts.map(p => (
+                  <PostCard key={p.id||p.url} p={p}
+                    favorites={favorites||new Set()} onFav={onFav||(() =>{})}
+                    onIgnore={onIgnore||(() =>{})} setLightbox={setLightbox||(() =>{})}/>
+                ))
+              }
+            </div>
           </div>
         )
       })()}
@@ -1223,9 +1213,9 @@ export default function App() {
                   <div className="hstat-sub">с 10 марта 2026</div>
                 </div>
                 <div className="hstat">
-                  <div className="hstat-label">Постов собрано</div>
-                  <div className="hstat-value">{posts.length}</div>
-                  <div className="hstat-sub">из темы на GT</div>
+                  <div className="hstat-label">Сыграно МТТ</div>
+                  <div className="hstat-value">{stats.totalTourneys != null ? stats.totalTourneys.toLocaleString() : (meta?.totalTournaments?.toLocaleString() || '—')}</div>
+                  <div className="hstat-sub">всего за марафон</div>
                 </div>
               </div>
             </div>
@@ -1291,7 +1281,10 @@ export default function App() {
             {/* ЛЕНТА */}
             {activeTab==='feed' && <>
               <MarathonChart posts={posts} meta={meta} startBR={stats.startBR} setLightbox={setLightbox}/>
-              <ActivityChart posts={posts}/>
+              <ActivityChart posts={posts}
+                favorites={favorites} onFav={toggleFav}
+                onIgnore={addIgnore} setLightbox={setLightbox}
+                sortBy={sortBy} minLikes={minLikes} minRating={minRating} search={search}/>
               <FilterBar
                 sortBy={sortBy} setSortBy={setSortBy}
                 search={search} setSearch={setSearch}
@@ -1355,7 +1348,7 @@ export default function App() {
                     ['БР', <span key="br" className={`srow-val ${stats.br?'green':''}`}>{fmtExact(stats.br||meta?.bankroll)}</span>],
                     ['Профит', <span key="pr" className={`srow-val ${!stats.profit?'':stats.profit>=0?'green':'red'}`}>{fmtBR(stats.profit)}</span>],
                     ['День', <span key="d" className="srow-val gold">#{stats.day||meta?.day||'—'}</span>],
-                    ['Сыграно МТТ', <span key="mtt" className="srow-val">{stats.totalTourneys != null ? stats.totalTourneys.toLocaleString() : (meta?.totalTournaments?.toLocaleString() || '—')}</span>],
+                    ['Сыграно МТТ', <span key="mtt" className="srow-val">{stats.totalTourneys != null ? stats.totalTourneys.toLocaleString() : (meta?.totalTournaments?.toLocaleString() || '3\u202F565')}</span>],
                     ['Постов', <span key="p" className="srow-val">{posts.length}</span>],
                     ['Топ лайков', <span key="l" className="srow-val">{hotPosts[0]?`+${hotPosts[0].likes}`:'—'}</span>],
                   ].map(([k,v])=>(
