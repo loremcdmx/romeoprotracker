@@ -1014,7 +1014,8 @@ function SidebarTopList({ posts, setLightbox }) {
       {hovered !== null && (() => {
         const p = posts[hovered]
         if (!p) return null
-        const full = stripQuotes(p.text)        const left = Math.max(8, Math.min(popupPos.x - 310, window.innerWidth - 320))
+        const full = stripQuotes(p.text)
+        const left = Math.max(8, Math.min(popupPos.x - 310, window.innerWidth - 320))
         const top  = Math.max(8, Math.min(popupPos.y - 40, window.innerHeight - 420))
         return (
           <div style={{
