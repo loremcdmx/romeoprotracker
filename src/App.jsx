@@ -808,7 +808,21 @@ function FilterBar({ sortBy, setSortBy, search, setSearch, showSearch, setShowSe
 }
 
 // ─── POST TEXT RENDERER ──────────────────────────────────────────────────────
-function renderPostText(text) {
+function CollapsibleQuote({ author, date, body }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div style={{borderLeft:'3px solid #2a2a2a',background:'#151515',borderRadius:'0 4px 4px 0',padding:'6px 10px',margin:'2px 0 8px'}}>
+      <div style={{fontSize:10,color:'#555',fontWeight:600,marginBottom:open?4:0,letterSpacing:'.04em',display:'flex',alignItems:'center',gap:6,cursor:'pointer'}}
+        onClick={()=>setOpen(o=>!o)}>
+        <span>↩ {author}{date ? ' · ' + date : ''}</span>
+        <span style={{color:'#444',fontSize:9}}>{open ? '▲' : '▼ показать'}</span>
+      </div>
+      {open && <div style={{color:'#5a5a5a',fontSize:12,lineHeight:1.6,whiteSpace:'pre-wrap',marginTop:4}}>{body}</div>}
+    </div>
+  )
+}
+
+function renderPostText(text, collapseQuotes=false) {
   if (!text) return null
 
   // Автозакрываем незакрытые [QUOTE] (текст обрезан скрапером на 1200 симв внутри цитаты)
@@ -858,19 +872,22 @@ function renderPostText(text) {
   if (!parts.length) return <span style={{whiteSpace:'pre-wrap'}}>{text}</span>
 
   return parts.map((part, i) => {
-    if (part.type === 'quote') return (
-      <div key={i} style={{
-        borderLeft:'3px solid #2a2a2a', background:'#151515',
-        borderRadius:'0 4px 4px 0', padding:'8px 12px', margin:'2px 0 8px',
-      }}>
-        {(part.author || part.date) && (
-          <div style={{fontSize:10,color:'#555',fontWeight:600,marginBottom:4,letterSpacing:'.04em'}}>
-            ↩ {part.author}{part.date ? ' · ' + part.date : ''}
-          </div>
-        )}
-        <div style={{color:'#5a5a5a',fontSize:12,lineHeight:1.6,whiteSpace:'pre-wrap'}}>{part.body}</div>
-      </div>
-    )
+    if (part.type === 'quote') {
+      if (collapseQuotes) return <CollapsibleQuote key={i} author={part.author} date={part.date} body={part.body}/>
+      return (
+        <div key={i} style={{
+          borderLeft:'3px solid #2a2a2a', background:'#151515',
+          borderRadius:'0 4px 4px 0', padding:'8px 12px', margin:'2px 0 8px',
+        }}>
+          {(part.author || part.date) && (
+            <div style={{fontSize:10,color:'#555',fontWeight:600,marginBottom:4,letterSpacing:'.04em'}}>
+              ↩ {part.author}{part.date ? ' · ' + part.date : ''}
+            </div>
+          )}
+          <div style={{color:'#5a5a5a',fontSize:12,lineHeight:1.6,whiteSpace:'pre-wrap'}}>{part.body}</div>
+        </div>
+      )
+    }
     return <span key={i} style={{whiteSpace:'pre-wrap'}}>{part.text}</span>
   })
 }
@@ -1009,7 +1026,7 @@ function SidebarTopList({ posts, setLightbox }) {
                 onError={e=>e.target.style.display='none'}/>
             )}
             <div style={{fontSize:12,color:'var(--text)',lineHeight:1.7,overflowY:'auto',flex:1,paddingRight:4}}>
-              {renderPostText(p.text) || '→ открыть на форуме'}
+              {renderPostText(p.text, true) || '→ открыть на форуме'}
             </div>
             <div style={{marginTop:8,paddingTop:8,borderTop:'1px solid #2a2a2a'}}>
               <a href={p.url} target="_blank" rel="noreferrer"
