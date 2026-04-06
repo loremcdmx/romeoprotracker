@@ -990,12 +990,15 @@ function SidebarTopList({ posts, setLightbox }) {
   const [hovered, setHovered] = useState(null)
   const [popupPos, setPopupPos] = useState({x:0, y:0})
 
-  const stripQuotes = t => (t||'')
-    .replace(/\[QUOTE\][\s\S]*?\[\/QUOTE\]/gi,'')
-    .replace(/\[QUOTE\][^\]]*\]/gi,'')
-    .replace(/\[\/QUOTE\]/gi,'')
-    .replace(/\[QUOTE\]/gi,'')
-    .trim()
+  const stripQuotes = t => {
+    if (!t) return ''
+    // Убираем закрытые цитаты
+    let s = t.replace(/\[QUOTE\][\s\S]*?\[\/QUOTE\]/gi, '').replace(/\[\/QUOTE\]/gi, '').trim()
+    // Убираем незакрытый [QUOTE] и всё после него
+    const unclosed = s.indexOf('[QUOTE]')
+    if (unclosed !== -1) s = s.slice(0, unclosed).trim()
+    return s
+  }
 
   // Извлекаем тело первой цитаты как фолбэк превью
   const extractQuoteBody = t => {
