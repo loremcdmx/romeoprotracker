@@ -894,7 +894,7 @@ function AdminPanel({ onClose, posts, onPostsUpdated }) {
   const L = (msg, cls='al-dim') => setLog(prev => [...prev.slice(-60), {msg, cls}])
 
   const auth = () => {
-    if (pass === ADMIN_PASS) { setStep('panel'); setPass('') }
+    crypto.subtle.digest('SHA-256',new TextEncoder().encode(pass)).then(b=>Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,'0')).join('')).then(h=>{ if(h===ADMIN_HASH){setStep('panel');setPass('')}else{setPass('');setLog(l=>[...l,{msg:'Неверный пароль',cls:'err'}])} })
     else { L('Неверный пароль', 'al-err') }
   }
 
@@ -1058,7 +1058,7 @@ function AdminPanel({ onClose, posts, onPostsUpdated }) {
 }
 
 // ─── ADMIN PANEL ─────────────────────────────────────────────────────────────
-const ADMIN_PASS = 'romeo26'
+const ADMIN_HASH = '407b01cfc12336c25bb7978682cfc41584e14a7558ad502daa3e3dbc4c71e49e'
 const FORUM_BASE = 'https://forum.gipsyteam.ru/index.php?viewtopic=181676'
 const REPO       = 'loremcdmx/romeoprotracker'
 
@@ -1076,7 +1076,7 @@ function AdminPanel({ onNewPosts }) {
   )))
 
   const tryAuth = () => {
-    if (pass.trim() === ADMIN_PASS) { setStep('panel'); setPass('') }
+    crypto.subtle.digest('SHA-256',new TextEncoder().encode(pass.trim())).then(b=>Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,'0')).join('')).then(h=>{ if(h===ADMIN_HASH){setStep('panel');setPass('')}else{setPass('');L('Неверный пароль','err')} })
     else { setPass(''); L('Неверный пароль', 'err') }
   }
 
