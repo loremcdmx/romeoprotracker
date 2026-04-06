@@ -417,18 +417,16 @@ function makeDaySummary(ps) {
     .slice(0, 3)
     .map(([name, d]) => `${name}${d.rating ? ' ⭐'+d.rating : ''}`)
 
-  let summary = `${ps.length} постов`
-  if (totalUniq > 0) summary += `, ${totalUniq} авторов`
-  summary += '.'
-  if (romeoCount) summary += ` Ромео: ${romeoCount} пост${romeoCount > 1 ? 'а' : ''}.`
-  if (topLikes > 0) summary += ` Топ: +${topLikes} 👍.`
-  if (popular.length) summary += ` ${popular.length} постов набрали 20+ лайков.`
-  if (topAuthors.length) summary += ` Активные: ${topAuthors.join(', ')}.`
-  return summary
+  let summary = ''
+  if (romeoCount) summary += `Ромео: ${romeoCount} пост${romeoCount > 1 ? 'а' : ''}. `
+  if (topLikes > 0) summary += `Топ: +${topLikes} 👍. `
+  if (popular.length) summary += `${popular.length} постов набрали 20+ лайков. `
+  if (topAuthors.length) summary += `Активные: ${topAuthors.join(', ')}.`
+  return summary || `${ps.length} постов.`
 }
 
 function ActivityChart({ posts, favorites, onFav, onIgnore, setLightbox,
-                         sortBy, minLikes, minRating, search }) {
+                         sortBy, setSortBy, minLikes, setMinLikes, minRating, setMinRating, search }) {
   const [tip,      setTip]      = useState(null)
   const [selected, setSelected] = useState(null)
 
@@ -530,16 +528,40 @@ function ActivityChart({ posts, favorites, onFav, onIgnore, setLightbox,
           .filter(p => !minLikes  || (p.likes||0)  >= minLikes)
           .filter(p => !minRating || (p.rating||0) >= minRating)
           .filter(p => !search    || p.text?.toLowerCase().includes(search?.toLowerCase()))
-        if (sortBy === 'likes')     dayPosts.sort((a,b) => (b.likes||0)-(a.likes||0))
+        if (sortBy === 'likes')          dayPosts.sort((a,b) => (b.likes||0)-(a.likes||0))
         else if (sortBy === 'date_asc')  dayPosts.sort((a,b) => (a.timestamp||0)-(b.timestamp||0))
-        else dayPosts.sort((a,b) => (b.timestamp||0)-(a.timestamp||0))
+        else                             dayPosts.sort((a,b) => (b.timestamp||0)-(a.timestamp||0))
+        const btnStyle = (active) => ({
+          background: active ? 'var(--red)' : 'var(--bg3)',
+          border: '1px solid ' + (active ? 'var(--red)' : 'var(--border)'),
+          borderRadius: 20, color: active ? '#fff' : 'var(--dim2)',
+          fontSize: 11, padding: '4px 10px', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600
+        })
         return (
           <div style={{marginTop:12}}>
             <div style={{fontSize:11,fontWeight:700,color:'var(--dim2)',textTransform:'uppercase',letterSpacing:'.1em',marginBottom:8}}>
               📅 {selected.date} — {selected.posts.length} постов
             </div>
             <div style={{fontSize:12,color:'var(--text)',lineHeight:1.6,padding:'10px 12px',background:'var(--bg3)',borderRadius:'var(--r)',marginBottom:10,borderLeft:'3px solid var(--red)'}}>{summary}</div>
-            <div style={{marginTop:10}}>
+            {/* Мини-фильтры */}
+            <div style={{display:'flex',gap:6,flexWrap:'wrap',alignItems:'center',marginBottom:10,padding:'8px 0'}}>
+              <button style={btnStyle(sortBy==='date_desc')} onClick={()=>setSortBy?.('date_desc')}>Новые</button>
+              <button style={btnStyle(sortBy==='date_asc')}  onClick={()=>setSortBy?.('date_asc')}>Старые</button>
+              <button style={btnStyle(sortBy==='likes')}     onClick={()=>setSortBy?.('likes')}>По лайкам</button>
+              <div style={{width:1,height:16,background:'var(--border)',margin:'0 4px'}}/>
+              <div style={{display:'flex',alignItems:'center',gap:4}}>
+                <span style={{fontSize:11,color:'var(--dim)'}}>👍 мин.</span>
+                <input type="number" min="0" value={minLikes} onChange={e=>setMinLikes?.(+e.target.value||0)}
+                  style={{width:52,background:'var(--bg3)',border:'1px solid var(--border)',borderRadius:20,color:'var(--text)',fontFamily:'inherit',fontSize:11,padding:'4px 8px',outline:'none',textAlign:'center'}}/>
+              </div>
+              <div style={{display:'flex',alignItems:'center',gap:4}}>
+                <span style={{fontSize:11,color:'var(--dim)'}}>⭐ репа</span>
+                <input type="number" min="0" value={minRating} onChange={e=>setMinRating?.(+e.target.value||0)}
+                  style={{width:62,background:'var(--bg3)',border:'1px solid var(--border)',borderRadius:20,color:'var(--text)',fontFamily:'inherit',fontSize:11,padding:'4px 8px',outline:'none',textAlign:'center'}}/>
+              </div>
+              <span style={{fontSize:11,color:'var(--dim)',marginLeft:'auto'}}>{dayPosts.length} постов</span>
+            </div>
+            <div style={{marginTop:4}}>
               {dayPosts.length === 0
                 ? <div className="empty-state">Нет постов по текущим фильтрам</div>
                 : dayPosts.map(p => (
@@ -691,7 +713,17 @@ function PostCard({ p, favorites, onFav, onIgnore, setLightbox, noClamp=false })
           <div className="pc-author-meta">
             {p.msgCount && <span>{p.msgCount.toLocaleString()} постов</span>}
             {p.regData  && <span>· {p.regData}</span>}
-            {p.rating != null && <span>· ⭐{p.rating}</span>}
+            {p.rating != null && (
+              <span style={{color:'#4caf50',display:'inline-flex',alignItems:'center',gap:2}}>·
+                <svg viewBox="0 0 12 10" style={{width:11,height:10,fill:'#4caf50',flexShrink:0}}>
+                  <rect x="0" y="6" width="2.5" height="4"/>
+                  <rect x="3.2" y="3" width="2.5" height="7"/>
+                  <rect x="6.4" y="1" width="2.5" height="9"/>
+                  <rect x="9.6" y="0" width="2.5" height="10"/>
+                </svg>
+                <span style={{fontFamily:"'Roboto Mono',monospace",fontWeight:700}}>{p.rating.toLocaleString()}</span>
+              </span>
+            )}
           </div>
         </div>
         <div className="pc-date" title={p.date}>{timeAgo(p.timestamp) || p.date}</div>
@@ -1148,10 +1180,11 @@ export default function App() {
       <div className="topbar">
         <div className="topbar-inner">
           <div className="logo">
-            <div className="logo-badge" style={{background:'none',padding:0,overflow:'hidden'}}>
-              <img src="https://www.gipsyteam.ru/public/style_images/master/logo_icon.png"
-                alt="GT" style={{width:26,height:26,objectFit:'cover'}}
-                onError={e=>{e.target.style.display='none';e.target.parentNode.textContent='GT';e.target.parentNode.style.background='var(--red)';}}/>
+            <div className="logo-badge" style={{background:'none',padding:0,width:32,height:32}}>
+              <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" style={{width:32,height:32}}>
+                <polygon points="16,1 31,16 16,31 1,16" fill="#e53935"/>
+                <text x="16" y="21" textAnchor="middle" fill="white" fontSize="14" fontWeight="900" fontFamily="Arial,sans-serif">G</text>
+              </svg>
             </div>
             <div>
               <div className="logo-text">RomeoPro Tracker</div>
@@ -1214,7 +1247,7 @@ export default function App() {
                 </div>
                 <div className="hstat">
                   <div className="hstat-label">Сыграно МТТ</div>
-                  <div className="hstat-value">{stats.totalTourneys != null ? stats.totalTourneys.toLocaleString() : (meta?.totalTournaments?.toLocaleString() || '—')}</div>
+                  <div className="hstat-value">{meta?.totalTournaments?.toLocaleString() || '—'}</div>
                   <div className="hstat-sub">всего за марафон</div>
                 </div>
               </div>
@@ -1284,7 +1317,10 @@ export default function App() {
               <ActivityChart posts={posts}
                 favorites={favorites} onFav={toggleFav}
                 onIgnore={addIgnore} setLightbox={setLightbox}
-                sortBy={sortBy} minLikes={minLikes} minRating={minRating} search={search}/>
+                sortBy={sortBy} setSortBy={setSortBy}
+                minLikes={minLikes} setMinLikes={setMinLikes}
+                minRating={minRating} setMinRating={setMinRating}
+                search={search}/>
               <FilterBar
                 sortBy={sortBy} setSortBy={setSortBy}
                 search={search} setSearch={setSearch}
@@ -1348,7 +1384,7 @@ export default function App() {
                     ['БР', <span key="br" className={`srow-val ${stats.br?'green':''}`}>{fmtExact(stats.br||meta?.bankroll)}</span>],
                     ['Профит', <span key="pr" className={`srow-val ${!stats.profit?'':stats.profit>=0?'green':'red'}`}>{fmtBR(stats.profit)}</span>],
                     ['День', <span key="d" className="srow-val gold">#{stats.day||meta?.day||'—'}</span>],
-                    ['Сыграно МТТ', <span key="mtt" className="srow-val">{stats.totalTourneys != null ? stats.totalTourneys.toLocaleString() : (meta?.totalTournaments?.toLocaleString() || '3\u202F565')}</span>],
+                    ['Сыграно МТТ', <span key="mtt" className="srow-val">{meta?.totalTournaments?.toLocaleString() || '—'}</span>],
                     ['Постов', <span key="p" className="srow-val">{posts.length}</span>],
                     ['Топ лайков', <span key="l" className="srow-val">{hotPosts[0]?`+${hotPosts[0].likes}`:'—'}</span>],
                   ].map(([k,v])=>(
