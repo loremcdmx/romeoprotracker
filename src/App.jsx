@@ -14,12 +14,12 @@ const css = `
     --green:#4caf50;--gold:#ffb300;--white:#f0f0f0;
     --r:6px;
   }
-  html,body,#root{min-height:100%;background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-size:12px;line-height:1.5}
+  html,body,#root{min-height:100%;background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-size:12px;line-height:1.5;overflow-x:hidden}
   a{color:var(--red2);text-decoration:none}
   ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:var(--bg2)}::-webkit-scrollbar-thumb{background:#333;border-radius:3px}
 
   /* TOPBAR */
-  .topbar{background:#0a0a0a;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100}
+  .topbar{background:#0a0a0a;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;overflow:hidden}
   .topbar-inner{max-width:1280px;margin:0 auto;padding:0 16px;display:flex;align-items:center;height:40px;gap:16px}
   .logo{display:flex;align-items:center;gap:10px;flex-shrink:0}
   .logo-badge{background:var(--red);color:#fff;font-size:11px;font-weight:800;width:26px;height:26px;border-radius:5px;display:flex;align-items:center;justify-content:center}
@@ -184,7 +184,6 @@ const css = `
   .empty-state{padding:30px;text-align:center;color:var(--dim);font-size:12px}
 
   @media(max-width:720px){
-    html,body,#root{font-size:14px}
     .page{grid-template-columns:1fr;padding:8px 10px 90px}
     .hero-stats{grid-template-columns:1fr 1fr}
     .hero{padding:12px}
@@ -221,7 +220,8 @@ const css = `
     .sidebar{display:none}
 
     /* Marathon chart */
-    .marathon-chart{padding:10px}
+    .marathon-chart{padding:10px;overflow:hidden}
+    .chart-wrap{overflow:hidden}
     .mc-label,.mc-ylabel{font-size:8px}
 
     /* Pagination */
