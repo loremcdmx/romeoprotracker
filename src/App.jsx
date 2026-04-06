@@ -485,37 +485,47 @@ function ActivityChart({ posts, favorites, onFav, onIgnore, setLightbox,
       {tip && !selected && (() => {
         const pct = (tip.x/W)*100
         const right = pct>65
+        const romeoPs   = tip.posts.filter(p => ROMEO_RE.test(p.author))
+        const topPost   = [...tip.posts].sort((a,b) => (b.likes||0)-(a.likes||0))[0]
+        const topClean  = (topPost?.text||'').replace(/\[QUOTE\][\s\S]*?\[\/QUOTE\]/gi,'').replace(/\[QUOTE\]/gi,'').replace(/\[\/QUOTE\]/gi,'').trim()
+        // Топ авторов по репе
+        const byAuthor = {}
+        tip.posts.filter(p=>p.author).forEach(p => {
+          if (!byAuthor[p.author] || (p.rating||0) > (byAuthor[p.author]||0))
+            byAuthor[p.author] = p.rating||0
+        })
+        const topAuthors = Object.entries(byAuthor)
+          .filter(([,r]) => r > 0)
+          .sort((a,b) => b[1]-a[1])
+          .slice(0,3)
         return (
           <div className="chart-tooltip" style={{
             bottom:52,
             left:  right?'auto':`calc(${pct}% - 8px)`,
             right: right?`calc(${100-pct}% - 8px)`:'auto',
           }}>
-            <div style={{fontWeight:700,color:'#fff',fontSize:12,marginBottom:5}}>📅 {tip.date}</div>
-            <div style={{fontSize:11,color:'#888',marginBottom: tip.posts.length ? 5 : 0}}>
-              {tip.count} {tip.count===1?'пост':'постов'}
-              {(() => {
-                const romeoPs = tip.posts.filter(p=>/romeopro/i.test(p.author))
-                const top = [...tip.posts].sort((a,b)=>(b.likes||0)-(a.likes||0))[0]
-                const parts = []
-                if (romeoPs.length) parts.push(`Ромео написал ${romeoPs.length}`)
-                if (top?.likes >= 5) parts.push(`топ +${top.likes} 👍`)
-                return parts.length ? ' · ' + parts.join(', ') : ''
-              })()}
+            <div style={{fontWeight:700,color:'#fff',fontSize:12,marginBottom:4}}>📅 {tip.date}</div>
+            <div style={{fontSize:11,color:'#888',marginBottom:6}}>
+              {tip.count} постов
+              {romeoPs.length ? ` · Ромео: ${romeoPs.length}` : ''}
+              {topPost?.likes >= 5 ? ` · топ +${topPost.likes} 👍` : ''}
             </div>
-            {(() => {
-              const top = [...tip.posts].sort((a,b)=>(b.likes||0)-(a.likes||0))[0]
-              if (!top) return null
-              const clean = (top.text||'').replace(/\[QUOTE\][\s\S]*?\[\/QUOTE\]/gi,'').trim()
-              if (!clean) return null
-              return (
-                <div style={{fontSize:11,color:'#bbb',lineHeight:1.55,
-                  display:'-webkit-box',WebkitLineClamp:3,WebkitBoxOrient:'vertical',overflow:'hidden'}}>
-                  <span style={{color:'#666',fontSize:10}}>{top.author}: </span>
-                  {clean.substring(0,120)}
-                </div>
-              )
-            })()}
+            {topAuthors.length > 0 && (
+              <div style={{marginBottom:6}}>
+                {topAuthors.map(([name, rating]) => (
+                  <div key={name} style={{fontSize:11,color:'#bbb',display:'flex',justifyContent:'space-between',gap:8,lineHeight:1.6}}>
+                    <span style={{color:'#ddd'}}>{name}</span>
+                    <span style={{color:'#4caf50',fontSize:10,fontFamily:"'Roboto Mono',monospace"}}>⭐{rating.toLocaleString()}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            {topClean && (
+              <div style={{fontSize:11,color:'#777',lineHeight:1.5,borderTop:'1px solid #2a2a2a',paddingTop:5,
+                display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical',overflow:'hidden'}}>
+                <span style={{color:'#555',fontSize:10}}>{topPost.author}: </span>{topClean.substring(0,100)}
+              </div>
+            )}
             <div style={{fontSize:10,color:'#444',marginTop:5}}>кликни → детали дня</div>
           </div>
         )
@@ -900,7 +910,30 @@ else console.error('❌ Ошибка: '+putRes.status);
 await scrape();
 const id=setInterval(scrape,30*60*1000);
 window._scraperInterval=id;
-console.log('%c⏱ Автозапуск каждые 30 мин. Остановить: clearInterval(window._scraperInterval)','color:#ff9800;font-weight:bold');
+
+// Плавающий виджет с таймером
+const widget=document.createElement('div');
+widget.id='_scraper_widget';
+widget.style.cssText='position:fixed;bottom:20px;right:20px;background:#1a1a1a;border:1px solid #e53935;border-radius:10px;padding:12px 16px;z-index:99999;font-family:monospace;font-size:13px;color:#fff;min-width:220px;box-shadow:0 4px 20px rgba(0,0,0,.6);user-select:none';
+document.body.appendChild(widget);
+
+let nextRun=Date.now()+30*60*1000;
+function updateWidget(status='⏳ ожидание'){
+  const left=Math.max(0,nextRun-Date.now());
+  const m=Math.floor(left/60000),s=Math.floor((left%60000)/1000);
+  widget.innerHTML='<div style="color:#e53935;font-weight:bold;margin-bottom:6px">🕷 Scraper</div>'
+    +'<div style="color:#aaa;font-size:11px">'+status+'</div>'
+    +'<div style="margin-top:8px;color:#fff">⏱ следующий запуск: <b>'+m+'м '+String(s).padStart(2,'0')+'с</b></div>'
+    +'<div style="margin-top:6px;display:flex;gap:6px">'
+    +'<button onclick="scrape().then(()=>{nextRun=Date.now()+30*60*1000})" style="background:#e53935;border:none;border-radius:5px;color:#fff;padding:4px 10px;cursor:pointer;font-size:11px">▶ сейчас</button>'
+    +'<button onclick="clearInterval(window._scraperInterval);clearInterval(window._timerInterval);document.getElementById(\'_scraper_widget\').remove()" style="background:#333;border:none;border-radius:5px;color:#aaa;padding:4px 10px;cursor:pointer;font-size:11px">✕ стоп</button>'
+    +'</div>';
+}
+updateWidget('активен');
+window._timerInterval=setInterval(updateWidget,1000);
+const _origScrape=scrape;
+scrape=async function(){nextRun=Date.now()+30*60*1000;updateWidget('🔄 скрапим...');await _origScrape();updateWidget('✅ готово');};
+console.log('%c⏱ Автозапуск каждые 30 мин. Виджет на странице. Остановить: clearInterval(window._scraperInterval)','color:#ff9800;font-weight:bold');
 })();`
   }
 
@@ -1247,7 +1280,7 @@ export default function App() {
                 </div>
                 <div className="hstat">
                   <div className="hstat-label">Сыграно МТТ</div>
-                  <div className="hstat-value">{meta?.totalTournaments?.toLocaleString() || '—'}</div>
+                  <div className="hstat-value">{meta?.totalTournaments?.toLocaleString() || '3 565'}</div>
                   <div className="hstat-sub">всего за марафон</div>
                 </div>
               </div>
@@ -1384,7 +1417,7 @@ export default function App() {
                     ['БР', <span key="br" className={`srow-val ${stats.br?'green':''}`}>{fmtExact(stats.br||meta?.bankroll)}</span>],
                     ['Профит', <span key="pr" className={`srow-val ${!stats.profit?'':stats.profit>=0?'green':'red'}`}>{fmtBR(stats.profit)}</span>],
                     ['День', <span key="d" className="srow-val gold">#{stats.day||meta?.day||'—'}</span>],
-                    ['Сыграно МТТ', <span key="mtt" className="srow-val">{meta?.totalTournaments?.toLocaleString() || '—'}</span>],
+                    ['Сыграно МТТ', <span key="mtt" className="srow-val">{meta?.totalTournaments?.toLocaleString() || '3 565'}</span>],
                     ['Постов', <span key="p" className="srow-val">{posts.length}</span>],
                     ['Топ лайков', <span key="l" className="srow-val">{hotPosts[0]?`+${hotPosts[0].likes}`:'—'}</span>],
                   ].map(([k,v])=>(
