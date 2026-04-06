@@ -217,6 +217,12 @@ const fmtNum = n => {
   return '$' + abs
 }
 
+// Целое число с тонким пробелом как разделитель тысяч
+const fmtInt = n => {
+  if (n == null || n === '') return '—'
+  return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, '\u202F')
+}
+
 // Точный формат БР до доллара
 const fmtExact = n => {
   if (!n && n !== 0) return '—'
@@ -495,9 +501,8 @@ function ActivityChart({ posts, favorites, onFav, onIgnore, setLightbox,
             byAuthor[p.author] = p.rating||0
         })
         const topAuthors = Object.entries(byAuthor)
-          .filter(([,r]) => r > 0)
+          .filter(([,r]) => r >= 10000)
           .sort((a,b) => b[1]-a[1])
-          .slice(0,3)
         return (
           <div className="chart-tooltip" style={{
             bottom:52,
@@ -512,10 +517,11 @@ function ActivityChart({ posts, favorites, onFav, onIgnore, setLightbox,
             </div>
             {topAuthors.length > 0 && (
               <div style={{marginBottom:6}}>
+                <div style={{fontSize:9,color:'#555',textTransform:'uppercase',letterSpacing:'.08em',marginBottom:4}}>авторитетные авторы</div>
                 {topAuthors.map(([name, rating]) => (
                   <div key={name} style={{fontSize:11,color:'#bbb',display:'flex',justifyContent:'space-between',gap:8,lineHeight:1.6}}>
                     <span style={{color:'#ddd'}}>{name}</span>
-                    <span style={{color:'#4caf50',fontSize:10,fontFamily:"'Roboto Mono',monospace"}}>⭐{rating.toLocaleString()}</span>
+                    <span style={{color:'#4caf50',fontSize:10,fontFamily:"'Roboto Mono',monospace"}}>⭐{fmtInt(rating)}</span>
                   </div>
                 ))}
               </div>
@@ -721,7 +727,7 @@ function PostCard({ p, favorites, onFav, onIgnore, setLightbox, noClamp=false })
         <div style={{flex:1,minWidth:0}}>
           <div className="pc-author">{p.author}</div>
           <div className="pc-author-meta">
-            {p.msgCount && <span>{p.msgCount.toLocaleString()} постов</span>}
+            {p.msgCount && <span>{fmtInt(p.msgCount)} постов</span>}
             {p.regData  && <span>· {p.regData}</span>}
             {p.rating != null && (
               <span style={{color:'#4caf50',display:'inline-flex',alignItems:'center',gap:2}}>·
@@ -1270,7 +1276,7 @@ export default function App() {
                     {fmtBR(stats.profit)}
                   </div>
                   {stats.totalTourneys != null && (
-                    <div className="hstat-sub">{stats.totalTourneys.toLocaleString()} турниров</div>
+                    <div className="hstat-sub">{fmtInt(stats.totalTourneys)} турниров</div>
                   )}
                 </div>
                 <div className="hstat">
@@ -1280,7 +1286,7 @@ export default function App() {
                 </div>
                 <div className="hstat">
                   <div className="hstat-label">Сыграно МТТ</div>
-                  <div className="hstat-value">{meta?.totalTournaments?.toLocaleString() || '3 565'}</div>
+                  <div className="hstat-value">{fmtInt(meta?.totalTournaments ?? 3565)}</div>
                   <div className="hstat-sub">всего за марафон</div>
                 </div>
               </div>
@@ -1417,8 +1423,8 @@ export default function App() {
                     ['БР', <span key="br" className={`srow-val ${stats.br?'green':''}`}>{fmtExact(stats.br||meta?.bankroll)}</span>],
                     ['Профит', <span key="pr" className={`srow-val ${!stats.profit?'':stats.profit>=0?'green':'red'}`}>{fmtBR(stats.profit)}</span>],
                     ['День', <span key="d" className="srow-val gold">#{stats.day||meta?.day||'—'}</span>],
-                    ['Сыграно МТТ', <span key="mtt" className="srow-val">{meta?.totalTournaments?.toLocaleString() || '3 565'}</span>],
-                    ['Постов', <span key="p" className="srow-val">{posts.length}</span>],
+                    ['Сыграно МТТ', <span key="mtt" className="srow-val">{fmtInt(meta?.totalTournaments ?? 3565)}</span>],
+                    ['Постов', <span key="p" className="srow-val">{fmtInt(posts.length)}</span>],
                     ['Топ лайков', <span key="l" className="srow-val">{hotPosts[0]?`+${hotPosts[0].likes}`:'—'}</span>],
                   ].map(([k,v])=>(
                     <div key={k} className="srow"><span className="srow-key">{k}</span>{v}</div>
