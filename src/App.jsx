@@ -683,19 +683,21 @@ function FilterBar({ sortBy, setSortBy, search, setSearch, showSearch, setShowSe
           onError={e=>e.target.style.display='none'} />
         Ромео
       </button>
-      <div style={{display:'flex',alignItems:'center',gap:4}}>
-        <label style={{fontSize:11,color:'var(--dim)',whiteSpace:'nowrap'}} title="Минимум лайков на посте">👍 мин.</label>
-        <input className="filter-num" type="number" min="0" value={minLikes}
-          onChange={e=>setMinLikes(+e.target.value||0)} title="Минимум лайков на посте"/>
-      </div>
-      <div style={{display:'flex',alignItems:'center',gap:4}}>
-        <label style={{fontSize:11,color:'var(--dim)',whiteSpace:'nowrap',display:'flex',alignItems:'center',gap:3}} title="Минимальная репутация автора">
-          <img src="https://www.gipsyteam.ru/public/style_images/master/reputation_pos.png" alt="rep"
-            style={{width:12,height:12,objectFit:'contain'}} onError={e=>e.target.replaceWith(Object.assign(document.createElement('span'),{textContent:'⭐'}))}/>
-          репа
-        </label>
-        <input className="filter-num" type="number" min="0" step="100" value={minRating}
-          onChange={e=>setMinRating(+e.target.value||0)} title="Минимальная репутация автора"/>
+      <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'nowrap'}}>
+        <div style={{display:'flex',alignItems:'center',gap:4}}>
+          <label style={{fontSize:11,color:'var(--dim)',whiteSpace:'nowrap'}} title="Минимум лайков на посте">👍 мин.</label>
+          <input className="filter-num" type="number" min="0" value={minLikes}
+            onChange={e=>setMinLikes(+e.target.value||0)} title="Минимум лайков на посте"/>
+        </div>
+        <div style={{display:'flex',alignItems:'center',gap:4}}>
+          <label style={{fontSize:11,color:'var(--dim)',whiteSpace:'nowrap',display:'flex',alignItems:'center',gap:3}} title="Минимальная репутация автора">
+            <img src="https://www.gipsyteam.ru/public/style_images/master/reputation_pos.png" alt="rep"
+              style={{width:12,height:12,objectFit:'contain'}} onError={e=>e.target.replaceWith(Object.assign(document.createElement('span'),{textContent:'⭐'}))}/>
+            репа
+          </label>
+          <input className="filter-num" type="number" min="0" step="100" value={minRating}
+            onChange={e=>setMinRating(+e.target.value||0)} title="Минимальная репутация автора"/>
+        </div>
       </div>
       <button className={`filter-pill ${showSearch?'on':'off'}`}
         onClick={()=>setShowSearch(s=>!s)} title="Поиск по тексту постов">🔍</button>
@@ -1307,11 +1309,13 @@ export default function App() {
       <div className="topbar">
         <div className="topbar-inner">
           <div className="logo">
-            <div className="logo-badge" style={{background:'none',padding:0,width:32,height:32}}>
-              <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" style={{width:32,height:32}}>
-                <polygon points="16,1 31,16 16,31 1,16" fill="#e53935"/>
-                <text x="16" y="21" textAnchor="middle" fill="white" fontSize="14" fontWeight="900" fontFamily="Arial,sans-serif">G</text>
-              </svg>
+            <div className="logo-badge" style={{background:'none',padding:0,width:32,height:32,overflow:'hidden',borderRadius:6}}>
+              <img src="https://www.gipsyteam.ru/favicon.ico" alt="GT"
+                style={{width:32,height:32,objectFit:'contain'}}
+                onError={e=>{
+                  e.target.style.display='none';
+                  e.target.parentNode.innerHTML='<svg viewBox="0 0 32 32" style="width:32;height:32"><polygon points="16,1 31,16 16,31 1,16" fill="#e53935"/><text x="16" y="21" text-anchor="middle" fill="white" font-size="14" font-weight="900" font-family="Arial">G</text></svg>'
+                }}/>
             </div>
             <div>
               <div className="logo-text">RomeoPro Tracker</div>
@@ -1549,9 +1553,37 @@ export default function App() {
                           .trim()
                         const preview = clean || (p.images?.[0] ? '→ форум' : '↩ цитата')
                         const initial = (p.author||'?')[0].toUpperCase()
+                        const fullClean = (p.text||'')
+                          .replace(/\[QUOTE\][\s\S]*?\[\/QUOTE\]/gi,'')
+                          .replace(/\[QUOTE\][^\]]*\]/gi,'')
+                          .replace(/\[\/QUOTE\]/gi,'')
+                          .replace(/\[QUOTE\]/gi,'')
+                          .trim()
                         return (
-                          <div key={i} style={{display:'flex',gap:8,padding:'7px 0',borderBottom:'1px solid var(--border)',alignItems:'flex-start',cursor:'pointer'}}
-                            onClick={()=>p.url&&window.open(p.url,'_blank')}>
+                          <div key={i} style={{display:'flex',gap:8,padding:'7px 0',borderBottom:'1px solid var(--border)',alignItems:'flex-start',cursor:'pointer',position:'relative'}}
+                            onClick={()=>p.url&&window.open(p.url,'_blank')}
+                            onMouseEnter={e=>{
+                              const popup = e.currentTarget.querySelector('._popup')
+                              if (popup) popup.style.display='block'
+                            }}
+                            onMouseLeave={e=>{
+                              const popup = e.currentTarget.querySelector('._popup')
+                              if (popup) popup.style.display='none'
+                            }}>
+                            {/* Popup preview */}
+                            <div className="_popup" style={{
+                              display:'none',position:'absolute',right:'calc(100% + 8px)',top:0,
+                              width:300,background:'#1c1c1c',border:'1px solid #3a3a3a',
+                              borderRadius:8,padding:12,zIndex:300,
+                              boxShadow:'0 8px 32px rgba(0,0,0,.8)',pointerEvents:'none'
+                            }}>
+                              <div style={{fontWeight:700,color:'var(--white)',fontSize:12,marginBottom:4}}>{p.author}</div>
+                              <div style={{fontSize:11,color:'var(--green)',marginBottom:6,fontFamily:"'Roboto Mono',monospace"}}>+{p.likes} 👍 · {p.date}</div>
+                              {p.images?.[0] && <img src={p.images[0]} alt="" style={{maxWidth:'100%',borderRadius:4,marginBottom:6}} onError={e=>e.target.style.display='none'}/>}
+                              <div style={{fontSize:11,color:'var(--text)',lineHeight:1.6,maxHeight:200,overflow:'hidden'}}>
+                                {fullClean.substring(0,500) || '→ форум'}
+                              </div>
+                            </div>
                             <span style={{color:'var(--gold)',fontWeight:700,fontSize:11,minWidth:16,flexShrink:0,paddingTop:10}}>{i+1}</span>
                             {/* аватарка */}
                             <div style={{width:28,height:28,borderRadius:'50%',background:'var(--red)',flexShrink:0,overflow:'hidden',display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:700,color:'#fff',marginTop:2}}>
