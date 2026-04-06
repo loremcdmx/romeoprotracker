@@ -597,7 +597,7 @@ const ROMEO_AVATAR = 'https://www.gipsyteam.ru/upload/Avatar/default/2/6/6/26670
 function FilterBar({ sortBy, setSortBy, search, setSearch, showSearch, setShowSearch,
                      romeoOnly, setRomeoOnly, minLikes, setMinLikes,
                      minRating, setMinRating, count, showSort=true }) {
-  const hasFilters = romeoOnly || minLikes !== 15 || minRating !== 1000 || search
+  const hasFilters = romeoOnly || minLikes !== 15 || minRating !== 0 || search
   return (
     <div className="filter-bar">
       {showSort && (
@@ -619,7 +619,11 @@ function FilterBar({ sortBy, setSortBy, search, setSearch, showSearch, setShowSe
           onChange={e=>setMinLikes(+e.target.value||0)} title="Минимум лайков на посте"/>
       </div>
       <div style={{display:'flex',alignItems:'center',gap:4}}>
-        <label style={{fontSize:11,color:'var(--dim)',whiteSpace:'nowrap'}} title="Минимальная репутация автора">⭐ репа</label>
+        <label style={{fontSize:11,color:'var(--dim)',whiteSpace:'nowrap',display:'flex',alignItems:'center',gap:3}} title="Минимальная репутация автора">
+          <img src="https://www.gipsyteam.ru/public/style_images/master/reputation_pos.png" alt="rep"
+            style={{width:12,height:12,objectFit:'contain'}} onError={e=>e.target.replaceWith(Object.assign(document.createElement('span'),{textContent:'⭐'}))}/>
+          репа
+        </label>
         <input className="filter-num" type="number" min="0" value={minRating}
           onChange={e=>setMinRating(+e.target.value||0)} title="Минимальная репутация автора"/>
       </div>
@@ -631,7 +635,7 @@ function FilterBar({ sortBy, setSortBy, search, setSearch, showSearch, setShowSe
       )}
       {hasFilters && (
         <button className="filter-pill off" title="Сбросить все фильтры" onClick={()=>{
-          setRomeoOnly(false); setMinLikes(15); setMinRating(1000); setSearch(''); setShowSearch(false);
+          setRomeoOnly(false); setMinLikes(15); setMinRating(0); setSearch(''); setShowSearch(false);
         }}>✕</button>
       )}
       <span className="filter-active-count">{count} постов</span>
@@ -825,6 +829,7 @@ function AdminPanel({ onNewPosts }) {
   const [step, setStep]     = useState('lock')  // lock | auth | panel
   const [pass, setPass]     = useState('')
   const [token, setToken]   = useState('')
+  const [cookie, setCookie] = useState(() => { try { return localStorage.getItem('gt_cookie')||'' } catch { return '' } })
   const [running, setRunning] = useState(false)
   const [log, setLog]       = useState([])
 
@@ -843,133 +848,117 @@ function AdminPanel({ onNewPosts }) {
     }
   }
 
+  const saveCookie = (val) => {
+    setCookie(val)
+    try { localStorage.setItem('gt_cookie', val) } catch {}
+  }
+
   const PROXY = 'https://corsproxy.io/?url='
-  const proxyFetch = (url, opts) => fetch(PROXY + encodeURIComponent(url), opts)
+  const proxyFetch = (url) => fetch(PROXY + encodeURIComponent(url), {
+    headers: cookie.trim() ? { 'x-cors-headers': JSON.stringify({ Cookie: cookie.trim() }) } : {}
+  })
 
-  const scrapeNew = async () => {
+  const getScript = () => {
+    const t = token.trim()
+    return `(async()=>{
+const REPO='${REPO}';
+const TOKEN='${t}';
+const FORUM='https://forum.gipsyteam.ru/index.php?viewtopic=181676';
+const b64=s=>btoa(unescape(encodeURIComponent(typeof s==='string'?s:JSON.stringify(s,null,2))));
+console.log('📥 Загружаю известные посты...');
+const r=await fetch('https://raw.githubusercontent.com/'+REPO+'/main/data/posts.json?t='+Date.now());
+const existing=await r.json();
+const knownIds=new Set(existing.map(p=>p.id).filter(Boolean));
+console.log('Известно: '+knownIds.size+' постов');
+const newPosts=[];
+const visited=new Set();
+let url=FORUM;
+// Ищем последнюю страницу
+const fp=await fetch(FORUM);
+const fh=await fp.text();
+const fd=new DOMParser().parseFromString(fh,'text/html');
+const pagers=[...fd.querySelectorAll('a.theme-pagination--pager')];
+const lastLink=pagers.reverse().find(a=>/\\d+/.test(a.textContent));
+const lastSt=lastLink?.href?.match(/st=(\\d+)/)?.[1];
+if(lastSt)url=FORUM+'&st='+lastSt;
+let page=1;
+while(url&&page<=10){
+  const normUrl=url.split('#')[0];
+  if(visited.has(normUrl))break;
+  visited.add(normUrl);
+  console.log('📄 Страница '+page+': '+normUrl);
+  const res=await fetch(normUrl);
+  if(!res.ok){console.error('HTTP '+res.status);break;}
+  const html=await res.text();
+  const doc=new DOMParser().parseFromString(html,'text/html');
+  let foundOld=false;
+  for(const b of doc.querySelectorAll('li.post')){
+    const anchor=b.querySelector('a.anchor');
+    const postId=anchor?.getAttribute('data-pid');
+    if(!postId)continue;
+    if(knownIds.has(postId)){foundOld=true;continue;}
+    const authorEl=b.querySelector('.post-author--link');
+    const bodyEl=b.querySelector('.comment_text');
+    if(!authorEl||!bodyEl)continue;
+    const tmp=document.createElement('div');
+    tmp.innerHTML=bodyEl.innerHTML;
+    tmp.querySelectorAll('blockquote').forEach(bq=>{
+      const cite=bq.querySelector('em.cite,.cite');
+      const author=cite?.querySelector('strong,b')?.textContent?.trim()||'';
+      const dateRaw=cite?.querySelector('.em-cite,span')?.textContent?.trim()||'';
+      if(cite)cite.remove();
+      const body=bq.innerText?.trim()||'';
+      const mk=document.createElement('div');
+      mk.textContent='[QUOTE]'+author+'|'+dateRaw+'\\n'+body+'[/QUOTE]';
+      bq.replaceWith(mk);
+    });
+    const dateEl=b.querySelector('.post-date--item');
+    const likesEl=b.querySelector('.post-vote--rating');
+    const avatarEl=b.querySelector('.post-author--avatar img');
+    const ratingEl=b.querySelector('.post-author--rating');
+    const msgEl=b.querySelector('.post-author--messages');
+    const regEl=b.querySelector('.post-author--regdata');
+    const imgs=[...b.querySelectorAll('.comment_text img')].map(i=>i.src).filter(s=>s?.startsWith('http')&&!s.includes('smil'));
+    newPosts.push({
+      id:postId,
+      author:authorEl.textContent.trim(),
+      avatar:avatarEl?.src||null,
+      rating:ratingEl?parseInt(ratingEl.textContent.replace(/[^\\d-]/g,''))||null:null,
+      msgCount:msgEl?parseInt(msgEl.textContent.replace(/[^\\d]/g,''))||null:null,
+      regData:regEl?regEl.textContent.trim():null,
+      date:dateEl?.textContent.trim()||'',
+      timestamp:dateEl?.getAttribute('data-timestamp')?parseInt(dateEl.getAttribute('data-timestamp')):null,
+      text:tmp.innerText?.trim().substring(0,1200)||'',
+      likes:likesEl?parseInt(likesEl.textContent.trim())||0:0,
+      images:imgs,
+      brBefore:null,brAfter:null,sessionResult:null,
+      url:'https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p='+postId,
+    });
+  }
+  console.log('  Новых: '+newPosts.length);
+  if(foundOld&&newPosts.length>0){console.log('Дошли до известных — стоп');break;}
+  const prevLink=[...doc.querySelectorAll('a.theme-pagination--pager')].find(a=>a.textContent.trim()==='←');
+  if(!prevLink||visited.has(prevLink.href.split('#')[0]))break;
+  url=prevLink.href;
+  page++;
+  await new Promise(r=>setTimeout(r,400));
+}
+if(!newPosts.length){console.log('⚠️ Новых постов нет');return;}
+console.log('💾 Сохраняю '+newPosts.length+' постов в GitHub...');
+const merged=[...existing,...newPosts];
+const shaRes=await fetch('https://api.github.com/repos/'+REPO+'/contents/data/posts.json',{headers:{Authorization:'token '+TOKEN,Accept:'application/vnd.github.v3+json'}});
+const {sha}=await shaRes.json();
+const putRes=await fetch('https://api.github.com/repos/'+REPO+'/contents/data/posts.json',{method:'PUT',headers:{Authorization:'token '+TOKEN,'Content-Type':'application/json',Accept:'application/vnd.github.v3+json'},body:JSON.stringify({message:'scraper: +'+newPosts.length+' new posts',content:b64(merged),sha})});
+if(putRes.ok)console.log('✅ Готово! +'+newPosts.length+' постов (всего '+merged.length+')');
+else console.error('❌ Ошибка сохранения: '+putRes.status);
+})();`
+  }
+
+  const copyScript = () => {
     if (!token.trim()) { L('Введите GitHub токен', 'err'); return }
-    setRunning(true)
-    setLog([])
-    try {
-      // 1. Загружаем текущие посты
-      L('Загружаю текущие посты...')
-      const r = await fetch(`https://raw.githubusercontent.com/${REPO}/main/data/posts.json?t=${Date.now()}`)
-      if (!r.ok) throw new Error(`posts.json: ${r.status}`)
-      const existing = await r.json()
-      const knownIds = new Set(existing.map(p => p.id).filter(Boolean))
-      L(`Известно ${knownIds.size} постов. Иду на форум...`)
-
-      // 2. Скрапим последние страницы форума пока не натолкнёмся на известные посты
-      const newPosts = []
-      const visited  = new Set()
-      let   url      = FORUM_BASE + '&st=99999999' // последняя страница — форум сам перенаправит
-      let   page     = 1
-
-      // Находим реальную последнюю страницу через первую
-      const firstPage = await proxyFetch(FORUM_BASE)
-      if (!firstPage.ok) throw new Error(`Форум недоступен: ${firstPage.status}`)
-      const firstHtml = await firstPage.text()
-      const firstDoc  = new DOMParser().parseFromString(firstHtml, 'text/html')
-      const pagers = [...firstDoc.querySelectorAll('a.theme-pagination--pager')]
-      const lastLink = pagers.reverse().find(a => /\d+/.test(a.textContent))
-      const lastSt = lastLink?.href?.match(/st=(\d+)/)?.[1]
-      url = lastSt ? `${FORUM_BASE}&st=${lastSt}` : FORUM_BASE
-
-      while (url && page <= 5) {
-        const normUrl = url.split('#')[0]
-        if (visited.has(normUrl)) break
-        visited.add(normUrl)
-
-        L(`Страница ${page}: ${normUrl}`)
-        const res = await proxyFetch(normUrl)
-        if (!res.ok) { L(`HTTP ${res.status}`, 'err'); break }
-        const html = await res.text()
-        const doc  = new DOMParser().parseFromString(html, 'text/html')
-
-        let foundOld = false
-        for (const b of doc.querySelectorAll('li.post')) {
-          const anchor = b.querySelector('a.anchor')
-          const postId = anchor?.getAttribute('data-pid')
-          if (!postId) continue
-
-          if (knownIds.has(postId)) { foundOld = true; continue }
-
-          const authorEl = b.querySelector('.post-author--link')
-          const bodyEl   = b.querySelector('.comment_text')
-          if (!authorEl || !bodyEl) continue
-
-          const tmp = document.createElement('div')
-          tmp.innerHTML = bodyEl.innerHTML
-          tmp.querySelectorAll('blockquote').forEach(bq => {
-            const cite   = bq.querySelector('em.cite, .cite')
-            const author = cite?.querySelector('strong, b')?.textContent?.trim() || ''
-            const dateRaw = cite?.querySelector('.em-cite, span')?.textContent?.trim() || ''
-            if (cite) cite.remove()
-            const body = bq.innerText?.trim() || ''
-            const mk   = document.createElement('div')
-            mk.textContent = `[QUOTE]${author}|${dateRaw}\n${body}[/QUOTE]`
-            bq.replaceWith(mk)
-          })
-
-          const dateEl   = b.querySelector('.post-date--item')
-          const likesEl  = b.querySelector('.post-vote--rating')
-          const avatarEl = b.querySelector('.post-author--avatar img')
-          const ratingEl = b.querySelector('.post-author--rating')
-          const msgEl    = b.querySelector('.post-author--messages')
-          const regEl    = b.querySelector('.post-author--regdata')
-          const imgs     = [...b.querySelectorAll('.comment_text img')]
-            .map(i => i.src).filter(s => s?.startsWith('http') && !s.includes('smil'))
-
-          newPosts.push({
-            id:        postId,
-            author:    authorEl.textContent.trim(),
-            avatar:    avatarEl?.src || null,
-            rating:    ratingEl ? parseInt(ratingEl.textContent.replace(/[^\d-]/g,'')) || null : null,
-            msgCount:  msgEl    ? parseInt(msgEl.textContent.replace(/[^\d]/g,''))    || null : null,
-            regData:   regEl    ? regEl.textContent.trim() : null,
-            date:      dateEl?.textContent.trim() || '',
-            timestamp: dateEl?.getAttribute('data-timestamp') ? parseInt(dateEl.getAttribute('data-timestamp')) : null,
-            text:      tmp.innerText?.trim().substring(0, 1200) || '',
-            likes:     likesEl ? parseInt(likesEl.textContent.trim()) || 0 : 0,
-            images:    imgs,
-            brBefore: null, brAfter: null, sessionResult: null,
-            url: `https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=${postId}`,
-          })
-        }
-
-        L(`  +${newPosts.length} новых постов`, 'ok')
-        if (foundOld && newPosts.length > 0) { L('Дошли до известных постов — стоп'); break }
-
-        // Идём на предыдущую страницу
-        const prevLink = [...doc.querySelectorAll('a.theme-pagination--pager')]
-          .find(a => a.textContent.trim() === '←')
-        if (!prevLink || visited.has(prevLink.href.split('#')[0])) break
-        url = prevLink.href
-        page++
-        await new Promise(r => setTimeout(r, 500))
-      }
-
-      if (!newPosts.length) { L('Новых постов нет', 'warn'); setRunning(false); return }
-
-      // 3. Сохраняем в GitHub
-      L(`Сохраняю ${newPosts.length} новых постов...`, 'warn')
-      const merged = [...existing, ...newPosts]
-      const sha    = await fetch(`https://api.github.com/repos/${REPO}/contents/data/posts.json`, {
-        headers: { Authorization: `token ${token}`, Accept: 'application/vnd.github.v3+json' }
-      }).then(r => r.json()).then(j => j.sha)
-
-      await fetch(`https://api.github.com/repos/${REPO}/contents/data/posts.json`, {
-        method: 'PUT',
-        headers: { Authorization: `token ${token}`, 'Content-Type': 'application/json', Accept: 'application/vnd.github.v3+json' },
-        body: JSON.stringify({ message: `scraper: +${newPosts.length} new posts`, content: b64enc(merged), sha })
-      })
-
-      L(`✓ Готово! +${newPosts.length} постов (всего ${merged.length})`, 'ok')
-      onNewPosts(newPosts)
-    } catch(e) {
-      L(`Ошибка: ${e.message}`, 'err')
-    }
-    setRunning(false)
+    navigator.clipboard.writeText(getScript())
+      .then(() => L('✓ Скрипт скопирован! Открой форум и вставь в консоль (F12)', 'ok'))
+      .catch(() => L('Ошибка копирования — попробуй ещё раз', 'err'))
   }
 
   if (step === 'lock') return (
@@ -993,9 +982,17 @@ function AdminPanel({ onNewPosts }) {
           </div>
           <input className="admin-input" type="password" placeholder="GitHub токен (ghp_...)"
             value={token} onChange={e=>setToken(e.target.value)}/>
-          <button className="admin-btn primary" onClick={scrapeNew} disabled={running}>
-            {running ? '⏳ Скрапим...' : '🕷 Скрапить новые посты'}
+          <div style={{fontSize:10,color:'var(--dim)',marginBottom:8}}>
+            Вставь токен → скопируй скрипт → открой форум GT → F12 → Console → вставь и Enter
+          </div>
+          <button className="admin-btn primary" onClick={copyScript}>
+            📋 Скопировать скрипт
           </button>
+          <a className="admin-btn secondary" href="https://forum.gipsyteam.ru/index.php?viewtopic=181676"
+            target="_blank" rel="noreferrer"
+            style={{display:'block',textAlign:'center',textDecoration:'none',marginTop:6}}>
+            🌐 Открыть форум
+          </a>
           <button className="admin-btn secondary" onClick={()=>setStep('lock')}>Закрыть</button>
           {log.length > 0 && (
             <div className="admin-log">
@@ -1022,7 +1019,7 @@ export default function App() {
   const [page,    setPage]    = useState(1)
   const [perPage, setPerPage] = useState(20)
   const [minLikes,  setMinLikes]  = useState(15)       // дефолт 15
-  const [minRating, setMinRating] = useState(1000)     // дефолт 1000
+  const [minRating, setMinRating] = useState(0)        // дефолт 0 (скрывает отриц. репу)
 
   // Позиция чтения — запоминаем последний прочитанный пост на каждой вкладке
   const [readPos, setReadPos] = useState(() => {
@@ -1056,8 +1053,11 @@ export default function App() {
       const profit = br - startBR
       const totalTourneys = meta?.totalTournaments || null
 
-      // День = количество сессий из brHistory
-      const day = brHistory.length
+      // День из текста постов Ромео (как он сам нумерует), fallback на кол-во сессий
+      const romeoByDate = posts.filter(p => ROMEO_RE.test(p.author)).sort((a,b) => (b.timestamp||0)-(a.timestamp||0))
+      let day = null
+      for (const p of romeoByDate) { day = extractDay(p.text); if (day) break }
+      if (!day) day = brHistory.length
 
       return { br, profit, startBR, day, lastDate: last.date, totalTourneys }
     }
@@ -1529,22 +1529,32 @@ export default function App() {
                     <div className="sblock-body" style={{padding:'6px 14px'}}>
                       {(filtered.length ? filtered : hotPosts).slice(0,10).map((p,i)=>{
                         const clean = (p.text||'').replace(/\[QUOTE\][\s\S]*?\[\/QUOTE\]/gi,'').trim()
-                        const hasImgOnly = !clean && p.images?.[0]
+                        const preview = clean || (p.images?.[0] ? '→ форум' : '↩ цитата')
+                        const initial = (p.author||'?')[0].toUpperCase()
                         return (
-                          <div key={i} style={{display:'flex',gap:8,padding:'6px 0',borderBottom:'1px solid var(--border)',alignItems:'flex-start'}}>
-                            <span style={{color:'var(--gold)',fontWeight:700,fontSize:11,minWidth:16,flexShrink:0,paddingTop:2}}>{i+1}</span>
-                            {p.images?.[0] && (
-                              <img src={p.images[0]} alt=""
-                                style={{width:48,height:36,objectFit:'cover',borderRadius:3,flexShrink:0,cursor:'zoom-in'}}
-                                onClick={()=>setLightbox(p.images[0])}
-                                onError={e=>e.target.style.display='none'}/>
-                            )}
-                            <span style={{fontSize:11,color:'var(--text)',flex:1,overflow:'hidden',cursor:'pointer',
-                              display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical'}}
-                              onClick={()=>p.url&&window.open(p.url,'_blank')}>
-                              {clean.substring(0,80) || (hasImgOnly ? '→ форум' : p.text?.substring(0,80))}
-                            </span>
-                            <span style={{color:'var(--green)',fontSize:10,fontWeight:700,flexShrink:0}}>+{p.likes}</span>
+                          <div key={i} style={{display:'flex',gap:8,padding:'7px 0',borderBottom:'1px solid var(--border)',alignItems:'flex-start',cursor:'pointer'}}
+                            onClick={()=>p.url&&window.open(p.url,'_blank')}>
+                            <span style={{color:'var(--gold)',fontWeight:700,fontSize:11,minWidth:16,flexShrink:0,paddingTop:10}}>{i+1}</span>
+                            {/* аватарка */}
+                            <div style={{width:28,height:28,borderRadius:'50%',background:'var(--red)',flexShrink:0,overflow:'hidden',display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:700,color:'#fff',marginTop:2}}>
+                              {p.avatar
+                                ? <img src={p.avatar} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}} onError={e=>e.target.style.display='none'}/>
+                                : initial}
+                            </div>
+                            <div style={{flex:1,minWidth:0}}>
+                              <div style={{fontSize:10,color:'var(--dim2)',fontWeight:600,marginBottom:2}}>{p.author}</div>
+                              {p.images?.[0] && !clean && (
+                                <img src={p.images[0]} alt=""
+                                  style={{width:48,height:36,objectFit:'cover',borderRadius:3,marginBottom:3,display:'block'}}
+                                  onClick={e=>{e.stopPropagation();setLightbox(p.images[0])}}
+                                  onError={e=>e.target.style.display='none'}/>
+                              )}
+                              <div style={{fontSize:11,color:'var(--text)',overflow:'hidden',
+                                display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical'}}>
+                                {preview.substring(0,80)}
+                              </div>
+                            </div>
+                            <span style={{color:'var(--green)',fontSize:10,fontWeight:700,flexShrink:0,paddingTop:10}}>+{p.likes}</span>
                           </div>
                         )
                       })}
