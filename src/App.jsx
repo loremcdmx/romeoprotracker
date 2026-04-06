@@ -1485,7 +1485,12 @@ export default function App() {
                     </div>
                     <div className="sblock-body" style={{padding:'6px 14px'}}>
                       {(filtered.length ? filtered : hotPosts).slice(0,10).map((p,i)=>{
-                        const clean = (p.text||'').replace(/\[QUOTE\][\s\S]*?\[\/QUOTE\]/gi,'').trim()
+                        const clean = (p.text||'')
+                          .replace(/\[QUOTE\][\s\S]*?\[\/QUOTE\]/gi,'')
+                          .replace(/\[QUOTE\][^\]]*\]/gi,'')
+                          .replace(/\[\/QUOTE\]/gi,'')
+                          .replace(/\[QUOTE\]/gi,'')
+                          .trim()
                         const preview = clean || (p.images?.[0] ? '→ форум' : '↩ цитата')
                         const initial = (p.author||'?')[0].toUpperCase()
                         return (
