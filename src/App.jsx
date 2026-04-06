@@ -15,19 +15,19 @@ const css = `
     --green:#4caf50;--gold:#ffb300;--white:#f0f0f0;
     --r:6px;
   }
-  html,body,#root{min-height:100%;background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-size:13px;line-height:1.5}
+  html,body,#root{min-height:100%;background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-size:12px;line-height:1.5}
   a{color:var(--red2);text-decoration:none}
   ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:var(--bg2)}::-webkit-scrollbar-thumb{background:#333;border-radius:3px}
 
   /* TOPBAR */
   .topbar{background:#0a0a0a;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100}
-  .topbar-inner{max-width:1100px;margin:0 auto;padding:0 16px;display:flex;align-items:center;height:46px;gap:16px}
+  .topbar-inner{max-width:1280px;margin:0 auto;padding:0 16px;display:flex;align-items:center;height:40px;gap:16px}
   .logo{display:flex;align-items:center;gap:10px;flex-shrink:0}
-  .logo-badge{background:var(--red);color:#fff;font-size:12px;font-weight:800;width:30px;height:30px;border-radius:6px;display:flex;align-items:center;justify-content:center}
-  .logo-text{font-size:14px;font-weight:700;color:var(--white)}
+  .logo-badge{background:var(--red);color:#fff;font-size:11px;font-weight:800;width:26px;height:26px;border-radius:5px;display:flex;align-items:center;justify-content:center}
+  .logo-text{font-size:13px;font-weight:700;color:var(--white)}
   .logo-sub{font-size:10px;color:var(--dim)}
   .topbar-tabs{display:flex;gap:2px;flex:1;justify-content:center}
-  .topbar-tab{padding:6px 14px;border-radius:20px;font-size:12px;font-weight:500;color:var(--dim2);cursor:pointer;transition:all .15s}
+  .topbar-tab{padding:4px 11px;border-radius:20px;font-size:11px;font-weight:500;color:var(--dim2);cursor:pointer;transition:all .15s}
   .topbar-tab:hover{color:var(--text);background:var(--bg3)}
   .topbar-tab.active{color:var(--white);background:var(--bg3)}
   .topbar-right{margin-left:auto;display:flex;align-items:center;gap:6px}
@@ -36,22 +36,22 @@ const css = `
   @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.6;transform:scale(.85)}}
 
   /* LAYOUT */
-  .page{max-width:1100px;margin:0 auto;padding:16px 16px 60px;display:grid;grid-template-columns:1fr 268px;gap:16px;align-items:start}
+  .page{max-width:1280px;margin:0 auto;padding:10px 16px 60px;display:grid;grid-template-columns:1fr 240px;gap:12px;align-items:start}
   .page.wide{grid-template-columns:1fr}
 
   /* HERO */
-  .hero{background:linear-gradient(135deg,#1a0a0a 0%,#1a1a1a 100%);border:1px solid var(--border);border-radius:var(--r);padding:20px;margin-bottom:16px;position:relative;overflow:hidden}
+  .hero{background:linear-gradient(135deg,#1a0a0a 0%,#1a1a1a 100%);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:12px;position:relative;overflow:hidden}
   .hero::before{content:'';position:absolute;top:-40px;right:-40px;width:200px;height:200px;background:radial-gradient(circle,#e5393520,transparent 70%);pointer-events:none}
   .hero-top{display:flex;align-items:flex-start;gap:16px;margin-bottom:16px}
-  .hero-avatar{width:52px;height:52px;border-radius:50%;background:var(--red);flex-shrink:0;border:2px solid #e5393540;overflow:hidden}
+  .hero-avatar{width:40px;height:40px;border-radius:50%;background:var(--red);flex-shrink:0;border:2px solid #e5393540;overflow:hidden}
   .hero-avatar img{width:100%;height:100%;object-fit:cover}
-  .hero-name{font-size:18px;font-weight:700;color:var(--white);display:flex;align-items:center;gap:8px}
+  .hero-name{font-size:15px;font-weight:700;color:var(--white);display:flex;align-items:center;gap:8px}
   .hero-badge{background:var(--red);color:#fff;font-size:9px;font-weight:700;padding:2px 6px;border-radius:3px;text-transform:uppercase}
   .hero-desc{font-size:11px;color:var(--dim2);margin-top:2px}
   .hero-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
   .hstat{background:#ffffff08;border:1px solid var(--border);border-radius:5px;padding:12px}
   .hstat-label{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px}
-  .hstat-value{font-size:20px;font-weight:700;color:var(--white);font-family:'Roboto Mono',monospace;line-height:1.2}
+  .hstat-value{font-size:16px;font-weight:700;color:var(--white);font-family:'Roboto Mono',monospace;line-height:1.2}
   .hstat-value.green{color:#66bb6a}.hstat-value.gold{color:var(--gold)}.hstat-value.red{color:var(--red2)}
   .hstat-sub{font-size:10px;color:var(--dim);margin-top:3px}
 
@@ -61,7 +61,7 @@ const css = `
   .section-count{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:1px 7px;font-size:10px;color:var(--dim)}
 
   /* MARATHON CHART */
-  .marathon-chart{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:20px;margin-bottom:16px;position:relative}
+  .marathon-chart{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:12px;position:relative}
   .mc-svg{width:100%;overflow:visible;cursor:crosshair}
   .mc-area{fill:url(#mcGrad);opacity:.25}
   .mc-line{fill:none;stroke:#e53935;stroke-width:2;stroke-linejoin:round}
@@ -114,6 +114,12 @@ const css = `
   .feed-search:focus,.feed-select:focus{border-color:#444}
   .feed-count{font-size:11px;color:var(--dim);margin-left:auto;white-space:nowrap}
 
+  /* PERIOD TABS */
+  .period-tabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+  .period-tab{padding:5px 14px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--bg2);color:var(--dim2);transition:all .15s;white-space:nowrap}
+  .period-tab:hover{border-color:#444;color:var(--text)}
+  .period-tab.active{border-color:var(--red);color:#fff;background:var(--red-dim)}
+
   /* TOPIC TABS */
   .topic-tabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
   .topic-tab{display:flex;align-items:center;gap:6px;padding:7px 14px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--bg2);color:var(--dim2);transition:all .15s;white-space:nowrap}
@@ -155,7 +161,7 @@ const css = `
   .pc-actions{display:flex;gap:4px;flex-shrink:0}
   .pc-action{background:none;border:none;cursor:pointer;font-size:14px;padding:2px 3px;opacity:.35;transition:opacity .15s;color:var(--text)}
   .pc-action:hover,.pc-action.on{opacity:1}
-  .pc-body{padding:10px 14px;font-size:13px;color:var(--text);line-height:1.65}
+  .pc-body{padding:10px 14px;font-size:12px;color:var(--text);line-height:1.6}
   .pc-body.clamped{display:-webkit-box;-webkit-line-clamp:8;-webkit-box-orient:vertical;overflow:hidden}
   .pc-images{display:flex;flex-wrap:wrap;gap:6px;padding:0 14px 10px}
   .pc-img{max-width:160px;max-height:120px;border-radius:4px;cursor:pointer;border:1px solid var(--border);object-fit:cover;transition:border-color .15s}
@@ -411,14 +417,31 @@ function ActivityChart({ posts }) {
 
   // Простое локальное саммари дня
   function makeSummary(ps) {
-    const authors = [...new Set(ps.map(p=>p.author))].slice(0,4)
+    const withAuthor = ps.filter(p=>p.author)
+    const totalUniq = new Set(withAuthor.map(p=>p.author)).size
     const popular = ps.filter(p=>(p.likes||0)>=20).sort((a,b)=>(b.likes||0)-(a.likes||0))
     const topLikes = ps.reduce((m,p)=>Math.max(m,p.likes||0),0)
-    const romeoPost = ps.find(p=>p.author?.toLowerCase().includes('romeopro'))
-    let summary = `${ps.length} постов от ${authors.length} участников.`
-    if (romeoPost) summary += ` Ромео написал ${ps.filter(p=>p.author?.toLowerCase().includes('romeopro')).length} пост(а).`
-    if (topLikes > 0) summary += ` Пик активности: +${topLikes} лайков на топ-посте.`
+    const romeoCount = ps.filter(p=>/romeopro/i.test(p.author)).length
+
+    // Топ авторов дня по репутации
+    const byAuthor = {}
+    withAuthor.forEach(p => {
+      if (!byAuthor[p.author] || (p.rating||0) > (byAuthor[p.author].rating||0))
+        byAuthor[p.author] = { rating: p.rating||0, posts: 0 }
+      byAuthor[p.author].posts++
+    })
+    const topAuthors = Object.entries(byAuthor)
+      .sort((a,b) => b[1].rating - a[1].rating)
+      .slice(0,3)
+      .map(([name,d]) => `${name}${d.rating ? ' ⭐'+d.rating : ''}`)
+
+    let summary = `${ps.length} постов`
+    if (totalUniq > 0) summary += `, ${totalUniq} авторов`
+    summary += '.'
+    if (romeoCount) summary += ` Ромео: ${romeoCount} пост${romeoCount>1?'а':''}.`
+    if (topLikes > 0) summary += ` Топ: +${topLikes} 👍.`
     if (popular.length) summary += ` ${popular.length} постов набрали 20+ лайков.`
+    if (topAuthors.length) summary += ` Активные: ${topAuthors.join(', ')}.`
     return summary
   }
 
@@ -827,13 +850,43 @@ export default function App() {
     return { day, br, profit, startBR, lastDate: romeoByDate[0]?.date, totalTourneys: null }
   }, [posts, meta])
 
-  const hotPosts = useMemo(() =>
-    [...posts]
-      .filter(p => (p.likes||0) >= Math.max(minLikes, 1))
+  const [hotPeriod, setHotPeriod] = useState('all') // today | week | month | all | memes
+  const [hotPage, setHotPage] = useState(1)
+  const HOT_PER_PAGE = 20
+
+  const hotPosts = useMemo(() => {
+    const now = Date.now() / 1000
+    const cutoff = {
+      today: now - 86400,
+      week:  now - 604800,
+      month: now - 2592000,
+      all:   0,
+      memes: 0,
+    }[hotPeriod] || 0
+
+    let filtered = posts
+      .filter(p => !ignored.has(p.author))
       .filter(p => !minRating || (p.rating||0) >= minRating)
-      .sort((a,b)=>(b.likes||0)-(a.likes||0))
-      .slice(0,10),
-  [posts, minLikes, minRating])
+      .filter(p => (p.timestamp||0) >= cutoff)
+
+    if (hotPeriod === 'memes') {
+      // Мемы: посты с картинками ИЛИ короткий смешной текст с хорошими лайками
+      filtered = filtered.filter(p => {
+        const hasImg = p.images?.length > 0
+        const isShort = (p.text?.replace(/\[QUOTE\][\s\S]*?\[\/QUOTE\]/gi,'').trim().length||0) < 200
+        const goodLikes = (p.likes||0) >= Math.max(minLikes, 5)
+        return goodLikes && (hasImg || isShort)
+      })
+    } else {
+      filtered = filtered.filter(p => (p.likes||0) >= Math.max(minLikes, 1))
+    }
+
+    return filtered.sort((a,b) => (b.likes||0) - (a.likes||0))
+  }, [posts, ignored, minLikes, minRating, hotPeriod])
+
+  const hotTotalPages = Math.max(1, Math.ceil(hotPosts.length / HOT_PER_PAGE))
+  const hotPagedPosts = hotPosts.slice((hotPage-1)*HOT_PER_PAGE, hotPage*HOT_PER_PAGE)
+  const goHotPage = p => { setHotPage(p); window.scrollTo({top:300,behavior:'smooth'}) }
 
   const feedPosts = useMemo(() =>
     posts
@@ -853,6 +906,9 @@ export default function App() {
   // Сбрасываем страницу при смене фильтров (правильный способ — useEffect)
   useEffect(() => { setPage(1) },
     [ignored, search, sortBy, romeoOnly, minLikes, minRating]) // eslint-disable-line
+
+  useEffect(() => { setHotPage(1) },
+    [minLikes, minRating, hotPeriod]) // eslint-disable-line
 
   // Восстанавливаем позицию чтения при первой загрузке постов
   useEffect(() => {
@@ -1107,18 +1163,35 @@ export default function App() {
                 minRating={minRating} setMinRating={setMinRating}
                 count={hotPosts.length} showSort={false}
               />
-              <div className="section-head">
-                <span className="section-title">🔥 Топ постов по лайкам</span>
-                <span className="section-count">{hotPosts.length}</span>
+              <div className="period-tabs">
+                {[
+                  ['all',   '🔥 Все время'],
+                  ['month', '📅 Месяц'],
+                  ['week',  '📅 Неделя'],
+                  ['today', '📅 Сегодня'],
+                  ['memes', '😂 Мемы'],
+                ].map(([id, label]) => (
+                  <div key={id}
+                    className={`period-tab ${hotPeriod===id?'active':''}`}
+                    onClick={()=>{ setHotPeriod(id); setHotPage(1) }}>
+                    {label}
+                  </div>
+                ))}
               </div>
-              <div className="hot-grid">
-                {hotPosts.length===0
-                  ? <div className="empty-state">Нет постов с такими фильтрами</div>
-                  : hotPosts.map((p,i)=>(
-                    <HotPostCard key={p.id||i} p={p} rank={i} setLightbox={setLightbox}/>
-                  ))
-                }
-              </div>
+              {hotPosts.length===0
+                ? <div className="empty-state">Нет постов с такими фильтрами</div>
+                : <>
+                  <Paginator page={hotPage} totalPages={hotTotalPages} onPage={goHotPage}
+                    perPage={HOT_PER_PAGE} onPerPage={()=>{}} total={hotPosts.length}/>
+                  <div className="hot-grid">
+                    {hotPagedPosts.map((p,i)=>(
+                      <HotPostCard key={p.id||i} p={p} rank={(hotPage-1)*HOT_PER_PAGE+i} setLightbox={setLightbox}/>
+                    ))}
+                  </div>
+                  <Paginator page={hotPage} totalPages={hotTotalPages} onPage={goHotPage}
+                    perPage={HOT_PER_PAGE} onPerPage={()=>{}} total={hotPosts.length}/>
+                </>
+              }
               <ActivityChart posts={posts}/>
             </>}
 
@@ -1203,19 +1276,21 @@ export default function App() {
                   <div className="sblock-title">🔥 Топ 5</div>
                   <div className="sblock-body" style={{padding:'6px 14px'}}>
                     {hotPosts.slice(0,5).map((p,i)=>{
-                      // Текст без цитат
                       const clean = (p.text||'').replace(/\[QUOTE\][\s\S]*?\[\/QUOTE\]/gi,'').trim()
+                      const hasImgOnly = !clean && p.images?.[0]
                       return (
-                        <div key={i} style={{display:'flex',gap:8,padding:'6px 0',borderBottom:'1px solid var(--border)',cursor:'pointer',alignItems:'flex-start'}}
-                          onClick={()=>p.url&&window.open(p.url,'_blank')}>
+                        <div key={i} style={{display:'flex',gap:8,padding:'6px 0',borderBottom:'1px solid var(--border)',alignItems:'flex-start'}}>
                           <span style={{color:'var(--gold)',fontWeight:700,fontSize:11,minWidth:16,flexShrink:0,paddingTop:2}}>{i+1}</span>
-                          {/* Показываем картинку если нет текста */}
-                          {!clean && p.images?.[0] ? (
-                            <img src={p.images[0]} alt="" style={{width:48,height:36,objectFit:'cover',borderRadius:3,flexShrink:0}} onError={e=>e.target.style.display='none'}/>
-                          ) : null}
-                          <span style={{fontSize:11,color:'var(--text)',flex:1,overflow:'hidden',
-                            display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical'}}>
-                            {clean.substring(0,80) || p.text?.substring(0,80)}
+                          {p.images?.[0] && (
+                            <img src={p.images[0]} alt=""
+                              style={{width:48,height:36,objectFit:'cover',borderRadius:3,flexShrink:0,cursor:'zoom-in'}}
+                              onClick={()=>setLightbox(p.images[0])}
+                              onError={e=>e.target.style.display='none'}/>
+                          )}
+                          <span style={{fontSize:11,color:'var(--text)',flex:1,overflow:'hidden',cursor:'pointer',
+                            display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical'}}
+                            onClick={()=>p.url&&window.open(p.url,'_blank')}>
+                            {clean.substring(0,80) || (hasImgOnly ? '→ форум' : p.text?.substring(0,80))}
                           </span>
                           <span style={{color:'var(--green)',fontSize:10,fontWeight:700,flexShrink:0}}>+{p.likes}</span>
                         </div>
