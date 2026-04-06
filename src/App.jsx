@@ -329,7 +329,7 @@ const b64enc = s => btoa(unescape(encodeURIComponent(
 const ROMEO_RE = /romeopro/i
 
 // ─── MARATHON CHART ───────────────────────────────────────────────────────────
-function MarathonChart({ posts, meta, startBR, setLightbox }) {
+function MarathonChart({ posts, meta, startBR, setLightbox, day }) {
   const [tip, setTip] = useState(null)
 
   const points = useMemo(() => {
@@ -385,7 +385,7 @@ function MarathonChart({ posts, meta, startBR, setLightbox }) {
     <div className="marathon-chart">
       <div className="section-head" style={{marginBottom:12}}>
         <span className="section-title">📈 График марафона</span>
-        <span className="section-count">{points.length} сессий</span>
+        <span className="section-count">{day ? `день #${day}` : `${points.length} сессий`}</span>
         <span style={{marginLeft:'auto',fontSize:11,color:'var(--dim)'}}>
           {fkAbs(startBR)} → {fkAbs(points[points.length-1]?.br)}
         </span>
@@ -997,6 +997,16 @@ function SidebarTopList({ posts, setLightbox }) {
     .replace(/\[QUOTE\]/gi,'')
     .trim()
 
+  // Извлекаем тело первой цитаты как фолбэк превью
+  const extractQuoteBody = t => {
+    if (!t) return ''
+    const qs = t.indexOf('[QUOTE]')
+    if (qs === -1) return ''
+    const inner = t.slice(qs + 7)
+    const nl = inner.indexOf('\n')
+    return nl !== -1 ? inner.slice(nl + 1).replace(/\[\/QUOTE\].*/,'').trim() : inner.replace(/\[\/QUOTE\].*/,'').trim()
+  }
+
   return (
     <div style={{padding:'6px 14px'}}
       onMouseLeave={()=>setHovered(null)}>
@@ -1004,8 +1014,7 @@ function SidebarTopList({ posts, setLightbox }) {
       {hovered !== null && (() => {
         const p = posts[hovered]
         if (!p) return null
-        const full = stripQuotes(p.text)
-        const left = Math.max(8, Math.min(popupPos.x - 310, window.innerWidth - 320))
+        const full = stripQuotes(p.text)        const left = Math.max(8, Math.min(popupPos.x - 310, window.innerWidth - 320))
         const top  = Math.max(8, Math.min(popupPos.y - 40, window.innerHeight - 420))
         return (
           <div style={{
@@ -1026,7 +1035,12 @@ function SidebarTopList({ posts, setLightbox }) {
                 onError={e=>e.target.style.display='none'}/>
             )}
             <div style={{fontSize:12,color:'var(--text)',lineHeight:1.7,overflowY:'auto',flex:1,paddingRight:4}}>
-              {renderPostText(p.text, true) || '→ открыть на форуме'}
+              {renderPostText(p.text, true)}
+              {!stripQuotes(p.text) && p.text?.includes('[QUOTE]') && (
+                <div style={{fontSize:11,color:'#555',fontStyle:'italic',marginTop:6}}>
+                  ответ обрезан — полный текст на форуме
+                </div>
+              )}
             </div>
             <div style={{marginTop:8,paddingTop:8,borderTop:'1px solid #2a2a2a'}}>
               <a href={p.url} target="_blank" rel="noreferrer"
@@ -1038,7 +1052,7 @@ function SidebarTopList({ posts, setLightbox }) {
 
       {posts.map((p, i) => {
         const clean = stripQuotes(p.text)
-        const preview = clean || (p.images?.[0] ? '→ форум' : '↩ цитата')
+        const preview = clean || extractQuoteBody(p.text) || (p.images?.[0] ? '→ форум' : '↩ цитата')
         const initial = (p.author||'?')[0].toUpperCase()
         return (
           <div key={i}
@@ -1649,7 +1663,7 @@ export default function App() {
 
             {/* ЛЕНТА */}
             {activeTab==='feed' && <>
-              <MarathonChart posts={posts} meta={meta} startBR={stats.startBR} setLightbox={setLightbox}/>
+              <MarathonChart posts={posts} meta={meta} startBR={stats.startBR} setLightbox={setLightbox} day={stats.day}/>
               <ActivityChart posts={posts}
                 favorites={favorites} onFav={toggleFav}
                 onIgnore={addIgnore} setLightbox={setLightbox}
