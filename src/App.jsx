@@ -334,11 +334,32 @@ const fk = (n, withSign = true) => {
   return a >= 1000 ? s + '$' + (a / 1000).toFixed(1) + 'k' : s + '$' + a
 }
 
-const b64enc = s => btoa(unescape(encodeURIComponent(
-  typeof s === 'string' ? s : JSON.stringify(s, null, 2)
-)))
 
 const ROMEO_RE = /romeopro/i
+
+const autoCloseQuotes = t => {
+  const open  = (t.match(/\[QUOTE\]/gi)||[]).length
+  const close = (t.match(/\[\/QUOTE\]/gi)||[]).length
+  return open > close ? t + '[/QUOTE]'.repeat(open - close) : t
+}
+
+// Общая утилита стриппинга цитат
+const stripQuoteTags = t => {
+  if (!t) return ''
+  let s = t.replace(/\[QUOTE\][\s\S]*?\[\/QUOTE\]/gi, '').replace(/\[\/QUOTE\]/gi, '').trim()
+  const unclosed = s.indexOf('[QUOTE]')
+  if (unclosed !== -1) s = s.slice(0, unclosed).trim()
+  return s
+}
+
+const extractQuoteBody = t => {
+  if (!t) return ''
+  const qs = t.indexOf('[QUOTE]')
+  if (qs === -1) return ''
+  const inner = t.slice(qs + 7)
+  const nl = inner.indexOf('\n')
+  return (nl !== -1 ? inner.slice(nl + 1) : inner).replace(/\[\/QUOTE\].*/,'').trim()
+}
 
 // ─── MARATHON CHART ───────────────────────────────────────────────────────────
 function MarathonChart({ posts, meta, startBR, setLightbox, day }) {
@@ -837,16 +858,8 @@ function CollapsibleQuote({ author, date, body }) {
 function renderPostText(text, collapseQuotes=false) {
   if (!text) return null
 
-  // Автозакрываем незакрытые [QUOTE] (текст обрезан скрапером на 1200 симв внутри цитаты)
-  let safe = text.trim()
-  const openCount  = (safe.match(/\[QUOTE\]/gi)||[]).length
-  const closeCount = (safe.match(/\[\/QUOTE\]/gi)||[]).length
-  if (openCount > closeCount) {
-    safe += '[/QUOTE]'.repeat(openCount - closeCount)
-  }
-
   const parts = []
-  let remaining = safe
+  let remaining = autoCloseQuotes(text.trim())
 
   while (remaining.length > 0) {
     // Формат из нового скрапера: [QUOTE]Автор|Автор @ дата\nтело цитаты[/QUOTE]ответ
@@ -1002,25 +1015,8 @@ function SidebarTopList({ posts, setLightbox }) {
   const [hovered, setHovered] = useState(null)
   const [popupPos, setPopupPos] = useState({x:0, y:0})
 
-  const stripQuotes = t => {
-    if (!t) return ''
-    // Убираем закрытые цитаты
-    let s = t.replace(/\[QUOTE\][\s\S]*?\[\/QUOTE\]/gi, '').replace(/\[\/QUOTE\]/gi, '').trim()
-    // Убираем незакрытый [QUOTE] и всё после него
-    const unclosed = s.indexOf('[QUOTE]')
-    if (unclosed !== -1) s = s.slice(0, unclosed).trim()
-    return s
-  }
-
-  // Извлекаем тело первой цитаты как фолбэк превью
-  const extractQuoteBody = t => {
-    if (!t) return ''
-    const qs = t.indexOf('[QUOTE]')
-    if (qs === -1) return ''
-    const inner = t.slice(qs + 7)
-    const nl = inner.indexOf('\n')
-    return nl !== -1 ? inner.slice(nl + 1).replace(/\[\/QUOTE\].*/,'').trim() : inner.replace(/\[\/QUOTE\].*/,'').trim()
-  }
+  const stripQuotes = stripQuoteTags
+  const extractBody = extractQuoteBody
 
   return (
     <div style={{padding:'6px 14px'}}
@@ -1029,7 +1025,6 @@ function SidebarTopList({ posts, setLightbox }) {
       {hovered !== null && (() => {
         const p = posts[hovered]
         if (!p) return null
-        const full = stripQuotes(p.text)
         const left = Math.max(8, Math.min(popupPos.x - 310, window.innerWidth - 320))
         const top  = Math.max(8, Math.min(popupPos.y - 40, window.innerHeight - 420))
         return (
@@ -1068,7 +1063,7 @@ function SidebarTopList({ posts, setLightbox }) {
 
       {posts.map((p, i) => {
         const clean = stripQuotes(p.text)
-        const preview = clean || extractQuoteBody(p.text) || (p.images?.[0] ? '→ форум' : '↩ цитата')
+        const preview = clean || extractBody(p.text) || (p.images?.[0] ? '→ форум' : '↩ цитата')
         const initial = (p.author||'?')[0].toUpperCase()
         return (
           <div key={i}
