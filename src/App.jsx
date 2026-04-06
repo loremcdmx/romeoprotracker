@@ -499,6 +499,7 @@ function ActivityChart({ posts, favorites, onFav, onIgnore, setLightbox,
                          sortBy, setSortBy, minLikes, setMinLikes, minRating, setMinRating, search }) {
   const [tip,      setTip]      = useState(null)
   const [selected, setSelected] = useState(null)
+  const isMobile = typeof window !== 'undefined' && window.innerWidth <= 720
 
   const data = useMemo(() => {
     const byDate = {}
@@ -515,6 +516,75 @@ function ActivityChart({ posts, favorites, onFav, onIgnore, setLightbox,
 
   if (!data.length) return null
   const max = Math.max(...data.map(d=>d[1].count), 1)
+
+  // ── MOBILE: горизонтальный скролл с карточками дней ───────────────────────
+  if (isMobile) {
+    return (
+      <div className="chart-wrap">
+        <div className="section-head" style={{marginBottom:8}}>
+          <span className="section-title">Активность постов</span>
+          <span className="section-count">последние {data.length} дней</span>
+          {selected && (
+            <button onClick={()=>setSelected(null)}
+              style={{marginLeft:'auto',background:'none',border:'none',color:'var(--dim)',fontSize:11,cursor:'pointer',fontFamily:'inherit'}}>
+              ✕ закрыть
+            </button>
+          )}
+        </div>
+        {/* Горизонтальный скролл баров */}
+        <div style={{overflowX:'auto',WebkitOverflowScrolling:'touch',marginBottom:selected?10:0}}>
+          <div style={{display:'flex',gap:4,alignItems:'flex-end',height:60,paddingBottom:20,minWidth:'max-content'}}>
+            {data.map(([date, {count, posts:dp}]) => {
+              const bh = Math.max(4, Math.round((count/max)*40))
+              const isSelected = selected?.date === date
+              return (
+                <div key={date} style={{display:'flex',flexDirection:'column',alignItems:'center',gap:3,cursor:'pointer'}}
+                  onClick={()=>setSelected(selected?.date===date ? null : {date,posts:dp})}>
+                  <div style={{
+                    width:18,height:bh,borderRadius:2,
+                    background:isSelected?'#e53935':'#e5393550',
+                    transition:'background .1s'
+                  }}/>
+                  <span style={{fontSize:8,color:'#555',fontFamily:"'Roboto Mono',monospace",whiteSpace:'nowrap',transform:'rotate(-45deg)',transformOrigin:'top left',marginTop:4,marginLeft:6}}>
+                    {date.slice(5)}
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+        {/* Selected day posts */}
+        {selected && (() => {
+          const summary = makeDaySummary(selected.posts)
+          let dayPosts = [...selected.posts]
+            .filter(p => !minLikes  || (p.likes||0)  >= minLikes)
+            .filter(p => !minRating || (p.rating||0) >= minRating)
+            .filter(p => !search    || p.text?.toLowerCase().includes(search?.toLowerCase()))
+          dayPosts.sort((a,b) => (b.likes||0)-(a.likes||0))
+          return (
+            <div style={{marginTop:8}}>
+              <div style={{fontSize:11,fontWeight:700,color:'var(--dim2)',textTransform:'uppercase',letterSpacing:'.1em',marginBottom:6}}>
+                📅 {selected.date} — {selected.posts.length} постов
+              </div>
+              <div style={{fontSize:11,color:'var(--text)',lineHeight:1.5,padding:'8px 10px',background:'var(--bg3)',borderRadius:'var(--r)',marginBottom:8,borderLeft:'3px solid var(--red)'}}>
+                {summary}
+              </div>
+              {dayPosts.length === 0
+                ? <div className="empty-state">Нет постов по фильтрам</div>
+                : dayPosts.map(p => (
+                  <PostCard key={p.id||p.url} p={p}
+                    favorites={favorites||new Set()} onFav={onFav||(() =>{})}
+                    onIgnore={onIgnore||(() =>{})} setLightbox={setLightbox||(() =>{})}/>
+                ))
+              }
+            </div>
+          )
+        })()}
+      </div>
+    )
+  }
+
+  // ── DESKTOP: SVG bar chart ─────────────────────────────────────────────────
   const W=600, H=70, pad=3
 
   return (
@@ -692,7 +762,7 @@ function FilterBar({ sortBy, setSortBy, search, setSearch, showSearch, setShowSe
         <div style={{display:'flex',alignItems:'center',gap:4}}>
           <label style={{fontSize:11,color:'var(--dim)',whiteSpace:'nowrap',display:'flex',alignItems:'center',gap:3}} title="Минимальная репутация автора">
             <img src="https://www.gipsyteam.ru/public/style_images/master/reputation_pos.png" alt="rep"
-              style={{width:12,height:12,objectFit:'contain'}} onError={e=>e.target.replaceWith(Object.assign(document.createElement('span'),{textContent:'⭐'}))}/>
+              style={{width:12,height:12,objectFit:'contain'}} onError={e=>{e.target.style.display='none'}}/>
             репа
           </label>
           <input className="filter-num" type="number" min="0" step="100" value={minRating}
@@ -864,6 +934,86 @@ function Paginator({ page, totalPages, onPage, perPage, onPerPage, total }) {
       <select className="perpage-select" value={perPage} onChange={e=>{onPerPage(+e.target.value);onPage(1)}}>
         {[10,20,50,100].map(n=><option key={n} value={n}>{n} на стр.</option>)}
       </select>
+    </div>
+  )
+}
+
+// ─── SIDEBAR TOP LIST ─────────────────────────────────────────────────────────
+function SidebarTopList({ posts, setLightbox }) {
+  const [hovered, setHovered] = useState(null)
+
+  const stripQuotes = t => (t||'')
+    .replace(/\[QUOTE\][\s\S]*?\[\/QUOTE\]/gi,'')
+    .replace(/\[QUOTE\][^\]]*\]/gi,'')
+    .replace(/\[\/QUOTE\]/gi,'')
+    .replace(/\[QUOTE\]/gi,'')
+    .trim()
+
+  return (
+    <div style={{padding:'6px 14px',position:'relative'}}>
+      {/* Popup portal-style — absolute to sblock */}
+      {hovered !== null && (() => {
+        const p = posts[hovered]
+        if (!p) return null
+        const full = stripQuotes(p.text)
+        return (
+          <div style={{
+            position:'absolute',right:'calc(100% + 8px)',top:0,
+            width:300,background:'#1c1c1c',border:'1px solid #3a3a3a',
+            borderRadius:8,padding:14,zIndex:500,
+            boxShadow:'0 8px 32px rgba(0,0,0,.9)',pointerEvents:'none',
+          }}>
+            <div style={{fontWeight:700,color:'var(--white)',fontSize:13,marginBottom:4}}>{p.author}</div>
+            <div style={{fontSize:11,color:'var(--green)',marginBottom:8,fontFamily:"'Roboto Mono',monospace"}}>
+              +{p.likes} 👍 · {p.date}
+            </div>
+            {p.images?.[0] && (
+              <img src={p.images[0]} alt="" style={{maxWidth:'100%',borderRadius:4,marginBottom:8,display:'block'}}
+                onError={e=>e.target.style.display='none'}/>
+            )}
+            <div style={{fontSize:12,color:'var(--text)',lineHeight:1.65,maxHeight:300,overflow:'hidden'}}>
+              {full.substring(0,600) || '→ открыть на форуме'}
+            </div>
+          </div>
+        )
+      })()}
+
+      {posts.map((p, i) => {
+        const clean = stripQuotes(p.text)
+        const preview = clean || (p.images?.[0] ? '→ форум' : '↩ цитата')
+        const initial = (p.author||'?')[0].toUpperCase()
+        return (
+          <div key={i}
+            style={{display:'flex',gap:8,padding:'7px 0',borderBottom:'1px solid var(--border)',
+              alignItems:'flex-start',cursor:'pointer'}}
+            onClick={()=>p.url&&window.open(p.url,'_blank')}
+            onMouseEnter={()=>setHovered(i)}
+            onMouseLeave={()=>setHovered(null)}>
+            <span style={{color:'var(--gold)',fontWeight:700,fontSize:11,minWidth:16,flexShrink:0,paddingTop:10}}>{i+1}</span>
+            <div style={{width:28,height:28,borderRadius:'50%',background:'var(--red)',flexShrink:0,
+              overflow:'hidden',display:'flex',alignItems:'center',justifyContent:'center',
+              fontSize:11,fontWeight:700,color:'#fff',marginTop:2}}>
+              {p.avatar
+                ? <img src={p.avatar} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}} onError={e=>e.target.style.display='none'}/>
+                : initial}
+            </div>
+            <div style={{flex:1,minWidth:0}}>
+              <div style={{fontSize:10,color:'var(--dim2)',fontWeight:600,marginBottom:2}}>{p.author}</div>
+              {p.images?.[0] && !clean && (
+                <img src={p.images[0]} alt=""
+                  style={{width:48,height:36,objectFit:'cover',borderRadius:3,marginBottom:3,display:'block'}}
+                  onClick={e=>{e.stopPropagation();setLightbox(p.images[0])}}
+                  onError={e=>e.target.style.display='none'}/>
+              )}
+              <div style={{fontSize:11,color:'var(--text)',overflow:'hidden',
+                display:'-webkit-box',WebkitLineClamp:4,WebkitBoxOrient:'vertical'}}>
+                {preview.substring(0,80)}
+              </div>
+            </div>
+            <span style={{color:'var(--green)',fontSize:10,fontWeight:700,flexShrink:0,paddingTop:10}}>+{p.likes}</span>
+          </div>
+        )
+      })}
     </div>
   )
 }
@@ -1229,12 +1379,12 @@ export default function App() {
 
   const goTopicPage = p => {
     setTopicPage(p)
-    window.scrollTo({ top: 300, behavior: 'smooth' })
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   const goPage = p => {
     setPage(p)
-    window.scrollTo({top: document.querySelector('.filter-bar')?.offsetTop - 60 || 0, behavior:'smooth'})
+    window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   // Сохраняем позицию чтения
@@ -1309,13 +1459,11 @@ export default function App() {
       <div className="topbar">
         <div className="topbar-inner">
           <div className="logo">
-            <div className="logo-badge" style={{background:'none',padding:0,width:32,height:32,overflow:'hidden',borderRadius:6}}>
+            <div className="logo-badge" style={{background:'var(--red)',padding:0,width:32,height:32,overflow:'hidden',borderRadius:6,display:'flex',alignItems:'center',justifyContent:'center'}}>
               <img src="https://www.gipsyteam.ru/favicon.ico" alt="GT"
                 style={{width:32,height:32,objectFit:'contain'}}
-                onError={e=>{
-                  e.target.style.display='none';
-                  e.target.parentNode.innerHTML='<svg viewBox="0 0 32 32" style="width:32;height:32"><polygon points="16,1 31,16 16,31 1,16" fill="#e53935"/><text x="16" y="21" text-anchor="middle" fill="white" font-size="14" font-weight="900" font-family="Arial">G</text></svg>'
-                }}/>
+                onError={e=>{e.target.style.display='none'}}/>
+              <span style={{position:'absolute',color:'#fff',fontWeight:900,fontSize:14,fontFamily:'Arial,sans-serif',display:'none'}} className="_gt_fallback">G</span>
             </div>
             <div>
               <div className="logo-text">RomeoPro Tracker</div>
@@ -1530,6 +1678,7 @@ export default function App() {
                 const cutoffs = { day: now-86400, week: now-604800, month: now-2592000, all: 0 }
                 const labels = { day:'День', week:'Неделя', month:'Месяц', all:'Всегда' }
                 const filtered = hotPosts.filter(p => (p.timestamp||0) >= cutoffs[sideTopPeriod])
+                const topList = (filtered.length ? filtered : hotPosts).slice(0,10)
                 return (
                   <div className="sblock">
                     <div className="sblock-title" style={{display:'flex',flexDirection:'column',alignItems:'center',gap:8,padding:'10px 14px'}}>
@@ -1543,72 +1692,7 @@ export default function App() {
                         ))}
                       </div>
                     </div>
-                    <div className="sblock-body" style={{padding:'6px 14px'}}>
-                      {(filtered.length ? filtered : hotPosts).slice(0,10).map((p,i)=>{
-                        const clean = (p.text||'')
-                          .replace(/\[QUOTE\][\s\S]*?\[\/QUOTE\]/gi,'')
-                          .replace(/\[QUOTE\][^\]]*\]/gi,'')
-                          .replace(/\[\/QUOTE\]/gi,'')
-                          .replace(/\[QUOTE\]/gi,'')
-                          .trim()
-                        const preview = clean || (p.images?.[0] ? '→ форум' : '↩ цитата')
-                        const initial = (p.author||'?')[0].toUpperCase()
-                        const fullClean = (p.text||'')
-                          .replace(/\[QUOTE\][\s\S]*?\[\/QUOTE\]/gi,'')
-                          .replace(/\[QUOTE\][^\]]*\]/gi,'')
-                          .replace(/\[\/QUOTE\]/gi,'')
-                          .replace(/\[QUOTE\]/gi,'')
-                          .trim()
-                        return (
-                          <div key={i} style={{display:'flex',gap:8,padding:'7px 0',borderBottom:'1px solid var(--border)',alignItems:'flex-start',cursor:'pointer',position:'relative'}}
-                            onClick={()=>p.url&&window.open(p.url,'_blank')}
-                            onMouseEnter={e=>{
-                              const popup = e.currentTarget.querySelector('._popup')
-                              if (popup) popup.style.display='block'
-                            }}
-                            onMouseLeave={e=>{
-                              const popup = e.currentTarget.querySelector('._popup')
-                              if (popup) popup.style.display='none'
-                            }}>
-                            {/* Popup preview */}
-                            <div className="_popup" style={{
-                              display:'none',position:'absolute',right:'calc(100% + 8px)',top:0,
-                              width:300,background:'#1c1c1c',border:'1px solid #3a3a3a',
-                              borderRadius:8,padding:12,zIndex:300,
-                              boxShadow:'0 8px 32px rgba(0,0,0,.8)',pointerEvents:'none'
-                            }}>
-                              <div style={{fontWeight:700,color:'var(--white)',fontSize:12,marginBottom:4}}>{p.author}</div>
-                              <div style={{fontSize:11,color:'var(--green)',marginBottom:6,fontFamily:"'Roboto Mono',monospace"}}>+{p.likes} 👍 · {p.date}</div>
-                              {p.images?.[0] && <img src={p.images[0]} alt="" style={{maxWidth:'100%',borderRadius:4,marginBottom:6}} onError={e=>e.target.style.display='none'}/>}
-                              <div style={{fontSize:11,color:'var(--text)',lineHeight:1.6,maxHeight:200,overflow:'hidden'}}>
-                                {fullClean.substring(0,500) || '→ форум'}
-                              </div>
-                            </div>
-                            <span style={{color:'var(--gold)',fontWeight:700,fontSize:11,minWidth:16,flexShrink:0,paddingTop:10}}>{i+1}</span>
-                            {/* аватарка */}
-                            <div style={{width:28,height:28,borderRadius:'50%',background:'var(--red)',flexShrink:0,overflow:'hidden',display:'flex',alignItems:'center',justifyContent:'center',fontSize:11,fontWeight:700,color:'#fff',marginTop:2}}>
-                              {p.avatar
-                                ? <img src={p.avatar} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}} onError={e=>e.target.style.display='none'}/>
-                                : initial}
-                            </div>
-                            <div style={{flex:1,minWidth:0}}>
-                              <div style={{fontSize:10,color:'var(--dim2)',fontWeight:600,marginBottom:2}}>{p.author}</div>
-                              {p.images?.[0] && !clean && (
-                                <img src={p.images[0]} alt=""
-                                  style={{width:48,height:36,objectFit:'cover',borderRadius:3,marginBottom:3,display:'block'}}
-                                  onClick={e=>{e.stopPropagation();setLightbox(p.images[0])}}
-                                  onError={e=>e.target.style.display='none'}/>
-                              )}
-                              <div style={{fontSize:11,color:'var(--text)',overflow:'hidden',
-                                display:'-webkit-box',WebkitLineClamp:4,WebkitBoxOrient:'vertical'}}>
-                                {preview.substring(0,80)}
-                              </div>
-                            </div>
-                            <span style={{color:'var(--green)',fontSize:10,fontWeight:700,flexShrink:0,paddingTop:10}}>+{p.likes}</span>
-                          </div>
-                        )
-                      })}
-                    </div>
+                    <SidebarTopList posts={topList} setLightbox={setLightbox}/>
                   </div>
                 )
               })()}
