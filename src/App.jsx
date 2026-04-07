@@ -183,72 +183,21 @@ const css = `
   .empty-state{padding:30px;text-align:center;color:var(--dim);font-size:12px}
 
   @media(max-width:720px){
-    .page{grid-template-columns:1fr;padding:6px 8px 80px;overflow-x:clip}
-    .sidebar{display:none}
+    .page{grid-template-columns:1fr;padding:6px 8px 80px}
+    .hero-stats{grid-template-columns:1fr 1fr}
     .topbar-tabs{display:none}
-    .admin-lock{display:none}
-    .mobile-nav{display:flex !important}
-    .admin-box{width:95vw;padding:16px}
-
-    /* Topbar */
     .topbar-inner{padding:0 8px;gap:6px}
-    .logo-badge{width:22px;height:22px}
-    .logo-text{font-size:11px}
     .logo-sub{display:none}
-
-    /* Hero */
-    .hero{padding:10px}
-    .hero-top{gap:8px;margin-bottom:10px}
-    .hero-avatar{width:32px;height:32px}
-    .hero-name{font-size:13px}
-    .hero-desc{font-size:10px}
-    .hero-stats{grid-template-columns:1fr 1fr;gap:6px}
-    .hstat{padding:8px 10px}
-    .hstat-label{font-size:9px}
-    .hstat-value{font-size:15px}
-    .hstat-sub{font-size:9px}
-
-    /* Filter bar */
-    .filter-bar{flex-wrap:wrap;gap:5px;padding:8px}
-    .filter-num{width:48px;font-size:11px;padding:3px 5px}
-    .filter-pill{padding:4px 8px;font-size:11px}
-    .feed-select{font-size:11px;padding:4px 6px}
-    .feed-search{font-size:11px;min-width:80px}
-    .filter-active-count{font-size:10px}
-
-    /* Post card */
-    .post-card{margin-bottom:4px}
-    .pc-head{padding:8px 10px;gap:8px}
-    .pc-avatar{width:28px;height:28px;font-size:11px}
-    .pc-author{font-size:12px}
-    .pc-author-meta{font-size:9px}
-    .pc-date{font-size:9px}
-    .pc-body{padding:8px 10px;font-size:12px}
-    .pc-foot{padding:5px 10px;gap:6px;flex-wrap:wrap}
-    .pc-images{padding:0 10px 8px;gap:4px}
-    .pc-img{max-width:100px;max-height:75px}
-    .pc-likes{font-size:11px}
-
-    /* Topic tabs */
-    .topic-tabs{gap:4px;overflow-x:auto;flex-wrap:nowrap;padding-bottom:2px}
-    .topic-tab{padding:5px 10px;font-size:11px;white-space:nowrap}
-    .section-title{font-size:11px}
-
-    /* Hero — fix text overflow */
-    .hero-top{gap:8px;margin-bottom:10px;overflow:hidden}
-    .hero-top > div:last-child{min-width:0;overflow:hidden}
-    .hero-name{font-size:13px}
-    .hero-desc{font-size:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-
-    /* Charts — clip overflow to prevent page widening */
-    .chart-wrap{overflow:hidden}
-    .marathon-chart{overflow:hidden}
-
-    /* Pagination */
+    .sidebar{display:none}
+    .admin-lock{display:none}
+    .admin-box{width:95vw;padding:16px}
+    .mobile-nav{display:flex !important}
+    .marathon-chart{padding:8px}
+    .mc-label,.mc-ylabel{font-size:7px}
     .pagination{gap:2px;padding:8px 0;flex-wrap:wrap}
     .page-btn{min-width:26px;height:26px;font-size:10px;padding:0 4px}
-    .page-info{font-size:10px;padding:0 4px}
-    .perpage-select{font-size:10px;padding:2px 4px}
+    .topic-tabs{overflow-x:auto;flex-wrap:nowrap}
+    .topic-tab{white-space:nowrap}
   }
 
   /* Mobile bottom nav — sits above iOS browser chrome */
@@ -463,12 +412,16 @@ function MarathonChart({ posts, meta, startBR, setLightbox, day }) {
         const pct = (tip.x/W)*100
         const right = pct>60
         const rooms = tip.p.rooms
-        const roomDeltas = rooms ? [
-          {name:'ГГ',   v: rooms.after.gg   - rooms.before.gg},
-          {name:'ПС',   v: rooms.after.ps   - rooms.before.ps},
-          {name:'Кинг', v: rooms.after.king - rooms.before.king},
-          {name:'Коин', v: rooms.after.coin - rooms.before.coin},
-        ].filter(r => r.v !== 0) : []
+        const ROOMS = [
+          { key:'gg',   label:'GG',    logo:'https://ggpoker.com/favicon.ico' },
+          { key:'ps',   label:'Stars', logo:'https://www.pokerstars.com/favicon.ico' },
+          { key:'king', label:'King',  logo:'https://www.pokerking.com/favicon.ico' },
+          { key:'coin', label:'Coin',  logo:null },
+          { key:'lux',  label:'Lux',   logo:null },
+        ]
+        const roomDeltas = rooms ? ROOMS.map(r => ({
+          ...r, v: (rooms.after[r.key]||0) - (rooms.before[r.key]||0)
+        })).filter(r => r.v !== 0) : []
         return (
           <div className="mc-tooltip" style={{
             bottom: (H-tip.y+16)+'px',
@@ -483,10 +436,15 @@ function MarathonChart({ posts, meta, startBR, setLightbox, day }) {
               </span>
             </div>
             {roomDeltas.length > 0 && (
-              <div style={{display:'flex',flexWrap:'wrap',gap:'3px 10px',marginBottom:8}}>
+              <div style={{display:'flex',flexWrap:'wrap',gap:'4px 12px',marginBottom:8}}>
                 {roomDeltas.map(r => (
-                  <span key={r.name} style={{fontSize:11,color:r.v>=0?'#66bb6a':'#ff5252'}}>
-                    {r.name}: {fk(r.v)}
+                  <span key={r.key} style={{fontSize:11,color:r.v>=0?'#66bb6a':'#ff5252',display:'flex',alignItems:'center',gap:4}}>
+                    {r.logo && (
+                      <img src={r.logo} alt={r.label}
+                        style={{width:12,height:12,objectFit:'contain',borderRadius:2,flexShrink:0}}
+                        onError={e=>e.target.style.display='none'}/>
+                    )}
+                    {r.label}: {fk(r.v)}
                   </span>
                 ))}
               </div>
@@ -1614,7 +1572,7 @@ export default function App() {
                   <img src="https://www.gipsyteam.ru/upload/Avatar/default/2/6/6/26670.jpg"
                     alt="Romeopro" onError={e=>e.target.style.display='none'}/>
                 </div>
-                <div style={{flex:1}}>
+                <div style={{flex:1, minWidth:0, overflow:'hidden'}}>
                   <div className="hero-name">Romeopro <span className="hero-badge">Автор</span></div>
                   <div className="hero-desc">
                     From Hero to Zero · <a href="https://forum.gipsyteam.ru/index.php?viewtopic=181676"
