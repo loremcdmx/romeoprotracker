@@ -15,6 +15,7 @@ const css = `
     --r:6px;
   }
   html,body,#root{min-height:100%;background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-size:12px;line-height:1.5}
+  html{overflow-x:clip}
   a{color:var(--red2);text-decoration:none}
   ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:var(--bg2)}::-webkit-scrollbar-thumb{background:#333;border-radius:3px}
 
@@ -183,10 +184,14 @@ const css = `
   .empty-state{padding:30px;text-align:center;color:var(--dim);font-size:12px}
 
   @media(max-width:720px){
+    /* ── Base ── */
+    html{font-size:16px}
+
     /* ── Layout ── */
     .page{grid-template-columns:1fr;padding:10px 12px 90px}
     .topbar-tabs{display:none}
     .topbar-inner{padding:0 12px;gap:8px}
+    .logo-text{font-size:13px}
     .logo-sub{display:none}
     .sidebar{display:none}
     .admin-lock{display:none}
@@ -196,46 +201,48 @@ const css = `
     /* ── Hero ── */
     .hero{padding:14px}
     .hero-top{gap:12px;margin-bottom:14px}
-    .hero-avatar{width:40px;height:40px}
-    .hero-name{font-size:16px}
-    .hero-desc{font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .hero-avatar{width:44px;height:44px}
+    .hero-name{font-size:17px}
+    .hero-desc{font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     .hero-stats{grid-template-columns:1fr 1fr;gap:8px}
     .hstat{padding:12px}
     .hstat-label{font-size:11px}
     .hstat-sub{font-size:11px}
 
     /* ── Post cards ── */
-    .pc-head{padding:10px 12px}
-    .pc-author{font-size:14px}
-    .pc-author-meta{font-size:11px}
-    .pc-date{font-size:11px}
-    .pc-body{padding:10px 12px;font-size:14px;line-height:1.65}
-    .pc-foot{padding:8px 12px;flex-wrap:wrap;gap:8px}
-    .pc-likes{font-size:13px}
+    .pc-head{padding:12px 14px}
+    .pc-author{font-size:15px}
+    .pc-author-meta{font-size:12px}
+    .pc-date{font-size:12px}
+    .pc-body{padding:12px 14px;font-size:15px;line-height:1.7}
+    .pc-foot{padding:10px 14px;flex-wrap:wrap;gap:10px}
+    .pc-likes{font-size:14px}
 
     /* ── Filters ── */
     .filter-bar{flex-wrap:wrap;padding:10px 12px;gap:8px}
-    .filter-num{width:56px;font-size:13px;padding:5px 8px}
-    .filter-pill{padding:6px 12px;font-size:12px}
-    .feed-select{font-size:12px;padding:6px 8px}
-    .feed-search{font-size:13px;min-width:0}
+    .filter-num{width:60px;font-size:14px;padding:6px 8px}
+    .filter-pill{padding:7px 14px;font-size:13px}
+    .feed-select{font-size:13px;padding:7px 8px}
+    .feed-search{font-size:14px;min-width:0}
+    .filter-count{font-size:13px}
 
     /* ── Topic tabs ── */
     .topic-tabs{overflow-x:auto;flex-wrap:nowrap}
-    .topic-tab{white-space:nowrap;font-size:12px;padding:7px 14px}
+    .topic-tab{white-space:nowrap;font-size:13px;padding:8px 16px}
+    .section-title{font-size:14px}
+    .section-count{font-size:12px}
 
     /* ── Chart ── */
     .marathon-chart{padding:10px;overflow:hidden}
     .mc-svg{overflow:hidden}
-    .mc-label,.mc-ylabel{font-size:8px}
-    .section-title{font-size:13px}
-    .section-count{font-size:11px}
+    .mc-label,.mc-ylabel{font-size:9px}
+    .chart-wrap{padding:12px 10px}
 
     /* ── Pagination ── */
-    .pagination{gap:4px;padding:10px 0;flex-wrap:wrap;justify-content:center}
-    .page-btn{min-width:36px;height:36px;font-size:13px}
-    .page-info{font-size:12px}
-    .perpage-select{font-size:12px;padding:4px 6px}
+    .pagination{gap:5px;padding:12px 0;flex-wrap:wrap;justify-content:center}
+    .page-btn{min-width:38px;height:38px;font-size:14px}
+    .page-info{font-size:13px}
+    .perpage-select{font-size:13px;padding:5px 8px}
   }
 
   /* Mobile bottom nav — sits above iOS browser chrome */
