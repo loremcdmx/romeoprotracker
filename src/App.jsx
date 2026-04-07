@@ -662,7 +662,7 @@ function MarathonChart({ posts, meta, startBR, setLightbox, day }) {
             )}
             {tip.p.text && <div style={{fontSize:11,color:'#bbb',lineHeight:1.6,display:'-webkit-box',WebkitLineClamp:3,WebkitBoxOrient:'vertical',overflow:'hidden'}}>{tip.p.text.substring(0,180)}</div>}
             <div style={{fontSize:10,color:'#444',marginTop:5,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-              <span>тап → закрыть</span>
+              <span>закрыть</span>
               {tip.p.url && <a href={tip.p.url} target="_blank" rel="noreferrer"
                 onClick={e=>e.stopPropagation()}
                 style={{color:'var(--red2)',fontSize:11}}>→ форум</a>}
@@ -780,7 +780,7 @@ function ActivityChart({ posts, favorites, onFav, onIgnore, setLightbox,
             })}
           </div>
         </div>
-        <div style={{fontSize:11,color:'#444',textAlign:'center',padding:'4px 0 6px'}}>← скролль для старых дней · тап = детали</div>
+        <div style={{fontSize:11,color:'#444',textAlign:'center',padding:'4px 0 6px'}}>← листай для старых дней · нажми = детали</div>
 
         {/* Selected day posts */}
         {/* Selected day posts */}
@@ -1088,7 +1088,17 @@ function renderPostText(text, collapseQuotes=false) {
         </div>
       )
     }
-    return <span key={i} style={{whiteSpace:'pre-wrap'}}>{collapseQuotes ? part.text.replace(/\n{2,}/g, '\n').trim() : part.text}</span>
+    // Рендерим как абзацы с 6px отступом вместо пустых строк
+    const rawText = collapseQuotes ? part.text.replace(/\n{2,}/g, '\n').trim() : part.text
+    const paras = rawText.split('\n').filter(p => p.trim() !== '' || false)
+    if (paras.length <= 1) return <span key={i} style={{whiteSpace:'pre-wrap'}}>{rawText}</span>
+    return (
+      <span key={i}>
+        {paras.map((p, j) => (
+          <span key={j} style={{display:'block', marginBottom: j < paras.length-1 ? 6 : 0}}>{p}</span>
+        ))}
+      </span>
+    )
   })
 }
 
