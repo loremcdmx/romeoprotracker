@@ -1025,7 +1025,16 @@ function CollapsibleQuote({ author, date, body }) {
         <span>↩ {author}{date ? ' · ' + date : ''}</span>
         <span style={{color:'#444',fontSize:9}}>{open ? '▲' : '▼ показать'}</span>
       </div>
-      {open && <div style={{color:'#5a5a5a',fontSize:12,lineHeight:1.6,whiteSpace:'pre-wrap',marginTop:4}}>{body}</div>}
+      {open && (
+        <div style={{color:'#5a5a5a',fontSize:12,lineHeight:1.6,marginTop:4}}>
+          {body
+            ? body.split('\n').filter(p=>p.trim()).map((p,j,arr)=>(
+                <span key={j} style={{display:'block',marginBottom:j<arr.length-1?4:0}}>{p}</span>
+              ))
+            : <span style={{fontStyle:'italic',color:'#444'}}>↩ изображение или медиа</span>
+          }
+        </div>
+      )}
     </div>
   )
 }
@@ -1060,7 +1069,11 @@ function renderPostText(text, collapseQuotes=false) {
         ? header.slice(pipeIdx + 1).replace(new RegExp('^' + author.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*@\\s*'), '').trim()
         : (header.split('@')[1] || '').trim()
 
-      parts.push({ type:'quote', author, date: dateStr, body })
+      // Пропускаем мусорные пустые цитаты (пустое тело + нет реального автора)
+      const hasRealAuthor = author && author !== '|' && author.length > 1
+      if (body || hasRealAuthor) {
+        parts.push({ type:'quote', author, date: dateStr, body })
+      }
       remaining = remaining.slice(qe + 8).trim()
       continue
     }
@@ -1084,7 +1097,14 @@ function renderPostText(text, collapseQuotes=false) {
               ↩ {part.author}{part.date ? ' · ' + part.date : ''}
             </div>
           )}
-          <div style={{color:'#5a5a5a',fontSize:12,lineHeight:1.6,whiteSpace:'pre-wrap'}}>{part.body}</div>
+          <div style={{color:'#5a5a5a',fontSize:12,lineHeight:1.6}}>
+            {part.body
+              ? part.body.split('\n').filter(p=>p.trim()).map((p,j,arr)=>(
+                  <span key={j} style={{display:'block',marginBottom:j<arr.length-1?4:0}}>{p}</span>
+                ))
+              : <span style={{fontStyle:'italic',color:'#444'}}>↩ изображение или медиа</span>
+            }
+          </div>
         </div>
       )
     }
