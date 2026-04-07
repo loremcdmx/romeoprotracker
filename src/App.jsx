@@ -246,7 +246,7 @@ const css = `
     }
     .mc-svg{overflow:hidden;display:block;max-width:100%}
     .mc-label,.mc-ylabel{font-size:8px}
-    .marathon-chart{overflow:hidden;padding:12px}
+    .marathon-chart{overflow:hidden;padding:14px;margin:10px 12px 0;border-radius:16px}
     .section-title{font-size:13px}
     .section-count{font-size:11px}
 
@@ -357,7 +357,16 @@ const css = `
   }
 
 
-  /* Mobile bottom nav — sits above iOS browser chrome */
+  /* ── Marathon chart animations ── */
+  @keyframes drawLine{to{stroke-dashoffset:0}}
+  @keyframes pulseDot{
+    0%,100%{r:5px;filter:drop-shadow(0 0 4px currentColor);opacity:1}
+    50%{r:7px;filter:drop-shadow(0 0 12px currentColor);opacity:.7}
+  }
+  @keyframes fadeIn{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:scale(1)}}
+  .mc-dot-last{animation:pulseDot 2s ease-in-out infinite}
+  .mc-animate{animation:drawLine 1.4s cubic-bezier(.4,0,.2,1) forwards}
+  .mc-tooltip{animation:fadeIn .15s ease}
   .mobile-nav{
     display:none;
     position:fixed;bottom:0;left:0;right:0;
@@ -473,73 +482,114 @@ const extractQuoteBody = t => {
 }
 
 // ─── MARATHON CHART ───────────────────────────────────────────────────────────
+function makeBezierPath(coords, tension = 0.3) {
+  if (coords.length < 2) return ''
+  let d = `M ${coords[0].x.toFixed(1)} ${coords[0].y.toFixed(1)}`
+  for (let i = 1; i < coords.length; i++) {
+    const p0 = coords[Math.max(0, i-2)], p1 = coords[i-1], p2 = coords[i], p3 = coords[Math.min(coords.length-1, i+1)]
+    const cp1x = p1.x + (p2.x - p0.x) * tension, cp1y = p1.y + (p2.y - p0.y) * tension
+    const cp2x = p2.x - (p3.x - p1.x) * tension, cp2y = p2.y - (p3.y - p1.y) * tension
+    d += ` C ${cp1x.toFixed(1)} ${cp1y.toFixed(1)} ${cp2x.toFixed(1)} ${cp2y.toFixed(1)} ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`
+  }
+  return d
+}
+function makeBezierArea(coords, baseline, tension = 0.3) {
+  if (coords.length < 2) return ''
+  let d = `M ${coords[0].x.toFixed(1)} ${baseline} L ${coords[0].x.toFixed(1)} ${coords[0].y.toFixed(1)}`
+  for (let i = 1; i < coords.length; i++) {
+    const p0 = coords[Math.max(0, i-2)], p1 = coords[i-1], p2 = coords[i], p3 = coords[Math.min(coords.length-1, i+1)]
+    const cp1x = p1.x + (p2.x - p0.x) * tension, cp1y = p1.y + (p2.y - p0.y) * tension
+    const cp2x = p2.x - (p3.x - p1.x) * tension, cp2y = p2.y - (p3.y - p1.y) * tension
+    d += ` C ${cp1x.toFixed(1)} ${cp1y.toFixed(1)} ${cp2x.toFixed(1)} ${cp2y.toFixed(1)} ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`
+  }
+  return d + ` L ${coords[coords.length-1].x.toFixed(1)} ${baseline} Z`
+}
+
+const CHART_ROOMS = [
+  { key:'gg',   label:'GG',    logo:'https://www.ggpoker.com/favicon.ico' },
+  { key:'ps',   label:'Stars', logo:'https://www.pokerstars.com/favicon.ico' },
+  { key:'king', label:'King',  logo:'https://www.pokerking.com/favicon.ico' },
+  { key:'coin', label:'Coin',  logo:'https://coinpoker.com/favicon.ico' },
+  { key:'lux',  label:'Lux',   logo:'https://luxon.poker/favicon.ico' },
+]
+
 function MarathonChart({ posts, meta, startBR, setLightbox, day }) {
-  const [tip, setTip] = useState(null)
+  const [tip, setTip]     = useState(null)
+  const [pathLen, setPathLen] = useState(null)
+  const pathRef = useRef(null)
 
   const points = useMemo(() => {
-    // Приоритет: meta.brHistory (уже готовые данные) → posts с brAfter (из OCR)
     if (meta?.brHistory?.length) {
       return meta.brHistory
-        .sort((a,b) => (a.timestamp||0) - (b.timestamp||0))
-        .map((h, i, arr) => ({
-          br:     h.brAfter,
-          brPrev: i === 0 ? startBR : arr[i-1].brAfter,
-          date:   h.date,
-          text:   h.text || '',
-          url:    h.url,
-          images: [],
-          sessionResult: h.sessionResult,
-          rooms:  h.rooms || null,
+        .sort((a,b) => (a.timestamp||0)-(b.timestamp||0))
+        .map((h,i,arr) => ({
+          br:h.brAfter, brPrev:i===0?startBR:arr[i-1].brAfter,
+          date:h.date, text:h.text||'', url:h.url,
+          images:[], sessionResult:h.sessionResult, rooms:h.rooms||null,
         }))
     }
     return posts
       .filter(p => /romeopro/i.test(p.author) && p.brAfter)
-      .sort((a,b) => (a.timestamp||0) - (b.timestamp||0))
-      .map((p, i, arr) => ({
-        br:     p.brAfter,
-        brPrev: i === 0 ? startBR : arr[i-1].brAfter,
-        date:   p.date,
-        text:   p.text,
-        url:    p.url,
-        images: p.images || [],
-        sessionResult: p.sessionResult,
+      .sort((a,b) => (a.timestamp||0)-(b.timestamp||0))
+      .map((p,i,arr) => ({
+        br:p.brAfter, brPrev:i===0?startBR:arr[i-1].brAfter,
+        date:p.date, text:p.text, url:p.url,
+        images:p.images||[], sessionResult:p.sessionResult,
       }))
   }, [posts, meta, startBR])
+
+  useEffect(() => {
+    if (pathRef.current) setPathLen(pathRef.current.getTotalLength())
+  }, [points.length])
 
   if (!points.length) return (
     <div className="marathon-chart">
       <div className="section-head"><span className="section-title">📈 График марафона</span></div>
-      <div className="empty-state">
-        Данных пока нет — запустите скрапер с OCR чтобы автоматически читать БР из таблиц Ромео
-      </div>
+      <div className="empty-state">Данных пока нет — запустите скрапер</div>
     </div>
   )
 
-  const W = 700, H = 160, pL = 52, pR = 16, pT = 12, pB = 28
+  const W=700, H=160, pL=52, pR=20, pT=14, pB=32
   const minV = Math.min(...points.map(p=>p.br), startBR) * 0.97
   const maxV = Math.max(...points.map(p=>p.br), startBR) * 1.03
-  const xOf  = i => pL + (i / Math.max(points.length-1, 1)) * (W-pL-pR)
-  const yOf  = v => pT + (1 - (v-minV)/(maxV-minV)) * (H-pT-pB)
-  const poly = points.map((p,i) => `${xOf(i)},${yOf(p.br)}`).join(' ')
-  const area = `M${pL},${pT+H-pT-pB} ` + points.map((p,i)=>`L${xOf(i)},${yOf(p.br)}`).join(' ') + ` L${xOf(points.length-1)},${pT+H-pT-pB} Z`
-  const yTicks = [0,.25,.5,.75,1].map(t => ({ v: minV+(maxV-minV)*t, y: yOf(minV+(maxV-minV)*t) }))
-  const fkAbs = v => v >= 1000 ? `$${(v / 1000).toFixed(1)}k` : `$${Math.round(v)}`
+  const xOf  = i => pL + (i/Math.max(points.length-1,1)) * (W-pL-pR)
+  const yOf  = v => pT + (1-(v-minV)/(maxV-minV)) * (H-pT-pB)
+  const coords = points.map((p,i) => ({ x:xOf(i), y:yOf(p.br) }))
+  const linePath = makeBezierPath(coords)
+  const areaPath = makeBezierArea(coords, H)
+  const fkAbs = v => v >= 1000 ? `$${(v/1000).toFixed(1)}k` : `$${Math.round(v)}`
+  const yTicks = [0,.33,.67,1].map(t => ({ v:minV+(maxV-minV)*t, y:yOf(minV+(maxV-minV)*t) }))
+
+  const handleTouch = e => {
+    e.preventDefault()
+    const rect = e.currentTarget.getBoundingClientRect()
+    const tx = (e.touches[0].clientX - rect.left) * (W / rect.width)
+    let nearest=0, minD=Infinity
+    coords.forEach((c,i) => { const d=Math.abs(c.x-tx); if(d<minD){minD=d;nearest=i} })
+    const p = points[nearest]
+    setTip({ p, profit:p.br-p.brPrev, x:coords[nearest].x, y:coords[nearest].y })
+  }
 
   return (
-    <div className="marathon-chart">
+    <div className="marathon-chart" onClick={tip?()=>setTip(null):undefined}>
       <div className="section-head" style={{marginBottom:12}}>
         <span className="section-title">📈 График марафона</span>
-        <span className="section-count">{day ? `день #${day}` : `${points.length} сессий`}</span>
-        <span style={{marginLeft:'auto',fontSize:11,color:'var(--dim)'}}>
-          {fkAbs(startBR)} → {fkAbs(points[points.length-1]?.br)}
-        </span>
+        <span className="section-count">{day?`день #${day}`:`${points.length} сессий`}</span>
+        <span style={{marginLeft:'auto',fontSize:11,color:'var(--dim)'}}>{fkAbs(startBR)} → {fkAbs(points[points.length-1]?.br)}</span>
       </div>
-      <svg className="mc-svg" viewBox={`0 0 ${W} ${H+22}`} onMouseLeave={()=>setTip(null)}>
+      <svg className="mc-svg" viewBox={`0 0 ${W} ${H+pB}`}
+        onMouseLeave={()=>setTip(null)} onTouchStart={handleTouch} onTouchMove={handleTouch}
+        style={{touchAction:'none'}}>
         <defs>
           <linearGradient id="mcGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#e53935" stopOpacity=".5"/>
+            <stop offset="0%"   stopColor="#e53935" stopOpacity=".45"/>
+            <stop offset="70%"  stopColor="#e53935" stopOpacity=".08"/>
             <stop offset="100%" stopColor="#e53935" stopOpacity="0"/>
           </linearGradient>
+          <filter id="mcGlow" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="2" result="blur"/>
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
         </defs>
         {yTicks.map(({v,y},i) => (
           <g key={i}>
@@ -548,78 +598,68 @@ function MarathonChart({ posts, meta, startBR, setLightbox, day }) {
           </g>
         ))}
         <line x1={pL} y1={yOf(startBR)} x2={W-pR} y2={yOf(startBR)} className="mc-zero"/>
-        <path d={area} className="mc-area"/>
-        <polyline points={poly} className="mc-line"/>
+        <path d={areaPath} fill="url(#mcGrad)"/>
+        <path ref={pathRef} d={linePath} fill="none" stroke="#e53935" strokeWidth="2.5"
+          strokeLinecap="round" strokeLinejoin="round" filter="url(#mcGlow)"
+          style={pathLen!=null ? {
+            strokeDasharray: pathLen,
+            strokeDashoffset: 0,
+            animation: 'drawLine 1.4s cubic-bezier(.4,0,.2,1) forwards',
+          } : {}}
+        />
         {points.map((p,i) => {
-          const profit = p.br - p.brPrev
-          const showL = i===0 || i===points.length-1 || i%Math.max(1,Math.ceil(points.length/8))===0
+          const showL = i===0||i===points.length-1||i%Math.max(1,Math.ceil(points.length/8))===0
+          const isLast = i===points.length-1
+          const cx=coords[i].x, cy=coords[i].y, profit=p.br-p.brPrev
           return (
             <g key={i}>
-              <circle cx={xOf(i)} cy={yOf(p.br)} r={4} className="mc-dot"
+              <circle cx={cx} cy={cy} r={isLast?14:10} fill="transparent"
+                onMouseEnter={()=>setTip({p,profit,x:cx,y:cy})}
+                onClick={e=>{e.stopPropagation();p.url&&window.open(p.url,'_blank')}}/>
+              <circle cx={cx} cy={cy} r={isLast?6:4}
+                className={isLast?'mc-dot mc-dot-last':'mc-dot'}
                 fill={profit>=0?'#4caf50':'#e53935'}
-                onMouseEnter={()=>setTip({p,profit,x:xOf(i),y:yOf(p.br)})}
-                onClick={()=>p.url&&window.open(p.url,'_blank')}
-              />
-              {showL && <text x={Math.min(Math.max(xOf(i), pL), W-pR)} y={H+16} className="mc-label">{p.date?.slice(0,5)}</text>}
+                style={isLast?{color:profit>=0?'#4caf50':'#e53935'}:{}}/>
+              {showL && <text x={Math.min(Math.max(cx,pL),W-pR)} y={H+pB-6} className="mc-label">{p.date?.slice(0,5)}</text>}
             </g>
           )
         })}
+        {tip && <line x1={tip.x} y1={pT} x2={tip.x} y2={H} stroke="rgba(255,255,255,0.08)" strokeWidth="1" strokeDasharray="3 3"/>}
       </svg>
       {tip && (() => {
-        const pct = (tip.x/W)*100
-        const right = pct>60
-        const rooms = tip.p.rooms
-        const ROOMS = [
-          { key:'gg',   label:'GG',    logo:'https://www.ggpoker.com/favicon.ico' },
-          { key:'ps',   label:'Stars', logo:'https://www.pokerstars.com/favicon.ico' },
-          { key:'king', label:'King',  logo:'https://www.pokerking.com/favicon.ico' },
-          { key:'coin', label:'Coin',  logo:'https://coinpoker.com/favicon.ico' },
-          { key:'lux',  label:'Lux',   logo:'https://luxon.poker/favicon.ico' },
-        ]
-        const roomDeltas = rooms ? ROOMS.map(r => ({
-          ...r, v: (rooms.after[r.key]||0) - (rooms.before[r.key]||0)
-        })).filter(r => r.v !== 0) : []
+        const pct=tip.x/W*100, right=pct>60
+        const roomDeltas = tip.p.rooms ? CHART_ROOMS.map(r=>({...r,v:(tip.p.rooms.after[r.key]||0)-(tip.p.rooms.before[r.key]||0)})).filter(r=>r.v!==0) : []
         return (
           <div className="mc-tooltip" style={{
-            bottom: (H-tip.y+16)+'px',
-            left:  right?'auto':`calc(${pct}% - 8px)`,
-            right: right?`calc(${100-pct}% - 8px)`:'auto',
+            bottom:(H-tip.y+24)+'px',
+            left:right?'auto':`calc(${pct}% - 8px)`,
+            right:right?`calc(${100-pct}% - 8px)`:'auto',
           }}>
             <div style={{fontWeight:700,color:'#fff',fontSize:13,marginBottom:5}}>{tip.p.date}</div>
             <div style={{display:'flex',gap:12,fontSize:12,marginBottom:roomDeltas.length?8:4}}>
               <span style={{color:'#888'}}>БР: <b style={{color:'#fff'}}>{fkAbs(tip.p.br)}</b></span>
-              <span style={{color:tip.profit>=0?'#66bb6a':'#ff5252',fontWeight:700}}>
-                {fk(tip.profit)}
-              </span>
+              <span style={{color:tip.profit>=0?'#66bb6a':'#ff5252',fontWeight:700}}>{fk(tip.profit)}</span>
             </div>
-            {roomDeltas.length > 0 && (
+            {roomDeltas.length>0 && (
               <div style={{display:'flex',flexWrap:'wrap',gap:'4px 12px',marginBottom:8}}>
-                {roomDeltas.map(r => (
+                {roomDeltas.map(r=>(
                   <span key={r.key} style={{fontSize:11,display:'flex',alignItems:'center',gap:4}}>
-                    {r.logo && (
-                      <img src={r.logo} alt={r.label}
-                        style={{width:12,height:12,objectFit:'contain',borderRadius:2,flexShrink:0}}
-                        onError={e=>e.target.style.display='none'}/>
-                    )}
+                    {r.logo && <img src={r.logo} alt={r.label} style={{width:12,height:12,objectFit:'contain',borderRadius:2}} onError={e=>e.target.style.display='none'}/>}
                     <span style={{color:'#888'}}>{r.label}:</span>
                     <span style={{color:r.v>=0?'#66bb6a':'#ff5252',fontWeight:600}}>{fk(r.v)}</span>
                   </span>
                 ))}
               </div>
             )}
-            {tip.p.text && (
-              <div style={{fontSize:11,color:'#bbb',lineHeight:1.6,
-                display:'-webkit-box',WebkitLineClamp:3,WebkitBoxOrient:'vertical',overflow:'hidden'}}>
-                {tip.p.text.substring(0,180)}
-              </div>
-            )}
-            <div style={{fontSize:10,color:'#555',marginTop:5}}>кликни на точку → форум</div>
+            {tip.p.text && <div style={{fontSize:11,color:'#bbb',lineHeight:1.6,display:'-webkit-box',WebkitLineClamp:3,WebkitBoxOrient:'vertical',overflow:'hidden'}}>{tip.p.text.substring(0,180)}</div>}
+            <div style={{fontSize:10,color:'#444',marginTop:5}}>тап ещё раз → форум</div>
           </div>
         )
       })()}
     </div>
   )
 }
+
 
 // ─── ROOM WIDGET ─────────────────────────────────────────────────────────────
 // ─── ACTIVITY CHART ───────────────────────────────────────────────────────────
@@ -1034,7 +1074,7 @@ function renderPostText(text, collapseQuotes=false) {
         </div>
       )
     }
-    return <span key={i} style={{whiteSpace:'pre-wrap'}}>{part.text}</span>
+    return <span key={i} style={{whiteSpace:'pre-wrap'}}>{collapseQuotes ? part.text.replace(/\n{2,}/g, '\n') : part.text}</span>
   })
 }
 
