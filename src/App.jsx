@@ -1065,7 +1065,7 @@ function renderPostText(text, collapseQuotes=false) {
       continue
     }
 
-    parts.push({ type:'text', text: remaining })
+    if (remaining.trim()) parts.push({ type:'text', text: remaining })
     break
   }
 
@@ -1090,8 +1090,9 @@ function renderPostText(text, collapseQuotes=false) {
     }
     // Рендерим как абзацы с 6px отступом вместо пустых строк
     const rawText = collapseQuotes ? part.text.replace(/\n{2,}/g, '\n').trim() : part.text
-    const paras = rawText.split('\n').filter(p => p.trim() !== '' || false)
-    if (paras.length <= 1) return <span key={i} style={{whiteSpace:'pre-wrap'}}>{rawText}</span>
+    const paras = rawText.split('\n').filter(p => p.trim() !== '')
+    if (paras.length === 0) return null
+    if (paras.length === 1) return <span key={i} style={{display:'block'}}>{paras[0]}</span>
     return (
       <span key={i}>
         {paras.map((p, j) => (
