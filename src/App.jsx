@@ -192,7 +192,8 @@ const css = `
     .admin-lock{display:none}
     .admin-box{width:95vw;padding:16px}
     .mobile-nav{display:flex !important}
-    .marathon-chart{padding:8px}
+    .marathon-chart{padding:8px;overflow:hidden}
+    .mc-svg{overflow:hidden}
     .mc-label,.mc-ylabel{font-size:7px}
     .pagination{gap:2px;padding:8px 0;flex-wrap:wrap}
     .page-btn{min-width:26px;height:26px;font-size:10px;padding:0 4px}
