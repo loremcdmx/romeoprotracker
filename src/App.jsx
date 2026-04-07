@@ -245,7 +245,7 @@ const css = `
       padding:12px;
     }
     .mc-svg{overflow:hidden;display:block;max-width:100%}
-    .mc-label,.mc-ylabel{font-size:8px}
+    .mc-label{font-size:9px}.mc-ylabel{font-size:11px}
     .marathon-chart{overflow:hidden;padding:14px;margin:10px 12px 0;border-radius:16px}
     .section-title{font-size:13px}
     .section-count{font-size:11px}
@@ -557,17 +557,21 @@ function MarathonChart({ posts, meta, startBR, setLightbox, day }) {
   const coords = points.map((p,i) => ({ x:xOf(i), y:yOf(p.br) }))
   const linePath = makeBezierPath(coords)
   const areaPath = makeBezierArea(coords, H)
+  const isMobile = typeof window !== 'undefined' && window.innerWidth <= 720
   const fkAbs = v => v >= 1000 ? `$${(v/1000).toFixed(1)}k` : `$${Math.round(v)}`
   const yTicks = [0,.33,.67,1].map(t => ({ v:minV+(maxV-minV)*t, y:yOf(minV+(maxV-minV)*t) }))
 
   const handleTouch = e => {
     e.preventDefault()
     const rect = e.currentTarget.getBoundingClientRect()
-    const tx = (e.touches[0].clientX - rect.left) * (W / rect.width)
+    const touch = e.touches[0]
+    const tx = (touch.clientX - rect.left) * (W / rect.width)
     let nearest=0, minD=Infinity
     coords.forEach((c,i) => { const d=Math.abs(c.x-tx); if(d<minD){minD=d;nearest=i} })
     const p = points[nearest]
-    setTip({ p, profit:p.br-p.brPrev, x:coords[nearest].x, y:coords[nearest].y })
+    // На мобиле сохраняем screen-координаты для fixed позиционирования
+    setTip({ p, profit:p.br-p.brPrev, x:coords[nearest].x, y:coords[nearest].y,
+      screenY: touch.clientY })
   }
 
   return (
@@ -629,12 +633,18 @@ function MarathonChart({ posts, meta, startBR, setLightbox, day }) {
       {tip && (() => {
         const pct=tip.x/W*100, right=pct>60
         const roomDeltas = tip.p.rooms ? CHART_ROOMS.map(r=>({...r,v:(tip.p.rooms.after[r.key]||0)-(tip.p.rooms.before[r.key]||0)})).filter(r=>r.v!==0) : []
+        // На мобиле — fixed снизу чтобы не обрезался overflow:hidden
+        const mobileStyle = isMobile ? {
+          position:'fixed', bottom:Math.max(90, window.innerHeight - (tip.screenY||0) + 16)+'px',
+          left:'12px', right:'12px', maxWidth:'none', width:'auto',
+        } : {
+          position:'absolute',
+          bottom:(H-tip.y+24)+'px',
+          left:right?'auto':`calc(${pct}% - 8px)`,
+          right:right?`calc(${100-pct}% - 8px)`:'auto',
+        }
         return (
-          <div className="mc-tooltip" style={{
-            bottom:(H-tip.y+24)+'px',
-            left:right?'auto':`calc(${pct}% - 8px)`,
-            right:right?`calc(${100-pct}% - 8px)`:'auto',
-          }}>
+          <div className="mc-tooltip" style={mobileStyle}>
             <div style={{fontWeight:700,color:'#fff',fontSize:13,marginBottom:5}}>{tip.p.date}</div>
             <div style={{display:'flex',gap:12,fontSize:12,marginBottom:roomDeltas.length?8:4}}>
               <span style={{color:'#888'}}>БР: <b style={{color:'#fff'}}>{fkAbs(tip.p.br)}</b></span>
@@ -1074,7 +1084,7 @@ function renderPostText(text, collapseQuotes=false) {
         </div>
       )
     }
-    return <span key={i} style={{whiteSpace:'pre-wrap'}}>{collapseQuotes ? part.text.replace(/\n{2,}/g, '\n') : part.text}</span>
+    return <span key={i} style={{whiteSpace:'pre-wrap'}}>{collapseQuotes ? part.text.replace(/\n{2,}/g, '\n').trim() : part.text}</span>
   })
 }
 
@@ -1202,11 +1212,11 @@ function SidebarTopList({ posts, setLightbox }) {
             <div style={{fontSize:11,color:'var(--green)',marginBottom:8,fontFamily:"'Roboto Mono',monospace"}}>
               +{p.likes} 👍 · {p.date}
             </div>
-            {p.images?.[0] && (
-              <img src={p.images[0]} alt="" style={{maxWidth:'100%',borderRadius:4,marginBottom:8,display:'block'}}
-                onError={e=>e.target.style.display='none'}/>
-            )}
-            <div style={{fontSize:12,color:'var(--text)',lineHeight:1.7,overflowY:'auto',flex:1,paddingRight:4}}>
+            <div style={{fontSize:12,color:'var(--text)',lineHeight:1.6,overflowY:'auto',flex:1,paddingRight:4}}>
+              {p.images?.[0] && (
+                <img src={p.images[0]} alt="" style={{maxWidth:'100%',borderRadius:4,marginBottom:10,display:'block'}}
+                  onError={e=>e.target.style.display='none'}/>
+              )}
               {renderPostText(p.text, true)}
               {!stripQuotes(p.text) && p.text?.includes('[QUOTE]') && (
                 <div style={{fontSize:11,color:'#555',fontStyle:'italic',marginTop:6}}>
