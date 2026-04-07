@@ -832,11 +832,12 @@ function ActivityChart({ posts, favorites, onFav, onIgnore, setLightbox,
       </div>
       <svg className="chart-svg" viewBox={`0 0 ${W} ${H+22}`} onMouseLeave={()=>setTip(null)}>
         {data.map(([date, {count, posts:dp}], i) => {
-          const bw = (W-pad*(data.length-1))/data.length
-          const x  = i*(bw+pad)
-          const bh = Math.max(3,(count/max)*H)
-          const maxLabels = Math.floor(W / 50)
-          const step = Math.max(1, Math.ceil(data.length / maxLabels))
+          const bw = (W - pad * (data.length - 1)) / data.length
+          const x  = i * (bw + pad)
+          const bh = Math.max(3, (count / max) * H)
+          // Минимум 36px между метками чтобы не накладывались
+          const minGap = 36
+          const step = Math.max(1, Math.ceil(minGap / (bw + pad)))
           const showL = i % step === 0 || i === data.length - 1
           const isSelected = selected?.date === date
           return (
