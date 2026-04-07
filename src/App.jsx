@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { fetchPublicData } from './storage.js'
+import { Analytics } from '@vercel/analytics/react'
 
 
 // ─── CSS ─────────────────────────────────────────────────────────────────────
@@ -1028,7 +1029,7 @@ function CollapsibleQuote({ author, date, body }) {
       {open && (
         <div style={{color:'#5a5a5a',fontSize:12,lineHeight:1.6,marginTop:4}}>
           {body
-            ? body.split('\n').filter(p=>p.trim()).map((p,j,arr)=>(
+            ? body.replace(/\n{2,}/g,'\n').split('\n').filter(p=>/[^\s\u00a0]/.test(p)).map((p,j,arr)=>(
                 <span key={j} style={{display:'block',marginBottom:j<arr.length-1?4:0}}>{p}</span>
               ))
             : <span style={{fontStyle:'italic',color:'#444'}}>↩ изображение или медиа</span>
@@ -1099,7 +1100,7 @@ function renderPostText(text, collapseQuotes=false) {
           )}
           <div style={{color:'#5a5a5a',fontSize:12,lineHeight:1.6}}>
             {part.body
-              ? part.body.split('\n').filter(p=>p.trim()).map((p,j,arr)=>(
+              ? part.body.replace(/\n{2,}/g,'\n').split('\n').filter(p=>/[^\s\u00a0]/.test(p)).map((p,j,arr)=>(
                   <span key={j} style={{display:'block',marginBottom:j<arr.length-1?4:0}}>{p}</span>
                 ))
               : <span style={{fontStyle:'italic',color:'#444'}}>↩ изображение или медиа</span>
@@ -2096,6 +2097,8 @@ export default function App() {
           </div>
         </footer>
       )}
+      {/* Vercel Analytics */}
+      <Analytics />
     </>
   )
 }
