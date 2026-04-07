@@ -360,8 +360,8 @@ const css = `
   /* ── Marathon chart animations ── */
   @keyframes drawLine{to{stroke-dashoffset:0}}
   @keyframes pulseDot{
-    0%,100%{r:5px;filter:drop-shadow(0 0 4px currentColor);opacity:1}
-    50%{r:7px;filter:drop-shadow(0 0 12px currentColor);opacity:.7}
+    0%,100%{filter:drop-shadow(0 0 2px currentColor);opacity:1}
+    50%{filter:drop-shadow(0 0 6px currentColor);opacity:.75}
   }
   @keyframes fadeIn{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:scale(1)}}
   .mc-dot-last{animation:pulseDot 2s ease-in-out infinite}
@@ -618,8 +618,7 @@ function MarathonChart({ posts, meta, startBR, setLightbox, day }) {
           return (
             <g key={i}>
               <circle cx={cx} cy={cy} r={isLast?14:10} fill="transparent"
-                onMouseEnter={()=>setTip({p,profit,x:cx,y:cy})}
-                onClick={e=>{e.stopPropagation();p.url&&window.open(p.url,'_blank')}}/>
+                onMouseEnter={()=>setTip({p,profit,x:cx,y:cy})}/>
               <circle cx={cx} cy={cy} r={isLast?6:4}
                 className={isLast?'mc-dot mc-dot-last':'mc-dot'}
                 fill={profit>=0?'#4caf50':'#e53935'}
@@ -662,7 +661,12 @@ function MarathonChart({ posts, meta, startBR, setLightbox, day }) {
               </div>
             )}
             {tip.p.text && <div style={{fontSize:11,color:'#bbb',lineHeight:1.6,display:'-webkit-box',WebkitLineClamp:3,WebkitBoxOrient:'vertical',overflow:'hidden'}}>{tip.p.text.substring(0,180)}</div>}
-            <div style={{fontSize:10,color:'#444',marginTop:5}}>тап ещё раз → форум</div>
+            <div style={{fontSize:10,color:'#444',marginTop:5,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+              <span>тап → закрыть</span>
+              {tip.p.url && <a href={tip.p.url} target="_blank" rel="noreferrer"
+                onClick={e=>e.stopPropagation()}
+                style={{color:'var(--red2)',fontSize:11}}>→ форум</a>}
+            </div>
           </div>
         )
       })()}
@@ -1030,7 +1034,7 @@ function renderPostText(text, collapseQuotes=false) {
   if (!text) return null
 
   const parts = []
-  let remaining = autoCloseQuotes(text.trim())
+  let remaining = autoCloseQuotes(text.trim()).replace(/\n{3,}/g, '\n\n')
 
   while (remaining.length > 0) {
     // Формат из нового скрапера: [QUOTE]Автор|Автор @ дата\nтело цитаты[/QUOTE]ответ
@@ -1142,8 +1146,14 @@ function PostCard({ p, favorites, onFav, onIgnore, setLightbox, noClamp=false })
         <span className={`pc-likes ${likes>0?'pos':likes<0?'neg':'zero'}`}>{likes>0?'+':''}{likes} 👍</span>
         {p.brAfter && <span className="pc-br">БР: {fmtNum(p.brAfter)}</span>}
         {isLong && (
-          <button className="btn-expand" style={{marginLeft:4}} onClick={()=>setExp(s=>!s)}>
-            {exp?'▲ свернуть':'▼ читать'}
+          <button onClick={()=>setExp(s=>!s)} style={{
+            background:'none',border:'1px solid var(--border2)',borderRadius:20,
+            color:'var(--dim2)',cursor:'pointer',fontFamily:'inherit',fontWeight:600,
+            fontSize:11,padding:'3px 10px',display:'inline-flex',alignItems:'center',gap:4,
+            marginLeft:4,transition:'all .15s',
+          }}>
+            <span style={{fontSize:9,opacity:.7}}>{exp?'▲':'▼'}</span>
+            {exp ? 'свернуть' : 'читать'}
           </button>
         )}
         {p.url&&<a className="pc-link" href={p.url} target="_blank" rel="noreferrer">→ форум</a>}
@@ -2022,7 +2032,7 @@ export default function App() {
               <div style={{fontSize:11,color:'var(--dim)',fontFamily:"'Roboto Mono',monospace",marginBottom:4}}>
                 <span style={{color:'var(--dim2)',fontWeight:600}}>RomeoPro Tracker</span>
                 {' '}
-                <span style={{color:'#444'}}>v1.3.0</span>
+                <span style={{color:'#444'}}>v1.3.4</span>
               </div>
               <div style={{fontSize:10,color:'#444',marginBottom:4}}>
                 made by{' '}
@@ -2040,8 +2050,8 @@ export default function App() {
                 Changelog
               </div>
               {[
-                ['07.04', 'v1.3', 'Логотипы румов в графике, цвет по результату. Фикс зума на мобиле. Скрапер v2 с авто-ремонтом обрезанных постов'],
-                ['06.04', 'v1.2', 'Попап с полным текстом поста по наведению. Виджет активности по дням. Топ-10 постов с фильтром по периоду. Автообновление данных каждые 5 мин'],
+                ['07.04', 'v1.3', 'График с плавными bezier-кривыми и анимацией рисования. Тап по точке → детали сессии. Скрапер v3 с детальным логом. Мобильная вёрстка переписана под iPhone 17 Pro'],
+                ['06.04', 'v1.2', 'Попап с полным текстом поста по наведению. Виджет активности по дням. Топ-10 постов с фильтром по периоду. Автообновление данных каждые 5 мин. Сохранение фильтров'],
                 ['05.04', 'v1.1', 'Темы (марафон / обсуждение / дебаты / флуд). Репутация в стиле GT. Избранное и игнор-лист. Фильтры по лайкам и репе'],
                 ['05.04', 'v1.0', 'Первый запуск — лента постов, цитаты, пагинация, график марафона'],
               ].map(([date, ver, desc]) => (
