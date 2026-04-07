@@ -183,7 +183,7 @@ const css = `
   .empty-state{padding:30px;text-align:center;color:var(--dim);font-size:12px}
 
   @media(max-width:720px){
-    .page{grid-template-columns:1fr;padding:6px 8px 80px}
+    .page{grid-template-columns:1fr;padding:6px 8px 80px;overflow-x:clip}
     .sidebar{display:none}
     .topbar-tabs{display:none}
     .admin-lock{display:none}
@@ -234,10 +234,15 @@ const css = `
     .topic-tab{padding:5px 10px;font-size:11px;white-space:nowrap}
     .section-title{font-size:11px}
 
-    /* Charts */
-    .marathon-chart{padding:8px}
-    .mc-label,.mc-ylabel{font-size:7px}
-    .chart-wrap{padding:10px 8px}
+    /* Hero — fix text overflow */
+    .hero-top{gap:8px;margin-bottom:10px;overflow:hidden}
+    .hero-top > div:last-child{min-width:0;overflow:hidden}
+    .hero-name{font-size:13px}
+    .hero-desc{font-size:10px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+    /* Charts — clip overflow to prevent page widening */
+    .chart-wrap{overflow:hidden}
+    .marathon-chart{overflow:hidden}
 
     /* Pagination */
     .pagination{gap:2px;padding:8px 0;flex-wrap:wrap}
