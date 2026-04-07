@@ -183,22 +183,59 @@ const css = `
   .empty-state{padding:30px;text-align:center;color:var(--dim);font-size:12px}
 
   @media(max-width:720px){
-    .page{grid-template-columns:1fr;padding:6px 8px 80px}
-    .hero-stats{grid-template-columns:1fr 1fr}
+    /* ── Layout ── */
+    .page{grid-template-columns:1fr;padding:10px 12px 90px}
     .topbar-tabs{display:none}
-    .topbar-inner{padding:0 8px;gap:6px}
+    .topbar-inner{padding:0 12px;gap:8px}
     .logo-sub{display:none}
     .sidebar{display:none}
     .admin-lock{display:none}
     .admin-box{width:95vw;padding:16px}
     .mobile-nav{display:flex !important}
-    .marathon-chart{padding:8px;overflow:hidden}
-    .mc-svg{overflow:hidden}
-    .mc-label,.mc-ylabel{font-size:7px}
-    .pagination{gap:2px;padding:8px 0;flex-wrap:wrap}
-    .page-btn{min-width:26px;height:26px;font-size:10px;padding:0 4px}
+
+    /* ── Hero ── */
+    .hero{padding:14px}
+    .hero-top{gap:12px;margin-bottom:14px}
+    .hero-avatar{width:40px;height:40px}
+    .hero-name{font-size:16px}
+    .hero-desc{font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .hero-stats{grid-template-columns:1fr 1fr;gap:8px}
+    .hstat{padding:12px}
+    .hstat-label{font-size:11px}
+    .hstat-sub{font-size:11px}
+
+    /* ── Post cards ── */
+    .pc-head{padding:10px 12px}
+    .pc-author{font-size:14px}
+    .pc-author-meta{font-size:11px}
+    .pc-date{font-size:11px}
+    .pc-body{padding:10px 12px;font-size:14px;line-height:1.65}
+    .pc-foot{padding:8px 12px;flex-wrap:wrap;gap:8px}
+    .pc-likes{font-size:13px}
+
+    /* ── Filters ── */
+    .filter-bar{flex-wrap:wrap;padding:10px 12px;gap:8px}
+    .filter-num{width:56px;font-size:13px;padding:5px 8px}
+    .filter-pill{padding:6px 12px;font-size:12px}
+    .feed-select{font-size:12px;padding:6px 8px}
+    .feed-search{font-size:13px;min-width:0}
+
+    /* ── Topic tabs ── */
     .topic-tabs{overflow-x:auto;flex-wrap:nowrap}
-    .topic-tab{white-space:nowrap}
+    .topic-tab{white-space:nowrap;font-size:12px;padding:7px 14px}
+
+    /* ── Chart ── */
+    .marathon-chart{padding:10px;overflow:hidden}
+    .mc-svg{overflow:hidden}
+    .mc-label,.mc-ylabel{font-size:8px}
+    .section-title{font-size:13px}
+    .section-count{font-size:11px}
+
+    /* ── Pagination ── */
+    .pagination{gap:4px;padding:10px 0;flex-wrap:wrap;justify-content:center}
+    .page-btn{min-width:36px;height:36px;font-size:13px}
+    .page-info{font-size:12px}
+    .perpage-select{font-size:12px;padding:4px 6px}
   }
 
   /* Mobile bottom nav — sits above iOS browser chrome */
@@ -414,11 +451,11 @@ function MarathonChart({ posts, meta, startBR, setLightbox, day }) {
         const right = pct>60
         const rooms = tip.p.rooms
         const ROOMS = [
-          { key:'gg',   label:'GG',    logo:'https://ggpoker.com/favicon.ico' },
+          { key:'gg',   label:'GG',    logo:'https://www.ggpoker.com/favicon.ico' },
           { key:'ps',   label:'Stars', logo:'https://www.pokerstars.com/favicon.ico' },
           { key:'king', label:'King',  logo:'https://www.pokerking.com/favicon.ico' },
-          { key:'coin', label:'Coin',  logo:null },
-          { key:'lux',  label:'Lux',   logo:null },
+          { key:'coin', label:'Coin',  logo:'https://coinpoker.com/favicon.ico' },
+          { key:'lux',  label:'Lux',   logo:'https://luxon.poker/favicon.ico' },
         ]
         const roomDeltas = rooms ? ROOMS.map(r => ({
           ...r, v: (rooms.after[r.key]||0) - (rooms.before[r.key]||0)
@@ -439,13 +476,14 @@ function MarathonChart({ posts, meta, startBR, setLightbox, day }) {
             {roomDeltas.length > 0 && (
               <div style={{display:'flex',flexWrap:'wrap',gap:'4px 12px',marginBottom:8}}>
                 {roomDeltas.map(r => (
-                  <span key={r.key} style={{fontSize:11,color:r.v>=0?'#66bb6a':'#ff5252',display:'flex',alignItems:'center',gap:4}}>
+                  <span key={r.key} style={{fontSize:11,display:'flex',alignItems:'center',gap:4}}>
                     {r.logo && (
                       <img src={r.logo} alt={r.label}
                         style={{width:12,height:12,objectFit:'contain',borderRadius:2,flexShrink:0}}
                         onError={e=>e.target.style.display='none'}/>
                     )}
-                    {r.label}: {fk(r.v)}
+                    <span style={{color:'#888'}}>{r.label}:</span>
+                    <span style={{color:r.v>=0?'#66bb6a':'#ff5252',fontWeight:600}}>{fk(r.v)}</span>
                   </span>
                 ))}
               </div>
