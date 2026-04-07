@@ -117,7 +117,7 @@ const css = `
   .post-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);margin-bottom:6px;overflow:hidden;transition:border-color .15s}
   .post-card:hover{border-color:var(--border2)}
   .post-card.faved{border-left:3px solid var(--gold)}
-  .pc-head{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border)}
+  .pc-head{display:flex;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border);position:relative}
   .pc-avatar{width:32px;height:32px;border-radius:50%;background:var(--red);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex-shrink:0;overflow:hidden}
   .pc-avatar img{width:100%;height:100%;object-fit:cover}
   .pc-author{font-weight:600;color:var(--white);font-size:13px}
@@ -887,7 +887,15 @@ function ActivityChart({ posts, favorites, onFav, onIgnore, setLightbox,
                 {topAuthors.map(([name, rating]) => (
                   <div key={name} style={{fontSize:11,color:'#bbb',display:'flex',justifyContent:'space-between',gap:8,lineHeight:1.6}}>
                     <span style={{color:'#ddd'}}>{name}</span>
-                    <span style={{color:'#4caf50',fontSize:10,fontFamily:"'Roboto Mono',monospace"}}>⭐{fmtInt(rating)}</span>
+                    <span style={{color:'#4caf50',fontSize:10,fontFamily:"'Roboto Mono',monospace",display:'inline-flex',alignItems:'center',gap:2}}>
+                      <svg viewBox="0 0 12 10" style={{width:9,height:8,fill:'#4caf50',flexShrink:0}}>
+                        <rect x="0" y="6" width="2.5" height="4"/>
+                        <rect x="3.2" y="3" width="2.5" height="7"/>
+                        <rect x="6.4" y="1" width="2.5" height="9"/>
+                        <rect x="9.6" y="0" width="2.5" height="10"/>
+                      </svg>
+                      {fmtInt(rating)}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -1128,35 +1136,77 @@ function renderPostText(text, collapseQuotes=false) {
 
 // ─── POST CARD ────────────────────────────────────────────────────────────────
 function PostCard({ p, favorites, onFav, onIgnore, setLightbox, noClamp=false }) {
-  const [exp, setExp] = useState(false)
-  const isFav = favorites.has(p.id)
-  const likes = p.likes || 0
+  const [exp, setExp]     = useState(false)
+  const [menu, setMenu]   = useState(false)
+  const isFav  = favorites.has(p.id)
+  const likes  = p.likes || 0
   const initial = (p.author||'?')[0].toUpperCase()
-  const isLong = !noClamp && (p.text?.replace(/\[QUOTE\][\s\S]*?\[\/QUOTE\]/gi, '').length || 0) > 600
+  const isLong  = !noClamp && (p.text?.replace(/\[QUOTE\][\s\S]*?\[\/QUOTE\]/gi, '').length || 0) > 600
+
+  // URL профиля на GT (по нику)
+  const profileUrl = `https://forum.gipsyteam.ru/index.php?showuser=${encodeURIComponent(p.author)}`
+  const ratingUrl  = `https://forum.gipsyteam.ru/index.php?showuser=${encodeURIComponent(p.author)}&tab=reputation`
+  // Блог есть только у пользователей с blogId — определяем по наличию /blogs/ в известных ссылках
+  // У Romeopro блог точно есть, у остальных определяем по msgCount > 100 как приближение
+  // (точно не знаем без запроса к API форума)
 
   return (
-    <div className={`post-card ${isFav?'faved':''}`}>
+    <div className={`post-card ${isFav?'faved':''}`} onClick={()=>menu&&setMenu(false)}>
       <div className="pc-head">
-        <div className="pc-avatar">
+        <div className="pc-avatar" style={{cursor:'pointer'}} onClick={e=>{e.stopPropagation();setMenu(m=>!m)}}>
           {p.avatar
             ? <img src={p.avatar} alt={p.author} onError={e=>{e.target.style.display='none'}}/>
             : initial}
         </div>
+        {/* Dropdown меню профиля */}
+        {menu && (
+          <div style={{position:'absolute',top:44,left:12,background:'#1c1c1c',border:'1px solid #333',
+            borderRadius:8,padding:'6px 0',zIndex:200,minWidth:160,boxShadow:'0 4px 20px rgba(0,0,0,.8)'}}
+            onClick={e=>e.stopPropagation()}>
+            {ROMEO_RE.test(p.author) && (
+              <a href="https://forum.gipsyteam.ru/index.php?showforum=141" target="_blank" rel="noreferrer"
+                style={{display:'flex',alignItems:'center',gap:8,padding:'8px 14px',color:'#ccc',fontSize:12,textDecoration:'none'}}
+                onMouseEnter={e=>e.currentTarget.style.background='#2a2a2a'}
+                onMouseLeave={e=>e.currentTarget.style.background=''}>
+                📝 Блог
+              </a>
+            )}
+            <a href={profileUrl} target="_blank" rel="noreferrer"
+              style={{display:'flex',alignItems:'center',gap:8,padding:'8px 14px',color:'#ccc',fontSize:12,textDecoration:'none'}}
+              onMouseEnter={e=>e.currentTarget.style.background='#2a2a2a'}
+              onMouseLeave={e=>e.currentTarget.style.background=''}>
+              👤 Профиль
+            </a>
+            <a href={`https://forum.gipsyteam.ru/index.php?act=Msg&CODE=4&MID=${encodeURIComponent(p.author)}`}
+              target="_blank" rel="noreferrer"
+              style={{display:'flex',alignItems:'center',gap:8,padding:'8px 14px',color:'#ccc',fontSize:12,textDecoration:'none'}}
+              onMouseEnter={e=>e.currentTarget.style.background='#2a2a2a'}
+              onMouseLeave={e=>e.currentTarget.style.background=''}>
+              ✉️ Личное сообщение
+            </a>
+          </div>
+        )}
         <div style={{flex:1,minWidth:0}}>
-          <div className="pc-author">{p.author}</div>
+          <div className="pc-author" style={{cursor:'pointer'}}
+            onClick={e=>{e.stopPropagation();setMenu(m=>!m)}}>
+            {p.author}
+          </div>
           <div className="pc-author-meta">
             {p.msgCount && <span>{fmtInt(p.msgCount)} постов</span>}
             {p.regData  && <span>· {p.regData}</span>}
             {p.rating != null && (
-              <span style={{color:'#4caf50',display:'inline-flex',alignItems:'center',gap:2}}>·
-                <svg viewBox="0 0 12 10" style={{width:11,height:10,fill:'#4caf50',flexShrink:0}}>
+              <a href={ratingUrl} target="_blank" rel="noreferrer"
+                style={{color:'#4caf50',display:'inline-flex',alignItems:'center',gap:2,textDecoration:'none'}}
+                onClick={e=>e.stopPropagation()}>
+                ·
+                <svg viewBox="0 0 12 10" style={{width:11,height:10,fill:'#4caf50',flexShrink:0,marginLeft:3}}>
                   <rect x="0" y="6" width="2.5" height="4"/>
                   <rect x="3.2" y="3" width="2.5" height="7"/>
                   <rect x="6.4" y="1" width="2.5" height="9"/>
                   <rect x="9.6" y="0" width="2.5" height="10"/>
                 </svg>
                 <span style={{fontFamily:"'Roboto Mono',monospace",fontWeight:700}}>{p.rating.toLocaleString()}</span>
-              </span>
+              </a>
             )}
           </div>
         </div>
