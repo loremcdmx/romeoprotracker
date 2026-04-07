@@ -183,67 +183,179 @@ const css = `
   .loading{padding:80px;text-align:center;color:var(--dim);font-size:13px}
   .empty-state{padding:30px;text-align:center;color:var(--dim);font-size:12px}
 
+  /* ═══════════════════════════════════════════════════
+     MOBILE — полностью отдельная вёрстка (≤720px)
+     Оптимизировано для iPhone 17 Pro (393×852pt)
+     Приоритет: чтение постов → фильтры → остальное
+     ═══════════════════════════════════════════════════ */
   @media(max-width:720px){
-    /* ── Base ── */
-    html{font-size:16px}
+    /* ── Base: запрет горизонтального overflow ── */
+    html{overflow-x:clip;font-size:16px}
+    body{overflow-x:clip}
+    *{max-width:100%;box-sizing:border-box}
+    img{max-width:100%;height:auto}
 
     /* ── Layout ── */
-    .page{grid-template-columns:1fr;padding:10px 12px 90px}
+    .page{
+      display:block !important;
+      padding:0 0 calc(72px + env(safe-area-inset-bottom,0px)) 0;
+      max-width:100vw;overflow-x:clip;
+    }
+    .sidebar{display:none !important}
     .topbar-tabs{display:none}
-    .topbar-inner{padding:0 12px;gap:8px}
-    .logo-text{font-size:13px}
-    .logo-sub{display:none}
-    .sidebar{display:none}
     .admin-lock{display:none}
-    .admin-box{width:95vw;padding:16px}
-    .mobile-nav{display:flex !important}
 
-    /* ── Hero ── */
-    .hero{padding:14px}
-    .hero-top{gap:12px;margin-bottom:14px}
-    .hero-avatar{width:44px;height:44px}
-    .hero-name{font-size:17px}
-    .hero-desc{font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-    .hero-stats{grid-template-columns:1fr 1fr;gap:8px}
-    .hstat{padding:12px}
-    .hstat-label{font-size:11px}
-    .hstat-sub{font-size:11px}
+    /* ── Topbar ── */
+    .topbar-inner{padding:0 16px;gap:10px}
+    .logo-badge{width:28px;height:28px}
+    .logo-text{font-size:14px}
+    .logo-sub{display:none}
 
-    /* ── Post cards ── */
-    .pc-head{padding:12px 14px}
-    .pc-author{font-size:15px}
-    .pc-author-meta{font-size:12px}
+    /* ── Hero: компактный баннер ── */
+    .hero{
+      margin:12px 12px 0;
+      padding:14px;
+      border-radius:12px;
+    }
+    .hero-top{gap:12px;margin-bottom:12px;align-items:center}
+    .hero-avatar{width:42px;height:42px;border-radius:50%;flex-shrink:0}
+    .hero-name{font-size:17px;font-weight:700;margin-bottom:2px}
+    .hero-badge{font-size:10px;padding:2px 6px}
+    .hero-desc{
+      font-size:12px;
+      white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+      max-width:calc(100vw - 120px);
+    }
+    /* 2×2 статистика: крупные цифры */
+    .hero-stats{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:8px;
+    }
+    .hstat{padding:12px 14px;border-radius:10px}
+    .hstat-label{font-size:11px;letter-spacing:.05em;margin-bottom:4px}
+    .hstat-value{font-size:22px;font-weight:700;line-height:1.1}
+    .hstat-sub{font-size:11px;margin-top:4px}
+
+    /* ── График: компактный ── */
+    .chart-wrap{
+      margin:10px 12px 0;
+      border-radius:12px;
+      overflow:hidden;
+      padding:12px;
+    }
+    .mc-svg{overflow:hidden;display:block;max-width:100%}
+    .mc-label,.mc-ylabel{font-size:8px}
+    .marathon-chart{overflow:hidden;padding:12px}
+    .section-title{font-size:13px}
+    .section-count{font-size:11px}
+
+    /* ── Виджет активности ── */
+    .chart-wrap.activity{margin:10px 12px 0}
+
+    /* ── Фильтры: 2 строки, читаемые ── */
+    .filter-bar{
+      margin:10px 12px 0;
+      padding:12px;
+      border-radius:12px;
+      gap:8px;
+      flex-wrap:wrap;
+    }
+    .feed-select{
+      font-size:14px;padding:8px 10px;
+      border-radius:20px;flex-shrink:0;
+    }
+    .filter-pill{
+      padding:8px 14px;font-size:13px;
+      border-radius:20px;
+      min-height:36px;
+    }
+    .filter-num{
+      width:64px;font-size:14px;
+      padding:6px 8px;text-align:center;
+      border-radius:8px;
+    }
+    .feed-search{
+      font-size:14px;padding:8px 12px;
+      border-radius:20px;flex:1;min-width:0;
+    }
+
+    /* ── Темы ── */
+    .topic-tabs{
+      overflow-x:auto;flex-wrap:nowrap;
+      -webkit-overflow-scrolling:touch;
+      scrollbar-width:none;
+      margin:8px 12px 0;
+      gap:6px;
+      padding-bottom:2px;
+    }
+    .topic-tabs::-webkit-scrollbar{display:none}
+    .topic-tab{
+      white-space:nowrap;font-size:13px;
+      padding:8px 16px;border-radius:20px;
+      flex-shrink:0;
+    }
+    .topic-tab .tc{font-size:11px}
+
+    /* ══ ПОСТЫ — главный элемент ══ */
+    .post-card{
+      margin:8px 12px 0;
+      border-radius:12px;
+      overflow:hidden;
+    }
+    .pc-head{
+      padding:12px 14px;
+      gap:10px;
+    }
+    .pc-avatar{
+      width:40px;height:40px;
+      border-radius:50%;
+      font-size:14px;
+      flex-shrink:0;
+    }
+    .pc-author{font-size:15px;font-weight:700;margin-bottom:2px}
+    .pc-author-meta{
+      font-size:12px;gap:6px;
+      flex-wrap:wrap;margin-top:2px;
+    }
     .pc-date{font-size:12px}
-    .pc-body{padding:12px 14px;font-size:15px;line-height:1.7}
-    .pc-foot{padding:10px 14px;flex-wrap:wrap;gap:10px}
-    .pc-likes{font-size:14px}
+    /* Текст поста — основное */
+    .pc-body{
+      padding:12px 14px 14px;
+      font-size:15px;
+      line-height:1.75;
+      -webkit-text-size-adjust:100%;
+    }
+    .pc-foot{
+      padding:10px 14px;
+      flex-wrap:wrap;gap:10px;
+    }
+    .pc-likes{font-size:15px;font-weight:700}
+    .pc-action{font-size:18px;padding:4px 8px;min-height:36px}
+    .pc-images{padding:0 14px 12px;gap:6px}
+    .pc-img{max-width:140px;max-height:105px;border-radius:8px}
 
-    /* ── Filters ── */
-    .filter-bar{flex-wrap:wrap;padding:10px 12px;gap:8px}
-    .filter-num{width:60px;font-size:14px;padding:6px 8px}
-    .filter-pill{padding:7px 14px;font-size:13px}
-    .feed-select{font-size:13px;padding:7px 8px}
-    .feed-search{font-size:14px;min-width:0}
-    .filter-count{font-size:13px}
+    /* ── Пагинация: большие кнопки ── */
+    .pagination{
+      margin:8px 12px 0;
+      gap:5px;
+      flex-wrap:wrap;
+      justify-content:center;
+      padding:10px 0;
+    }
+    .page-btn{
+      min-width:42px;height:42px;
+      font-size:15px;
+      border-radius:8px;
+    }
+    .page-info{font-size:13px;padding:0 6px}
+    .perpage-select{font-size:13px;padding:6px 8px;height:42px}
 
-    /* ── Topic tabs ── */
-    .topic-tabs{overflow-x:auto;flex-wrap:nowrap}
-    .topic-tab{white-space:nowrap;font-size:13px;padding:8px 16px}
-    .section-title{font-size:14px}
-    .section-count{font-size:12px}
-
-    /* ── Chart ── */
-    .marathon-chart{padding:10px;overflow:hidden}
-    .mc-svg{overflow:hidden}
-    .mc-label,.mc-ylabel{font-size:9px}
-    .chart-wrap{padding:12px 10px}
-
-    /* ── Pagination ── */
-    .pagination{gap:5px;padding:12px 0;flex-wrap:wrap;justify-content:center}
-    .page-btn{min-width:38px;height:38px;font-size:14px}
-    .page-info{font-size:13px}
-    .perpage-select{font-size:13px;padding:5px 8px}
+    /* ── Нижняя навигация ── */
+    .mobile-nav{display:flex !important}
+    .admin-box{width:calc(100vw - 32px);margin:0 16px;padding:16px;border-radius:12px}
   }
+
 
   /* Mobile bottom nav — sits above iOS browser chrome */
   .mobile-nav{
