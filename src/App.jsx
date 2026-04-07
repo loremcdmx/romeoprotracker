@@ -1814,7 +1814,7 @@ export default function App() {
               <div style={{fontSize:11,color:'var(--dim)',fontFamily:"'Roboto Mono',monospace",marginBottom:4}}>
                 <span style={{color:'var(--dim2)',fontWeight:600}}>RomeoPro Tracker</span>
                 {' '}
-                <span style={{color:'#444'}}>v1.2.9</span>
+                <span style={{color:'#444'}}>v1.3.0</span>
               </div>
               <div style={{fontSize:10,color:'#444',marginBottom:4}}>
                 made by{' '}
@@ -1832,23 +1832,15 @@ export default function App() {
                 Changelog
               </div>
               {[
-                ['v1.2.9', '07.04', 'Фикс цитат, попап постов, мобильная навигация, сохранение фильтров'],
-                ['v1.2.8', '06.04', 'Свёрнутые цитаты в превью, автозакрытие обрезанных QUOTE'],
-                ['v1.2.7', '06.04', 'Попап предпросмотра постов в топе с полным текстом'],
-                ['v1.2.6', '06.04', 'Виджет активности постов с детализацией по дням'],
-                ['v1.2.5', '06.04', 'Футер с версией, чейнджлогом и авторством'],
-                ['v1.2.4', '06.04', 'Топ постов с фильтрами по периоду и авторитетными авторами'],
-                ['v1.2.3', '06.04', 'График марафона день #N, мобильная навигация'],
-                ['v1.2.2', '06.04', 'Фильтры по лайкам и репутации, репа в стиле GT'],
-                ['v1.2.1', '05.04', 'Темы (марафон/обсуждение/дебаты/флуд), избранное, игнор-лист'],
-                ['v1.2.0', '05.04', 'График марафона, поиск, сортировка'],
-                ['v1.1.0', '05.04', 'Лента постов с пагинацией, цитаты, аватарки'],
-                ['v1.0.0', '05.04', 'Первый релиз'],
-              ].map(([ver, date, desc]) => (
-                <div key={ver} style={{display:'flex',gap:8,marginBottom:5,alignItems:'baseline'}}>
-                  <span style={{fontSize:9,color:'var(--dim)',fontFamily:"'Roboto Mono',monospace",minWidth:40,flexShrink:0}}>{ver}</span>
-                  <span style={{fontSize:9,color:'#333',minWidth:32,flexShrink:0}}>{date}</span>
-                  <span style={{fontSize:10,color:'#555',lineHeight:1.4}}>{desc}</span>
+                ['07.04', 'v1.3', 'Логотипы румов в графике, цвет по результату. Фикс зума на мобиле. Скрапер v2 с авто-ремонтом обрезанных постов'],
+                ['06.04', 'v1.2', 'Попап с полным текстом поста по наведению. Виджет активности по дням. Топ-10 постов с фильтром по периоду. Автообновление данных каждые 5 мин'],
+                ['05.04', 'v1.1', 'Темы (марафон / обсуждение / дебаты / флуд). Репутация в стиле GT. Избранное и игнор-лист. Фильтры по лайкам и репе'],
+                ['05.04', 'v1.0', 'Первый запуск — лента постов, цитаты, пагинация, график марафона'],
+              ].map(([date, ver, desc]) => (
+                <div key={date+ver} style={{display:'flex',gap:8,marginBottom:6,alignItems:'baseline'}}>
+                  <span style={{fontSize:9,color:'#444',fontFamily:"'Roboto Mono',monospace",minWidth:36,flexShrink:0}}>{date}</span>
+                  <span style={{fontSize:9,color:'var(--red)',minWidth:28,flexShrink:0,fontFamily:"'Roboto Mono',monospace"}}>{ver}</span>
+                  <span style={{fontSize:10,color:'#555',lineHeight:1.5}}>{desc}</span>
                 </div>
               ))}
             </div>
