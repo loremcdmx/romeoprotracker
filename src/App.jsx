@@ -1659,6 +1659,18 @@ export default function App() {
   const pagedPosts = feedPosts.slice((page-1)*perPage, page*perPage)
 
   // ── КЛАССИФИКАЦИЯ ПО ТЕМАМ (один проход) ────────────────────────────────
+  // ── Детектор подтем ──────────────────────────────────────────────────────────
+  const detectSubtopic = (text, likes) => {
+    const t = text || ''
+    if (/шахмат|гнат\b|gnat\b/i.test(t))                                            return 'chess'
+    if (/долг|должен|кредит|занял|мистер|инвестор|отдаст|бекер|должник/i.test(t))  return 'debt'
+    if (/стратег|дисперси|рои\b|roi\b|abi\b|аби\b|скилл|brm\b/i.test(t))           return 'strategy'
+    if (/психолог|тилт\b|tilt\b|эмоц|дисциплин|мышлени/i.test(t))                  return 'psychology'
+    if (/стрим|твич|twitch|ютуб|youtube|блог|донат/i.test(t))                       return 'stream'
+    if (likes >= 50)                                                                  return 'hot'
+    return 'other'
+  }
+
   const classifiedPosts = useMemo(() => {
     if (!posts.length) return { marathon:[], discussion:[], debate:[], flood:[] }
     const result = { marathon:[], discussion:[], debate:[], flood:[] }
@@ -1672,36 +1684,47 @@ export default function App() {
       const likes = p.likes || 0
 
       if (ROMEO_RE.test(p.author)) {
+        // Марафон = все посты Ромео + обсуждение его постов
         result.marathon.push(p)
-      } else if (ROMEO_RE.test(text)) {
-        result.discussion.push(p)
+      } else if (ROMEO_RE.test(text) && (text.length > 80 || likes >= 5)) {
+        // Обсуждение = упоминают Ромео, отвечают на него
+        result.discussion.push({ ...p, _subtopic: detectSubtopic(text, likes) })
       } else if (text.length > 300 && likes >= 20) {
-        result.debate.push(p)
+        // Дебаты = длинный контент с лайками, разбитый по темам
+        result.debate.push({ ...p, _subtopic: detectSubtopic(text, likes) })
       } else {
-        result.flood.push(p)
+        result.flood.push({ ...p, _subtopic: detectSubtopic(text, likes) })
       }
     })
 
-    const byDate = (a,b) => (b.timestamp||0)-(a.timestamp||0)
-    Object.keys(result).forEach(k => result[k].sort(byDate))
+    const byLikes = (a,b) => (b.likes||0)-(a.likes||0)
+    const byDate  = (a,b) => (b.timestamp||0)-(a.timestamp||0)
+    result.marathon.sort(byDate)
+    result.discussion.sort(byDate)
+    result.debate.sort(byLikes)   // дебаты по лайкам — лучший контент сверху
+    result.flood.sort(byDate)
     return result
   }, [posts, ignored, minLikes, minRating, search])
 
   const [topicTab, setTopicTab] = useState('marathon')
   const [topicPage, setTopicPage] = useState(1)
+  const [topicSubtopic, setTopicSubtopic] = useState(null)
+  const [topicSortByRaw, setTopicSortByRaw] = useState(() => { try { return localStorage.getItem('rpt_topic_sortby') || 'date_desc' } catch { return 'date_desc' } })
+  const setTopicSortBy = v => { setTopicSortByRaw(v); try { localStorage.setItem('rpt_topic_sortby', v) } catch {} }
   const TOPIC_PER_PAGE = 20
 
   const currentTopicPosts = useMemo(() => {
     let all = [...(classifiedPosts[topicTab] || [])]
-    if (sortBy === 'date_asc')  all.sort((a,b) => (a.timestamp||0) - (b.timestamp||0))
-    else if (sortBy === 'date_desc') all.sort((a,b) => (b.timestamp||0) - (a.timestamp||0))
-    else if (sortBy === 'likes') all.sort((a,b) => (b.likes||0) - (a.likes||0))
+    if (topicSubtopic) all = all.filter(p => p._subtopic === topicSubtopic)
+    if (topicSortByRaw === 'date_asc')  all.sort((a,b) => (a.timestamp||0) - (b.timestamp||0))
+    else if (topicSortByRaw === 'likes') all.sort((a,b) => (b.likes||0) - (a.likes||0))
+    else all.sort((a,b) => (b.timestamp||0) - (a.timestamp||0)) // date_desc по умолчанию
     return {
       all,
       paged: all.slice((topicPage-1)*TOPIC_PER_PAGE, topicPage*TOPIC_PER_PAGE),
       totalPages: Math.max(1, Math.ceil(all.length / TOPIC_PER_PAGE))
     }
-  }, [classifiedPosts, topicTab, topicPage, sortBy])
+  }, [classifiedPosts, topicTab, topicPage, topicSubtopic, topicSortByRaw])
 
   const goTopicPage = p => {
     setTopicPage(p)
@@ -1865,15 +1888,41 @@ export default function App() {
             {/* ТЕМЫ */}
             {activeTab==='topics' && (() => {
               const TABS = [
-                { id:'marathon',   icon:'📈', label:'Марафон',    desc:'Посты Ромео' },
-                { id:'discussion', icon:'💬', label:'Обсуждение', desc:'Реакции на Ромео' },
-                { id:'debate',     icon:'🔥', label:'Дебаты',     desc:'Топ-контент' },
+                { id:'marathon',   icon:'📈', label:'Марафон',    desc:'Посты Ромео + реакции на него' },
+                { id:'discussion', icon:'💬', label:'Обсуждение', desc:'Реакции форумчан на Ромео' },
+                { id:'debate',     icon:'🔥', label:'Дебаты',     desc:'Топ-контент по темам' },
                 { id:'flood',      icon:'💨', label:'Флуд',       desc:'Прочее' },
               ]
+              const SUBTOPICS = {
+                debate: [
+                  { id:null,         label:'Все' },
+                  { id:'debt',       label:'💰 Долги/Мистеры' },
+                  { id:'strategy',   label:'📊 Стратегия' },
+                  { id:'psychology', label:'🧠 Психология' },
+                  { id:'chess',      label:'♟ Шахматы/Гнат' },
+                  { id:'stream',     label:'📺 Стримы' },
+                  { id:'hot',        label:'🔥 Горячие' },
+                ],
+                flood: [
+                  { id:null,       label:'Все' },
+                  { id:'chess',    label:'♟ Шахматы/Гнат' },
+                  { id:'stream',   label:'📺 Стримы' },
+                  { id:'debt',     label:'💰 Долги' },
+                  { id:'hot',      label:'🔥 Горячие' },
+                ],
+                discussion: [
+                  { id:null,         label:'Все' },
+                  { id:'debt',       label:'💰 Долги' },
+                  { id:'strategy',   label:'📊 Стратегия' },
+                  { id:'psychology', label:'🧠 Психология' },
+                ],
+              }
               const { paged, totalPages: tpg, all } = currentTopicPosts
+              const subtopics = SUBTOPICS[topicTab]
+              const hasSub = subtopics && subtopics.length > 1
               return <>
                 <FilterBar
-                  sortBy={sortBy} setSortBy={setSortBy}
+                  sortBy={topicSortByRaw} setSortBy={setTopicSortBy}
                   search={search} setSearch={setSearch}
                   showSearch={showSearch} setShowSearch={setShowSearch}
                   romeoOnly={false} setRomeoOnly={()=>{}}
@@ -1886,20 +1935,39 @@ export default function App() {
                   {TABS.map(t => (
                     <div key={t.id}
                       className={`topic-tab ${topicTab===t.id?'active':''}`}
-                      onClick={()=>{ setTopicTab(t.id); setTopicPage(1) }}>
+                      onClick={()=>{ setTopicTab(t.id); setTopicPage(1); setTopicSubtopic(null) }}>
                       {t.icon} {t.label}
                       <span className="tc">{classifiedPosts[t.id]?.length||0}</span>
                     </div>
                   ))}
                 </div>
 
-                {/* Описание текущей темы */}
+                {/* Подтемы */}
+                {hasSub && (
+                  <div style={{display:'flex',gap:6,flexWrap:'wrap',margin:'8px 0',padding:'2px 0'}}>
+                    {subtopics.map(s => {
+                      const count = s.id
+                        ? classifiedPosts[topicTab]?.filter(p => p._subtopic === s.id).length || 0
+                        : classifiedPosts[topicTab]?.length || 0
+                      if (count === 0 && s.id) return null
+                      return (
+                        <button key={String(s.id)} onClick={()=>{ setTopicSubtopic(s.id); setTopicPage(1) }}
+                          style={{
+                            background: topicSubtopic===s.id ? 'var(--red)' : 'var(--bg3)',
+                            border: '1px solid ' + (topicSubtopic===s.id ? 'var(--red)' : 'var(--border)'),
+                            borderRadius:20, color: topicSubtopic===s.id ? '#fff' : 'var(--dim2)',
+                            fontSize:11, padding:'4px 10px', cursor:'pointer', fontFamily:'inherit',
+                          }}>
+                          {s.label} <span style={{opacity:.6,fontSize:10}}>{count}</span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                )}
+
+                {/* Описание */}
                 <div style={{fontSize:12,color:'var(--dim)',marginBottom:10}}>
                   {TABS.find(t=>t.id===topicTab)?.desc} · {all.length} постов
-                  {topicTab==='marathon' && <span style={{marginLeft:8,color:'var(--dim2)'}}>— только апдейты Ромео о ходе марафона</span>}
-                  {topicTab==='discussion' && <span style={{marginLeft:8,color:'var(--dim2)'}}>— посты цитирующие или упоминающие Ромео</span>}
-                  {topicTab==='debate' && <span style={{marginLeft:8,color:'var(--dim2)'}}>{'— длинные посты с лайками (>300 симв, >20 👍)'}</span>}
-                  {topicTab==='flood' && <span style={{marginLeft:8,color:'var(--dim2)'}}>— короткие посты без явной связи с марафоном</span>}
                 </div>
 
                 {all.length===0
@@ -2065,7 +2133,7 @@ export default function App() {
               <div style={{fontSize:11,color:'var(--dim)',fontFamily:"'Roboto Mono',monospace",marginBottom:4}}>
                 <span style={{color:'var(--dim2)',fontWeight:600}}>RomeoPro Tracker</span>
                 {' '}
-                <span style={{color:'#444'}}>v1.3.4</span>
+                <span style={{color:'#444'}}>v1.4.0</span>
               </div>
               <div style={{fontSize:10,color:'#444',marginBottom:4}}>
                 made by{' '}
@@ -2073,7 +2141,7 @@ export default function App() {
                   style={{color:'var(--dim)',textDecoration:'none'}}>LoremCDMX</a>
               </div>
               <div style={{fontSize:10,color:'#333'}}>
-                обновлено: 07.04.2026
+                обновлено: 08.04.2026
               </div>
             </div>
 
@@ -2083,10 +2151,11 @@ export default function App() {
                 Changelog
               </div>
               {[
-                ['07.04', 'v1.3', 'График с плавными bezier-кривыми и анимацией рисования. Тап по точке → детали сессии. Скрапер v3 с детальным логом. Мобильная вёрстка переписана под iPhone 17 Pro'],
-                ['06.04', 'v1.2', 'Попап с полным текстом поста по наведению. Виджет активности по дням. Топ-10 постов с фильтром по периоду. Автообновление данных каждые 5 мин. Сохранение фильтров'],
-                ['05.04', 'v1.1', 'Темы (марафон / обсуждение / дебаты / флуд). Репутация в стиле GT. Избранное и игнор-лист. Фильтры по лайкам и репе'],
-                ['05.04', 'v1.0', 'Первый запуск — лента постов, цитаты, пагинация, график марафона'],
+                ['08.04', 'v1.4', 'Подтемы в Темах: долги/стратегия/психология/шахматы/стримы. Отдельная сортировка для Тем. Vercel Analytics'],
+                ['07.04', 'v1.3', 'График с bezier-кривыми и анимацией. Скрапер v3 с детальным логом. Мобильная вёрстка под iPhone 17 Pro'],
+                ['06.04', 'v1.2', 'Попап предпросмотра постов. Виджет активности по дням. Топ-10 постов. Автообновление каждые 5 мин'],
+                ['05.04', 'v1.1', 'Темы форума. Репутация в стиле GT. Избранное и игнор-лист. Фильтры по лайкам и репе'],
+                ['05.04', 'v1.0', 'Первый запуск — лента, цитаты, пагинация, график марафона'],
               ].map(([date, ver, desc]) => (
                 <div key={date+ver} style={{display:'flex',gap:8,marginBottom:6,alignItems:'baseline'}}>
                   <span style={{fontSize:9,color:'#444',fontFamily:"'Roboto Mono',monospace",minWidth:36,flexShrink:0}}>{date}</span>
