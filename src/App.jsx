@@ -1138,7 +1138,17 @@ function renderPostText(text, collapseQuotes=false) {
 function PostCard({ p, favorites, onFav, onIgnore, setLightbox, noClamp=false }) {
   const [exp, setExp]     = useState(false)
   const [menu, setMenu]   = useState(false)
+  const menuRef           = useRef(null)
   const isFav  = favorites.has(p.id)
+
+  useEffect(() => {
+    if (!menu) return
+    const handler = e => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) setMenu(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [menu])
   const likes  = p.likes || 0
   const initial = (p.author||'?')[0].toUpperCase()
   const isLong  = !noClamp && (p.text?.replace(/\[QUOTE\][\s\S]*?\[\/QUOTE\]/gi, '').length || 0) > 600
@@ -1160,7 +1170,7 @@ function PostCard({ p, favorites, onFav, onIgnore, setLightbox, noClamp=false })
         </div>
         {/* Dropdown меню профиля */}
         {menu && (
-          <div style={{position:'absolute',top:44,left:12,background:'#1c1c1c',border:'1px solid #333',
+          <div ref={menuRef} style={{position:'absolute',top:44,left:12,background:'#1c1c1c',border:'1px solid #333',
             borderRadius:8,padding:'6px 0',zIndex:200,minWidth:160,boxShadow:'0 4px 20px rgba(0,0,0,.8)'}}
             onClick={e=>e.stopPropagation()}>
             {ROMEO_RE.test(p.author) && (
@@ -1195,10 +1205,9 @@ function PostCard({ p, favorites, onFav, onIgnore, setLightbox, noClamp=false })
             {p.msgCount && <span>{fmtInt(p.msgCount)} постов</span>}
             {p.regData  && <span>· {p.regData}</span>}
             {p.rating != null && (
-              <a href={ratingUrl} target="_blank" rel="noreferrer"
+              <><span>·</span><a href={ratingUrl} target="_blank" rel="noreferrer"
                 style={{color:'#4caf50',display:'inline-flex',alignItems:'center',gap:2,textDecoration:'none'}}
                 onClick={e=>e.stopPropagation()}>
-                ·
                 <svg viewBox="0 0 12 10" style={{width:11,height:10,fill:'#4caf50',flexShrink:0,marginLeft:3}}>
                   <rect x="0" y="6" width="2.5" height="4"/>
                   <rect x="3.2" y="3" width="2.5" height="7"/>
@@ -1206,7 +1215,7 @@ function PostCard({ p, favorites, onFav, onIgnore, setLightbox, noClamp=false })
                   <rect x="9.6" y="0" width="2.5" height="10"/>
                 </svg>
                 <span style={{fontFamily:"'Roboto Mono',monospace",fontWeight:700}}>{p.rating.toLocaleString()}</span>
-              </a>
+              </a></>
             )}
           </div>
         </div>
