@@ -271,7 +271,7 @@ describe('makeBezierPath', () => {
   it('produces valid path for 2 points', () => {
     const coords = [{x:0,y:0},{x:100,y:50}]
     const path = makeBezierPath(coords)
-    expect(path).toMatch(/^M 0\.0 0\.0 C /)
+    expect(path).toMatch(/^M 0\.0 0\.0 L /)
   })
 })
 
