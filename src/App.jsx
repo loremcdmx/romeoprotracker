@@ -514,6 +514,8 @@ const CHART_ROOMS = [
   { key:'lux',  label:'Lux',   logo:'https://luxon.poker/favicon.ico' },
 ]
 
+const fkAbs = v => v >= 1000 ? `$${(v/1000).toFixed(1)}k` : `$${Math.round(v)}`
+
 function MarathonChart({ posts, meta, startBR, setLightbox, day }) {
   const [tip, setTip]     = useState(null)
   const [pathLen, setPathLen] = useState(null)
@@ -522,11 +524,13 @@ function MarathonChart({ posts, meta, startBR, setLightbox, day }) {
   const points = useMemo(() => {
     if (meta?.brHistory?.length) {
       return meta.brHistory
+        .slice()
         .sort((a,b) => (a.timestamp||0)-(b.timestamp||0))
         .map((h,i,arr) => ({
           br:h.brAfter, brPrev:i===0?startBR:arr[i-1].brAfter,
           date:h.date, text:h.text||'', url:h.url,
           images:[], sessionResult:h.sessionResult, rooms:h.rooms||null,
+          tournaments:h.tournaments||null,
         }))
     }
     return posts
@@ -559,7 +563,6 @@ function MarathonChart({ posts, meta, startBR, setLightbox, day }) {
   const linePath = makeBezierPath(coords)
   const areaPath = makeBezierArea(coords, H)
   const isMobile = typeof window !== 'undefined' && window.innerWidth <= 720
-  const fkAbs = v => v >= 1000 ? `$${(v/1000).toFixed(1)}k` : `$${Math.round(v)}`
   const yTicks = [0,.33,.67,1].map(t => ({ v:minV+(maxV-minV)*t, y:yOf(minV+(maxV-minV)*t) }))
 
   const handleTouch = e => {
@@ -646,16 +649,10 @@ function MarathonChart({ posts, meta, startBR, setLightbox, day }) {
         return (
           <div className="mc-tooltip" style={mobileStyle}>
             <div style={{fontWeight:700,color:'#fff',fontSize:13,marginBottom:5}}>{tip.p.date}</div>
-            <div style={{display:'flex',gap:12,fontSize:12,marginBottom:tip.p.tournaments?4:roomDeltas.length?8:4}}>
+            <div style={{display:'flex',gap:12,fontSize:12,marginBottom:roomDeltas.length?8:4}}>
               <span style={{color:'#888'}}>БР: <b style={{color:'#fff'}}>{fkAbs(tip.p.br)}</b></span>
               <span style={{color:tip.profit>=0?'#66bb6a':'#ff5252',fontWeight:700}}>{fk(tip.profit)}</span>
             </div>
-            {tip.p.tournaments && (
-              <div style={{fontSize:11,color:'#888',marginBottom:roomDeltas.length?8:4}}>
-                🎯 МТТ за сессию: <b style={{color:'#ccc'}}>{fmtInt(tip.p.tournaments)}</b>
-                {tip.p.totalTournaments && <span style={{color:'#555'}}> · всего: {fmtInt(tip.p.totalTournaments)}</span>}
-              </div>
-            )}
             {roomDeltas.length>0 && (
               <div style={{display:'flex',flexWrap:'wrap',gap:'4px 12px',marginBottom:8}}>
                 {roomDeltas.map(r=>(
@@ -730,15 +727,15 @@ function ActivityChart({ posts, favorites, onFav, onIgnore, setLightbox,
     return Object.entries(byDate).sort((a,b)=>a[0]>b[0]?1:-1).slice(-30)
   }, [posts])
 
-  if (!data.length) return null
-  const max = Math.max(...data.map(d=>d[1].count), 1)
-
   const scrollRef = useRef(null)
   useEffect(() => {
     if (isMobile && scrollRef.current) {
       scrollRef.current.scrollLeft = scrollRef.current.scrollWidth
     }
   }, [isMobile, data.length])
+
+  if (!data.length) return null
+  const max = Math.max(...data.map(d=>d[1].count), 1)
 
   // ── MOBILE: горизонтальный скролл, последние 7 дней видны сразу ─────────────
   if (isMobile) {
@@ -823,16 +820,6 @@ function ActivityChart({ posts, favorites, onFav, onIgnore, setLightbox,
 
   // ── DESKTOP: SVG bar chart ─────────────────────────────────────────────────
   const W=600, H=70, pad=3
-  const bw = (W - pad * (data.length - 1)) / data.length
-  const minGap = 36
-  const step = Math.max(1, Math.ceil(minGap / (bw + pad)))
-  // Строим список индексов с лейблами: только по step, без принудительного последнего
-  // чтобы не было наложения у правого края
-  const labelIndices = new Set()
-  for (let i = 0; i < data.length; i += step) labelIndices.add(i)
-  // Добавляем последний только если он не слишком близко к предыдущему
-  const lastShown = [...labelIndices].filter(i => i < data.length - 1).pop() ?? -Infinity
-  if (data.length - 1 - lastShown >= step * 0.6) labelIndices.add(data.length - 1)
 
   return (
     <div className="chart-wrap">
@@ -848,9 +835,13 @@ function ActivityChart({ posts, favorites, onFav, onIgnore, setLightbox,
       </div>
       <svg className="chart-svg" viewBox={`0 0 ${W} ${H+22}`} onMouseLeave={()=>setTip(null)}>
         {data.map(([date, {count, posts:dp}], i) => {
+          const bw = (W - pad * (data.length - 1)) / data.length
           const x  = i * (bw + pad)
           const bh = Math.max(3, (count / max) * H)
-          const showL = labelIndices.has(i)
+          // Минимум 36px между метками чтобы не накладывались
+          const minGap = 36
+          const step = Math.max(1, Math.ceil(minGap / (bw + pad)))
+          const showL = i % step === 0 || i === data.length - 1
           const isSelected = selected?.date === date
           return (
             <g key={date} style={{cursor:'pointer'}}
@@ -859,7 +850,7 @@ function ActivityChart({ posts, favorites, onFav, onIgnore, setLightbox,
               <rect x={x} y={H-bh} width={bw} height={bh} rx={2}
                 fill={isSelected?'#e53935':tip?.date===date?'#e5393570':'#e5393530'}
                 style={{transition:'fill .1s'}}/>
-              {showL&&<text x={x+bw/2} y={H+16} className="chart-label">{date.slice(5)}</text>}
+              {showL&&<text x={Math.min(x+bw/2, W-16)} y={H+16} className="chart-label">{date.slice(5)}</text>}
             </g>
           )
         })}
@@ -1627,17 +1618,13 @@ export default function App() {
   const [ignoreInput, setIgnoreInput] = useState('')
 
   useEffect(() => {
-    fetchPublicData()
-      .then(({posts, meta}) => { setPosts(posts||[]); setMeta(meta||{}) })
-      .catch(() => setMeta({}))
-      .finally(() => setLoading(false))
-
-    // Обновляем данные каждые 5 минут (лайки обновляются скрапером)
-    const interval = setInterval(() => {
+    const loadData = () =>
       fetchPublicData()
         .then(({posts, meta}) => { setPosts(posts||[]); setMeta(meta||{}) })
         .catch(() => {})
-    }, 5 * 60 * 1000)
+
+    loadData().finally(() => setLoading(false))
+    const interval = setInterval(loadData, 5 * 60 * 1000)
     return () => clearInterval(interval)
   }, [])
 
@@ -1713,8 +1700,7 @@ export default function App() {
     } else if (page > 1) {
       // Были в середине — пересчитываем позицию пропорционально
       const ratio = (page - 1) / Math.max(1, currentTotal - 1)
-      const newTotal = currentTotal // пересчитается после render
-      setPage(Math.max(1, Math.round(ratio * newTotal)))
+      setPage(Math.max(1, Math.round(ratio * currentTotal)))
     }
     // Если page === 1 — ничего не делаем, остаёмся на 1
   }, [ignored, search, sortBy, romeoOnly, minLikes, minRating]) // eslint-disable-line
@@ -1724,7 +1710,7 @@ export default function App() {
     if (!feedPosts.length || !readPos.feed) return
     const idx = feedPosts.findIndex(p => p.id === readPos.feed)
     if (idx !== -1) setPage(Math.floor(idx / perPage) + 1)
-  }, [feedPosts.length > 0]) // только когда посты впервые появились
+  }, [feedPosts.length]) // только когда посты впервые появились
 
   const totalPages = Math.max(1, Math.ceil(feedPosts.length / perPage))
   const pagedPosts = feedPosts.slice((page-1)*perPage, page*perPage)
