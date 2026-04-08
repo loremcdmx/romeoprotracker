@@ -273,6 +273,32 @@ describe('makeBezierPath', () => {
     const path = makeBezierPath(coords)
     expect(path).toMatch(/^M 0\.0 0\.0 L /)
   })
+
+  it('monotone: control points stay within y-range of adjacent data points', () => {
+    // Spike pattern that would overshoot with naive tension-based splines
+    const coords = [
+      {x:0,y:100}, {x:50,y:10}, {x:100,y:90}, {x:150,y:20}, {x:200,y:80}
+    ]
+    const path = makeBezierPath(coords)
+    // Parse all C command y-values (cp1y, cp2y, endy)
+    const cMatches = [...path.matchAll(/C\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)\s+([\d.]+)/g)]
+    expect(cMatches.length).toBe(4)
+    for (let seg = 0; seg < cMatches.length; seg++) {
+      const cp1y = parseFloat(cMatches[seg][2])
+      const cp2y = parseFloat(cMatches[seg][4])
+      const startY = coords[seg].y
+      const endY   = coords[seg+1].y
+      const lo = Math.min(startY, endY) - 1 // small epsilon for float
+      const hi = Math.max(startY, endY) + 1
+      // Control points should not wildly exceed the range of the segment endpoints
+      // Allow some slack (30%) for smooth curves, but no full overshoot
+      const slack = (hi - lo) * 0.35
+      expect(cp1y).toBeGreaterThanOrEqual(lo - slack)
+      expect(cp1y).toBeLessThanOrEqual(hi + slack)
+      expect(cp2y).toBeGreaterThanOrEqual(lo - slack)
+      expect(cp2y).toBeLessThanOrEqual(hi + slack)
+    }
+  })
 })
 
 // ─── makeBezierArea ──────────────────────────────────────────────────────────

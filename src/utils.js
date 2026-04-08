@@ -116,21 +116,26 @@ function _monotoneTangents(coords) {
       tangents[i] = (m[i-1] + m[i]) / 2
     }
   }
-  // Fritsch–Carlson: clamp tangents to preserve monotonicity
+  // Fritsch–Carlson step 2: clamp alpha/beta so alpha^2+beta^2 <= 9
+  // Collect all alpha/beta first, then apply — avoids mutating tangents[i+1]
+  // while it's still needed as tangents[i] on the next iteration.
+  const clamps = []
   for (let i = 0; i < n - 1; i++) {
     if (Math.abs(m[i]) < 1e-6) {
-      tangents[i] = 0
-      tangents[i+1] = 0
+      clamps.push({ i, ti: 0, i1: i+1, ti1: 0 })
     } else {
       const a = tangents[i] / m[i]
       const b = tangents[i+1] / m[i]
       const s = a * a + b * b
       if (s > 9) {
-        const t = 3 / Math.sqrt(s)
-        tangents[i] = t * a * m[i]
-        tangents[i+1] = t * b * m[i]
+        const tau = 3 / Math.sqrt(s)
+        clamps.push({ i, ti: tau * a * m[i], i1: i+1, ti1: tau * b * m[i] })
       }
     }
+  }
+  for (const c of clamps) {
+    tangents[c.i]  = c.ti
+    tangents[c.i1] = c.ti1
   }
   return { tangents, dx }
 }
