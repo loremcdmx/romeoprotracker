@@ -195,6 +195,8 @@ function MarathonChart({ posts, meta, startBR, setLightbox, day }) {
                 const lx = Math.min(Math.max(cx,pL),W-pR)
                 return (
                   <g>
+                    <line x1={lx} y1={cy} x2={lx} y2={H+pB-32}
+                      stroke="rgba(255,255,255,0.06)" strokeWidth="1" strokeDasharray="2 3"/>
                     <text x={lx} y={H+pB-22} textAnchor="middle" fontFamily="'Roboto Mono',monospace"
                       fontSize="11" fontWeight="600" fill="#888">
                       {cumMTT[i] ? fmtInt(cumMTT[i]) : '—'}
