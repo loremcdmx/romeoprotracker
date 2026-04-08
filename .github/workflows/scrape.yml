@@ -2,8 +2,18 @@ name: Scrape Forum
 
 on:
   schedule:
-    - cron: '*/30 * * * *'  # every 30 minutes
-  workflow_dispatch: {}      # manual trigger from GitHub UI
+    - cron: '*/30 * * * *'   # every 30 min — new posts + recent likes
+    - cron: '0 */6 * * *'    # every 6 hours — full scan, all likes
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Scrape mode'
+        required: false
+        default: 'normal'
+        type: choice
+        options:
+          - normal
+          - full
 
 permissions:
   contents: write
@@ -24,4 +34,5 @@ jobs:
       - name: Run scraper
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          SCRAPE_MODE: ${{ github.event.schedule == '0 */6 * * *' && 'full' || inputs.mode || 'normal' }}
         run: node scripts/scrape.mjs
