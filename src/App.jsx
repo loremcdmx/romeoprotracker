@@ -740,8 +740,18 @@ function MarathonChart({ posts, meta, startBR, setLightbox, day }) {
   const W=700, H=160, pL=52, pR=20, pT=14, pB=32
   const minV = Math.min(...points.map(p=>p.br), startBR) * 0.97
   const maxV = Math.max(...points.map(p=>p.br), startBR) * 1.03
-  const xOf  = i => pL + (i/Math.max(points.length-1,1)) * (W-pL-pR)
   const yOf  = v => pT + (1-(v-minV)/(maxV-minV)) * (H-pT-pB)
+
+  // X-позиция пропорциональна накопленным МТТ если данные есть, иначе равномерно
+  const hasMTT = points.length > 1 && points.some(p => p.tournaments)
+  const cumMTT = (() => {
+    let acc = 0
+    return points.map(p => { acc += (p.tournaments || 0); return acc })
+  })()
+  const totalMTT = cumMTT[cumMTT.length - 1] || 1
+  const xOf = i => hasMTT && totalMTT > 0
+    ? pL + (cumMTT[i] / totalMTT) * (W - pL - pR)
+    : pL + (i / Math.max(points.length - 1, 1)) * (W - pL - pR)
   const coords = points.map((p,i) => ({ x:xOf(i), y:yOf(p.br) }))
   const linePath = makeBezierPath(coords)
   const areaPath = makeBezierArea(coords, H)
