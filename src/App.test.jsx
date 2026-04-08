@@ -122,8 +122,8 @@ describe('App', () => {
   it('renders footer with version and changelog', async () => {
     render(<App />)
     await screen.findAllByText('Romeopro')
-    // v2.0 may appear in footer and changelog entry
-    expect(screen.getAllByText('v2.0').length).toBeGreaterThanOrEqual(1)
+    // v2.1 may appear in footer and changelog entry
+    expect(screen.getAllByText('v2.1').length).toBeGreaterThanOrEqual(1)
     expect(screen.getByText('Changelog')).toBeInTheDocument()
   })
 
