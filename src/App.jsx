@@ -3,7 +3,7 @@ import { fetchPublicData } from './storage.js'
 import { Analytics } from '@vercel/analytics/react'
 import {
   timeAgo, fmtBR, fmtNum, fmtInt, fmtExact, extractDay, extractBR,
-  fk, fkAbs, ROMEO_RE, autoCloseQuotes, stripQuoteTags, extractQuoteBody,
+  fk, fkAbs, ROMEO_RE, autoCloseQuotes, stripQuoteTags,
   makeBezierPath, makeBezierArea,
 } from './utils.js'
 import { useIsMobile } from './hooks/useIsMobile.js'
@@ -906,7 +906,6 @@ function SidebarTopList({ posts, setLightbox }) {
   const [popupPos, setPopupPos] = useState({x:0, y:0})
 
   const stripQuotes = stripQuoteTags
-  const extractBody = extractQuoteBody
 
   return (
     <div style={{padding:'6px 14px'}}
@@ -937,9 +936,9 @@ function SidebarTopList({ posts, setLightbox }) {
                   onError={e=>e.target.style.display='none'}/>
               )}
               {renderPostText(p.text, true)}
-              {!stripQuotes(p.text) && (
+              {!stripQuotes(p.text) && p.text?.includes('[QUOTE]') && (
                 <div style={{fontSize:11,color:'var(--dim)',fontStyle:'italic',marginTop:6}}>
-                  {p.text?.includes('[QUOTE]') ? 'ответ обрезан — ' : ''}полный текст на форуме ↗
+                  цитата без ответа — полный текст на форуме ↗
                 </div>
               )}
             </div>
@@ -953,9 +952,8 @@ function SidebarTopList({ posts, setLightbox }) {
 
       {posts.map((p, i) => {
         const clean = stripQuotes(p.text)
-        const quoteBody = !clean && extractBody(p.text)
-        const preview = clean || quoteBody || (p.images?.[0] ? '📷 изображение' : '')
-        const isQuoteOnly = !clean && !!quoteBody
+        const isQuoteOnly = !clean && (p.text||'').includes('[QUOTE]')
+        const preview = clean || (p.images?.[0] ? '📷 изображение' : '')
         const initial = (p.author||'?')[0].toUpperCase()
         return (
           <div key={i}
@@ -979,12 +977,16 @@ function SidebarTopList({ posts, setLightbox }) {
                   onClick={e=>{e.stopPropagation();setLightbox(p.images[0])}}
                   onError={e=>e.target.style.display='none'}/>
               )}
-              <div style={{fontSize:11,color:isQuoteOnly?'var(--dim)':'var(--text)',overflow:'hidden',lineHeight:1.5,
-                display:'-webkit-box',WebkitLineClamp:10,WebkitBoxOrient:'vertical',
-                ...(isQuoteOnly?{borderLeft:'2px solid var(--border2)',paddingLeft:8,fontStyle:'italic'}:{})}}>
-                {isQuoteOnly && <span style={{fontSize:9,color:'var(--dim)',fontStyle:'normal',display:'block',marginBottom:2}}>цитирует:</span>}
-                {preview.substring(0,500)}
-              </div>
+              {isQuoteOnly ? (
+                <div style={{fontSize:11,color:'var(--dim)',lineHeight:1.5,fontStyle:'italic'}}>
+                  ↩ цитата без ответа — <span style={{color:'var(--red2)',fontStyle:'normal',textDecoration:'underline'}}>открыть на форуме</span>
+                </div>
+              ) : (
+                <div style={{fontSize:11,color:'var(--text)',overflow:'hidden',lineHeight:1.5,
+                  display:'-webkit-box',WebkitLineClamp:10,WebkitBoxOrient:'vertical'}}>
+                  {preview.substring(0,500)}
+                </div>
+              )}
             </div>
             <span style={{color:'var(--green)',fontSize:10,fontWeight:700,flexShrink:0,paddingTop:10}}>+{p.likes}</span>
           </div>
