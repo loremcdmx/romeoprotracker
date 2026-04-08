@@ -978,8 +978,8 @@ function SidebarTopList({ posts, setLightbox }) {
                   onError={e=>e.target.style.display='none'}/>
               )}
               <div style={{fontSize:11,color:'var(--text)',overflow:'hidden',lineHeight:1.5,
-                display:'-webkit-box',WebkitLineClamp:7,WebkitBoxOrient:'vertical'}}>
-                {preview.substring(0,300)}
+                display:'-webkit-box',WebkitLineClamp:10,WebkitBoxOrient:'vertical'}}>
+                {preview.substring(0,500)}
               </div>
             </div>
             <span style={{color:'var(--green)',fontSize:10,fontWeight:700,flexShrink:0,paddingTop:10}}>+{p.likes}</span>
