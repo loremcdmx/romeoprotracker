@@ -507,7 +507,7 @@ const css = `
     0%,100%{filter:drop-shadow(0 0 2px currentColor);opacity:1}
     50%{filter:drop-shadow(0 0 6px currentColor);opacity:.75}
   }
-  @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+  @keyframes fadeIn{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:scale(1)}}
   .mc-dot-last{animation:pulseDot 2s ease-in-out infinite}
   .mc-animate{animation:drawLine 1.4s cubic-bezier(.4,0,.2,1) forwards}
   .mc-tooltip{animation:fadeIn .15s ease}
@@ -666,38 +666,25 @@ function Sparkline({ values, width = 64, height = 24, color = '#4caf50' }) {
 }
 
 // ─── MARATHON CHART ───────────────────────────────────────────────────────────
-// Centripetal Catmull-Rom: вычисляет управляющие точки между p1→p2
-function _centripetalCR(p0, p1, p2, p3) {
-  const alpha = 0.5
-  const t01 = Math.pow(Math.hypot(p1.x-p0.x, p1.y-p0.y), alpha) || 1e-4
-  const t12 = Math.pow(Math.hypot(p2.x-p1.x, p2.y-p1.y), alpha) || 1e-4
-  const t23 = Math.pow(Math.hypot(p3.x-p2.x, p3.y-p2.y), alpha) || 1e-4
-  const m1x = ((p2.x-p1.x)/t12 - (p2.x-p0.x)/(t01+t12) + (p1.x-p0.x)/t01) * t12
-  const m1y = ((p2.y-p1.y)/t12 - (p2.y-p0.y)/(t01+t12) + (p1.y-p0.y)/t01) * t12
-  const m2x = ((p2.x-p1.x)/t12 - (p3.x-p1.x)/(t12+t23) + (p3.x-p2.x)/t23) * t12
-  const m2y = ((p2.y-p1.y)/t12 - (p3.y-p1.y)/(t12+t23) + (p3.y-p2.y)/t23) * t12
-  return [
-    { x: p1.x + m1x/3, y: p1.y + m1y/3 },
-    { x: p2.x - m2x/3, y: p2.y - m2y/3 }
-  ]
-}
-function makeBezierPath(coords) {
+function makeBezierPath(coords, tension = 0.3) {
   if (coords.length < 2) return ''
   let d = `M ${coords[0].x.toFixed(1)} ${coords[0].y.toFixed(1)}`
   for (let i = 1; i < coords.length; i++) {
     const p0 = coords[Math.max(0, i-2)], p1 = coords[i-1], p2 = coords[i], p3 = coords[Math.min(coords.length-1, i+1)]
-    const [cp1, cp2] = _centripetalCR(p0, p1, p2, p3)
-    d += ` C ${cp1.x.toFixed(1)} ${cp1.y.toFixed(1)} ${cp2.x.toFixed(1)} ${cp2.y.toFixed(1)} ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`
+    const cp1x = p1.x + (p2.x - p0.x) * tension, cp1y = p1.y + (p2.y - p0.y) * tension
+    const cp2x = p2.x - (p3.x - p1.x) * tension, cp2y = p2.y - (p3.y - p1.y) * tension
+    d += ` C ${cp1x.toFixed(1)} ${cp1y.toFixed(1)} ${cp2x.toFixed(1)} ${cp2y.toFixed(1)} ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`
   }
   return d
 }
-function makeBezierArea(coords, baseline) {
+function makeBezierArea(coords, baseline, tension = 0.3) {
   if (coords.length < 2) return ''
   let d = `M ${coords[0].x.toFixed(1)} ${baseline} L ${coords[0].x.toFixed(1)} ${coords[0].y.toFixed(1)}`
   for (let i = 1; i < coords.length; i++) {
     const p0 = coords[Math.max(0, i-2)], p1 = coords[i-1], p2 = coords[i], p3 = coords[Math.min(coords.length-1, i+1)]
-    const [cp1, cp2] = _centripetalCR(p0, p1, p2, p3)
-    d += ` C ${cp1.x.toFixed(1)} ${cp1.y.toFixed(1)} ${cp2.x.toFixed(1)} ${cp2.y.toFixed(1)} ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`
+    const cp1x = p1.x + (p2.x - p0.x) * tension, cp1y = p1.y + (p2.y - p0.y) * tension
+    const cp2x = p2.x - (p3.x - p1.x) * tension, cp2y = p2.y - (p3.y - p1.y) * tension
+    d += ` C ${cp1x.toFixed(1)} ${cp1y.toFixed(1)} ${cp2x.toFixed(1)} ${cp2y.toFixed(1)} ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`
   }
   return d + ` L ${coords[coords.length-1].x.toFixed(1)} ${baseline} Z`
 }
@@ -750,7 +737,7 @@ function MarathonChart({ posts, meta, startBR, setLightbox, day }) {
     </div>
   )
 
-  const W=700, H=160, pL=52, pR=20, pT=14, pB=32
+  const W=700, H=160, pL=52, pR=20, pT=14, pB=44
   const minV = Math.min(...points.map(p=>p.br), startBR) * 0.97
   const maxV = Math.max(...points.map(p=>p.br), startBR) * 1.03
   const yOf  = v => pT + (1-(v-minV)/(maxV-minV)) * (H-pT-pB)
@@ -854,7 +841,21 @@ function MarathonChart({ posts, meta, startBR, setLightbox, day }) {
                 className={isLast?'mc-dot mc-dot-last':'mc-dot'}
                 fill={profit>=0?'#4caf50':'#e53935'}
                 style={{transition:'r .12s', ...(isLast?{color:profit>=0?'#4caf50':'#e53935'}:{})}}/>
-              {showL && <text x={Math.min(Math.max(cx,pL),W-pR)} y={H+pB-6} className="mc-label">{p.date?.slice(0,5)}</text>}
+              {showL && (() => {
+                const lx = Math.min(Math.max(cx,pL),W-pR)
+                return (
+                  <g>
+                    <text x={lx} y={H+pB-22} textAnchor="middle" fontFamily="'Roboto Mono',monospace"
+                      fontSize="11" fontWeight="600" fill="#888">
+                      {p.tournaments ? fmtInt(p.tournaments) : '—'}
+                    </text>
+                    <text x={lx} y={H+pB-8} textAnchor="middle" fontFamily="'Roboto Mono',monospace"
+                      fontSize="7" fill="#444">
+                      {p.date?.slice(0,5)}
+                    </text>
+                  </g>
+                )
+              })()}
             </g>
           )
         })}
