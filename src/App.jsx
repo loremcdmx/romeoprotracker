@@ -958,7 +958,7 @@ function SidebarTopList({ posts, setLightbox }) {
         const initial = (p.author||'?')[0].toUpperCase()
         return (
           <div key={i}
-            style={{display:'flex',gap:8,padding:'7px 0',borderBottom:'1px solid var(--border)',
+            style={{display:'flex',gap:10,padding:'9px 0',borderBottom:'1px solid var(--border)',
               alignItems:'flex-start',cursor:'pointer'}}
             onClick={()=>p.url&&window.open(p.url,'_blank')}
             onMouseEnter={e=>{ setHovered(i); setPopupPos({x:e.clientX, y:e.clientY}) }}>
@@ -978,9 +978,9 @@ function SidebarTopList({ posts, setLightbox }) {
                   onClick={e=>{e.stopPropagation();setLightbox(p.images[0])}}
                   onError={e=>e.target.style.display='none'}/>
               )}
-              <div style={{fontSize:11,color:'var(--text)',overflow:'hidden',
-                display:'-webkit-box',WebkitLineClamp:4,WebkitBoxOrient:'vertical'}}>
-                {preview.substring(0,80)}
+              <div style={{fontSize:11,color:'var(--text)',overflow:'hidden',lineHeight:1.5,
+                display:'-webkit-box',WebkitLineClamp:3,WebkitBoxOrient:'vertical'}}>
+                {preview.substring(0,120)}
               </div>
             </div>
             <span style={{color:'var(--green)',fontSize:10,fontWeight:700,flexShrink:0,paddingTop:10}}>+{p.likes}</span>
@@ -1616,7 +1616,7 @@ export default function App() {
       {/* FOOTER */}
       {!loading && (
         <footer style={{
-          maxWidth:1280,margin:'0 auto',padding:'24px 16px 40px',
+          maxWidth:1480,margin:'0 auto',padding:'24px 16px 40px',
           borderTop:'1px solid var(--border)',marginTop:8,
         }}>
           <div style={{display:'flex',flexWrap:'wrap',gap:24,alignItems:'flex-start',justifyContent:'space-between'}}>
