@@ -2467,7 +2467,7 @@ export default function App() {
               <div style={{fontSize:11,color:'var(--dim)',fontFamily:"'Roboto Mono',monospace",marginBottom:4}}>
                 <span style={{color:'var(--dim2)',fontWeight:600}}>RomeoPro Tracker</span>
                 {' '}
-                <span style={{color:'#444'}}>v1.5.0</span>
+                <span style={{color:'#444'}}>v1.5.1</span>
               </div>
               <div style={{fontSize:10,color:'#444',marginBottom:4}}>
                 made by{' '}
@@ -2485,6 +2485,7 @@ export default function App() {
                 Changelog
               </div>
               {[
+                ['08.04', 'v1.5.1', 'Количество турниров теперь видно прямо на графике под каждой точкой. Плавные кривые на графике. Мягкая анимация появления элементов'],
                 ['08.04', 'v1.5', 'Белая тема + переключатель. Glassmorphism тултипы. Анимированный счётчик БР. Пилл результата сессии в тултипе. Прогресс-бар $10k→$10M. Градиентная рамка постов Ромео. Исправление цвета отрицательной репы'],
                 ['08.04', 'v1.4', 'Подтемы в Темах: долги/стратегия/психология/шахматы/стримы. Отдельная сортировка для Тем. Vercel Analytics'],
                 ['07.04', 'v1.3', 'График с bezier-кривыми и анимацией. Скрапер v3 с детальным логом. Мобильная вёрстка под iPhone 17 Pro'],
