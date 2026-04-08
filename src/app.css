@@ -17,7 +17,7 @@ a{color:var(--red2);text-decoration:none}
 
 /* TOPBAR */
 .topbar{background:#0a0a0a;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100}
-.topbar-inner{max-width:1280px;margin:0 auto;padding:0 16px;display:flex;align-items:center;height:40px;gap:16px}
+.topbar-inner{max-width:1480px;margin:0 auto;padding:0 16px;display:flex;align-items:center;height:40px;gap:16px}
 .logo{display:flex;align-items:center;gap:10px;flex-shrink:0}
 .logo-badge{background:var(--red);color:#fff;font-size:11px;font-weight:800;width:26px;height:26px;border-radius:5px;display:flex;align-items:center;justify-content:center}
 .logo-text{font-size:13px;font-weight:700;color:var(--white)}
@@ -29,7 +29,7 @@ a{color:var(--red2);text-decoration:none}
 .topbar-right{margin-left:auto;display:flex;align-items:center;gap:6px}
 
 /* LAYOUT */
-.page{max-width:1280px;margin:0 auto;padding:10px 16px 60px;display:grid;grid-template-columns:1fr 240px;gap:12px;align-items:start}
+.page{max-width:1480px;margin:0 auto;padding:10px 16px 60px;display:grid;grid-template-columns:1fr 320px;gap:16px;align-items:start}
 .page.wide{grid-template-columns:1fr}
 
 /* HERO */
