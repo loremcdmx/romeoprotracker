@@ -14,6 +14,9 @@ const css = `
     --text:#d4d4d4;--dim:#888;--dim2:#aaa;
     --green:#4caf50;--gold:#ffb300;--white:#f0f0f0;
     --r:6px;
+    --bg-popup:#1c1c1c;--border-popup:#333;
+    --bg-quote:#151515;--border-quote:#2a2a2a;--text-quote:#5a5a5a;
+    --bg-tag:#1e1e1e;--shadow-popup:0 8px 32px rgba(0,0,0,.9);
   }
   html,body,#root{min-height:100%;background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-size:12px;line-height:1.5}
   html{overflow-x:clip}
@@ -184,24 +187,71 @@ const css = `
     --border:#ddd;--border2:#bbb;
     --text:#1a1a1a;--dim:#777;--dim2:#444;
     --white:#111;--red-dim:#fff0f0;
+    --bg-popup:#fff;--border-popup:#ddd;
+    --bg-quote:#f5f5f5;--border-quote:#ddd;--text-quote:#555;
+    --bg-tag:#f0f0f0;--shadow-popup:0 8px 32px rgba(0,0,0,.12);
   }
+  /* Base elements */
   .light html,body,#root{background:var(--bg)}
   .light .topbar{background:#fff;border-bottom-color:var(--border)}
   .light .topbar-tab:hover{background:#f0f0f0}
   .light .topbar-tab.active{background:#e8e8e8;color:#111}
   .light .hero{background:linear-gradient(135deg,#fff5f5 0%,#f8f8f8 100%)}
+  /* Charts */
   .light .mc-grid{stroke:#e8e8e8}
   .light .mc-zero{stroke:#ddd}
   .light .mc-label,.light .mc-ylabel{fill:#aaa}
   .light .chart-label{fill:#aaa}
+  .light .mc-dot{stroke:#fff}
+  /* Scrollbar */
   .light ::-webkit-scrollbar-track{background:#e8e8e8}
   .light ::-webkit-scrollbar-thumb{background:#ccc}
+  /* Admin */
   .light .admin-box{background:#fff;border-color:#ddd}
   .light .admin-log{background:#f5f5f5}
   .light .admin-input{background:#f5f5f5;border-color:#ddd;color:#111}
+  .light .admin-modal{background:rgba(0,0,0,.3)}
+  /* Inputs */
   .light .filter-num,.light .feed-search,.light .feed-select{background:#f5f5f5;color:#111}
   .light .page-btn{background:#fff}
   .light .perpage-select{background:#f5f5f5;color:#111}
+  /* Post cards */
+  .light .post-card{background:#fff;border-color:#e0e0e0}
+  .light .post-card:hover{border-color:#bbb}
+  .light .pc-head{border-bottom-color:#eee}
+  .light .pc-foot{border-top-color:#eee}
+  .light .pc-author{color:#111}
+  .light .pc-body{color:#1a1a1a}
+  /* Sidebar */
+  .light .sblock{background:#fff;border-color:#e0e0e0}
+  .light .sblock-title{background:#f5f5f5;border-bottom-color:#eee;color:#666}
+  .light .srow{border-bottom-color:#eee}
+  .light .srow-key{color:#555}
+  .light .srow-val{color:#111}
+  /* Misc */
+  .light .section-title{color:#555}
+  .light .section-count{background:#eee;border-color:#ddd;color:#666}
+  .light .topic-tab{background:#fff;border-color:#ddd;color:#555}
+  .light .topic-tab:hover{border-color:#bbb;color:#111}
+  .light .topic-tab.active{background:#fff0f0;border-color:var(--red);color:var(--red)}
+  .light .topic-tab .tc{background:#eee;color:#666}
+  .light .marathon-chart{background:#fff;border-color:#e0e0e0}
+  .light .chart-wrap{background:#fff;border-color:#e0e0e0}
+  .light .filter-bar{background:#fff;border-color:#e0e0e0}
+  .light .filter-pill.off{background:#f0f0f0;color:#555;border-color:#ddd}
+  .light .filter-pill.off:hover{border-color:#bbb;color:#111}
+  .light .ignore-input{background:#f5f5f5;border-color:#ddd;color:#111}
+  .light .btn-sm{background:#f0f0f0;border-color:#ddd;color:#333}
+  .light .lightbox{background:rgba(0,0,0,.7)}
+  /* Sidebar top list popup — targeted via class we'll add */
+  .light .sidebar-popup{background:var(--bg-popup)!important;border-color:var(--border-popup)!important;box-shadow:var(--shadow-popup)!important}
+  .light .sidebar-popup *{color:inherit}
+  /* Quote blocks inside posts */
+  .light .pc-body blockquote,.light .quote-block{background:var(--bg-quote)!important;border-left-color:var(--border-quote)!important}
+  /* Progress bar track */
+  .light .marathon-progress{background:#e0e0e0}
+  /* Mobile nav */
+  .light .mobile-nav{background:#fff;border-top-color:#eee}
 
   /* ─── GLASSMORPHISM TOOLTIPS ───────────────────────────────────────────── */
   .mc-tooltip{
@@ -260,14 +310,13 @@ const css = `
 
   /* ─── SESSION PILL on chart ─────────────────────────────────────────────── */
   .mc-pill{
-    position:absolute;pointer-events:none;z-index:25;
     background:rgba(18,18,18,0.82);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
     border:1px solid rgba(255,255,255,0.12);border-radius:20px;
-    padding:2px 8px;font-size:10px;font-weight:700;font-family:'Roboto Mono',monospace;
-    white-space:nowrap;transform:translateX(-50%);
+    padding:3px 10px;font-size:11px;font-weight:700;font-family:'Roboto Mono',monospace;
+    white-space:nowrap;
     box-shadow:0 2px 8px rgba(0,0,0,.4);
   }
-  .light .mc-pill{background:rgba(255,255,255,0.88);border-color:rgba(0,0,0,0.12)}
+  .light .mc-pill{background:rgba(255,255,255,0.92);border-color:rgba(0,0,0,0.12);box-shadow:0 2px 8px rgba(0,0,0,.1)}
 
   /* ─── THEME TOGGLE ──────────────────────────────────────────────────────── */
   .theme-toggle{background:none;border:1px solid var(--border);border-radius:20px;cursor:pointer;color:var(--dim);font-size:13px;padding:3px 8px;transition:all .2s;line-height:1}
@@ -767,30 +816,11 @@ function MarathonChart({ posts, meta, startBR, setLightbox, day }) {
         })}
         {tip && <line x1={tip.x} y1={pT} x2={tip.x} y2={H} stroke="rgba(255,255,255,0.08)" strokeWidth="1" strokeDasharray="3 3"/>}
       </svg>
-      {/* SESSION PILL — показывается выше точки при наведении */}
-      {tip && !isMobile && (() => {
-        const svgEl = document.querySelector('.mc-svg')
-        const rect  = svgEl?.getBoundingClientRect()
-        if (!rect) return null
-        const scaleX = rect.width / W
-        const scaleY = rect.height / (H + pB)
-        const pillX  = tip.x * scaleX
-        const pillY  = tip.y * scaleY - 18
-        const color  = tip.profit >= 0 ? '#66bb6a' : '#ff5252'
-        return (
-          <div className="mc-pill" style={{
-            left: pillX,
-            top:  pillY,
-            color,
-            borderColor: tip.profit >= 0 ? 'rgba(102,187,106,.3)' : 'rgba(255,82,82,.3)',
-          }}>
-            {fk(tip.profit)}
-          </div>
-        )
-      })()}
       {tip && (() => {
         const pct=tip.x/W*100, right=pct>60
         const roomDeltas = tip.p.rooms ? CHART_ROOMS.map(r=>({...r,v:(tip.p.rooms.after[r.key]||0)-(tip.p.rooms.before[r.key]||0)})).filter(r=>r.v!==0) : []
+        const pillColor  = tip.profit >= 0 ? '#66bb6a' : '#ff5252'
+        const pillBorder = tip.profit >= 0 ? 'rgba(102,187,106,.25)' : 'rgba(255,82,82,.25)'
         const mobileStyle = isMobile ? {
           position:'fixed', bottom:Math.max(90, window.innerHeight - (tip.screenY||0) + 16)+'px',
           left:'12px', right:'12px', maxWidth:'none', width:'auto',
@@ -801,8 +831,17 @@ function MarathonChart({ posts, meta, startBR, setLightbox, day }) {
           right:right?`calc(${100-pct}% - 8px)`:'auto',
         }
         return (
-          <div className="mc-tooltip" style={mobileStyle}>
-            <div style={{fontWeight:700,color:'var(--white)',fontSize:13,marginBottom:5}}>{tip.p.date}</div>
+          <div className="mc-tooltip" style={{...mobileStyle, position: isMobile ? 'fixed' : 'absolute'}}>
+            {/* Pill — всегда в правом верхнем углу тултипа */}
+            <div className="mc-pill" style={{
+              position:'absolute', top:12, right:12,
+              transform:'none',
+              color: pillColor,
+              borderColor: pillBorder,
+            }}>
+              {fk(tip.profit)}
+            </div>
+            <div style={{fontWeight:700,color:'var(--white)',fontSize:13,marginBottom:5,paddingRight:64}}>{tip.p.date}</div>
             <div style={{display:'flex',gap:12,fontSize:12,marginBottom:tip.p.tournaments?4:roomDeltas.length?8:4}}>
               <span style={{color:'var(--dim)'}}>БР: <b style={{color:'var(--white)'}}>{fkAbs(tip.p.br)}</b></span>
             </div>
@@ -1190,14 +1229,14 @@ function FilterBar({ sortBy, setSortBy, search, setSearch, showSearch, setShowSe
 function CollapsibleQuote({ author, date, body }) {
   const [open, setOpen] = useState(false)
   return (
-    <div style={{borderLeft:'3px solid #2a2a2a',background:'#151515',borderRadius:'0 4px 4px 0',padding:'6px 10px',margin:'2px 0 8px'}}>
-      <div style={{fontSize:10,color:'#555',fontWeight:600,marginBottom:open?4:0,letterSpacing:'.04em',display:'flex',alignItems:'center',gap:6,cursor:'pointer'}}
+    <div style={{borderLeft:'3px solid var(--border-quote)',background:'var(--bg-quote)',borderRadius:'0 4px 4px 0',padding:'6px 10px',margin:'2px 0 8px'}}>
+      <div style={{fontSize:10,color:'var(--dim)',fontWeight:600,marginBottom:open?4:0,letterSpacing:'.04em',display:'flex',alignItems:'center',gap:6,cursor:'pointer'}}
         onClick={()=>setOpen(o=>!o)}>
         <span>↩ {author}{date ? ' · ' + date : ''}</span>
-        <span style={{color:'#444',fontSize:9}}>{open ? '▲' : '▼ показать'}</span>
+        <span style={{color:'var(--dim)',fontSize:9,opacity:.6}}>{open ? '▲' : '▼ показать'}</span>
       </div>
       {open && (
-        <div style={{color:'#5a5a5a',fontSize:12,lineHeight:1.6,marginTop:4}}>
+        <div style={{color:'var(--text-quote)',fontSize:12,lineHeight:1.6,marginTop:4}}>
           {body
             ? body.replace(/\n{2,}/g,'\n').split('\n').filter(p=>/[^\s\u00a0]/.test(p)).map((p,j,arr)=>(
                 <span key={j} style={{display:'block',marginBottom:j<arr.length-1?4:0}}>{p}</span>
@@ -1260,15 +1299,15 @@ function renderPostText(text, collapseQuotes=false) {
       if (collapseQuotes) return <CollapsibleQuote key={i} author={part.author} date={part.date} body={part.body}/>
       return (
         <div key={i} style={{
-          borderLeft:'3px solid #2a2a2a', background:'#151515',
+          borderLeft:'3px solid var(--border-quote)', background:'var(--bg-quote)',
           borderRadius:'0 4px 4px 0', padding:'8px 12px', margin:'2px 0 8px',
         }}>
           {(part.author || part.date) && (
-            <div style={{fontSize:10,color:'#555',fontWeight:600,marginBottom:4,letterSpacing:'.04em'}}>
+            <div style={{fontSize:10,color:'var(--dim)',fontWeight:600,marginBottom:4,letterSpacing:'.04em'}}>
               ↩ {part.author}{part.date ? ' · ' + part.date : ''}
             </div>
           )}
-          <div style={{color:'#5a5a5a',fontSize:12,lineHeight:1.6}}>
+          <div style={{color:'var(--text-quote)',fontSize:12,lineHeight:1.6}}>
             {part.body
               ? part.body.replace(/\n{2,}/g,'\n').split('\n').filter(p=>/[^\s\u00a0]/.test(p)).map((p,j,arr)=>(
                   <span key={j} style={{display:'block',marginBottom:j<arr.length-1?4:0}}>{p}</span>
@@ -1333,27 +1372,27 @@ function PostCard({ p, favorites, onFav, onIgnore, setLightbox, noClamp=false })
         </div>
         {/* Dropdown меню профиля */}
         {menu && (
-          <div ref={menuRef} style={{position:'absolute',top:44,left:12,background:'#1c1c1c',border:'1px solid #333',
+          <div ref={menuRef} style={{position:'absolute',top:44,left:12,background:'var(--bg-popup)',border:'1px solid var(--border-popup)',
             borderRadius:8,padding:'6px 0',zIndex:200,minWidth:160,boxShadow:'0 4px 20px rgba(0,0,0,.8)'}}
             onClick={e=>e.stopPropagation()}>
             {ROMEO_RE.test(p.author) && (
               <a href="https://forum.gipsyteam.ru/index.php?showforum=141" target="_blank" rel="noreferrer"
-                style={{display:'flex',alignItems:'center',gap:8,padding:'8px 14px',color:'#ccc',fontSize:12,textDecoration:'none'}}
-                onMouseEnter={e=>e.currentTarget.style.background='#2a2a2a'}
+                style={{display:'flex',alignItems:'center',gap:8,padding:'8px 14px',color:'var(--dim2)',fontSize:12,textDecoration:'none'}}
+                onMouseEnter={e=>e.currentTarget.style.background='var(--bg3)'}
                 onMouseLeave={e=>e.currentTarget.style.background=''}>
                 📝 Блог
               </a>
             )}
             <a href={profileUrl} target="_blank" rel="noreferrer"
-              style={{display:'flex',alignItems:'center',gap:8,padding:'8px 14px',color:'#ccc',fontSize:12,textDecoration:'none'}}
-              onMouseEnter={e=>e.currentTarget.style.background='#2a2a2a'}
+              style={{display:'flex',alignItems:'center',gap:8,padding:'8px 14px',color:'var(--dim2)',fontSize:12,textDecoration:'none'}}
+              onMouseEnter={e=>e.currentTarget.style.background='var(--bg3)'}
               onMouseLeave={e=>e.currentTarget.style.background=''}>
               👤 Профиль
             </a>
             <a href={`https://forum.gipsyteam.ru/index.php?act=Msg&CODE=4&MID=${encodeURIComponent(p.author)}`}
               target="_blank" rel="noreferrer"
-              style={{display:'flex',alignItems:'center',gap:8,padding:'8px 14px',color:'#ccc',fontSize:12,textDecoration:'none'}}
-              onMouseEnter={e=>e.currentTarget.style.background='#2a2a2a'}
+              style={{display:'flex',alignItems:'center',gap:8,padding:'8px 14px',color:'var(--dim2)',fontSize:12,textDecoration:'none'}}
+              onMouseEnter={e=>e.currentTarget.style.background='var(--bg3)'}
               onMouseLeave={e=>e.currentTarget.style.background=''}>
               ✉️ Личное сообщение
             </a>
@@ -1369,9 +1408,9 @@ function PostCard({ p, favorites, onFav, onIgnore, setLightbox, noClamp=false })
             {p.regData  && <span>· {p.regData}</span>}
             {p.rating != null && (
               <><span>·</span><a href={ratingUrl} target="_blank" rel="noreferrer"
-                style={{color:'#4caf50',display:'inline-flex',alignItems:'center',gap:2,textDecoration:'none'}}
+                style={{color:p.rating>=0?'#4caf50':'#ff5252',display:'inline-flex',alignItems:'center',gap:2,textDecoration:'none'}}
                 onClick={e=>e.stopPropagation()}>
-                <svg viewBox="0 0 12 10" style={{width:11,height:10,fill:'#4caf50',flexShrink:0,marginLeft:3}}>
+                <svg viewBox="0 0 12 10" style={{width:11,height:10,fill:p.rating>=0?'#4caf50':'#ff5252',flexShrink:0,marginLeft:3}}>
                   <rect x="0" y="6" width="2.5" height="4"/>
                   <rect x="3.2" y="3" width="2.5" height="7"/>
                   <rect x="6.4" y="1" width="2.5" height="9"/>
@@ -1464,11 +1503,11 @@ function SidebarTopList({ posts, setLightbox }) {
         const left = Math.max(8, Math.min(popupPos.x - 310, window.innerWidth - 320))
         const top  = Math.max(8, Math.min(popupPos.y - 40, window.innerHeight - 420))
         return (
-          <div style={{
+          <div className="sidebar-popup" style={{
             position:'fixed', left, top,
-            width:300, background:'#1c1c1c', border:'1px solid #3a3a3a',
+            width:300, background:'var(--bg-popup)', border:'1px solid var(--border-popup)',
             borderRadius:8, padding:14, zIndex:9999,
-            boxShadow:'0 8px 32px rgba(0,0,0,.9)',
+            boxShadow:'var(--shadow-popup)',
             pointerEvents:'auto',
             maxHeight: Math.min(window.innerHeight - top - 16, 480),
             display:'flex', flexDirection:'column',
@@ -1484,12 +1523,12 @@ function SidebarTopList({ posts, setLightbox }) {
               )}
               {renderPostText(p.text, true)}
               {!stripQuotes(p.text) && p.text?.includes('[QUOTE]') && (
-                <div style={{fontSize:11,color:'#555',fontStyle:'italic',marginTop:6}}>
+                <div style={{fontSize:11,color:'var(--dim)',fontStyle:'italic',marginTop:6}}>
                   ответ обрезан — полный текст на форуме
                 </div>
               )}
             </div>
-            <div style={{marginTop:8,paddingTop:8,borderTop:'1px solid #2a2a2a'}}>
+            <div style={{marginTop:8,paddingTop:8,borderTop:'1px solid var(--border)'}}>
               <a href={p.url} target="_blank" rel="noreferrer"
                 style={{fontSize:11,color:'var(--red2)'}}>→ открыть на форуме</a>
             </div>
@@ -2381,7 +2420,7 @@ export default function App() {
               <div style={{fontSize:11,color:'var(--dim)',fontFamily:"'Roboto Mono',monospace",marginBottom:4}}>
                 <span style={{color:'var(--dim2)',fontWeight:600}}>RomeoPro Tracker</span>
                 {' '}
-                <span style={{color:'#444'}}>v1.4.0</span>
+                <span style={{color:'#444'}}>v1.5.0</span>
               </div>
               <div style={{fontSize:10,color:'#444',marginBottom:4}}>
                 made by{' '}
@@ -2399,6 +2438,7 @@ export default function App() {
                 Changelog
               </div>
               {[
+                ['08.04', 'v1.5', 'Белая тема + переключатель. Glassmorphism тултипы. Анимированный счётчик БР. Пилл результата сессии в тултипе. Прогресс-бар $10k→$10M. Градиентная рамка постов Ромео. Исправление цвета отрицательной репы'],
                 ['08.04', 'v1.4', 'Подтемы в Темах: долги/стратегия/психология/шахматы/стримы. Отдельная сортировка для Тем. Vercel Analytics'],
                 ['07.04', 'v1.3', 'График с bezier-кривыми и анимацией. Скрапер v3 с детальным логом. Мобильная вёрстка под iPhone 17 Pro'],
                 ['06.04', 'v1.2', 'Попап предпросмотра постов. Виджет активности по дням. Топ-10 постов. Автообновление каждые 5 мин'],
