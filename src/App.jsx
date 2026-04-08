@@ -735,7 +735,7 @@ function MarathonChart({ posts, meta, startBR, setLightbox, day }) {
                   <g>
                     <text x={lx} y={H+pB-22} textAnchor="middle" fontFamily="'Roboto Mono',monospace"
                       fontSize="11" fontWeight="600" fill="#888">
-                      {p.tournaments ? fmtInt(p.tournaments) : '—'}
+                      {cumMTT[i] ? fmtInt(cumMTT[i]) : '—'}
                     </text>
                     <text x={lx} y={H+pB-8} textAnchor="middle" fontFamily="'Roboto Mono',monospace"
                       fontSize="7" fill="#444">

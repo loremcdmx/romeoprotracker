@@ -95,27 +95,78 @@ export const extractQuoteBody = t => {
 
 export const fkAbs = v => v >= 1000 ? `$${(v/1000).toFixed(1)}k` : `$${Math.round(v)}`
 
-// ─── BEZIER ──────────────────────────────────────────────────────────────────
-export function makeBezierPath(coords, tension = 0.3) {
+// ─── MONOTONE CUBIC BEZIER (no overshoot/humps) ─────────────────────────────
+// Fritsch–Carlson monotone interpolation: tangents are clamped so the curve
+// never overshoots between two data points.
+function _monotoneTangents(coords) {
+  const n = coords.length
+  const dx = [], dy = [], m = []
+  for (let i = 0; i < n - 1; i++) {
+    dx.push(coords[i+1].x - coords[i].x)
+    dy.push(coords[i+1].y - coords[i].y)
+    m.push(dy[i] / (dx[i] || 1e-6))
+  }
+  const tangents = new Array(n)
+  tangents[0] = m[0]
+  tangents[n-1] = m[n-2]
+  for (let i = 1; i < n - 1; i++) {
+    if (m[i-1] * m[i] <= 0) {
+      tangents[i] = 0
+    } else {
+      tangents[i] = (m[i-1] + m[i]) / 2
+    }
+  }
+  // Fritsch–Carlson: clamp tangents to preserve monotonicity
+  for (let i = 0; i < n - 1; i++) {
+    if (Math.abs(m[i]) < 1e-6) {
+      tangents[i] = 0
+      tangents[i+1] = 0
+    } else {
+      const a = tangents[i] / m[i]
+      const b = tangents[i+1] / m[i]
+      const s = a * a + b * b
+      if (s > 9) {
+        const t = 3 / Math.sqrt(s)
+        tangents[i] = t * a * m[i]
+        tangents[i+1] = t * b * m[i]
+      }
+    }
+  }
+  return { tangents, dx }
+}
+
+export function makeBezierPath(coords) {
   if (coords.length < 2) return ''
+  if (coords.length === 2) {
+    return `M ${coords[0].x.toFixed(1)} ${coords[0].y.toFixed(1)} L ${coords[1].x.toFixed(1)} ${coords[1].y.toFixed(1)}`
+  }
+  const { tangents, dx } = _monotoneTangents(coords)
   let d = `M ${coords[0].x.toFixed(1)} ${coords[0].y.toFixed(1)}`
-  for (let i = 1; i < coords.length; i++) {
-    const p0 = coords[Math.max(0, i-2)], p1 = coords[i-1], p2 = coords[i], p3 = coords[Math.min(coords.length-1, i+1)]
-    const cp1x = p1.x + (p2.x - p0.x) * tension, cp1y = p1.y + (p2.y - p0.y) * tension
-    const cp2x = p2.x - (p3.x - p1.x) * tension, cp2y = p2.y - (p3.y - p1.y) * tension
-    d += ` C ${cp1x.toFixed(1)} ${cp1y.toFixed(1)} ${cp2x.toFixed(1)} ${cp2y.toFixed(1)} ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`
+  for (let i = 0; i < coords.length - 1; i++) {
+    const seg = dx[i] / 3
+    const cp1x = coords[i].x + seg
+    const cp1y = coords[i].y + tangents[i] * seg
+    const cp2x = coords[i+1].x - seg
+    const cp2y = coords[i+1].y - tangents[i+1] * seg
+    d += ` C ${cp1x.toFixed(1)} ${cp1y.toFixed(1)} ${cp2x.toFixed(1)} ${cp2y.toFixed(1)} ${coords[i+1].x.toFixed(1)} ${coords[i+1].y.toFixed(1)}`
   }
   return d
 }
 
-export function makeBezierArea(coords, baseline, tension = 0.3) {
+export function makeBezierArea(coords, baseline) {
   if (coords.length < 2) return ''
+  if (coords.length === 2) {
+    return `M ${coords[0].x.toFixed(1)} ${baseline} L ${coords[0].x.toFixed(1)} ${coords[0].y.toFixed(1)} L ${coords[1].x.toFixed(1)} ${coords[1].y.toFixed(1)} L ${coords[1].x.toFixed(1)} ${baseline} Z`
+  }
+  const { tangents, dx } = _monotoneTangents(coords)
   let d = `M ${coords[0].x.toFixed(1)} ${baseline} L ${coords[0].x.toFixed(1)} ${coords[0].y.toFixed(1)}`
-  for (let i = 1; i < coords.length; i++) {
-    const p0 = coords[Math.max(0, i-2)], p1 = coords[i-1], p2 = coords[i], p3 = coords[Math.min(coords.length-1, i+1)]
-    const cp1x = p1.x + (p2.x - p0.x) * tension, cp1y = p1.y + (p2.y - p0.y) * tension
-    const cp2x = p2.x - (p3.x - p1.x) * tension, cp2y = p2.y - (p3.y - p1.y) * tension
-    d += ` C ${cp1x.toFixed(1)} ${cp1y.toFixed(1)} ${cp2x.toFixed(1)} ${cp2y.toFixed(1)} ${p2.x.toFixed(1)} ${p2.y.toFixed(1)}`
+  for (let i = 0; i < coords.length - 1; i++) {
+    const seg = dx[i] / 3
+    const cp1x = coords[i].x + seg
+    const cp1y = coords[i].y + tangents[i] * seg
+    const cp2x = coords[i+1].x - seg
+    const cp2y = coords[i+1].y - tangents[i+1] * seg
+    d += ` C ${cp1x.toFixed(1)} ${cp1y.toFixed(1)} ${cp2x.toFixed(1)} ${cp2y.toFixed(1)} ${coords[i+1].x.toFixed(1)} ${coords[i+1].y.toFixed(1)}`
   }
   return d + ` L ${coords[coords.length-1].x.toFixed(1)} ${baseline} Z`
 }
