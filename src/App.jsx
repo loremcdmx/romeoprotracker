@@ -646,10 +646,16 @@ function MarathonChart({ posts, meta, startBR, setLightbox, day }) {
         return (
           <div className="mc-tooltip" style={mobileStyle}>
             <div style={{fontWeight:700,color:'#fff',fontSize:13,marginBottom:5}}>{tip.p.date}</div>
-            <div style={{display:'flex',gap:12,fontSize:12,marginBottom:roomDeltas.length?8:4}}>
+            <div style={{display:'flex',gap:12,fontSize:12,marginBottom:tip.p.tournaments?4:roomDeltas.length?8:4}}>
               <span style={{color:'#888'}}>БР: <b style={{color:'#fff'}}>{fkAbs(tip.p.br)}</b></span>
               <span style={{color:tip.profit>=0?'#66bb6a':'#ff5252',fontWeight:700}}>{fk(tip.profit)}</span>
             </div>
+            {tip.p.tournaments && (
+              <div style={{fontSize:11,color:'#888',marginBottom:roomDeltas.length?8:4}}>
+                🎯 МТТ за сессию: <b style={{color:'#ccc'}}>{fmtInt(tip.p.tournaments)}</b>
+                {tip.p.totalTournaments && <span style={{color:'#555'}}> · всего: {fmtInt(tip.p.totalTournaments)}</span>}
+              </div>
+            )}
             {roomDeltas.length>0 && (
               <div style={{display:'flex',flexWrap:'wrap',gap:'4px 12px',marginBottom:8}}>
                 {roomDeltas.map(r=>(
