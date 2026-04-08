@@ -87,11 +87,27 @@ function parsePosts(html) {
 
     let text = htmlToText(bodyEl, $)
     if (text.length > maxLen) {
-      const cut = text.substring(0, maxLen)
-      const lastClose = cut.lastIndexOf('[/QUOTE]')
-      text = lastClose > 600
-        ? cut.substring(0, lastClose + '[/QUOTE]'.length)
-        : cut
+      // Prioritize keeping the reply (after [/QUOTE]) over the quote itself
+      const lastClose = text.lastIndexOf('[/QUOTE]')
+      if (lastClose !== -1) {
+        const reply = text.substring(lastClose + '[/QUOTE]'.length).trim()
+        const quoteStart = text.indexOf('[QUOTE]')
+        if (reply.length > 0) {
+          // Truncate the QUOTE body to fit, keep full reply
+          const quoteHeader = text.substring(quoteStart, text.indexOf('\n', quoteStart) + 1)
+          const replyBudget = Math.min(reply.length, maxLen - 200)
+          const quoteBudget = maxLen - replyBudget - quoteHeader.length - '[/QUOTE]'.length
+          const quoteBody = text.substring(quoteStart + quoteHeader.length, lastClose)
+          text = quoteHeader + quoteBody.substring(0, Math.max(100, quoteBudget)) +
+            (quoteBudget < quoteBody.length ? '…' : '') +
+            '[/QUOTE]' + reply.substring(0, replyBudget)
+        } else {
+          // Quote-only: just truncate
+          text = text.substring(0, maxLen)
+        }
+      } else {
+        text = text.substring(0, maxLen)
+      }
     }
 
     const timestamp = dateEl.attr('data-timestamp')
