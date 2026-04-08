@@ -72,13 +72,11 @@ const css = `
   .mc-ylabel{font-size:9px;fill:#555;text-anchor:end;font-family:'Roboto Mono',monospace}
   .mc-zero{stroke:#2a2a2a;stroke-width:1;stroke-dasharray:4 3}
   .mc-grid{stroke:#1e1e1e;stroke-width:1}
-  .mc-tooltip{position:absolute;background:#1c1c1c;border:1px solid #3a3a3a;border-radius:8px;padding:12px 14px;pointer-events:none;z-index:20;min-width:220px;max-width:270px;box-shadow:0 8px 32px rgba(0,0,0,.7)}
 
   /* ACTIVITY CHART */
   .chart-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:16px;position:relative}
   .chart-svg{width:100%;overflow:visible}
   .chart-label{font-size:9px;fill:#555;text-anchor:middle;font-family:'Roboto Mono',monospace}
-  .chart-tooltip{position:absolute;background:#1c1c1c;border:1px solid #3a3a3a;border-radius:6px;padding:10px 12px;pointer-events:none;z-index:20;min-width:220px;max-width:300px;box-shadow:0 4px 20px rgba(0,0,0,.6)}
 
   /* GLOBAL FILTER BAR */
   .filter-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:10px 14px;margin-bottom:14px}
@@ -180,9 +178,105 @@ const css = `
   .lightbox{position:fixed;inset:0;background:#000d;display:flex;align-items:center;justify-content:center;z-index:500;cursor:zoom-out}
   .lightbox img{max-width:92vw;max-height:92vh;border-radius:4px;box-shadow:0 0 60px rgba(0,0,0,.8)}
 
+  /* ─── WHITE THEME ─────────────────────────────────────────────────────── */
+  .light{
+    --bg:#f0f0f0;--bg2:#fff;--bg3:#e8e8e8;
+    --border:#ddd;--border2:#bbb;
+    --text:#1a1a1a;--dim:#777;--dim2:#444;
+    --white:#111;--red-dim:#fff0f0;
+  }
+  .light html,body,#root{background:var(--bg)}
+  .light .topbar{background:#fff;border-bottom-color:var(--border)}
+  .light .topbar-tab:hover{background:#f0f0f0}
+  .light .topbar-tab.active{background:#e8e8e8;color:#111}
+  .light .hero{background:linear-gradient(135deg,#fff5f5 0%,#f8f8f8 100%)}
+  .light .mc-grid{stroke:#e8e8e8}
+  .light .mc-zero{stroke:#ddd}
+  .light .mc-label,.light .mc-ylabel{fill:#aaa}
+  .light .chart-label{fill:#aaa}
+  .light ::-webkit-scrollbar-track{background:#e8e8e8}
+  .light ::-webkit-scrollbar-thumb{background:#ccc}
+  .light .admin-box{background:#fff;border-color:#ddd}
+  .light .admin-log{background:#f5f5f5}
+  .light .admin-input{background:#f5f5f5;border-color:#ddd;color:#111}
+  .light .filter-num,.light .feed-search,.light .feed-select{background:#f5f5f5;color:#111}
+  .light .page-btn{background:#fff}
+  .light .perpage-select{background:#f5f5f5;color:#111}
+
+  /* ─── GLASSMORPHISM TOOLTIPS ───────────────────────────────────────────── */
+  .mc-tooltip{
+    position:absolute;
+    background:rgba(18,18,18,0.72);
+    backdrop-filter:blur(18px);
+    -webkit-backdrop-filter:blur(18px);
+    border:1px solid rgba(255,255,255,0.10);
+    border-radius:12px;padding:12px 14px;pointer-events:none;
+    z-index:20;min-width:220px;max-width:270px;
+    box-shadow:0 8px 32px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,0.06);
+  }
+  .light .mc-tooltip{background:rgba(255,255,255,0.80);border-color:rgba(0,0,0,0.08);box-shadow:0 8px 32px rgba(0,0,0,.12)}
+  .chart-tooltip{
+    position:absolute;
+    background:rgba(18,18,18,0.72);
+    backdrop-filter:blur(18px);
+    -webkit-backdrop-filter:blur(18px);
+    border:1px solid rgba(255,255,255,0.10);
+    border-radius:10px;padding:10px 12px;pointer-events:none;
+    z-index:20;min-width:220px;max-width:300px;
+    box-shadow:0 4px 20px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,0.05);
+  }
+  .light .chart-tooltip{background:rgba(255,255,255,0.80);border-color:rgba(0,0,0,0.08);box-shadow:0 4px 20px rgba(0,0,0,.1)}
+
+  /* ─── ROMEO GRADIENT BORDER ────────────────────────────────────────────── */
+  @keyframes gradBorder{0%{background-position:0% 50%}50%{background-position:100% 50%}100%{background-position:0% 50%}}
+  .post-card.romeo-post{
+    background:linear-gradient(var(--bg2),var(--bg2)) padding-box,
+      linear-gradient(90deg,#e53935 0%,#ff9800 35%,#e53935 65%,#c62828 100%) border-box;
+    background-size:200% 200%;
+    border:1.5px solid transparent !important;
+    animation:gradBorder 4s ease infinite;
+  }
+  .post-card.romeo-post.faved{
+    background:linear-gradient(var(--bg2),var(--bg2)) padding-box,
+      linear-gradient(90deg,#ffb300 0%,#e53935 40%,#ffb300 100%) border-box;
+    animation:gradBorder 3s ease infinite;
+  }
+
+  /* ─── PROGRESS BAR ─────────────────────────────────────────────────────── */
+  .marathon-progress{height:2px;background:var(--bg3);position:sticky;top:40px;z-index:99;width:100%}
+  .marathon-progress-fill{
+    height:100%;
+    background:linear-gradient(90deg,var(--red) 0%,#ff9800 60%,var(--gold) 100%);
+    transition:width 1.4s cubic-bezier(.4,0,.2,1);
+    box-shadow:0 0 6px rgba(229,57,53,.5);
+  }
+
+  /* ─── FLASH OVERLAY ─────────────────────────────────────────────────────── */
+  @keyframes flashGreen{0%{opacity:0}15%{opacity:.18}85%{opacity:.08}100%{opacity:0}}
+  @keyframes flashRed{0%{opacity:0}15%{opacity:.14}85%{opacity:.06}100%{opacity:0}}
+  .flash-overlay{position:fixed;inset:0;pointer-events:none;z-index:9998;border-radius:0}
+  .flash-green{animation:flashGreen 1.6s ease forwards;background:radial-gradient(circle at center,#4caf50,transparent 70%)}
+  .flash-red{animation:flashRed 1.6s ease forwards;background:radial-gradient(circle at center,#e53935,transparent 70%)}
+
+  /* ─── SESSION PILL on chart ─────────────────────────────────────────────── */
+  .mc-pill{
+    position:absolute;pointer-events:none;z-index:25;
+    background:rgba(18,18,18,0.82);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+    border:1px solid rgba(255,255,255,0.12);border-radius:20px;
+    padding:2px 8px;font-size:10px;font-weight:700;font-family:'Roboto Mono',monospace;
+    white-space:nowrap;transform:translateX(-50%);
+    box-shadow:0 2px 8px rgba(0,0,0,.4);
+  }
+  .light .mc-pill{background:rgba(255,255,255,0.88);border-color:rgba(0,0,0,0.12)}
+
+  /* ─── THEME TOGGLE ──────────────────────────────────────────────────────── */
+  .theme-toggle{background:none;border:1px solid var(--border);border-radius:20px;cursor:pointer;color:var(--dim);font-size:13px;padding:3px 8px;transition:all .2s;line-height:1}
+  .theme-toggle:hover{border-color:var(--border2);color:var(--text)}
+
   /* MISC */
   .loading{padding:80px;text-align:center;color:var(--dim);font-size:13px}
   .empty-state{padding:30px;text-align:center;color:var(--dim);font-size:12px}
+
 
   /* ═══════════════════════════════════════════════════
      MOBILE — полностью отдельная вёрстка (≤720px)
@@ -482,6 +576,46 @@ const extractQuoteBody = t => {
   return (nl !== -1 ? inner.slice(nl + 1) : inner).replace(/\[\/QUOTE\].*/,'').trim()
 }
 
+// ─── ANIMATED COUNTER ────────────────────────────────────────────────────────
+function useAnimatedCounter(target, duration = 1100) {
+  const [val, setVal] = useState(0)
+  useEffect(() => {
+    if (!target) return
+    const start = Date.now()
+    const from  = 0
+    const tick  = () => {
+      const p    = Math.min(1, (Date.now() - start) / duration)
+      const ease = 1 - Math.pow(1 - p, 3)
+      setVal(Math.round(from + ease * (target - from)))
+      if (p < 1) requestAnimationFrame(tick)
+    }
+    requestAnimationFrame(tick)
+  }, [target, duration])
+  return val
+}
+
+// ─── SPARKLINE ────────────────────────────────────────────────────────────────
+function Sparkline({ values, width = 64, height = 24, color = '#4caf50' }) {
+  if (!values || values.length < 2) return null
+  const min = Math.min(...values)
+  const max = Math.max(...values)
+  const range = max - min || 1
+  const pts = values.map((v, i) => {
+    const x = (i / (values.length - 1)) * width
+    const y = height - ((v - min) / range) * height
+    return `${x.toFixed(1)},${y.toFixed(1)}`
+  }).join(' ')
+  return (
+    <svg width={width} height={height} style={{overflow:'visible',flexShrink:0,opacity:.85}}>
+      <polyline points={pts} fill="none" stroke={color} strokeWidth="1.5"
+        strokeLinejoin="round" strokeLinecap="round"/>
+      {/* last dot */}
+      <circle cx={(width).toFixed(1)} cy={(height-((values[values.length-1]-min)/range)*height).toFixed(1)}
+        r="2.5" fill={color}/>
+    </svg>
+  )
+}
+
 // ─── MARATHON CHART ───────────────────────────────────────────────────────────
 function makeBezierPath(coords, tension = 0.3) {
   if (coords.length < 2) return ''
@@ -618,24 +752,45 @@ function MarathonChart({ posts, meta, startBR, setLightbox, day }) {
           const showL = i===0||i===points.length-1||i%Math.max(1,Math.ceil(points.length/8))===0
           const isLast = i===points.length-1
           const cx=coords[i].x, cy=coords[i].y, profit=p.br-p.brPrev
+          const isHovered = tip?.p === p
           return (
             <g key={i}>
               <circle cx={cx} cy={cy} r={isLast?14:10} fill="transparent"
                 onMouseEnter={()=>setTip({p,profit,x:cx,y:cy})}/>
-              <circle cx={cx} cy={cy} r={isLast?6:4}
+              <circle cx={cx} cy={cy} r={isHovered?(isLast?8:6):(isLast?6:4)}
                 className={isLast?'mc-dot mc-dot-last':'mc-dot'}
                 fill={profit>=0?'#4caf50':'#e53935'}
-                style={isLast?{color:profit>=0?'#4caf50':'#e53935'}:{}}/>
+                style={{transition:'r .12s', ...(isLast?{color:profit>=0?'#4caf50':'#e53935'}:{})}}/>
               {showL && <text x={Math.min(Math.max(cx,pL),W-pR)} y={H+pB-6} className="mc-label">{p.date?.slice(0,5)}</text>}
             </g>
           )
         })}
         {tip && <line x1={tip.x} y1={pT} x2={tip.x} y2={H} stroke="rgba(255,255,255,0.08)" strokeWidth="1" strokeDasharray="3 3"/>}
       </svg>
+      {/* SESSION PILL — показывается выше точки при наведении */}
+      {tip && !isMobile && (() => {
+        const svgEl = document.querySelector('.mc-svg')
+        const rect  = svgEl?.getBoundingClientRect()
+        if (!rect) return null
+        const scaleX = rect.width / W
+        const scaleY = rect.height / (H + pB)
+        const pillX  = tip.x * scaleX
+        const pillY  = tip.y * scaleY - 18
+        const color  = tip.profit >= 0 ? '#66bb6a' : '#ff5252'
+        return (
+          <div className="mc-pill" style={{
+            left: pillX,
+            top:  pillY,
+            color,
+            borderColor: tip.profit >= 0 ? 'rgba(102,187,106,.3)' : 'rgba(255,82,82,.3)',
+          }}>
+            {fk(tip.profit)}
+          </div>
+        )
+      })()}
       {tip && (() => {
         const pct=tip.x/W*100, right=pct>60
         const roomDeltas = tip.p.rooms ? CHART_ROOMS.map(r=>({...r,v:(tip.p.rooms.after[r.key]||0)-(tip.p.rooms.before[r.key]||0)})).filter(r=>r.v!==0) : []
-        // На мобиле — fixed снизу чтобы не обрезался overflow:hidden
         const mobileStyle = isMobile ? {
           position:'fixed', bottom:Math.max(90, window.innerHeight - (tip.screenY||0) + 16)+'px',
           left:'12px', right:'12px', maxWidth:'none', width:'auto',
@@ -647,14 +802,14 @@ function MarathonChart({ posts, meta, startBR, setLightbox, day }) {
         }
         return (
           <div className="mc-tooltip" style={mobileStyle}>
-            <div style={{fontWeight:700,color:'#fff',fontSize:13,marginBottom:5}}>{tip.p.date}</div>
-            <div style={{display:'flex',gap:12,fontSize:12,marginBottom:tip.p.tournaments?(4):(roomDeltas.length?8:4)}}>
-              <span style={{color:'#888'}}>БР: <b style={{color:'#fff'}}>{fkAbs(tip.p.br)}</b></span>
+            <div style={{fontWeight:700,color:'var(--white)',fontSize:13,marginBottom:5}}>{tip.p.date}</div>
+            <div style={{display:'flex',gap:12,fontSize:12,marginBottom:tip.p.tournaments?4:roomDeltas.length?8:4}}>
+              <span style={{color:'var(--dim)'}}>БР: <b style={{color:'var(--white)'}}>{fkAbs(tip.p.br)}</b></span>
               <span style={{color:tip.profit>=0?'#66bb6a':'#ff5252',fontWeight:700}}>{fk(tip.profit)}</span>
             </div>
             {tip.p.tournaments && (
-              <div style={{fontSize:11,color:'#888',marginBottom:roomDeltas.length?8:4}}>
-                🎯 МТТ: <b style={{color:'#ccc'}}>{fmtInt(tip.p.tournaments)}</b>
+              <div style={{fontSize:11,color:'var(--dim)',marginBottom:roomDeltas.length?8:4}}>
+                🃏 сыграно МТТ с последнего отчёта: <b style={{color:'var(--dim2)'}}>{fmtInt(tip.p.tournaments)}</b>
               </div>
             )}
             {roomDeltas.length>0 && (
@@ -662,14 +817,14 @@ function MarathonChart({ posts, meta, startBR, setLightbox, day }) {
                 {roomDeltas.map(r=>(
                   <span key={r.key} style={{fontSize:11,display:'flex',alignItems:'center',gap:4}}>
                     {r.logo && <img src={r.logo} alt={r.label} style={{width:12,height:12,objectFit:'contain',borderRadius:2}} onError={e=>e.target.style.display='none'}/>}
-                    <span style={{color:'#888'}}>{r.label}:</span>
+                    <span style={{color:'var(--dim)'}}>{r.label}:</span>
                     <span style={{color:r.v>=0?'#66bb6a':'#ff5252',fontWeight:600}}>{fk(r.v)}</span>
                   </span>
                 ))}
               </div>
             )}
-            {tip.p.text && <div style={{fontSize:11,color:'#bbb',lineHeight:1.6,display:'-webkit-box',WebkitLineClamp:3,WebkitBoxOrient:'vertical',overflow:'hidden'}}>{tip.p.text.substring(0,180)}</div>}
-            <div style={{fontSize:10,color:'#444',marginTop:5,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+            {tip.p.text && <div style={{fontSize:11,color:'var(--dim2)',lineHeight:1.6,display:'-webkit-box',WebkitLineClamp:3,WebkitBoxOrient:'vertical',overflow:'hidden'}}>{tip.p.text.substring(0,180)}</div>}
+            <div style={{fontSize:10,color:'var(--dim)',marginTop:5,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
               <span>закрыть</span>
               {tip.p.url && <a href={tip.p.url} target="_blank" rel="noreferrer"
                 onClick={e=>e.stopPropagation()}
@@ -1167,8 +1322,10 @@ function PostCard({ p, favorites, onFav, onIgnore, setLightbox, noClamp=false })
   // У Romeopro блог точно есть, у остальных определяем по msgCount > 100 как приближение
   // (точно не знаем без запроса к API форума)
 
+  const isRomeo = ROMEO_RE.test(p.author)
+
   return (
-    <div className={`post-card ${isFav?'faved':''}`} onClick={()=>menu&&setMenu(false)}>
+    <div className={`post-card ${isFav?'faved':''} ${isRomeo?'romeo-post':''}`} onClick={()=>menu&&setMenu(false)}>
       <div className="pc-head">
         <div className="pc-avatar" style={{cursor:'pointer'}} onClick={e=>{e.stopPropagation();setMenu(m=>!m)}}>
           {p.avatar
@@ -1595,6 +1752,8 @@ export default function App() {
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('feed')
   const [lightbox,  setLightbox]  = useState(null)
+  const [theme, setTheme] = useState(() => { try { return localStorage.getItem('rpt_theme') || 'dark' } catch { return 'dark' } })
+  const [flash, setFlash] = useState(null) // 'green' | 'red' | null
   const [sortBy,  setSortByRaw]  = useState(() => { try { return localStorage.getItem('rpt_sortby') || 'date_asc' } catch { return 'date_asc' } })
   const [search,  setSearch]  = useState('')
   const [showSearch, setShowSearch] = useState(false)
@@ -1631,6 +1790,22 @@ export default function App() {
     const interval = setInterval(loadData, 5 * 60 * 1000)
     return () => clearInterval(interval)
   }, [])
+
+  // Apply theme class to root
+  useEffect(() => {
+    document.documentElement.classList.toggle('light', theme === 'light')
+    try { localStorage.setItem('rpt_theme', theme) } catch {}
+  }, [theme])
+
+  // Flash on first load based on last session result
+  useEffect(() => {
+    if (!meta?.brHistory?.length) return
+    const last = [...meta.brHistory].sort((a,b)=>(a.timestamp||0)-(b.timestamp||0)).slice(-1)[0]
+    if (!last?.sessionResult) return
+    setFlash(last.sessionResult >= 0 ? 'green' : 'red')
+    const t = setTimeout(() => setFlash(null), 1800)
+    return () => clearTimeout(t)
+  }, [!!meta])
 
   // Stats из постов Ромео
   const stats = useMemo(() => {
@@ -1846,6 +2021,15 @@ export default function App() {
     })
   }
 
+  // ── ANIMATED COUNTER + SPARKLINE ─────────────────────────────────────────
+  const brVal       = stats?.br || meta?.bankroll || 0
+  const animBR      = useAnimatedCounter(brVal, 1100)
+  const sparkValues = useMemo(() =>
+    meta?.brHistory?.length
+      ? [...meta.brHistory].sort((a,b)=>(a.timestamp||0)-(b.timestamp||0)).map(h=>h.brAfter)
+      : []
+  , [meta])
+
   return (
     <>
       <style>{css}</style>
@@ -1870,6 +2054,8 @@ export default function App() {
         </div>
       )}
 
+      {flash && <div className={`flash-overlay flash-${flash}`}/>}
+
       <div className="topbar">
         <div className="topbar-inner">
           <div className="logo">
@@ -1890,10 +2076,30 @@ export default function App() {
             ))}
           </div>
           <div className="topbar-right">
+            <button className="theme-toggle" onClick={()=>setTheme(t=>t==='dark'?'light':'dark')}
+              title={theme==='dark'?'Светлая тема':'Тёмная тема'}>
+              {theme==='dark'?'☀️':'🌙'}
+            </button>
             <AdminPanel />
           </div>
         </div>
       </div>
+
+      {/* PROGRESS BAR */}
+      {!loading && stats?.br && (() => {
+        const target = 10_000_000
+        const start  = stats.startBR || 10000
+        // Логарифмический прогресс: выглядит честнее на длинных дистанциях
+        const logProgress = Math.max(0.003,
+          Math.log10(Math.max(1, stats.br) / start) / Math.log10(target / start)
+        )
+        const pct = Math.min(100, logProgress * 100)
+        return (
+          <div className="marathon-progress" title={`Прогресс к $10M: ${(pct).toFixed(3)}%`}>
+            <div className="marathon-progress-fill" style={{width:`${pct}%`}}/>
+          </div>
+        )
+      })()}
 
       {loading
         ? <div className="loading">Загружаем данные марафона…</div>
@@ -1919,8 +2125,12 @@ export default function App() {
               <div className="hero-stats">
                 <div className="hstat">
                   <div className="hstat-label">Банкролл</div>
-                  <div className={`hstat-value ${stats.br?'green':''}`} style={{fontSize:18}}>
-                    {fmtExact(stats.br||meta?.bankroll)}
+                  <div className={`hstat-value ${brVal?'green':''}`} style={{fontSize:18,display:'flex',alignItems:'center',gap:8}}>
+                    {fmtExact(animBR || brVal)}
+                    {sparkValues.length >= 2 && (
+                      <Sparkline values={sparkValues} width={56} height={22}
+                        color={(stats.profit||0)>=0?'#66bb6a':'#ff5252'}/>
+                    )}
                   </div>
                   <div className="hstat-sub">старт: {fmtExact(stats.startBR)}</div>
                 </div>
