@@ -1482,6 +1482,20 @@ export default function App() {
 
             {/* ЛЕНТА */}
             {activeTab==='feed' && <>
+              {/* Mobile-only stats strip */}
+              <div className="mobile-stats">
+                {[
+                  ['БР', fmtExact(stats.br||meta?.bankroll), stats.br?'green':''],
+                  ['Профит', fmtBR(stats.profit), !stats.profit?'':stats.profit>=0?'green':'red'],
+                  ['День', `#${stats.day||meta?.day||'—'}`, 'gold'],
+                  ['МТТ', fmtInt(meta?.totalTournaments ?? 3565), ''],
+                ].map(([k,v,cls])=>(
+                  <div key={k} className="mobile-stat">
+                    <div className="mobile-stat-label">{k}</div>
+                    <div className={`mobile-stat-value ${cls}`}>{v}</div>
+                  </div>
+                ))}
+              </div>
               <MarathonChart posts={posts} meta={meta} startBR={stats.startBR} setLightbox={setLightbox} day={stats.day}/>
               <ActivityChart posts={posts}
                 favorites={favorites} onFav={toggleFav}
@@ -1490,6 +1504,41 @@ export default function App() {
                 minLikes={minLikes} setMinLikes={setMinLikes}
                 minRating={minRating} setMinRating={setMinRating}
                 search={search}/>
+              {/* Mobile-only top posts */}
+              {hotPosts.length > 0 && (() => {
+                const now = Date.now() / 1000
+                const cutoffs = { day: now-86400, week: now-604800, month: now-2592000, all: 0 }
+                const labels = { day:'День', week:'Неделя', month:'Месяц', all:'Все' }
+                const filtered = hotPosts.filter(p => (p.timestamp||0) >= cutoffs[sidebarTopPeriod])
+                const topList = (filtered.length ? filtered : hotPosts).slice(0,5)
+                return (
+                  <div className="mobile-top-posts">
+                    <div className="mobile-top-header">
+                      <span>🔥 Топ</span>
+                      <div className="mobile-top-periods">
+                        {Object.keys(cutoffs).map(k => (
+                          <button key={k} onClick={()=>setSidebarTopPeriod(k)}
+                            className={`mobile-top-period ${sidebarTopPeriod===k?'active':''}`}>
+                            {labels[k]}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="mobile-top-list">
+                      {topList.map((p, i) => (
+                        <a key={p.id||i} href={p.url} target="_blank" rel="noreferrer" className="mobile-top-item">
+                          <span className="mobile-top-rank">{i+1}</span>
+                          <div className="mobile-top-body">
+                            <span className="mobile-top-author">{p.author}</span>
+                            <span className="mobile-top-text">{stripQuoteTags(p.text)?.substring(0,60) || '→ форум'}</span>
+                          </div>
+                          <span className="mobile-top-likes">+{p.likes}</span>
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                )
+              })()}
               <FilterBar
                 sortBy={sortBy} setSortBy={setSortBy}
                 search={search} setSearch={setSearch}
