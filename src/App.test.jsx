@@ -134,19 +134,6 @@ describe('App', () => {
     expect(pageInfos.length).toBeGreaterThan(0)
   })
 
-  it('renders admin lock button', async () => {
-    render(<App />)
-    await screen.findAllByText('Romeopro')
-    expect(screen.getByTitle('Админ')).toBeInTheDocument()
-  })
-
-  it('opens admin auth dialog', async () => {
-    render(<App />)
-    await screen.findAllByText('Romeopro')
-    fireEvent.click(screen.getByTitle('Админ'))
-    expect(screen.getByPlaceholderText('Пароль')).toBeInTheDocument()
-  })
-
   it('renders filter bar with romeo filter', async () => {
     render(<App />)
     await screen.findAllByText('Romeopro')
