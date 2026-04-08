@@ -749,9 +749,30 @@ function MarathonChart({ posts, meta, startBR, setLightbox, day }) {
     return points.map(p => { acc += (p.tournaments || 0); return acc })
   })()
   const totalMTT = cumMTT[cumMTT.length - 1] || 1
-  const xOf = i => hasMTT && totalMTT > 0
-    ? pL + (cumMTT[i] / totalMTT) * (W - pL - pR)
-    : pL + (i / Math.max(points.length - 1, 1)) * (W - pL - pR)
+
+  const xOf = (() => {
+    if (!hasMTT || totalMTT === 0)
+      return i => pL + (i / Math.max(points.length - 1, 1)) * (W - pL - pR)
+
+    // Сырые позиции по МТТ
+    const raw = cumMTT.map(c => pL + (c / totalMTT) * (W - pL - pR))
+
+    // Минимальный отступ между соседними точками — иначе кривая схлопывается
+    const minGap = 20
+    const pos = [...raw]
+    for (let i = 1; i < pos.length; i++) {
+      if (pos[i] - pos[i-1] < minGap) pos[i] = pos[i-1] + minGap
+    }
+    // Если вышли за правый край — масштабируем назад
+    const overflow = pos[pos.length-1] - (W - pR)
+    if (overflow > 0) {
+      const span = pos[pos.length-1] - pos[0]
+      const target = W - pR - pos[0]
+      for (let i = 1; i < pos.length; i++)
+        pos[i] = pos[0] + (pos[i] - pos[0]) * (target / span)
+    }
+    return i => pos[i]
+  })()
   const coords = points.map((p,i) => ({ x:xOf(i), y:yOf(p.br) }))
   const linePath = makeBezierPath(coords)
   const areaPath = makeBezierArea(coords, H)
