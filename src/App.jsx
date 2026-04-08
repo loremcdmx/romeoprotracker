@@ -1017,6 +1017,13 @@ function ActivityChart({ posts, favorites, onFav, onIgnore, setLightbox,
 
   // ── DESKTOP: SVG bar chart ─────────────────────────────────────────────────
   const W=600, H=70, pad=3
+  const bw   = (W - pad * (data.length - 1)) / data.length
+  const step = Math.max(1, Math.ceil(36 / (bw + pad)))
+  // Строим индексы лейблов заранее — без принудительного последнего если он слишком близко
+  const labelSet = new Set()
+  for (let i = 0; i < data.length; i += step) labelSet.add(i)
+  const lastShown = [...labelSet].filter(i => i < data.length - 1).at(-1) ?? -Infinity
+  if (data.length - 1 - lastShown >= step * 0.6) labelSet.add(data.length - 1)
 
   return (
     <div className="chart-wrap">
@@ -1032,13 +1039,8 @@ function ActivityChart({ posts, favorites, onFav, onIgnore, setLightbox,
       </div>
       <svg className="chart-svg" viewBox={`0 0 ${W} ${H+22}`} onMouseLeave={()=>setTip(null)}>
         {data.map(([date, {count, posts:dp}], i) => {
-          const bw = (W - pad * (data.length - 1)) / data.length
           const x  = i * (bw + pad)
           const bh = Math.max(3, (count / max) * H)
-          // Минимум 36px между метками чтобы не накладывались
-          const minGap = 36
-          const step = Math.max(1, Math.ceil(minGap / (bw + pad)))
-          const showL = i % step === 0 || i === data.length - 1
           const isSelected = selected?.date === date
           return (
             <g key={date} style={{cursor:'pointer'}}
@@ -1047,7 +1049,7 @@ function ActivityChart({ posts, favorites, onFav, onIgnore, setLightbox,
               <rect x={x} y={H-bh} width={bw} height={bh} rx={2}
                 fill={isSelected?'#e53935':tip?.date===date?'#e5393570':'#e5393530'}
                 style={{transition:'fill .1s'}}/>
-              {showL&&<text x={Math.min(x+bw/2, W-16)} y={H+16} className="chart-label">{date.slice(5)}</text>}
+              {labelSet.has(i) && <text x={x+bw/2} y={H+16} className="chart-label">{date.slice(5)}</text>}
             </g>
           )
         })}
