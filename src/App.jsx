@@ -937,9 +937,9 @@ function SidebarTopList({ posts, setLightbox }) {
                   onError={e=>e.target.style.display='none'}/>
               )}
               {renderPostText(p.text, true)}
-              {!stripQuotes(p.text) && p.text?.includes('[QUOTE]') && (
+              {!stripQuotes(p.text) && (
                 <div style={{fontSize:11,color:'var(--dim)',fontStyle:'italic',marginTop:6}}>
-                  ответ обрезан — полный текст на форуме
+                  {p.text?.includes('[QUOTE]') ? 'ответ обрезан — ' : ''}полный текст на форуме ↗
                 </div>
               )}
             </div>
@@ -953,7 +953,9 @@ function SidebarTopList({ posts, setLightbox }) {
 
       {posts.map((p, i) => {
         const clean = stripQuotes(p.text)
-        const preview = clean || (p.images?.[0] ? '📷 изображение' : '↩ цитата')
+        const quoteBody = !clean && extractBody(p.text)
+        const preview = clean || quoteBody || (p.images?.[0] ? '📷 изображение' : '')
+        const isQuoteOnly = !clean && !!quoteBody
         const initial = (p.author||'?')[0].toUpperCase()
         return (
           <div key={i}
@@ -977,8 +979,10 @@ function SidebarTopList({ posts, setLightbox }) {
                   onClick={e=>{e.stopPropagation();setLightbox(p.images[0])}}
                   onError={e=>e.target.style.display='none'}/>
               )}
-              <div style={{fontSize:11,color:'var(--text)',overflow:'hidden',lineHeight:1.5,
-                display:'-webkit-box',WebkitLineClamp:10,WebkitBoxOrient:'vertical'}}>
+              <div style={{fontSize:11,color:isQuoteOnly?'var(--dim)':'var(--text)',overflow:'hidden',lineHeight:1.5,
+                display:'-webkit-box',WebkitLineClamp:10,WebkitBoxOrient:'vertical',
+                ...(isQuoteOnly?{borderLeft:'2px solid var(--border2)',paddingLeft:8,fontStyle:'italic'}:{})}}>
+                {isQuoteOnly && <span style={{fontSize:9,color:'var(--dim)',fontStyle:'normal',display:'block',marginBottom:2}}>цитирует:</span>}
                 {preview.substring(0,500)}
               </div>
             </div>
