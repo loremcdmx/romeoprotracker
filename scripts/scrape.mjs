@@ -70,7 +70,7 @@ function parsePosts(html) {
 
     const author   = authorEl.text().trim()
     const isRomeo  = ROMEO_RE.test(author)
-    const maxLen   = isRomeo ? 8000 : 2400
+    const maxLen   = isRomeo ? 8000 : 4000
 
     const dateEl   = el.find('.post-date--item')
     const likesEl  = el.find('.post-vote--rating')
