@@ -178,8 +178,25 @@ function MarathonChart({ posts, meta, startBR, setLightbox, day }) {
             animation: 'drawLine 1.4s cubic-bezier(.4,0,.2,1) forwards',
           } : {}}
         />
+        {/* Pick ~8 evenly spaced labels by X position, not by index */}
         {points.map((p,i) => {
-          const showL = i===0||i===points.length-1||i%Math.max(1,Math.ceil(points.length/8))===0
+          const showL = (() => {
+            if (i === 0 || i === points.length - 1) return true
+            const totalW = coords[coords.length-1].x - coords[0].x
+            if (totalW <= 0) return false
+            const nLabels = Math.min(8, points.length)
+            const step = totalW / (nLabels - 1)
+            const slot = Math.round((coords[i].x - coords[0].x) / step)
+            // This point is the closest to its slot
+            const slotX = coords[0].x + slot * step
+            let bestIdx = i
+            let bestDist = Math.abs(coords[i].x - slotX)
+            for (let j = Math.max(1, i-2); j <= Math.min(points.length-2, i+2); j++) {
+              const d = Math.abs(coords[j].x - slotX)
+              if (d < bestDist) { bestDist = d; bestIdx = j }
+            }
+            return bestIdx === i
+          })()
           const isLast = i===points.length-1
           const cx=coords[i].x, cy=coords[i].y, profit=p.br-p.brPrev
           const isHovered = tip?.p === p
