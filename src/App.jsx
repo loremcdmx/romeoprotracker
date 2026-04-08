@@ -633,7 +633,7 @@ function FilterBar({ sortBy, setSortBy, search, setSearch, showSearch, setShowSe
       )}
       {hasFilters && (
         <button className="filter-pill off" title="Сбросить все фильтры" onClick={()=>{
-          setRomeoOnly(false); setMinLikes(15); setMinRating(0); setSearch(''); setShowSearch(false);
+          setRomeoOnly(false); setMinLikes(3); setMinRating(0); setSearch(''); setShowSearch(false);
         }}>✕</button>
       )}
       <span className="filter-active-count">{count} постов</span>
@@ -874,8 +874,9 @@ const PostCard = memo(function PostCard({ p, favorites, onFav, onIgnore, setLigh
 
 // ─── PAGINATOR ────────────────────────────────────────────────────────────────
 function Paginator({ page, totalPages, onPage, perPage, onPerPage, total }) {
+  const isMob = useIsMobile()
   const pages = []
-  const delta = 2
+  const delta = isMob ? 1 : 2
   for (let i = 1; i <= totalPages; i++) {
     if (i === 1 || i === totalPages || (i >= page - delta && i <= page + delta)) {
       pages.push(i)
@@ -885,15 +886,13 @@ function Paginator({ page, totalPages, onPage, perPage, onPerPage, total }) {
   }
   return (
     <div className="pagination">
-      <button className="page-btn" disabled={page===1} onClick={()=>onPage(1)}>«</button>
       <button className="page-btn" disabled={page===1} onClick={()=>onPage(page-1)}>‹</button>
       {pages.map((p,i) => p === '…'
         ? <span key={`e${i}`} className="page-info">…</span>
         : <button key={p} className={`page-btn ${p===page?'active':''}`} onClick={()=>onPage(p)}>{p}</button>
       )}
       <button className="page-btn" disabled={page===totalPages} onClick={()=>onPage(page+1)}>›</button>
-      <button className="page-btn" disabled={page===totalPages} onClick={()=>onPage(totalPages)}>»</button>
-      <span className="page-info">{(page-1)*perPage+1}–{Math.min(page*perPage,total)} из {total}</span>
+      {!isMob && <span className="page-info">{(page-1)*perPage+1}–{Math.min(page*perPage,total)} из {total}</span>}
       <select className="perpage-select" value={perPage} onChange={e=>{onPerPage(+e.target.value);onPage(1)}}>
         {[10,20,50,100].map(n=><option key={n} value={n}>{n} на стр.</option>)}
       </select>
@@ -954,7 +953,7 @@ function SidebarTopList({ posts, setLightbox }) {
 
       {posts.map((p, i) => {
         const clean = stripQuotes(p.text)
-        const preview = clean || extractBody(p.text) || (p.images?.[0] ? '→ форум' : '↩ цитата')
+        const preview = clean || (p.images?.[0] ? '📷 изображение' : '↩ цитата')
         const initial = (p.author||'?')[0].toUpperCase()
         return (
           <div key={i}
@@ -979,8 +978,8 @@ function SidebarTopList({ posts, setLightbox }) {
                   onError={e=>e.target.style.display='none'}/>
               )}
               <div style={{fontSize:11,color:'var(--text)',overflow:'hidden',lineHeight:1.5,
-                display:'-webkit-box',WebkitLineClamp:3,WebkitBoxOrient:'vertical'}}>
-                {preview.substring(0,120)}
+                display:'-webkit-box',WebkitLineClamp:4,WebkitBoxOrient:'vertical'}}>
+                {preview.substring(0,160)}
               </div>
             </div>
             <span style={{color:'var(--green)',fontSize:10,fontWeight:700,flexShrink:0,paddingTop:10}}>+{p.likes}</span>
@@ -1006,7 +1005,7 @@ export default function App() {
   const [romeoOnly, setRomeoOnly] = useState(false)
   const [page,    setPage]    = useState(1)
   const [perPage, setPerPage] = useState(20)
-  const [minLikes,  setMinLikesRaw]  = useState(() => { try { return parseInt(localStorage.getItem('rpt_minlikes') ?? '15') } catch { return 15 } })
+  const [minLikes,  setMinLikesRaw]  = useState(() => { try { return parseInt(localStorage.getItem('rpt_minlikes') ?? '3') } catch { return 3 } })
   const [minRating, setMinRatingRaw] = useState(() => { try { return parseInt(localStorage.getItem('rpt_minrating') ?? '0') } catch { return 0 } })
 
   const setSortBy   = v => { setSortByRaw(v);   try { localStorage.setItem('rpt_sortby', v) }   catch {} }
