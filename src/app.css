@@ -259,13 +259,6 @@ a{color:var(--red2);text-decoration:none}
   box-shadow:0 0 6px rgba(229,57,53,.5);
 }
 
-/* ─── FLASH OVERLAY ─────────────────────────────────────────────────────── */
-@keyframes flashGreen{0%{opacity:0}15%{opacity:.18}85%{opacity:.08}100%{opacity:0}}
-@keyframes flashRed{0%{opacity:0}15%{opacity:.14}85%{opacity:.06}100%{opacity:0}}
-.flash-overlay{position:fixed;inset:0;pointer-events:none;z-index:9998;border-radius:0}
-.flash-green{animation:flashGreen 1.6s ease forwards;background:radial-gradient(circle at center,#4caf50,transparent 70%)}
-.flash-red{animation:flashRed 1.6s ease forwards;background:radial-gradient(circle at center,#e53935,transparent 70%)}
-
 /* ─── SESSION PILL on chart ─────────────────────────────────────────────── */
 .mc-pill{
   background:rgba(18,18,18,0.82);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
