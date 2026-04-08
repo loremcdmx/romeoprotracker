@@ -915,7 +915,14 @@ function SidebarTopList({ posts, setLightbox }) {
         const p = posts[hovered]
         if (!p) return null
         const left = Math.max(8, Math.min(popupPos.x - 310, window.innerWidth - 320))
-        const top  = Math.max(8, Math.min(popupPos.y - 40, window.innerHeight - 420))
+        // If mouse is in lower half of screen, show popup above cursor
+        const flipUp = popupPos.y > window.innerHeight * 0.55
+        const top = flipUp
+          ? Math.max(8, popupPos.y - 420)
+          : Math.max(8, Math.min(popupPos.y - 40, window.innerHeight - 480))
+        const maxH = flipUp
+          ? Math.min(popupPos.y - 16, 560)
+          : Math.min(window.innerHeight - top - 16, 560)
         return (
           <div className="sidebar-popup" style={{
             position:'fixed', left, top,
@@ -923,7 +930,7 @@ function SidebarTopList({ posts, setLightbox }) {
             borderRadius:8, padding:14, zIndex:9999,
             boxShadow:'var(--shadow-popup)',
             pointerEvents:'auto',
-            maxHeight: Math.min(window.innerHeight - top - 16, 480),
+            maxHeight: maxH,
             display:'flex', flexDirection:'column',
           }}>
             <div style={{fontWeight:700,color:'var(--white)',fontSize:13,marginBottom:4}}>{p.author}</div>
