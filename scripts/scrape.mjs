@@ -3,9 +3,11 @@
  * GipsyTeam forum scraper for RomeoPro Tracker.
  * Runs in GitHub Actions on a cron schedule.
  *
- * 1. Fetches recent forum pages, extracts new posts
- * 2. If Romeo posted images → sends to Claude API (vision) to extract BR data
- * 3. Updates data/posts.json and data/meta.json, commits & pushes
+ * Modes (set via SCRAPE_MODE env var):
+ *   "normal"    — scan last 5 pages: add new posts + update likes on recent posts (default, every 30 min)
+ *   "full"      — scan ALL pages: update likes on every post (every 6 hours)
+ *
+ * Also: if Romeo posted images → sends to Claude API (vision) to extract BR data.
  */
 
 import { readFile, writeFile } from 'fs/promises'
@@ -14,22 +16,17 @@ import * as cheerio from 'cheerio'
 
 const FORUM_URL = 'https://forum.gipsyteam.ru/index.php?viewtopic=181676'
 const ROMEO_RE  = /romeopro/i
-const REPO      = 'loremcdmx/romeoprotracker'
-const MAX_PAGES = 5          // scan last 5 pages max per run
 const DELAY_MS  = 800        // polite delay between page fetches
+const MODE      = process.env.SCRAPE_MODE || 'normal'
 
 // ─── UTILS ───────────────────────────────────────────────────────────────────
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)) }
 
 function htmlToText($el, $) {
-  // Clone and process
   let html = $.html($el)
-  // <br> → \n
   html = html.replace(/<br\s*\/?>/gi, '\n')
-  // <p>, <div> closing → \n\n
   html = html.replace(/<\/(p|div)>/gi, '\n\n')
-  // blockquotes → [QUOTE]...[/QUOTE]
   const $clone = cheerio.load(html)
   $clone('blockquote').each(function () {
     const bq = $clone(this)
@@ -40,11 +37,7 @@ function htmlToText($el, $) {
     const body = bq.text().trim()
     bq.replaceWith(`[QUOTE]${author}|${dateRaw}\n${body}[/QUOTE]`)
   })
-  // Strip remaining tags
-  const text = $clone.root().text()
-    .replace(/\n{3,}/g, '\n\n')
-    .trim()
-  return text
+  return $clone.root().text().replace(/\n{3,}/g, '\n\n').trim()
 }
 
 // ─── FORUM SCRAPER ───────────────────────────────────────────────────────────
@@ -127,43 +120,36 @@ function parsePosts(html) {
   return posts
 }
 
-function findLastPageUrl(html) {
+function findLastSt(html) {
   const $ = cheerio.load(html)
-  const pagers = $('a.theme-pagination--pager')
   let maxSt = 0
-  pagers.each(function () {
-    const href = $(this).attr('href') || ''
-    const m = href.match(/st=(\d+)/)
+  $('a.theme-pagination--pager').each(function () {
+    const m = ($(this).attr('href') || '').match(/st=(\d+)/)
     if (m) maxSt = Math.max(maxSt, parseInt(m[1]))
   })
-  return maxSt > 0 ? `${FORUM_URL}&st=${maxSt}` : null
+  return maxSt
 }
 
-function findPrevPageUrl(html) {
-  const $ = cheerio.load(html)
-  // Find current page's st, go back 20
-  const currentSt = (() => {
-    const active = $('span.theme-pagination--pager.active, strong.theme-pagination--pager')
-    if (!active.length) return null
-    // Check surrounding links for st patterns
-    const links = $('a.theme-pagination--pager')
-    let max = 0
-    links.each(function () {
-      const m = ($(this).attr('href') || '').match(/st=(\d+)/)
-      if (m) max = Math.max(max, parseInt(m[1]))
-    })
-    return max
-  })()
-  // Previous page link
-  const prevLinks = $('a.theme-pagination--pager')
-  let prevUrl = null
-  prevLinks.each(function () {
-    const text = $(this).text().trim()
-    if (text === '←' || text === '‹') {
-      prevUrl = $(this).attr('href')
+// ─── LIKES UPDATE ────────────────────────────────────────────────────────────
+
+function updateLikes(existingPosts, scrapedPosts) {
+  const scrapedById = new Map(scrapedPosts.map(p => [p.id, p]))
+  let updated = 0
+
+  for (const post of existingPosts) {
+    const scraped = scrapedById.get(post.id)
+    if (!scraped) continue
+    if (post.likes !== scraped.likes) {
+      post.likes = scraped.likes
+      updated++
     }
-  })
-  return prevUrl
+    // Also update rating if changed
+    if (scraped.rating != null && post.rating !== scraped.rating) {
+      post.rating = scraped.rating
+    }
+  }
+
+  return updated
 }
 
 // ─── CLAUDE VISION (BR extraction) ──────────────────────────────────────────
@@ -175,15 +161,15 @@ async function extractBrFromImages(post, lastBrHistory) {
     return null
   }
 
-  // Filter to likely BR screenshot images (not smileys, not tiny)
   const brImages = post.images.filter(url =>
     !url.includes('smil') && !url.includes('emoji') &&
     (url.includes('_thumb') || url.includes('post-'))
   )
   if (brImages.length === 0) return null
 
-  // Use full-res URLs (remove _thumb suffix if present)
-  const fullResImages = brImages.map(url => url.replace('_thumb.webp', '.webp').replace('_thumb.jpg', '.jpg').replace('_thumb.png', '.png'))
+  const fullResImages = brImages.map(url =>
+    url.replace('_thumb.webp', '.webp').replace('_thumb.jpg', '.jpg').replace('_thumb.png', '.png')
+  )
 
   const lastEntry = lastBrHistory?.[lastBrHistory.length - 1]
   const prevBr = lastEntry ? lastEntry.brAfter : 10000
@@ -237,7 +223,6 @@ async function extractBrFromImages(post, lastBrHistory) {
     const text = data.content?.[0]?.text?.trim()
     if (!text) return null
 
-    // Parse JSON from response (handle possible markdown wrapping)
     const jsonStr = text.replace(/^```json\n?/, '').replace(/\n?```$/, '')
     const parsed = JSON.parse(jsonStr)
     if (parsed.skip) return null
@@ -267,41 +252,51 @@ async function extractBrFromImages(post, lastBrHistory) {
 // ─── MAIN ────────────────────────────────────────────────────────────────────
 
 async function main() {
-  console.log('🕷 RomeoPro Scraper starting...')
+  const isFullScan = MODE === 'full'
+  console.log(`🕷 RomeoPro Scraper [${isFullScan ? 'FULL SCAN' : 'normal'}]`)
 
   // Load existing data
-  const postsRaw = await readFile('data/posts.json', 'utf-8')
-  const posts = JSON.parse(postsRaw)
-  const metaRaw = await readFile('data/meta.json', 'utf-8')
-  const meta = JSON.parse(metaRaw)
-
+  const posts = JSON.parse(await readFile('data/posts.json', 'utf-8'))
+  const meta = JSON.parse(await readFile('data/meta.json', 'utf-8'))
   const knownIds = new Set(posts.map(p => p.id))
   console.log(`📊 Existing: ${posts.length} posts, ${meta.brHistory.length} BR entries`)
 
-  // Find last page of the forum
+  // Find last page
   const firstPageHtml = await fetchPage(FORUM_URL)
-  const lastPageUrl = findLastPageUrl(firstPageHtml)
-  if (!lastPageUrl) {
+  const lastSt = findLastSt(firstPageHtml)
+  if (!lastSt) {
     console.log('⚠ Could not find last page')
     return
   }
 
-  // Calculate pages to scan (last N pages, working backwards)
-  const lastSt = parseInt(lastPageUrl.match(/st=(\d+)/)[1])
+  // Build list of pages to scan
   const pagesToScan = []
-  for (let i = 0; i < MAX_PAGES; i++) {
-    const st = lastSt - i * 20
-    if (st < 0) break
-    pagesToScan.push(st === 0 ? FORUM_URL : `${FORUM_URL}&st=${st}`)
+  if (isFullScan) {
+    // Full scan: ALL pages (for likes update)
+    for (let st = 0; st <= lastSt; st += 20) {
+      pagesToScan.push(st === 0 ? FORUM_URL : `${FORUM_URL}&st=${st}`)
+    }
+  } else {
+    // Normal: last 5 pages
+    for (let i = 0; i < 5; i++) {
+      const st = lastSt - i * 20
+      if (st < 0) break
+      pagesToScan.push(st === 0 ? FORUM_URL : `${FORUM_URL}&st=${st}`)
+    }
+    pagesToScan.reverse()
   }
-  pagesToScan.reverse() // oldest first
 
-  // Scrape pages
+  console.log(`📄 Scanning ${pagesToScan.length} pages...`)
+
+  // Scrape all pages
+  const allScraped = []
   const newPosts = []
-  for (const url of pagesToScan) {
-    console.log(`📄 Fetching: ${url}`)
+  for (let i = 0; i < pagesToScan.length; i++) {
+    const url = pagesToScan[i]
+    if (i % 20 === 0 || !isFullScan) console.log(`📄 Page ${i + 1}/${pagesToScan.length}: ${url}`)
     const html = await fetchPage(url)
     const pagePosts = parsePosts(html)
+    allScraped.push(...pagePosts)
 
     for (const p of pagePosts) {
       if (!knownIds.has(p.id)) {
@@ -312,12 +307,15 @@ async function main() {
     await sleep(DELAY_MS)
   }
 
-  if (newPosts.length === 0) {
-    console.log('✅ No new posts found')
-    return
+  // Update likes on existing posts
+  const likesUpdated = updateLikes(posts, allScraped)
+  if (likesUpdated > 0) {
+    console.log(`👍 Likes: ${likesUpdated} posts updated`)
   }
 
-  console.log(`🆕 Found ${newPosts.length} new posts`)
+  if (newPosts.length > 0) {
+    console.log(`🆕 Found ${newPosts.length} new posts`)
+  }
 
   // Process Romeo's posts with images (BR extraction via Claude)
   let metaUpdated = false
@@ -332,14 +330,12 @@ async function main() {
       continue
     }
 
-    // Update the post
     p.brBefore = brData.brBefore
     p.brAfter = brData.brAfter
     p.sessionResult = brData.sessionResult
     p.rooms = brData.rooms
 
-    // Add to brHistory
-    const historyEntry = {
+    meta.brHistory.push({
       id: p.id,
       date: p.date,
       timestamp: p.timestamp,
@@ -349,14 +345,14 @@ async function main() {
       rooms: brData.rooms,
       url: p.url,
       tournaments: brData.tournaments,
-    }
-    meta.brHistory.push(historyEntry)
+      ...(brData.tournaments ? {
+        totalTournaments: (meta.totalTournaments || 0) + brData.tournaments
+      } : {})
+    })
 
-    // Update meta totals
     meta.bankroll = brData.brAfter
     if (brData.tournaments) {
       meta.totalTournaments = (meta.totalTournaments || 0) + brData.tournaments
-      historyEntry.totalTournaments = meta.totalTournaments
     }
     meta.lastUpdated = new Date().toISOString()
     metaUpdated = true
@@ -364,27 +360,34 @@ async function main() {
     console.log(`  ✅ BR: $${brData.brBefore} → $${brData.brAfter} (${brData.sessionResult >= 0 ? '+' : ''}${brData.sessionResult})`)
   }
 
-  // Merge and sort
-  const merged = [...posts, ...newPosts]
+  // Check if anything changed
+  const hasChanges = newPosts.length > 0 || likesUpdated > 0 || metaUpdated
+  if (!hasChanges) {
+    console.log('✅ No changes')
+    return
+  }
+
+  // Merge new posts and save
+  const merged = newPosts.length > 0 ? [...posts, ...newPosts] : posts
   meta.totalPosts = merged.length
 
-  // Write files
   await writeFile('data/posts.json', JSON.stringify(merged, null, 2))
-  console.log(`💾 Saved ${merged.length} posts`)
 
   if (metaUpdated) {
     await writeFile('data/meta.json', JSON.stringify(meta, null, 2))
-    console.log('💾 Updated meta.json with new BR data')
   }
 
-  // Git commit
+  // Build commit message
+  const parts = []
+  if (newPosts.length > 0) parts.push(`+${newPosts.length} posts`)
+  if (likesUpdated > 0) parts.push(`likes: ${likesUpdated} updated`)
+  if (metaUpdated) parts.push(`BR → $${meta.bankroll}`)
+  const msg = `scraper: ${parts.join(', ')} (total ${merged.length})`
+
+  // Git commit & push
   execSync('git config user.name "RomeoPro Scraper"')
   execSync('git config user.email "scraper@romeoprotracker.vercel.app"')
   execSync('git add data/posts.json data/meta.json')
-
-  const msg = metaUpdated
-    ? `scraper: +${newPosts.length} posts, BR updated to $${meta.bankroll}`
-    : `scraper: +${newPosts.length} posts (total ${merged.length})`
 
   try {
     execSync(`git commit -m "${msg}"`)
