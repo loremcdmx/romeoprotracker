@@ -805,7 +805,6 @@ function MarathonChart({ posts, meta, startBR, setLightbox, day }) {
             <div style={{fontWeight:700,color:'var(--white)',fontSize:13,marginBottom:5}}>{tip.p.date}</div>
             <div style={{display:'flex',gap:12,fontSize:12,marginBottom:tip.p.tournaments?4:roomDeltas.length?8:4}}>
               <span style={{color:'var(--dim)'}}>БР: <b style={{color:'var(--white)'}}>{fkAbs(tip.p.br)}</b></span>
-              <span style={{color:tip.profit>=0?'#66bb6a':'#ff5252',fontWeight:700}}>{fk(tip.profit)}</span>
             </div>
             {tip.p.tournaments && (
               <div style={{fontSize:11,color:'var(--dim)',marginBottom:roomDeltas.length?8:4}}>
@@ -1753,7 +1752,6 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('feed')
   const [lightbox,  setLightbox]  = useState(null)
   const [theme, setTheme] = useState(() => { try { return localStorage.getItem('rpt_theme') || 'dark' } catch { return 'dark' } })
-  const [flash, setFlash] = useState(null) // 'green' | 'red' | null
   const [sortBy,  setSortByRaw]  = useState(() => { try { return localStorage.getItem('rpt_sortby') || 'date_asc' } catch { return 'date_asc' } })
   const [search,  setSearch]  = useState('')
   const [showSearch, setShowSearch] = useState(false)
@@ -1796,16 +1794,6 @@ export default function App() {
     document.documentElement.classList.toggle('light', theme === 'light')
     try { localStorage.setItem('rpt_theme', theme) } catch {}
   }, [theme])
-
-  // Flash on first load based on last session result
-  useEffect(() => {
-    if (!meta?.brHistory?.length) return
-    const last = [...meta.brHistory].sort((a,b)=>(a.timestamp||0)-(b.timestamp||0)).slice(-1)[0]
-    if (!last?.sessionResult) return
-    setFlash(last.sessionResult >= 0 ? 'green' : 'red')
-    const t = setTimeout(() => setFlash(null), 1800)
-    return () => clearTimeout(t)
-  }, [!!meta])
 
   // Stats из постов Ромео
   const stats = useMemo(() => {
@@ -2021,14 +2009,9 @@ export default function App() {
     })
   }
 
-  // ── ANIMATED COUNTER + SPARKLINE ─────────────────────────────────────────
-  const brVal       = stats?.br || meta?.bankroll || 0
-  const animBR      = useAnimatedCounter(brVal, 1100)
-  const sparkValues = useMemo(() =>
-    meta?.brHistory?.length
-      ? [...meta.brHistory].sort((a,b)=>(a.timestamp||0)-(b.timestamp||0)).map(h=>h.brAfter)
-      : []
-  , [meta])
+  // ── ANIMATED COUNTER ─────────────────────────────────────────────────────
+  const brVal  = stats?.br || meta?.bankroll || 0
+  const animBR = useAnimatedCounter(brVal, 1100)
 
   return (
     <>
@@ -2053,8 +2036,6 @@ export default function App() {
           <img src={lightbox} alt=""/>
         </div>
       )}
-
-      {flash && <div className={`flash-overlay flash-${flash}`}/>}
 
       <div className="topbar">
         <div className="topbar-inner">
@@ -2125,12 +2106,8 @@ export default function App() {
               <div className="hero-stats">
                 <div className="hstat">
                   <div className="hstat-label">Банкролл</div>
-                  <div className={`hstat-value ${brVal?'green':''}`} style={{fontSize:18,display:'flex',alignItems:'center',gap:8}}>
+                  <div className={`hstat-value ${brVal?'green':''}`} style={{fontSize:18}}>
                     {fmtExact(animBR || brVal)}
-                    {sparkValues.length >= 2 && (
-                      <Sparkline values={sparkValues} width={56} height={22}
-                        color={(stats.profit||0)>=0?'#66bb6a':'#ff5252'}/>
-                    )}
                   </div>
                   <div className="hstat-sub">старт: {fmtExact(stats.startBR)}</div>
                 </div>
