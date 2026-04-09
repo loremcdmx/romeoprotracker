@@ -751,7 +751,7 @@ function renderPostText(text, collapseQuotes=false) {
 
 
 // ─── POST CARD ────────────────────────────────────────────────────────────────
-const PostCard = memo(function PostCard({ p, favorites, onFav, onIgnore, setLightbox, noClamp=false }) {
+const PostCard = memo(function PostCard({ p, favorites, onFav, onIgnore, setLightbox, noClamp=false, tags=null }) {
   const [exp, setExp]     = useState(false)
   const [menu, setMenu]   = useState(false)
   const menuRef           = useRef(null)
@@ -865,6 +865,15 @@ const PostCard = memo(function PostCard({ p, favorites, onFav, onIgnore, setLigh
             <span style={{fontSize:9,opacity:.7}}>{exp?'▲':'▼'}</span>
             {exp ? 'свернуть' : 'читать'}
           </button>
+        )}
+        {tags && tags.length > 0 && (
+          <span style={{display:'inline-flex',gap:4,marginLeft:4}}>
+            {tags.map(t=>(
+              <span key={t.id} style={{fontSize:9,color:'var(--dim)',background:'var(--bg3)',borderRadius:10,padding:'2px 6px'}}>
+                {t.icon} {t.label}
+              </span>
+            ))}
+          </span>
         )}
         {p.url&&<a className="pc-link" href={p.url} target="_blank" rel="noreferrer">→ форум</a>}
       </div>
@@ -1142,22 +1151,30 @@ export default function App() {
   const totalPages = Math.max(1, Math.ceil(feedPosts.length / perPage))
   const pagedPosts = feedPosts.slice((page-1)*perPage, page*perPage)
 
-  // ── КЛАССИФИКАЦИЯ ПО ТЕМАМ (один проход) ────────────────────────────────
-  // ── Детектор подтем ──────────────────────────────────────────────────────────
-  const detectSubtopic = (text, likes) => {
-    const t = text || ''
-    if (/шахмат|гнат\b|gnat\b/i.test(t))                                            return 'chess'
-    if (/долг|должен|кредит|занял|мистер|инвестор|отдаст|бекер|должник/i.test(t))  return 'debt'
-    if (/стратег|дисперси|рои\b|roi\b|abi\b|аби\b|скилл|brm\b/i.test(t))           return 'strategy'
-    if (/психолог|тилт\b|tilt\b|эмоц|дисциплин|мышлени/i.test(t))                  return 'psychology'
-    if (/стрим|твич|twitch|ютуб|youtube|блог|донат/i.test(t))                       return 'stream'
-    if (likes >= 50)                                                                  return 'hot'
-    return 'other'
+  // ── КЛАССИФИКАЦИЯ ПО ТЕМАМ ──────────────────────────────────────────────
+  const TAG_RULES = [
+    { id:'staking',    icon:'💰', label:'Стейкинг/Доли',    re:/стейкинг|стейк|бекинг|бек\b|доли\b|доля\b|продаж.*дол|конюшн|инвестор|инвестиц|кэф.*дол/i },
+    { id:'debt',       icon:'🔴', label:'Долги',             re:/долг|должен|кредит|занял|отдаст|должник/i },
+    { id:'strategy',   icon:'📊', label:'Стратегия',         re:/стратег|рои\b|roi\b|abi\b|аби\b|скилл|brm|эдж|солвер|ренж|рейнж|префлоп|постфлоп|\bev\b|рейк|ракебек|загрузк/i },
+    { id:'variance',   icon:'🎲', label:'Дисперсия',         re:/дисперси|даунстрик|апстрик|свинг|вариан/i },
+    { id:'psychology', icon:'🧠', label:'Психология',        re:/психолог|тилт\b|tilt\b|эмоц|дисциплин|мышлени|менталь|мотивац|выгоран|депресс|стресс/i },
+    { id:'mtt',        icon:'🏆', label:'МТТ/Турниры',       re:/мтт|турнир|mystery|мистери|баунти|фризаут|сателлит/i },
+    { id:'content',    icon:'📺', label:'Стримы/Контент',    re:/стрим|твич|twitch|ютуб|youtube|подкаст|видео|контент|блог|донат/i },
+    { id:'chess',      icon:'♟',  label:'Шахматы/Гнат',      re:/шахмат|гнат\b|gnat\b|фишер.*шахмат|карлсен/i },
+    { id:'life',       icon:'🏠', label:'Жизнь/Офтоп',       re:/жизн|семь[яи]|жен[аеыщ]|муж\b|дет[яиейс]|ребен|здоров|работ[аеу]|карьер|образован|универ|учеб/i },
+    { id:'live',       icon:'🎰', label:'Лайв/Кеш',          re:/офлайн|оффлайн|кеш\s*гейм|cash.*game|живая.*игр|живой.*покер|казино|вегас|серия\b/i },
+  ]
+
+  const detectTags = (text) => {
+    const tags = []
+    TAG_RULES.forEach(r => { if (r.re.test(text)) tags.push(r.id) })
+    return tags
   }
 
   const classifiedPosts = useMemo(() => {
-    if (!posts.length) return { marathon:[], discussion:[], debate:[], flood:[] }
-    const result = { marathon:[], discussion:[], debate:[], flood:[] }
+    if (!posts.length) return { marathon:[], discussion:[], debate:[], byTag:{} }
+    const result = { marathon:[], discussion:[], debate:[], byTag:{} }
+    TAG_RULES.forEach(r => { result.byTag[r.id] = [] })
 
     posts.forEach(p => {
       if (ignored.has(p.author)) return
@@ -1166,49 +1183,58 @@ export default function App() {
       if (search && !p.text?.toLowerCase().includes(search.toLowerCase())) return
       const text = p.text || ''
       const likes = p.likes || 0
+      const tags = detectTags(text)
+      const tagged = { ...p, _tags: tags }
 
       if (ROMEO_RE.test(p.author)) {
-        // Марафон = все посты Ромео + обсуждение его постов
-        result.marathon.push(p)
+        result.marathon.push(tagged)
       } else if (ROMEO_RE.test(text) && (text.length > 80 || likes >= 5)) {
-        // Обсуждение = упоминают Ромео, отвечают на него
-        result.discussion.push({ ...p, _subtopic: detectSubtopic(text, likes) })
-      } else if (text.length > 300 && likes >= 20) {
-        // Дебаты = длинный контент с лайками, разбитый по темам
-        result.debate.push({ ...p, _subtopic: detectSubtopic(text, likes) })
-      } else {
-        result.flood.push({ ...p, _subtopic: detectSubtopic(text, likes) })
+        result.discussion.push(tagged)
       }
+
+      // Дебаты — длинный качественный контент
+      if (!ROMEO_RE.test(p.author) && text.length > 300 && likes >= 20) {
+        result.debate.push(tagged)
+      }
+
+      // Теги — пост может попасть в несколько тегов
+      tags.forEach(tag => {
+        if (result.byTag[tag]) result.byTag[tag].push(tagged)
+      })
     })
 
-    const byLikes = (a,b) => (b.likes||0)-(a.likes||0)
-    const byDate  = (a,b) => (b.timestamp||0)-(a.timestamp||0)
-    result.marathon.sort(byDate)
-    result.discussion.sort(byDate)
-    result.debate.sort(byLikes)   // дебаты по лайкам — лучший контент сверху
-    result.flood.sort(byDate)
+    result.marathon.sort((a,b) => (b.timestamp||0)-(a.timestamp||0))
+    result.discussion.sort((a,b) => (b.timestamp||0)-(a.timestamp||0))
+    result.debate.sort((a,b) => (b.likes||0)-(a.likes||0))
+    TAG_RULES.forEach(r => {
+      result.byTag[r.id].sort((a,b) => (b.likes||0)-(a.likes||0))
+    })
     return result
   }, [posts, ignored, minLikes, minRating, search])
 
   const [topicTab, setTopicTab] = useState('marathon')
   const [topicPage, setTopicPage] = useState(1)
-  const [topicSubtopic, setTopicSubtopic] = useState(null)
+  const [topicTag, setTopicTag] = useState(null)
   const [topicSortByRaw, setTopicSortByRaw] = useState(() => { try { return localStorage.getItem('rpt_topic_sortby') || 'date_desc' } catch { return 'date_desc' } })
   const setTopicSortBy = v => { setTopicSortByRaw(v); try { localStorage.setItem('rpt_topic_sortby', v) } catch {} }
   const TOPIC_PER_PAGE = 20
 
   const currentTopicPosts = useMemo(() => {
-    let all = [...(classifiedPosts[topicTab] || [])]
-    if (topicSubtopic) all = all.filter(p => p._subtopic === topicSubtopic)
+    let all
+    if (topicTab === 'tags' && topicTag) {
+      all = [...(classifiedPosts.byTag[topicTag] || [])]
+    } else {
+      all = [...(classifiedPosts[topicTab] || [])]
+    }
     if (topicSortByRaw === 'date_asc')  all.sort((a,b) => (a.timestamp||0) - (b.timestamp||0))
     else if (topicSortByRaw === 'likes') all.sort((a,b) => (b.likes||0) - (a.likes||0))
-    else all.sort((a,b) => (b.timestamp||0) - (a.timestamp||0)) // date_desc по умолчанию
+    else all.sort((a,b) => (b.timestamp||0) - (a.timestamp||0))
     return {
       all,
       paged: all.slice((topicPage-1)*TOPIC_PER_PAGE, topicPage*TOPIC_PER_PAGE),
       totalPages: Math.max(1, Math.ceil(all.length / TOPIC_PER_PAGE))
     }
-  }, [classifiedPosts, topicTab, topicPage, topicSubtopic, topicSortByRaw])
+  }, [classifiedPosts, topicTab, topicTag, topicPage, topicSortByRaw])
 
   const goTopicPage = p => {
     setTopicPage(p)
@@ -1390,39 +1416,15 @@ export default function App() {
 
             {/* ТЕМЫ */}
             {activeTab==='topics' && (() => {
-              const TABS = [
-                { id:'marathon',   icon:'📈', label:'Марафон',    desc:'Посты Ромео + реакции на него' },
-                { id:'discussion', icon:'💬', label:'Обсуждение', desc:'Реакции форумчан на Ромео' },
-                { id:'debate',     icon:'🔥', label:'Дебаты',     desc:'Топ-контент по темам' },
-                { id:'flood',      icon:'💨', label:'Флуд',       desc:'Прочее' },
+              const MAIN_TABS = [
+                { id:'marathon',   icon:'📈', label:'Марафон',    desc:'Все посты Ромео' },
+                { id:'discussion', icon:'💬', label:'Про Ромео',  desc:'Обсуждение и реакции на Ромео' },
+                { id:'debate',     icon:'🔥', label:'Топ-контент',desc:'Длинные посты с высоким рейтингом' },
+                { id:'tags',       icon:'🏷', label:'По темам',   desc:'Все посты по тематикам' },
               ]
-              const SUBTOPICS = {
-                debate: [
-                  { id:null,         label:'Все' },
-                  { id:'debt',       label:'💰 Долги/Мистеры' },
-                  { id:'strategy',   label:'📊 Стратегия' },
-                  { id:'psychology', label:'🧠 Психология' },
-                  { id:'chess',      label:'♟ Шахматы/Гнат' },
-                  { id:'stream',     label:'📺 Стримы' },
-                  { id:'hot',        label:'🔥 Горячие' },
-                ],
-                flood: [
-                  { id:null,       label:'Все' },
-                  { id:'chess',    label:'♟ Шахматы/Гнат' },
-                  { id:'stream',   label:'📺 Стримы' },
-                  { id:'debt',     label:'💰 Долги' },
-                  { id:'hot',      label:'🔥 Горячие' },
-                ],
-                discussion: [
-                  { id:null,         label:'Все' },
-                  { id:'debt',       label:'💰 Долги' },
-                  { id:'strategy',   label:'📊 Стратегия' },
-                  { id:'psychology', label:'🧠 Психология' },
-                ],
-              }
               const { paged, totalPages: tpg, all } = currentTopicPosts
-              const subtopics = SUBTOPICS[topicTab]
-              const hasSub = subtopics && subtopics.length > 1
+              const isTagMode = topicTab === 'tags'
+              const activeTagRule = isTagMode && topicTag ? TAG_RULES.find(r=>r.id===topicTag) : null
               return <>
                 <FilterBar
                   sortBy={topicSortByRaw} setSortBy={setTopicSortBy}
@@ -1433,35 +1435,39 @@ export default function App() {
                   minRating={minRating} setMinRating={setMinRating}
                   count={all.length} showSort={true}
                 />
-                {/* Выбор темы */}
+                {/* Основные разделы */}
                 <div className="topic-tabs">
-                  {TABS.map(t => (
+                  {MAIN_TABS.map(t => (
                     <div key={t.id}
                       className={`topic-tab ${topicTab===t.id?'active':''}`}
-                      onClick={()=>{ setTopicTab(t.id); setTopicPage(1); setTopicSubtopic(null) }}>
+                      onClick={()=>{ setTopicTab(t.id); setTopicPage(1); setTopicTag(t.id==='tags' ? TAG_RULES[0].id : null) }}>
                       {t.icon} {t.label}
-                      <span className="tc">{classifiedPosts[t.id]?.length||0}</span>
+                      <span className="tc">{
+                        t.id === 'tags'
+                          ? Object.values(classifiedPosts.byTag).reduce((s,a)=>s+a.length, 0)
+                          : classifiedPosts[t.id]?.length||0
+                      }</span>
                     </div>
                   ))}
                 </div>
 
-                {/* Подтемы */}
-                {hasSub && (
+                {/* Теги — сетка тем */}
+                {isTagMode && (
                   <div style={{display:'flex',gap:6,flexWrap:'wrap',margin:'8px 0',padding:'2px 0'}}>
-                    {subtopics.map(s => {
-                      const count = s.id
-                        ? classifiedPosts[topicTab]?.filter(p => p._subtopic === s.id).length || 0
-                        : classifiedPosts[topicTab]?.length || 0
-                      if (count === 0 && s.id) return null
+                    {TAG_RULES.map(r => {
+                      const count = classifiedPosts.byTag[r.id]?.length || 0
+                      if (!count) return null
+                      const active = topicTag === r.id
                       return (
-                        <button key={String(s.id)} onClick={()=>{ setTopicSubtopic(s.id); setTopicPage(1) }}
+                        <button key={r.id} onClick={()=>{ setTopicTag(r.id); setTopicPage(1) }}
                           style={{
-                            background: topicSubtopic===s.id ? 'var(--red)' : 'var(--bg3)',
-                            border: '1px solid ' + (topicSubtopic===s.id ? 'var(--red)' : 'var(--border)'),
-                            borderRadius:20, color: topicSubtopic===s.id ? '#fff' : 'var(--dim2)',
-                            fontSize:11, padding:'4px 10px', cursor:'pointer', fontFamily:'inherit',
+                            background: active ? 'var(--red)' : 'var(--bg3)',
+                            border: '1px solid ' + (active ? 'var(--red)' : 'var(--border)'),
+                            borderRadius:20, color: active ? '#fff' : 'var(--dim2)',
+                            fontSize:11, padding:'5px 12px', cursor:'pointer', fontFamily:'inherit',
+                            transition:'all .15s',
                           }}>
-                          {s.label} <span style={{opacity:.6,fontSize:10}}>{count}</span>
+                          {r.icon} {r.label} <span style={{opacity:.6,fontSize:10}}>{count}</span>
                         </button>
                       )
                     })}
@@ -1470,11 +1476,15 @@ export default function App() {
 
                 {/* Описание */}
                 <div style={{fontSize:12,color:'var(--dim)',marginBottom:10}}>
-                  {TABS.find(t=>t.id===topicTab)?.desc} · {all.length} постов
+                  {isTagMode
+                    ? (activeTagRule ? `${activeTagRule.icon} ${activeTagRule.label}` : 'Выберите тему')
+                    : MAIN_TABS.find(t=>t.id===topicTab)?.desc
+                  } · {all.length} постов
                 </div>
 
+                {/* Теги постов */}
                 {all.length===0
-                  ? <div className="empty-state">Постов в этой категории нет</div>
+                  ? <div className="empty-state">{isTagMode && !topicTag ? 'Выберите тему выше' : 'Постов не найдено'}</div>
                   : <>
                     <Paginator page={topicPage} totalPages={tpg} onPage={goTopicPage}
                       perPage={TOPIC_PER_PAGE} onPerPage={()=>{}} total={all.length}/>
@@ -1482,7 +1492,8 @@ export default function App() {
                       <PostCard key={p.id||p.url} p={p}
                         favorites={favorites} onFav={toggleFav}
                         onIgnore={addIgnore} setLightbox={setLightbox}
-                        noClamp={topicTab==='marathon'}/>
+                        noClamp={topicTab==='marathon'}
+                        tags={p._tags && isTagMode ? p._tags.filter(t=>t!==topicTag).map(t=>TAG_RULES.find(r=>r.id===t)).filter(Boolean) : null}/>
                     ))}
                     <Paginator page={topicPage} totalPages={tpg} onPage={goTopicPage}
                       perPage={TOPIC_PER_PAGE} onPerPage={()=>{}} total={all.length}/>
