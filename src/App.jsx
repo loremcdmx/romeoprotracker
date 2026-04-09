@@ -1419,9 +1419,6 @@ export default function App() {
                   <div className={`hstat-value ${!stats.profit?'':stats.profit>=0?'green':'red'}`} style={{fontSize:18}}>
                     {fmtBR(stats.profit)}
                   </div>
-                  {stats.totalTourneys != null && (
-                    <div className="hstat-sub">{fmtInt(stats.totalTourneys)} турниров</div>
-                  )}
                 </div>
                 <div className="hstat">
                   <div className="hstat-label">День марафона</div>
