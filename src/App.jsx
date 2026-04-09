@@ -94,8 +94,16 @@ function MarathonChart({ posts, meta, startBR, setLightbox, day }) {
   const yOf  = v => pT + (1-(v-minV)/(maxV-minV)) * (H-pT-pB)
 
   // X-позиция пропорциональна накопленным МТТ если данные есть, иначе равномерно
+  // Fill gaps: if a point has no totalTournaments, interpolate from neighbors
   const hasMTT = points.length > 1 && points.some(p => p.totalTournaments)
-  const cumMTT = points.map(p => p.totalTournaments || 0)
+  const cumMTT = (() => {
+    const raw = points.map(p => p.totalTournaments || 0)
+    // Forward-fill zeros (use previous value + session tournaments)
+    for (let i = 1; i < raw.length; i++) {
+      if (!raw[i] && raw[i-1]) raw[i] = raw[i-1] + (points[i].tournaments || 0)
+    }
+    return raw
+  })()
   const totalMTT = cumMTT[cumMTT.length - 1] || 1
 
   const xOf = (() => {
@@ -199,25 +207,43 @@ function MarathonChart({ posts, meta, startBR, setLightbox, day }) {
             animation: 'drawLine 1.4s cubic-bezier(.4,0,.2,1) forwards',
           } : {}}
         />
-        {/* Pick ~8 evenly spaced labels by X position, not by index */}
-        {points.map((p,i) => {
-          const showDot = !isMobile || mobileVisible.has(i)
-          const showL = (() => {
-            if (i === 0 || i === points.length - 1) return true
-            const totalW = coords[coords.length-1].x - coords[0].x
-            if (totalW <= 0) return false
+        {/* Pick evenly spaced labels with minimum gap enforcement */}
+        {(() => {
+          // Precompute which points get labels: ~8 evenly spaced, min 55px apart
+          const labelSet = new Set([0, points.length - 1])
+          const totalW = coords.length > 1 ? coords[coords.length-1].x - coords[0].x : 0
+          if (totalW > 0) {
             const nLabels = Math.min(8, points.length)
             const step = totalW / (nLabels - 1)
-            const slot = Math.round((coords[i].x - coords[0].x) / step)
-            const slotX = coords[0].x + slot * step
-            let bestIdx = i
-            let bestDist = Math.abs(coords[i].x - slotX)
-            for (let j = Math.max(1, i-2); j <= Math.min(points.length-2, i+2); j++) {
-              const d = Math.abs(coords[j].x - slotX)
-              if (d < bestDist) { bestDist = d; bestIdx = j }
+            for (let s = 1; s < nLabels - 1; s++) {
+              const targetX = coords[0].x + s * step
+              let bestIdx = -1, bestDist = Infinity
+              for (let j = 1; j < points.length - 1; j++) {
+                const d = Math.abs(coords[j].x - targetX)
+                if (d < bestDist) { bestDist = d; bestIdx = j }
+              }
+              if (bestIdx >= 0) labelSet.add(bestIdx)
             }
-            return bestIdx === i
-          })()
+          }
+          // Remove labels that are too close to neighbors (min 55px gap)
+          const sorted = [...labelSet].sort((a,b) => a - b)
+          const finalLabels = new Set()
+          let prevX = -Infinity
+          for (const idx of sorted) {
+            if (coords[idx].x - prevX >= 55 || idx === points.length - 1) {
+              // For the last point, remove previous if too close
+              if (idx === points.length - 1 && coords[idx].x - prevX < 55) {
+                for (const prev of [...finalLabels].reverse()) {
+                  if (prev !== 0) { finalLabels.delete(prev); break }
+                }
+              }
+              finalLabels.add(idx)
+              prevX = coords[idx].x
+            }
+          }
+          return points.map((p,i) => ({ p, i, showL: finalLabels.has(i) }))
+        })().map(({ p, i, showL }) => {
+          const showDot = !isMobile || mobileVisible.has(i)
           const isLast = i===points.length-1
           const cx=coords[i].x, cy=coords[i].y, profit=p.br-p.brPrev
           const isHovered = tip?.p === p
@@ -240,7 +266,7 @@ function MarathonChart({ posts, meta, startBR, setLightbox, day }) {
                       {cumMTT[i] ? fmtInt(cumMTT[i]) : '—'}
                     </text>
                     <text x={lx} y={H+pB-8} textAnchor="middle" fontFamily="'Roboto Mono',monospace"
-                      fontSize="7" fill="#444">
+                      fontSize="8" fill="#444">
                       {fmtDateShort(p.timestamp)}
                     </text>
                   </g>
