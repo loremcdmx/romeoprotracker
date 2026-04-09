@@ -92,6 +92,7 @@ function parsePosts(html) {
 
     const images = []
     bodyEl.find('img').each(function () {
+      if ($(this).closest('blockquote').length) return  // skip images inside quotes
       const src = $(this).attr('src')
       if (src?.startsWith('http') && !src.includes('smil')) images.push(src)
     })
