@@ -573,10 +573,12 @@ async function main() {
 
   try {
     execSync(`git commit -m "${msg}"`)
+    // Pull remote changes before push to avoid rejection when UI commits land in parallel
+    try { execSync('git pull --rebase origin main') } catch {}
     execSync('git push')
     console.log(`✅ Pushed: ${msg}`)
   } catch (e) {
-    console.log('ℹ Nothing to commit or push failed')
+    console.log('ℹ Nothing to commit or push failed:', e.message)
   }
 }
 
