@@ -219,7 +219,7 @@ a{color:var(--red2);text-decoration:none}
   backdrop-filter:blur(18px);
   -webkit-backdrop-filter:blur(18px);
   border:1px solid rgba(255,255,255,0.10);
-  border-radius:12px;padding:12px 14px;pointer-events:none;
+  border-radius:12px;padding:12px 14px;pointer-events:auto;
   z-index:20;min-width:220px;max-width:270px;
   box-shadow:0 8px 32px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,0.06);
 }
