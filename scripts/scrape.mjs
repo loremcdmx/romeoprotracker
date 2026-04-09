@@ -72,7 +72,7 @@ function parsePosts(html) {
     const isRomeo  = ROMEO_RE.test(author)
     const maxLen   = 50000  // safety cap for extreme edge cases only
 
-    const dateEl   = el.find('.post-date--item')
+    const dateEl   = el.find('.post-date--item').first()
     const likesEl  = el.find('.post-vote--rating')
     const avatarEl = el.find('.post-author--avatar img')
     const ratingEl = el.find('.post-author--rating')
@@ -162,6 +162,10 @@ function updateLikes(existingPosts, scrapedPosts) {
     // Also update rating if changed
     if (scraped.rating != null && post.rating !== scraped.rating) {
       post.rating = scraped.rating
+    }
+    // Update date to absolute form (replaces relative "X мин назад" with "7 апреля, 12:30")
+    if (scraped.date && scraped.date !== post.date) {
+      post.date = scraped.date
     }
   }
 
@@ -399,12 +403,39 @@ async function main() {
     p.images && p.images.length > 0 &&
     p.brAfter == null &&
     !brHistoryIds.has(p.id)
-  )
+  ).sort((a, b) => a.timestamp - b.timestamp)  // process in chronological order
   if (retryPosts.length > 0) {
     console.log(`🔄 Retrying BR extraction for ${retryPosts.length} existing post(s)...`)
     for (const p of retryPosts) {
       if (await processPostBr(p, '[retry]')) metaUpdated = true
     }
+  }
+
+  // After all BR processing, sort brHistory chronologically and recompute the brBefore/sessionResult chain
+  if (metaUpdated) {
+    meta.brHistory.sort((a, b) => a.timestamp - b.timestamp)
+    let totalTournaments = 0
+    for (let i = 0; i < meta.brHistory.length; i++) {
+      const entry = meta.brHistory[i]
+      const prev = i > 0 ? meta.brHistory[i - 1] : null
+      entry.brBefore = prev ? prev.brAfter : 10000
+      entry.sessionResult = entry.brAfter - entry.brBefore
+      if (entry.tournaments) {
+        totalTournaments += entry.tournaments
+        entry.totalTournaments = totalTournaments
+      }
+      // Sync with the corresponding post object
+      const post = [...posts, ...newPosts].find(p => p.id === entry.id)
+      if (post) {
+        post.brBefore = entry.brBefore
+        post.sessionResult = entry.sessionResult
+        if (post.date) entry.date = post.date  // keep brHistory dates in sync
+      }
+    }
+    const lastEntry = meta.brHistory[meta.brHistory.length - 1]
+    meta.bankroll = lastEntry.brAfter
+    meta.totalTournaments = totalTournaments
+    meta.lastUpdated = new Date().toISOString()
   }
 
   // Check if anything changed
