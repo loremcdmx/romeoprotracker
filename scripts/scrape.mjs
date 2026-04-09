@@ -6,6 +6,7 @@
  * Modes (set via SCRAPE_MODE env var):
  *   "normal"    — scan last 5 pages: add new posts + update likes on recent posts (default, every 30 min)
  *   "full"      — scan ALL pages: update likes on every post (every 6 hours)
+ *   "reextract" — re-extract BR data from ALL Romeo posts with images (clears brHistory, reprocesses everything)
  *
  * Also: if Romeo posted images → sends to Claude API (vision) to extract BR data.
  */
@@ -203,26 +204,20 @@ async function extractBrFromImages(post, lastBrHistory) {
     }
   }
 
-  const lastEntry = lastBrHistory?.[lastBrHistory.length - 1]
-  const prevBr = lastEntry ? lastEntry.brAfter : 10000
-  const prevRooms = lastEntry?.rooms?.after || { gg: 0, ps: 0, king: 0, coin: 0, lux: 0 }
-
   const content = [
     {
       type: 'text',
       text: `Это скриншот(ы) из поста покериста Romeopro. Он играет марафон $10k→$10M на нескольких покер-румах.
 
-Предыдущий БР по румам: GG=${prevRooms.gg}, PS=${prevRooms.ps}, King=${prevRooms.king}, Coin=${prevRooms.coin}, Lux=${prevRooms.lux}. Итого: $${prevBr}.
-
 Текст поста: "${post.text.substring(0, 1000)}"
 
-Извлеки из скриншота(ов) данные о банкролле ПОСЛЕ сессии по каждому руму. Также найди количество турниров за сессию если указано.
+Извлеки из скриншота(ов) данные о банкролле ДО и ПОСЛЕ сессии по каждому руму. Также найди количество турниров за сессию если указано.
 
 Ответь СТРОГО в формате JSON (без markdown, без комментариев):
-{"brAfter":число,"rooms":{"gg":число,"ps":число,"king":число,"coin":число,"lux":число},"tournaments":число_или_null}
+{"brBefore":число,"brAfter":число,"roomsBefore":{"gg":число,"ps":число,"king":число,"coin":число,"lux":число},"roomsAfter":{"gg":число,"ps":число,"king":число,"coin":число,"lux":число},"tournaments":число_или_null}
 
 Если на скриншоте НЕТ данных о банкролле — ответь: {"skip":true}
-Числа должны быть целые, в долларах. Округляй до целого.`
+Числа должны быть точные, в долларах. НЕ округляй — используй точные значения со скриншота.`
     },
     ...fullResImages.map(url => ({
       type: 'image',
@@ -259,19 +254,17 @@ async function extractBrFromImages(post, lastBrHistory) {
     const parsed = JSON.parse(jsonStr)
     if (parsed.skip) return null
 
+    const parseRooms = (r) => ({
+      gg: r?.gg ?? 0, ps: r?.ps ?? 0, king: r?.king ?? 0, coin: r?.coin ?? 0, lux: r?.lux ?? 0,
+    })
+
     return {
-      brBefore: prevBr,
+      brBefore: parsed.brBefore,
       brAfter: parsed.brAfter,
-      sessionResult: parsed.brAfter - prevBr,
+      sessionResult: parsed.brAfter - parsed.brBefore,
       rooms: {
-        before: { ...prevRooms },
-        after: {
-          gg: parsed.rooms?.gg ?? 0,
-          ps: parsed.rooms?.ps ?? 0,
-          king: parsed.rooms?.king ?? 0,
-          coin: parsed.rooms?.coin ?? 0,
-          lux: parsed.rooms?.lux ?? 0,
-        }
+        before: parseRooms(parsed.roomsBefore),
+        after: parseRooms(parsed.roomsAfter),
       },
       tournaments: parsed.tournaments || null,
     }
@@ -285,13 +278,93 @@ async function extractBrFromImages(post, lastBrHistory) {
 
 async function main() {
   const isFullScan = MODE === 'full'
-  console.log(`🕷 RomeoPro Scraper [${isFullScan ? 'FULL SCAN' : 'normal'}]`)
+  const isReextract = MODE === 'reextract'
+  console.log(`🕷 RomeoPro Scraper [${isReextract ? 'REEXTRACT' : isFullScan ? 'FULL SCAN' : 'normal'}]`)
 
   // Load existing data
   const posts = JSON.parse(await readFile('data/posts.json', 'utf-8'))
   const meta = JSON.parse(await readFile('data/meta.json', 'utf-8'))
   const knownIds = new Set(posts.map(p => p.id))
   console.log(`📊 Existing: ${posts.length} posts, ${meta.brHistory.length} BR entries`)
+
+  // Reextract mode: clear brHistory and re-process all Romeo posts with images
+  if (isReextract) {
+    console.log('🔄 Clearing brHistory and re-extracting all BR data...')
+    meta.brHistory = []
+    meta.bankroll = 10000
+    meta.totalTournaments = 0
+
+    // Clear BR fields on all posts
+    for (const p of posts) {
+      p.brBefore = null
+      p.brAfter = null
+      p.sessionResult = null
+      p.rooms = null
+      p.brChecked = false
+    }
+
+    // Get all Romeo posts with images, sorted by timestamp
+    const romeoPosts = posts.filter(p =>
+      ROMEO_RE.test(p.author) && p.images && p.images.length > 0
+    ).sort((a, b) => a.timestamp - b.timestamp)
+
+    console.log(`🎰 Processing ${romeoPosts.length} Romeo posts with images...`)
+    for (const p of romeoPosts) {
+      console.log(`🎰 [reextract] Romeo post ${p.id} (${p.date}) — ${p.images.length} images...`)
+      const brData = await extractBrFromImages(p, meta.brHistory)
+      if (!brData) {
+        console.log('  ℹ No BR data — marking as checked')
+        p.brChecked = true
+        continue
+      }
+
+      p.brBefore = brData.brBefore
+      p.brAfter = brData.brAfter
+      p.sessionResult = brData.sessionResult
+      p.rooms = brData.rooms
+
+      const tournamentsTotal = brData.tournaments
+        ? (meta.totalTournaments || 0) + brData.tournaments
+        : null
+
+      meta.brHistory.push({
+        id: p.id,
+        date: p.date,
+        timestamp: p.timestamp,
+        brBefore: brData.brBefore,
+        brAfter: brData.brAfter,
+        sessionResult: brData.sessionResult,
+        rooms: brData.rooms,
+        url: p.url,
+        tournaments: brData.tournaments,
+        ...(tournamentsTotal != null ? { totalTournaments: tournamentsTotal } : {})
+      })
+
+      meta.bankroll = brData.brAfter
+      if (brData.tournaments) {
+        meta.totalTournaments = (meta.totalTournaments || 0) + brData.tournaments
+      }
+      meta.lastUpdated = new Date().toISOString()
+
+      console.log(`  ✅ BR: $${brData.brBefore} → $${brData.brAfter} (${brData.sessionResult >= 0 ? '+' : ''}${brData.sessionResult})`)
+    }
+
+    await writeFile('data/posts.json', JSON.stringify(posts, null, 2))
+    await writeFile('data/meta.json', JSON.stringify(meta, null, 2))
+
+    const msg = `scraper: reextract ${meta.brHistory.length} BR entries, BR → $${meta.bankroll} (total ${posts.length})`
+    execSync('git config user.name "RomeoPro Scraper"')
+    execSync('git config user.email "scraper@romeoprotracker.vercel.app"')
+    execSync('git add data/posts.json data/meta.json')
+    try {
+      execSync(`git commit -m "${msg}"`)
+      execSync('git push')
+      console.log(`✅ Pushed: ${msg}`)
+    } catch (e) {
+      console.log('ℹ Nothing to commit or push failed')
+    }
+    return
+  }
 
   // Find last page
   const firstPageHtml = await fetchPage(FORUM_URL)
@@ -354,7 +427,8 @@ async function main() {
     console.log(`🎰 ${label} Romeo post ${p.id} has ${p.images.length} images — analyzing...`)
     const brData = await extractBrFromImages(p, meta.brHistory)
     if (!brData) {
-      console.log('  ℹ No BR data found in images')
+      console.log('  ℹ No BR data found in images — marking as checked')
+      p.brChecked = true
       return false
     }
 
@@ -396,12 +470,13 @@ async function main() {
     if (await processPostBr(p, '[new]')) metaUpdated = true
   }
 
-  // Retry existing Romeo posts that have images but missing BR data
+  // Retry existing Romeo posts that have images but missing BR data (skip already-checked non-BR posts)
   const brHistoryIds = new Set(meta.brHistory.map(h => h.id))
   const retryPosts = posts.filter(p =>
     ROMEO_RE.test(p.author) &&
     p.images && p.images.length > 0 &&
     p.brAfter == null &&
+    !p.brChecked &&
     !brHistoryIds.has(p.id)
   ).sort((a, b) => a.timestamp - b.timestamp)  // process in chronological order
   if (retryPosts.length > 0) {
@@ -420,11 +495,10 @@ async function main() {
     let metaFixed = false
     for (let i = 0; i < meta.brHistory.length; i++) {
       const entry = meta.brHistory[i]
-      const prev = i > 0 ? meta.brHistory[i - 1] : null
-      const correctBrBefore = prev ? prev.brAfter : 10000
-      if (entry.brBefore !== correctBrBefore) {
-        entry.brBefore = correctBrBefore
-        entry.sessionResult = entry.brAfter - entry.brBefore
+      // sessionResult is always brAfter - brBefore (both from image)
+      const correctResult = entry.brAfter - entry.brBefore
+      if (entry.sessionResult !== correctResult) {
+        entry.sessionResult = correctResult
         metaFixed = true
       }
       if (entry.tournaments) {
@@ -435,6 +509,7 @@ async function main() {
       const post = allPostsMap.get(entry.id)
       if (post) {
         post.brBefore = entry.brBefore
+        post.brAfter = entry.brAfter
         post.sessionResult = entry.sessionResult
         if (post.date) entry.date = post.date
       }

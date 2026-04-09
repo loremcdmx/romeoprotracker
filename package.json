@@ -8,7 +8,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "scrape": "node scripts/scrape.mjs",
-    "scrape:full": "SCRAPE_MODE=full node scripts/scrape.mjs"
+    "scrape:full": "SCRAPE_MODE=full node scripts/scrape.mjs",
+    "scrape:reextract": "SCRAPE_MODE=reextract node scripts/scrape.mjs"
   },
   "dependencies": {
     "@vercel/analytics": "^2.0.1",
