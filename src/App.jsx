@@ -42,11 +42,11 @@ function Sparkline({ values, width = 64, height = 24, color = '#4caf50' }) {
 // ─── MARATHON CHART (bezier functions imported from utils.js) ─────────────────
 
 const CHART_ROOMS = [
-  { key:'gg',   label:'GG',    logo:'https://www.ggpoker.com/favicon.ico' },
-  { key:'ps',   label:'Stars', logo:'https://www.pokerstars.com/favicon.ico' },
-  { key:'king', label:'King',  logo:'https://www.pokerking.com/favicon.ico' },
-  { key:'coin', label:'Coin',  logo:'https://coinpoker.com/favicon.ico' },
-  { key:'lux',  label:'Lux',   logo:'https://luxon.poker/favicon.ico' },
+  { key:'gg',   label:'GG',    logo:'https://www.gipsyteam.ru/upload/Pokerroomwidgetlogo/default/34.webp?1702662842' },
+  { key:'ps',   label:'Stars', logo:'https://www.gipsyteam.ru/upload/Pokerroomwidgetlogo/default/1.png?1651069603' },
+  { key:'king', label:'King',  logo:'https://www.gipsyteam.ru/upload/Pokerroomwidgetlogo/default/9.png?1650962615' },
+  { key:'coin', label:'Coin',  logo:'https://www.gipsyteam.ru/upload/Pokerroomwidgetlogo/default/1/109.webp?1772698374' },
+  { key:'lux',  label:'Lux',   logo:null },
 ]
 
 function MarathonChart({ posts, meta, startBR, setLightbox, day }) {
@@ -268,7 +268,7 @@ function MarathonChart({ posts, meta, startBR, setLightbox, day }) {
               <div style={{display:'flex',flexWrap:'wrap',gap:'4px 12px',marginBottom:8}}>
                 {roomDeltas.map(r=>(
                   <span key={r.key} style={{fontSize:11,display:'flex',alignItems:'center',gap:4}}>
-                    {r.logo && <img src={r.logo} alt={r.label} style={{width:12,height:12,objectFit:'contain',borderRadius:2}} onError={e=>e.target.style.display='none'}/>}
+                    {r.logo && <img src={r.logo} alt={r.label} style={{width:16,height:16,objectFit:'contain',borderRadius:2}} onError={e=>e.target.style.display='none'}/>}
                     <span style={{color:'var(--dim)'}}>{r.label}:</span>
                     <span style={{color:r.v>=0?'#66bb6a':'#ff5252',fontWeight:600}}>{fk(r.v)}</span>
                   </span>
@@ -1297,11 +1297,10 @@ export default function App() {
       <div className="topbar">
         <div className="topbar-inner">
           <div className="logo">
-            <div className="logo-badge" style={{background:'var(--red)',padding:0,width:32,height:32,overflow:'hidden',borderRadius:6,display:'flex',alignItems:'center',justifyContent:'center'}}>
-              <img src="https://www.gipsyteam.ru/favicon.ico" alt="GT"
-                style={{width:32,height:32,objectFit:'contain'}}
+            <div className="logo-badge" style={{padding:0,width:32,height:32,overflow:'hidden',borderRadius:6,display:'flex',alignItems:'center',justifyContent:'center'}}>
+              <img src="https://www.gipsyteam.ru/apple-touch-icon.png" alt="GT"
+                style={{width:32,height:32,objectFit:'contain',borderRadius:6}}
                 onError={e=>{e.target.style.display='none'}}/>
-              <span style={{position:'absolute',color:'#fff',fontWeight:900,fontSize:14,fontFamily:'Arial,sans-serif',display:'none'}} className="_gt_fallback">G</span>
             </div>
             <div>
               <div className="logo-text">RomeoPro Tracker</div>
