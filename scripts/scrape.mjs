@@ -41,6 +41,16 @@ function htmlToText($el, $) {
   return $clone.root().text().replace(/\n{3,}/g, '\n\n').trim()
 }
 
+const MONTHS_RU = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря']
+function tsToDate(ts) {
+  if (!ts) return ''
+  const d = new Date(ts * 1000)
+  return `${d.getDate()} ${MONTHS_RU[d.getMonth()]}, ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`
+}
+function isRelativeDate(date) {
+  return /назад|Вчера|Сегодня/i.test(date) || /(.{10,})\1/.test(date)
+}
+
 // ─── FORUM SCRAPER ───────────────────────────────────────────────────────────
 
 async function fetchPage(url) {
@@ -122,7 +132,10 @@ function parsePosts(html) {
       rating: ratingEl.length ? parseInt(ratingEl.text().replace(/[^\d-]/g, '')) || null : null,
       msgCount: msgEl.length ? parseInt(msgEl.text().replace(/[^\d]/g, '')) || null : null,
       regData: regEl.length ? regEl.text().trim() : null,
-      date: dateEl.text().trim() || '',
+      date: (() => {
+        const raw = dateEl.text().trim() || ''
+        return (isRelativeDate(raw) && timestamp) ? tsToDate(timestamp) : raw
+      })(),
       timestamp,
       text,
       likes: likesEl.length ? parseInt(likesEl.text().trim()) || 0 : 0,
@@ -164,9 +177,13 @@ function updateLikes(existingPosts, scrapedPosts) {
     if (scraped.rating != null && post.rating !== scraped.rating) {
       post.rating = scraped.rating
     }
-    // Update date to absolute form (replaces relative "X мин назад" with "7 апреля, 12:30")
+    // Update date to absolute form
     if (scraped.date && scraped.date !== post.date) {
       post.date = scraped.date
+    }
+    // Fix relative/doubled dates using timestamp
+    if (isRelativeDate(post.date) && post.timestamp) {
+      post.date = tsToDate(post.timestamp)
     }
   }
 
