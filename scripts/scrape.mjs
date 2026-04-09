@@ -584,10 +584,9 @@ async function main() {
   await writeFile('data/meta.json', JSON.stringify(meta, null, 2))
 
   // Write compact posts for frontend (strip nulls, dedupe avatars, truncate text)
-  const avatarMap = {}
-  let avatarIdx = 0
+  const avatarMap = new Map()
   merged.forEach(p => {
-    if (p.avatar && !avatarMap[p.avatar]) avatarMap[p.avatar] = avatarIdx++
+    if (p.avatar && !avatarMap.has(p.avatar)) avatarMap.set(p.avatar, avatarMap.size)
   })
   const compactPosts = merged.map(p => {
     const o = {
@@ -597,7 +596,7 @@ async function main() {
       l: p.likes || 0,
     }
     if (p.text) o.x = ROMEO_RE.test(p.author) ? p.text : p.text.substring(0, 600)
-    if (p.avatar) o.v = avatarMap[p.avatar]
+    if (p.avatar) o.v = avatarMap.get(p.avatar)
     if (p.rating)      o.r = p.rating
     if (p.msgCount)    o.m = p.msgCount
     if (p.regData)     o.g = p.regData
@@ -609,7 +608,7 @@ async function main() {
     if (p.rooms) o.rm = p.rooms
     return o
   })
-  const avatarList = Object.entries(avatarMap).sort((a,b)=>a[1]-b[1]).map(e=>e[0])
+  const avatarList = [...avatarMap.keys()]
   const compactData = { avatars: avatarList, posts: compactPosts }
   await writeFile('data/posts.min.json', JSON.stringify(compactData))
 
