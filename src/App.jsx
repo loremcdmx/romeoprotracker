@@ -840,7 +840,7 @@ function renderPostText(text, collapseQuotes=false) {
 
 
 // ─── POST CARD ────────────────────────────────────────────────────────────────
-const PostCard = memo(function PostCard({ p, favorites, onFav, onIgnore, setLightbox, noClamp=false, tags=null }) {
+const PostCard = memo(function PostCard({ p, favorites, onFav, onIgnore, onLike, setLightbox, noClamp=false, tags=null }) {
   const [exp, setExp]     = useState(false)
   const [menu, setMenu]   = useState(false)
   const menuRef           = useRef(null)
@@ -943,6 +943,7 @@ const PostCard = memo(function PostCard({ p, favorites, onFav, onIgnore, setLigh
       )}
       <div className="pc-foot">
         <span className={`pc-likes ${likes>0?'pos':likes<0?'neg':'zero'}`}>{likes>0?'+':''}{likes} 👍</span>
+        {onLike && <button className="pc-like-btn" onClick={e=>{e.stopPropagation();onLike(p.id)}} title="Поставить лайк на GipsyTeam">+1</button>}
         {p.brAfter && <span className="pc-br">БР: {fmtNum(p.brAfter)}</span>}
         {isLong && (
           <button onClick={()=>setExp(s=>!s)} style={{
@@ -1406,6 +1407,56 @@ export default function App() {
     })
   }, [])
 
+  // ─── LIKE (GipsyTeam vote) ──────────────────────────────────────────────────
+  const [toast, setToast] = useState(null)
+  const toastTimer = useRef(null)
+  const showToast = useCallback((msg, type='info') => {
+    clearTimeout(toastTimer.current)
+    setToast({ msg, type })
+    toastTimer.current = setTimeout(() => setToast(null), 5000)
+  }, [])
+
+  const handleLike = useCallback(async (postId) => {
+    // Optimistic UI update
+    setPosts(prev => prev.map(p => p.id === postId ? { ...p, likes: (p.likes||0) + 1 } : p))
+    showToast('Открываем GipsyTeam для лайка...', 'info')
+
+    try {
+      // Check likes before
+      const before = await fetch(`/api/check-likes?pid=${postId}`).then(r => r.json())
+      const likesBefore = before.likes
+
+      // Open like URL in popup
+      const popup = window.open(
+        `https://forum.gipsyteam.ru/index.php?autocom=postvote&pid=${postId}&value=1`,
+        'gt_like',
+        'width=600,height=400,scrollbars=yes'
+      )
+
+      // Wait for the vote to register, then verify
+      await new Promise(r => setTimeout(r, 3000))
+      if (popup && !popup.closed) popup.close()
+
+      const after = await fetch(`/api/check-likes?pid=${postId}`).then(r => r.json())
+      const likesAfter = after.likes
+
+      if (likesAfter > likesBefore) {
+        // Find who's new in voters list
+        const beforeSet = new Set(before.voters || [])
+        const newVoter = (after.voters || []).find(v => !beforeSet.has(v))
+        showToast(newVoter ? `Лайк проставлен, ${newVoter}!` : 'Лайк проставлен!', 'success')
+        // Update with real count from forum
+        setPosts(prev => prev.map(p => p.id === postId ? { ...p, likes: likesAfter } : p))
+      } else {
+        // Revert optimistic update
+        setPosts(prev => prev.map(p => p.id === postId ? { ...p, likes: likesBefore } : p))
+        showToast('Лайк не засчитан — нужно быть залогиненным на GipsyTeam', 'error')
+      }
+    } catch (e) {
+      showToast('Ошибка проверки лайка', 'error')
+    }
+  }, [showToast])
+
   // ── ANIMATED COUNTER ─────────────────────────────────────────────────────
   const brVal  = stats?.br || meta?.bankroll || 0
 
@@ -1428,6 +1479,12 @@ export default function App() {
       {lightbox && (
         <div className="lightbox" onClick={()=>setLightbox(null)}>
           <img src={lightbox} alt=""/>
+        </div>
+      )}
+
+      {toast && (
+        <div className={`toast toast-${toast.type}`} onClick={()=>setToast(null)}>
+          {toast.type==='success' && '✓ '}{toast.type==='error' && '✗ '}{toast.msg}
         </div>
       )}
 
@@ -1599,7 +1656,7 @@ export default function App() {
                     {paged.map(p=>(
                       <PostCard key={p.id||p.url} p={p}
                         favorites={favorites} onFav={toggleFav}
-                        onIgnore={addIgnore} setLightbox={setLightbox}
+                        onIgnore={addIgnore} onLike={handleLike} setLightbox={setLightbox}
                         noClamp={topicTab==='marathon'}
                         tags={p._tags && isTagMode ? p._tags.filter(t=>t!==topicTag).map(t=>TAG_RULES.find(r=>r.id===t)).filter(Boolean) : null}/>
                     ))}
@@ -1688,7 +1745,7 @@ export default function App() {
                       onMouseEnter={()=>{ if(i===pagedPosts.length-1) saveReadPos('feed',p.id) }}>
                       <PostCard p={p}
                         favorites={favorites} onFav={toggleFav}
-                        onIgnore={addIgnore} setLightbox={setLightbox}/>
+                        onIgnore={addIgnore} onLike={handleLike} setLightbox={setLightbox}/>
                     </div>
                   ))}
                   <Paginator page={page} totalPages={totalPages} onPage={goPage}
