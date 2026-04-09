@@ -1141,36 +1141,47 @@ export default function App() {
   })
   const [ignoreInput, setIgnoreInput] = useState('')
 
+  const knownIdsRef = useRef(null)
+  const [newPostIds, setNewPostIds] = useState([])
+
   useEffect(() => {
+    const enrichPosts = (posts, meta) => {
+      const brHistory = meta?.brHistory
+      if (brHistory?.length) {
+        const brById = new Map(brHistory.filter(h=>h.id).map(h=>[h.id, h]))
+        const brByTs = [...brHistory].sort((a,b)=>(a.timestamp||0)-(b.timestamp||0))
+        posts?.forEach(p => {
+          if (!ROMEO_RE.test(p.author) || p.brAfter) return
+          const byId = brById.get(p.id)
+          if (byId) { p.brAfter = byId.brAfter; return }
+          if (!p.timestamp) return
+          let best = null, bestDiff = Infinity
+          for (const h of brByTs) {
+            const diff = Math.abs((h.timestamp||0) - p.timestamp)
+            if (diff < bestDiff) { bestDiff = diff; best = h }
+          }
+          if (best && bestDiff < 7200) p.brAfter = best.brAfter
+        })
+      }
+    }
+
     const loadData = () =>
       fetchPublicData()
         .then(({posts, meta}) => {
-          // Enrich Romeo posts with brAfter from brHistory
-          const brHistory = meta?.brHistory
-          if (brHistory?.length) {
-            const brById = new Map(brHistory.filter(h=>h.id).map(h=>[h.id, h]))
-            const brByTs = [...brHistory].sort((a,b)=>(a.timestamp||0)-(b.timestamp||0))
-            posts?.forEach(p => {
-              if (!ROMEO_RE.test(p.author) || p.brAfter) return
-              // Match by post id
-              const byId = brById.get(p.id)
-              if (byId) { p.brAfter = byId.brAfter; return }
-              // Match by closest timestamp (within 2 hours)
-              if (!p.timestamp) return
-              let best = null, bestDiff = Infinity
-              for (const h of brByTs) {
-                const diff = Math.abs((h.timestamp||0) - p.timestamp)
-                if (diff < bestDiff) { bestDiff = diff; best = h }
-              }
-              if (best && bestDiff < 7200) p.brAfter = best.brAfter
-            })
+          enrichPosts(posts, meta)
+          // Detect new posts after initial load
+          if (knownIdsRef.current) {
+            const fresh = (posts||[]).filter(p => !knownIdsRef.current.has(p.id))
+            if (fresh.length > 0) setNewPostIds(fresh.map(p => p.id))
+          } else {
+            knownIdsRef.current = new Set((posts||[]).map(p => p.id))
           }
           setPosts(posts||[]); setMeta(meta||{})
         })
         .catch(() => {})
 
     loadData().finally(() => setLoading(false))
-    const interval = setInterval(loadData, 5 * 60 * 1000)
+    const interval = setInterval(loadData, 2 * 60 * 1000) // check every 2 min
     return () => clearInterval(interval)
   }, [])
 
@@ -1374,6 +1385,29 @@ export default function App() {
       return next
     })
   }
+
+  const goToNewPosts = useCallback(() => {
+    if (!newPostIds.length) return
+    // Find the first new post in current feedPosts order
+    const firstNewIdx = feedPosts.findIndex(p => newPostIds.includes(p.id))
+    if (firstNewIdx !== -1) {
+      const targetPage = Math.floor(firstNewIdx / perPage) + 1
+      setPage(targetPage)
+      // Mark as seen
+      knownIdsRef.current = new Set(posts.map(p => p.id))
+      setNewPostIds([])
+      // Scroll to the post after page renders
+      const postId = feedPosts[firstNewIdx].id
+      requestAnimationFrame(() => {
+        const el = document.getElementById(`post-${postId}`)
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      })
+    } else {
+      // New posts might be filtered out — just dismiss
+      knownIdsRef.current = new Set(posts.map(p => p.id))
+      setNewPostIds([])
+    }
+  }, [newPostIds, feedPosts, perPage, posts])
 
   // При смене вкладки сбрасываем на страницу с последним прочитанным постом
   const switchTab = (tab) => {
@@ -1739,6 +1773,11 @@ export default function App() {
                 minRating={minRating} setMinRating={setMinRating}
                 count={feedPosts.length} showSort={true}
               />
+              {newPostIds.length > 0 && activeTab === 'feed' && (
+                <button className="new-posts-bubble" onClick={goToNewPosts}>
+                  {newPostIds.length} {newPostIds.length === 1 ? 'новый пост' : newPostIds.length < 5 ? 'новых поста' : 'новых постов'}!
+                </button>
+              )}
               {feedPosts.length===0
                 ? <div className="empty-state">Постов нет — смягчите фильтры или запустите скрапер</div>
                 : <>
