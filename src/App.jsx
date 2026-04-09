@@ -559,13 +559,13 @@ function ActivityChart({ posts, favorites, onFav, onIgnore, setLightbox,
               <div style={{width:1,height:16,background:'var(--border)',margin:'0 4px'}}/>
               <div style={{display:'flex',alignItems:'center',gap:4}}>
                 <span style={{fontSize:11,color:'var(--dim)'}}>👍 мин.</span>
-                <input type="number" min="0" value={minLikes} onChange={e=>setMinLikes?.(+e.target.value||0)}
-                  style={{width:52,background:'var(--bg3)',border:'1px solid var(--border)',borderRadius:20,color:'var(--text)',fontFamily:'inherit',fontSize:11,padding:'4px 8px',outline:'none',textAlign:'center'}}/>
+                <input className="filter-num" type="number" min="0" value={minLikes} onChange={e=>setMinLikes?.(+e.target.value||0)}
+                  onFocus={e=>e.target.select()}/>
               </div>
               <div style={{display:'flex',alignItems:'center',gap:4}}>
                 <span style={{fontSize:11,color:'var(--dim)'}}>⭐ репа</span>
-                <input type="number" min="0" step="100" value={minRating} onChange={e=>setMinRating?.(+e.target.value||0)}
-                  style={{width:62,background:'var(--bg3)',border:'1px solid var(--border)',borderRadius:20,color:'var(--text)',fontFamily:'inherit',fontSize:11,padding:'4px 8px',outline:'none',textAlign:'center'}}/>
+                <input className="filter-num" type="number" min="0" step="100" value={minRating} onChange={e=>setMinRating?.(+e.target.value||0)}
+                  onFocus={e=>e.target.select()}/>
               </div>
               <span style={{fontSize:11,color:'var(--dim)',marginLeft:'auto'}}>{dayPosts.length} постов</span>
             </div>
@@ -613,7 +613,7 @@ function FilterBar({ sortBy, setSortBy, search, setSearch, showSearch, setShowSe
         <div style={{display:'flex',alignItems:'center',gap:4}}>
           <label style={{fontSize:11,color:'var(--dim)',whiteSpace:'nowrap'}} title="Минимум лайков на посте">👍 мин.</label>
           <input className="filter-num" type="number" min="0" value={minLikes}
-            onChange={e=>setMinLikes(+e.target.value||0)} title="Минимум лайков на посте"/>
+            onChange={e=>setMinLikes(+e.target.value||0)} onFocus={e=>e.target.select()} title="Минимум лайков на посте"/>
         </div>
         <div style={{display:'flex',alignItems:'center',gap:4}}>
           <label style={{fontSize:11,color:'var(--dim)',whiteSpace:'nowrap',display:'flex',alignItems:'center',gap:3}} title="Минимальная репутация автора">
@@ -622,7 +622,7 @@ function FilterBar({ sortBy, setSortBy, search, setSearch, showSearch, setShowSe
             репа
           </label>
           <input className="filter-num" type="number" min="0" step="100" value={minRating}
-            onChange={e=>setMinRating(+e.target.value||0)} title="Минимальная репутация автора"/>
+            onChange={e=>setMinRating(+e.target.value||0)} onFocus={e=>e.target.select()} title="Минимальная репутация автора"/>
         </div>
       </div>
       <button className={`filter-pill ${showSearch?'on':'off'}`}
