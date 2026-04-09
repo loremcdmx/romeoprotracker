@@ -178,6 +178,10 @@ function updateLikes(existingPosts, scrapedPosts) {
     if (scraped.rating != null && post.rating !== scraped.rating) {
       post.rating = scraped.rating
     }
+    // Sync images (e.g. remove quoted images after scraper fix)
+    if (scraped.images && JSON.stringify(scraped.images) !== JSON.stringify(post.images)) {
+      post.images = scraped.images
+    }
     // Update date to absolute form
     if (scraped.date && scraped.date !== post.date) {
       post.date = scraped.date
