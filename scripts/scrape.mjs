@@ -333,17 +333,13 @@ async function main() {
     console.log(`🆕 Found ${newPosts.length} new posts`)
   }
 
-  // Process Romeo's posts with images (BR extraction via Claude)
-  let metaUpdated = false
-  for (const p of newPosts) {
-    if (!ROMEO_RE.test(p.author)) continue
-    if (!p.images || p.images.length === 0) continue
-
-    console.log(`🎰 Romeo post ${p.id} has ${p.images.length} images — analyzing...`)
+  // Helper: run BR extraction for a post and update meta
+  async function processPostBr(p, label) {
+    console.log(`🎰 ${label} Romeo post ${p.id} has ${p.images.length} images — analyzing...`)
     const brData = await extractBrFromImages(p, meta.brHistory)
     if (!brData) {
       console.log('  ℹ No BR data found in images')
-      continue
+      return false
     }
 
     p.brBefore = brData.brBefore
@@ -371,12 +367,36 @@ async function main() {
       meta.totalTournaments = (meta.totalTournaments || 0) + brData.tournaments
     }
     meta.lastUpdated = new Date().toISOString()
-    metaUpdated = true
 
     console.log(`  ✅ BR: $${brData.brBefore} → $${brData.brAfter} (${brData.sessionResult >= 0 ? '+' : ''}${brData.sessionResult})`)
+    return true
+  }
+
+  // Process Romeo's posts with images (BR extraction via Claude)
+  let metaUpdated = false
+  for (const p of newPosts) {
+    if (!ROMEO_RE.test(p.author)) continue
+    if (!p.images || p.images.length === 0) continue
+    if (await processPostBr(p, '[new]')) metaUpdated = true
+  }
+
+  // Retry existing Romeo posts that have images but missing BR data
+  const brHistoryIds = new Set(meta.brHistory.map(h => h.id))
+  const retryPosts = posts.filter(p =>
+    ROMEO_RE.test(p.author) &&
+    p.images && p.images.length > 0 &&
+    p.brAfter == null &&
+    !brHistoryIds.has(p.id)
+  )
+  if (retryPosts.length > 0) {
+    console.log(`🔄 Retrying BR extraction for ${retryPosts.length} existing post(s)...`)
+    for (const p of retryPosts) {
+      if (await processPostBr(p, '[retry]')) metaUpdated = true
+    }
   }
 
   // Check if anything changed
+  const hasRetries = retryPosts.length > 0 && metaUpdated
   const hasChanges = newPosts.length > 0 || likesUpdated > 0 || metaUpdated
   if (!hasChanges) {
     console.log('✅ No changes')
@@ -397,6 +417,7 @@ async function main() {
   const parts = []
   if (newPosts.length > 0) parts.push(`+${newPosts.length} posts`)
   if (likesUpdated > 0) parts.push(`likes: ${likesUpdated} updated`)
+  if (hasRetries) parts.push(`retried ${retryPosts.length} BR`)
   if (metaUpdated) parts.push(`BR → $${meta.bankroll}`)
   const msg = `scraper: ${parts.join(', ')} (total ${merged.length})`
 
