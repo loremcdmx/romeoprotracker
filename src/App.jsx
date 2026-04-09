@@ -978,9 +978,9 @@ function SidebarTopList({ posts, setLightbox }) {
             </div>
             <div style={{flex:1,minWidth:0}}>
               <div style={{fontSize:10,color:'var(--dim2)',fontWeight:600,marginBottom:2}}>{p.author}</div>
-              {p.images?.[0] && !clean && (
+              {p.images?.[0] && (
                 <img src={p.images[0]} alt=""
-                  style={{width:48,height:36,objectFit:'cover',borderRadius:3,marginBottom:3,display:'block'}}
+                  style={{width:'100%',maxHeight:160,objectFit:'cover',borderRadius:4,marginBottom:6,display:'block',cursor:'zoom-in'}}
                   onClick={e=>{e.stopPropagation();setLightbox(p.images[0])}}
                   onError={e=>e.target.style.display='none'}/>
               )}
