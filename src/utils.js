@@ -41,6 +41,13 @@ export const fmtExact = n => {
   return '$' + rounded
 }
 
+const MONTHS_SHORT = ['янв','фев','мар','апр','мая','июн','июл','авг','сен','окт','ноя','дек']
+export function fmtDateShort(timestamp) {
+  if (!timestamp) return '—'
+  const d = new Date(timestamp * 1000)
+  return d.getDate() + ' ' + MONTHS_SHORT[d.getMonth()]
+}
+
 export function extractDay(text) {
   const m = text?.match(/(?:[Дд]ень|[Dd]ay)\s*#?\s*(\d+)/i)
   return m ? parseInt(m[1]) : null

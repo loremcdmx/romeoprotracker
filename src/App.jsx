@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef, useCallback, memo } from 'react'
 import { fetchPublicData } from './storage.js'
 import { Analytics } from '@vercel/analytics/react'
 import {
-  timeAgo, fmtBR, fmtNum, fmtInt, fmtExact, extractDay, extractBR,
+  timeAgo, fmtBR, fmtNum, fmtInt, fmtExact, fmtDateShort, extractDay, extractBR,
   fk, fkAbs, ROMEO_RE, autoCloseQuotes, stripQuoteTags,
   makeBezierPath, makeBezierArea,
 } from './utils.js'
@@ -244,7 +244,7 @@ function MarathonChart({ posts, meta, startBR, setLightbox, day }) {
                     </text>
                     <text x={lx} y={H+pB-8} textAnchor="middle" fontFamily="'Roboto Mono',monospace"
                       fontSize="7" fill="#444">
-                      {p.date?.slice(0,5)}
+                      {fmtDateShort(p.timestamp)}
                     </text>
                   </g>
                 )
