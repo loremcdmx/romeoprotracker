@@ -95,7 +95,7 @@ function MarathonChart({ posts, meta, startBR, setLightbox, day }) {
     </div>
   )
 
-  const W=700, H=280, pL=52, pR=20, pT=14, pB=44
+  const W=700, H=240, pL=52, pR=20, pT=14, pB=44
   const dataMin = Math.min(...points.map(p=>p.br), startBR)
   const dataMax = Math.max(...points.map(p=>p.br), startBR)
   const minV = Math.max(0, Math.floor(dataMin * 0.7 / 1000) * 1000)
@@ -192,7 +192,7 @@ function MarathonChart({ posts, meta, startBR, setLightbox, day }) {
 
   return (
     <div className="marathon-chart" ref={chartRef} onClick={tip?()=>setTip(null):undefined}>
-      <div className="section-head" style={{marginBottom:12}}>
+      <div className="section-head" style={{marginBottom:6}}>
         <span className="section-title">📈 График марафона</span>
         <span className="section-count">{day?`день #${day}`:`${points.length} сессий`}</span>
       </div>
