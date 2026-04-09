@@ -1049,7 +1049,7 @@ function SidebarTopList({ posts, setLightbox }) {
               {renderPostText(p.text, true)}
               {!stripQuotes(p.text) && p.text?.includes('[QUOTE]') && (
                 <div style={{fontSize:11,color:'var(--dim)',fontStyle:'italic',marginTop:6}}>
-                  цитата без ответа — полный текст на форуме ↗
+                  ↩ {p.text.match(/\[QUOTE\]([^|\n]*)/)?.[1]?.trim() ? `ответ на ${p.text.match(/\[QUOTE\]([^|\n]*)/)[1].trim()}` : 'цитата'} — полный текст на форуме ↗
                 </div>
               )}
             </div>
@@ -1063,7 +1063,9 @@ function SidebarTopList({ posts, setLightbox }) {
 
       {posts.map((p, i) => {
         const clean = stripQuotes(p.text)
-        const isQuoteOnly = !clean && (p.text||'').includes('[QUOTE]')
+        const hasQuote = (p.text||'').includes('[QUOTE]')
+        const isQuoteOnly = !clean && hasQuote
+        const quoteAuthor = hasQuote ? (p.text.match(/\[QUOTE\]([^|\n]*)/)?.[1]?.trim() || '') : ''
         const preview = clean || (p.images?.[0] ? '📷 изображение' : '')
         const initial = (p.author||'?')[0].toUpperCase()
         return (
@@ -1090,11 +1092,12 @@ function SidebarTopList({ posts, setLightbox }) {
               )}
               {isQuoteOnly ? (
                 <div style={{fontSize:11,color:'var(--dim)',lineHeight:1.5,fontStyle:'italic'}}>
-                  ↩ цитата без ответа — <span style={{color:'var(--red2)',fontStyle:'normal',textDecoration:'underline'}}>открыть на форуме</span>
+                  ↩ {quoteAuthor ? `ответ на ${quoteAuthor}` : 'цитата'} — <span style={{color:'var(--red2)',fontStyle:'normal',textDecoration:'underline'}}>открыть на форуме</span>
                 </div>
               ) : (
                 <div style={{fontSize:11,color:'var(--text)',overflow:'hidden',lineHeight:1.5,
                   display:'-webkit-box',WebkitLineClamp:10,WebkitBoxOrient:'vertical'}}>
+                  {quoteAuthor && <span style={{color:'var(--dim)',fontSize:10}}>↩ {quoteAuthor}: </span>}
                   {preview.substring(0,500)}
                 </div>
               )}

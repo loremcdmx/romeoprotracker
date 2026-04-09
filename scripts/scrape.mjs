@@ -595,7 +595,22 @@ async function main() {
       t: p.timestamp,
       l: p.likes || 0,
     }
-    if (p.text) o.x = ROMEO_RE.test(p.author) ? p.text : p.text.substring(0, 600)
+    if (p.text) {
+      if (ROMEO_RE.test(p.author)) {
+        o.x = p.text
+      } else {
+        // Keep quote header + reply, truncate quote body to save space
+        const qEnd = p.text.indexOf('[/QUOTE]')
+        if (qEnd !== -1) {
+          const qStart = p.text.indexOf('[QUOTE]')
+          const qHeader = p.text.substring(qStart, p.text.indexOf('\n', qStart) + 1)
+          const reply = p.text.substring(qEnd + 8).trim()
+          o.x = qHeader + '...[/QUOTE]\n' + reply.substring(0, 500)
+        } else {
+          o.x = p.text.substring(0, 600)
+        }
+      }
+    }
     if (p.avatar) o.v = avatarMap.get(p.avatar)
     if (p.rating)      o.r = p.rating
     if (p.msgCount)    o.m = p.msgCount
