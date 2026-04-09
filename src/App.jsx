@@ -96,8 +96,10 @@ function MarathonChart({ posts, meta, startBR, setLightbox, day }) {
   )
 
   const W=700, H=280, pL=52, pR=20, pT=14, pB=44
-  const minV = 0
-  const maxV = Math.max(...points.map(p=>p.br), startBR) * 1.05
+  const dataMin = Math.min(...points.map(p=>p.br), startBR)
+  const dataMax = Math.max(...points.map(p=>p.br), startBR)
+  const minV = Math.max(0, Math.floor(dataMin * 0.7 / 1000) * 1000)
+  const maxV = dataMax * 1.05
   const yOf  = v => pT + (1-(v-minV)/(maxV-minV)) * (H-pT-pB)
 
   // X-позиция пропорциональна накопленным МТТ если данные есть, иначе равномерно
@@ -138,13 +140,15 @@ function MarathonChart({ posts, meta, startBR, setLightbox, day }) {
   })()
   const coords = points.map((p,i) => ({ x:xOf(i), y:yOf(p.br) }))
   const linePath = makeBezierPath(coords)
-  const areaPath = makeBezierArea(coords, H)
+  const areaPath = makeBezierArea(coords, H - pB)
   // Y ticks: ~4 evenly spaced round values
   const yTicks = (() => {
     const candidates = [1000,2000,5000,10000,20000,50000]
-    const step = candidates.find(s => { const n = Math.floor(maxV / s); return n >= 3 && n <= 7 }) || 2000
+    const range = maxV - minV
+    const step = candidates.find(s => { const n = Math.floor(range / s); return n >= 3 && n <= 7 }) || 2000
     const ticks = []
-    for (let v = step; v < maxV; v += step) {
+    const first = Math.ceil(minV / step) * step
+    for (let v = first; v < maxV; v += step) {
       ticks.push({ v, y: yOf(v) })
     }
     return ticks
