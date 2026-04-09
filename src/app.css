@@ -72,7 +72,7 @@ a{color:var(--red2);text-decoration:none}
 /* GLOBAL FILTER BAR */
 .filter-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:10px 14px;margin-bottom:14px}
 .filter-bar label{font-size:11px;color:var(--dim);white-space:nowrap}
-.filter-num{width:70px;background:var(--bg3);border:1px solid var(--border);border-radius:20px;color:var(--text);font-family:inherit;font-size:11px;padding:4px 10px;outline:none;text-align:center}
+.filter-num{width:44px;background:var(--bg3);border:1px solid var(--border);border-radius:20px;color:var(--text);font-family:'Roboto Mono',monospace;font-size:11px;padding:4px 6px;outline:none;text-align:center}
 .filter-num:focus{border-color:#444}
 .filter-pill{padding:5px 12px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;white-space:nowrap}
 .filter-pill.off{background:var(--bg3);color:var(--dim2);border:1px solid var(--border)}
@@ -396,7 +396,7 @@ a{color:var(--red2);text-decoration:none}
   .filter-bar{margin:10px 12px 0;padding:10px;border-radius:12px;gap:8px;flex-wrap:wrap}
   .feed-select{font-size:14px;padding:8px 10px;border-radius:20px;flex-shrink:0}
   .filter-pill{padding:8px 14px;font-size:13px;border-radius:20px;min-height:40px;-webkit-tap-highlight-color:transparent}
-  .filter-num{width:64px;font-size:14px;padding:8px 8px;text-align:center;border-radius:8px;min-height:40px}
+  .filter-num{width:48px;font-size:14px;padding:6px 6px;text-align:center;border-radius:12px;min-height:36px}
   .feed-search{font-size:16px;padding:10px 14px;border-radius:20px;flex:1;min-width:0}
 
   /* TOPICS */
