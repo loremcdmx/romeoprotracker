@@ -57,8 +57,8 @@ a{color:var(--red2);text-decoration:none}
 .marathon-chart{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:12px;position:relative}
 .mc-svg{width:100%;overflow:visible}
 .mc-dot{stroke:#111;stroke-width:2;cursor:pointer;transition:r .1s}
-.mc-ylabel{font-size:9px;fill:#555;text-anchor:end;font-family:'Roboto Mono',monospace}
-.mc-zero{stroke:#2a2a2a;stroke-width:1;stroke-dasharray:4 3}
+.mc-ylabel{font-size:10px;fill:#777;text-anchor:end;font-family:'Roboto Mono',monospace;font-weight:600}
+.mc-zero{stroke:#e5393955;stroke-width:1.5;stroke-dasharray:6 4}
 .mc-grid{stroke:#1e1e1e;stroke-width:1}
 
 /* ACTIVITY CHART */
