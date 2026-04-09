@@ -436,3 +436,16 @@ a{color:var(--red2);text-decoration:none}
   .light .mobile-top-item{border-bottom-color:#eee}
   .light .mobile-top-period{background:#fff;border-color:#ddd}
 }
+
+/* Like button */
+.pc-like-btn{background:none;border:1px solid var(--border2);border-radius:10px;color:var(--dim2);cursor:pointer;font-size:10px;font-weight:600;padding:1px 7px;margin-left:4px;transition:all .15s;font-family:inherit}
+.pc-like-btn:hover{background:var(--red);color:#fff;border-color:var(--red)}
+
+/* Toast notification */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);padding:10px 20px;border-radius:8px;font-size:13px;font-weight:500;color:#fff;z-index:9999;cursor:pointer;animation:toast-in .3s ease;box-shadow:0 4px 20px #0008}
+.toast-info{background:#333}
+.toast-success{background:#2e7d32}
+.toast-error{background:#c62828}
+@keyframes toast-in{from{opacity:0;transform:translateX(-50%) translateY(20px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+.light .toast-info{background:#555}
+.light .pc-like-btn:hover{background:var(--red);color:#fff}
