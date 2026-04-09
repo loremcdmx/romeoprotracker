@@ -139,12 +139,12 @@ function MarathonChart({ posts, meta, startBR, setLightbox, day }) {
   const coords = points.map((p,i) => ({ x:xOf(i), y:yOf(p.br) }))
   const linePath = makeBezierPath(coords)
   const areaPath = makeBezierArea(coords, H)
-  // Nice Y ticks: round intervals, skip $0
+  // Y ticks: ~4 evenly spaced round values
   const yTicks = (() => {
-    const range = maxV
-    const step = range <= 5000 ? 1000 : range <= 15000 ? 2000 : range <= 30000 ? 5000 : 10000
+    const candidates = [1000,2000,5000,10000,20000,50000]
+    const step = candidates.find(s => { const n = Math.floor(maxV / s); return n >= 3 && n <= 7 }) || 2000
     const ticks = []
-    for (let v = step; v <= maxV; v += step) {
+    for (let v = step; v < maxV; v += step) {
       ticks.push({ v, y: yOf(v) })
     }
     return ticks
