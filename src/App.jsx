@@ -518,8 +518,8 @@ function ActivityChart({ posts, favorites, onFav, onIgnore, setLightbox,
                     <span style={{color:'#ddd'}}>{name}</span>
                     <span style={{fontSize:10,fontFamily:"'Roboto Mono',monospace",display:'inline-flex',alignItems:'center',gap:4}}>
                       {bestLikes > 0 && <span style={{color:'#ffb74d'}}>+{bestLikes} 👍</span>}
-                      <span style={{color:'#4caf50',display:'inline-flex',alignItems:'center',gap:2}}>
-                        <svg viewBox="0 0 12 10" style={{width:9,height:8,fill:'#4caf50',flexShrink:0}}>
+                      <span style={{color:rating>=0?'#4caf50':'#ff5252',display:'inline-flex',alignItems:'center',gap:2}}>
+                        <svg viewBox="0 0 12 10" style={{width:9,height:8,fill:rating>=0?'#4caf50':'#ff5252',flexShrink:0}}>
                           <rect x="0" y="6" width="2.5" height="4"/>
                           <rect x="3.2" y="3" width="2.5" height="7"/>
                           <rect x="6.4" y="1" width="2.5" height="9"/>
