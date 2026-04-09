@@ -129,18 +129,41 @@ function MarathonChart({ posts, meta, startBR, setLightbox, day }) {
   const areaPath = makeBezierArea(coords, H)
   const yTicks = [0,.33,.67,1].map(t => ({ v:minV+(maxV-minV)*t, y:yOf(minV+(maxV-minV)*t) }))
 
-  const handleTouch = e => {
+  // ── Mobile: show only significant points (big swings), hide flat stretches ──
+  const mobileVisible = useMemo(() => {
+    const vis = new Set([0, points.length-1]) // always show first & last
+    const brRange = maxV/1.03 - minV/0.97 // un-padded range
+    const threshold = brRange * 0.03 // 3% of range = significant move
+    for (let i = 1; i < points.length - 1; i++) {
+      const delta = Math.abs(points[i].br - points[i].brPrev)
+      if (delta >= threshold) { vis.add(i); vis.add(i-1) } // show swing + its predecessor for context
+    }
+    // Ensure no gap longer than 5 points (keep at least one representative dot)
+    let lastVis = 0
+    for (let i = 1; i < points.length; i++) {
+      if (vis.has(i)) { lastVis = i; continue }
+      if (i - lastVis >= 5) { vis.add(i); lastVis = i }
+    }
+    return vis
+  }, [points, minV, maxV])
+
+  // ── Mobile: long-press (300ms) to show tooltip ──
+  const longPressTimer = useRef(null)
+  const handleTouchStart = e => {
     e.preventDefault()
     const rect = e.currentTarget.getBoundingClientRect()
     const touch = e.touches[0]
     const tx = (touch.clientX - rect.left) * (W / rect.width)
-    let nearest=0, minD=Infinity
-    coords.forEach((c,i) => { const d=Math.abs(c.x-tx); if(d<minD){minD=d;nearest=i} })
-    const p = points[nearest]
-    // На мобиле сохраняем screen-координаты для fixed позиционирования
-    setTip({ p, profit:p.br-p.brPrev, x:coords[nearest].x, y:coords[nearest].y,
-      screenY: touch.clientY })
+    const sy = touch.clientY
+    longPressTimer.current = setTimeout(() => {
+      let nearest=0, minD=Infinity
+      coords.forEach((c,i) => { const d=Math.abs(c.x-tx); if(d<minD){minD=d;nearest=i} })
+      const p = points[nearest]
+      setTip({ p, profit:p.br-p.brPrev, x:coords[nearest].x, y:coords[nearest].y, screenY: sy })
+    }, 300)
   }
+  const handleTouchEnd = () => { clearTimeout(longPressTimer.current) }
+  const handleTouchMove = () => { clearTimeout(longPressTimer.current) }
 
   return (
     <div className="marathon-chart" onClick={tip?()=>setTip(null):undefined}>
@@ -149,8 +172,9 @@ function MarathonChart({ posts, meta, startBR, setLightbox, day }) {
         <span className="section-count">{day?`день #${day}`:`${points.length} сессий`}</span>
       </div>
       <svg className="mc-svg" viewBox={`0 0 ${W} ${H+pB}`}
-        onMouseLeave={()=>setTip(null)} onTouchStart={handleTouch} onTouchMove={handleTouch}
-        style={{touchAction:'none'}}>
+        onMouseLeave={()=>setTip(null)}
+        onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}
+        style={{touchAction:'pan-y'}}>
         <defs>
           <linearGradient id="mcGrad" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%"   stopColor="#e53935" stopOpacity=".45"/>
@@ -180,6 +204,7 @@ function MarathonChart({ posts, meta, startBR, setLightbox, day }) {
         />
         {/* Pick ~8 evenly spaced labels by X position, not by index */}
         {points.map((p,i) => {
+          const showDot = !isMobile || mobileVisible.has(i)
           const showL = (() => {
             if (i === 0 || i === points.length - 1) return true
             const totalW = coords[coords.length-1].x - coords[0].x
@@ -187,7 +212,6 @@ function MarathonChart({ posts, meta, startBR, setLightbox, day }) {
             const nLabels = Math.min(8, points.length)
             const step = totalW / (nLabels - 1)
             const slot = Math.round((coords[i].x - coords[0].x) / step)
-            // This point is the closest to its slot
             const slotX = coords[0].x + slot * step
             let bestIdx = i
             let bestDist = Math.abs(coords[i].x - slotX)
@@ -202,12 +226,12 @@ function MarathonChart({ posts, meta, startBR, setLightbox, day }) {
           const isHovered = tip?.p === p
           return (
             <g key={i}>
-              <circle cx={cx} cy={cy} r={isLast?14:10} fill="transparent"
-                onMouseEnter={()=>setTip({p,profit,x:cx,y:cy})}/>
-              <circle cx={cx} cy={cy} r={isHovered?(isLast?8:6):(isLast?6:4)}
+              {!isMobile && <circle cx={cx} cy={cy} r={isLast?14:10} fill="transparent"
+                onMouseEnter={()=>setTip({p,profit,x:cx,y:cy})}/>}
+              {showDot && <circle cx={cx} cy={cy} r={isHovered?(isLast?8:6):(isLast?6:4)}
                 className={isLast?'mc-dot mc-dot-last':'mc-dot'}
                 fill={profit>=0?'#4caf50':'#e53935'}
-                style={{transition:'r .12s', ...(isLast?{color:profit>=0?'#4caf50':'#e53935'}:{})}}/>
+                style={{transition:'r .12s', ...(isLast?{color:profit>=0?'#4caf50':'#e53935'}:{})}}/>}
               {showL && (() => {
                 const lx = Math.min(Math.max(cx,pL),W-pR)
                 return (
