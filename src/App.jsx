@@ -952,7 +952,7 @@ const PostCard = memo(function PostCard({ p, favorites, onFav, onIgnore, onLike,
       )}
       <div className="pc-foot">
         <span className={`pc-likes ${likes>0?'pos':likes<0?'neg':'zero'}`}>{likes>0?'+':''}{likes} 👍</span>
-        {onLike && <button className="pc-like-btn" onClick={e=>{e.stopPropagation();onLike(p.id)}} title="Поставить лайк на GipsyTeam">+1</button>}
+        {onLike && <button className="pc-like-btn" onClick={e=>{e.stopPropagation();onLike(p.id)}} title="Поставить лайк на GipsyTeam"><img src="https://www.gipsyteam.ru/public/style_images/master/reputation_pos.png" alt="+" style={{width:14,height:14,verticalAlign:'middle'}}/></button>}
         {p.brAfter && <span className="pc-br">БР: {fmtNum(p.brAfter)}</span>}
         {isLong && (
           <button onClick={()=>setExp(s=>!s)} style={S_EXPAND}>
