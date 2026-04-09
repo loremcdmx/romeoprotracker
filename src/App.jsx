@@ -174,7 +174,7 @@ function MarathonChart({ posts, meta, startBR, setLightbox, day }) {
       <svg className="mc-svg" viewBox={`0 0 ${W} ${H+pB}`}
         onMouseLeave={()=>setTip(null)}
         onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}
-        style={{touchAction:'pan-y'}}>
+        style={{touchAction:'pan-y',WebkitUserSelect:'none',userSelect:'none',WebkitTouchCallout:'none'}}>
         <defs>
           <linearGradient id="mcGrad" x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%"   stopColor="#e53935" stopOpacity=".45"/>
