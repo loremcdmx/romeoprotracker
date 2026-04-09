@@ -1351,7 +1351,7 @@ export default function App() {
                 onError={e=>{e.target.style.display='none'}}/>
             </div>
             <div>
-              <div className="logo-text">RomeoPro Tracker</div>
+              <div className="logo-text">RomeoPro Marathon</div>
               <div className="logo-sub">марафон $10k → $10M</div>
             </div>
           </div>
@@ -1716,7 +1716,7 @@ export default function App() {
             {/* Левая часть — версия и автор */}
             <div>
               <div style={{fontSize:11,color:'var(--dim)',fontFamily:"'Roboto Mono',monospace",marginBottom:4}}>
-                <span style={{color:'var(--dim2)',fontWeight:600}}>RomeoPro Tracker</span>
+                <span style={{color:'var(--dim2)',fontWeight:600}}>RomeoPro Marathon</span>
                 {' '}
                 <span style={{color:'#444'}}>v2.2</span>
               </div>
