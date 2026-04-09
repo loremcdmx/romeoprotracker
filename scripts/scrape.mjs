@@ -556,12 +556,9 @@ async function main() {
     return
   }
 
-  // Merge new posts and save
+  // Merge new posts
   const merged = newPosts.length > 0 ? [...posts, ...newPosts] : posts
   meta.totalPosts = merged.length
-
-  await writeFile('data/posts.json', JSON.stringify(merged, null, 2))
-  await writeFile('data/meta.json', JSON.stringify(meta, null, 2))
 
   // Build commit message
   const parts = []
@@ -574,12 +571,17 @@ async function main() {
   // Git commit & push
   execSync('git config user.name "RomeoPro Scraper"')
   execSync('git config user.email "scraper@romeoprotracker.vercel.app"')
+
+  // Pull remote changes BEFORE writing data files to avoid merge conflicts
+  try { execSync('git pull --rebase origin main') } catch {}
+
+  // Write data after pull so our files are always on top of latest remote
+  await writeFile('data/posts.json', JSON.stringify(merged, null, 2))
+  await writeFile('data/meta.json', JSON.stringify(meta, null, 2))
   execSync('git add data/posts.json data/meta.json')
 
   try {
     execSync(`git commit -m "${msg}"`)
-    // Pull remote changes before push to avoid rejection when UI commits land in parallel
-    try { execSync('git pull --rebase origin main') } catch {}
     execSync('git push')
     console.log(`✅ Pushed: ${msg}`)
   } catch (e) {
