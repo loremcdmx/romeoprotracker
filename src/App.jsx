@@ -850,7 +850,7 @@ const S_TAG = {fontSize:9,color:'var(--dim)',background:'var(--bg3)',borderRadiu
 const S_MONO = {fontFamily:"'Roboto Mono',monospace",fontWeight:700}
 const menuHover = e => e.currentTarget.style.background = 'var(--bg3)'
 const menuLeave = e => e.currentTarget.style.background = ''
-const PostCard = memo(function PostCard({ p, favorites, onFav, onIgnore, onLike, setLightbox, noClamp=false, tags=null }) {
+const PostCard = memo(function PostCard({ p, favorites, onFav, onIgnore, onVote, setLightbox, noClamp=false, tags=null }) {
   const [exp, setExp]     = useState(false)
   const [menu, setMenu]   = useState(false)
   const menuRef           = useRef(null)
@@ -951,8 +951,9 @@ const PostCard = memo(function PostCard({ p, favorites, onFav, onIgnore, onLike,
         </div>
       )}
       <div className="pc-foot">
-        <span className={`pc-likes ${likes>0?'pos':likes<0?'neg':'zero'}`}>{likes>0?'+':''}{likes} 👍</span>
-        {onLike && <button className="pc-like-btn" onClick={e=>{e.stopPropagation();onLike(p.id)}} title="Поставить лайк на GipsyTeam"><img src="https://www.gipsyteam.ru/public/style_images/master/reputation_pos.png" alt="+" style={{width:14,height:14,verticalAlign:'middle'}}/></button>}
+        {onVote && <button className="pc-vote-btn" onClick={e=>{e.stopPropagation();onVote(p.id,1)}} title="Лайк">👍</button>}
+        <span className={`pc-likes ${likes>0?'pos':likes<0?'neg':'zero'}`}>{likes>0?'+':''}{likes}</span>
+        {onVote && <button className="pc-vote-btn" onClick={e=>{e.stopPropagation();onVote(p.id,-1)}} title="Дизлайк">👎</button>}
         {p.brAfter && <span className="pc-br">БР: {fmtNum(p.brAfter)}</span>}
         {isLong && (
           <button onClick={()=>setExp(s=>!s)} style={S_EXPAND}>
@@ -1454,44 +1455,40 @@ export default function App() {
     toastTimer.current = setTimeout(() => setToast(null), 5000)
   }, [])
 
-  const handleLike = useCallback(async (postId) => {
+  const handleVote = useCallback(async (postId, value) => {
+    const isLike = value === 1
+    const label = isLike ? 'Лайк' : 'Дизлайк'
     // Optimistic UI update
-    setPosts(prev => prev.map(p => p.id === postId ? { ...p, likes: (p.likes||0) + 1 } : p))
-    showToast('Открываем GipsyTeam для лайка...', 'info')
+    setPosts(prev => prev.map(p => p.id === postId ? { ...p, likes: (p.likes||0) + value } : p))
+    showToast(`Открываем GipsyTeam...`, 'info')
 
     try {
-      // Check likes before
       const before = await fetch(`/api/check-likes?pid=${postId}`).then(r => r.json())
       const likesBefore = before.likes
 
-      // Open like URL in popup
       const popup = window.open(
-        `https://forum.gipsyteam.ru/index.php?autocom=postvote&pid=${postId}&value=1`,
-        'gt_like',
+        `https://forum.gipsyteam.ru/index.php?autocom=postvote&pid=${postId}&value=${value}`,
+        'gt_vote',
         'width=600,height=400,scrollbars=yes'
       )
 
-      // Wait for the vote to register, then verify
       await new Promise(r => setTimeout(r, 3000))
       if (popup && !popup.closed) popup.close()
 
       const after = await fetch(`/api/check-likes?pid=${postId}`).then(r => r.json())
       const likesAfter = after.likes
 
-      if (likesAfter > likesBefore) {
-        // Find who's new in voters list
+      if (likesAfter !== likesBefore) {
         const beforeSet = new Set(before.voters || [])
         const newVoter = (after.voters || []).find(v => !beforeSet.has(v))
-        showToast(newVoter ? `Лайк проставлен, ${newVoter}!` : 'Лайк проставлен!', 'success')
-        // Update with real count from forum
+        showToast(newVoter ? `${label} проставлен, ${newVoter}!` : `${label} проставлен!`, 'success')
         setPosts(prev => prev.map(p => p.id === postId ? { ...p, likes: likesAfter } : p))
       } else {
-        // Revert optimistic update
         setPosts(prev => prev.map(p => p.id === postId ? { ...p, likes: likesBefore } : p))
-        showToast('Лайк не засчитан — нужно быть залогиненным на GipsyTeam', 'error')
+        showToast('Не засчитан — нужно быть залогиненным на GipsyTeam', 'error')
       }
     } catch (e) {
-      showToast('Ошибка проверки лайка', 'error')
+      showToast('Ошибка проверки', 'error')
     }
   }, [showToast])
 
@@ -1694,7 +1691,7 @@ export default function App() {
                     {paged.map(p=>(
                       <PostCard key={p.id||p.url} p={p}
                         favorites={favorites} onFav={toggleFav}
-                        onIgnore={addIgnore} onLike={handleLike} setLightbox={setLightbox}
+                        onIgnore={addIgnore} onVote={handleVote} setLightbox={setLightbox}
                         noClamp={topicTab==='marathon'}
                         tags={p._tags && isTagMode ? p._tags.filter(t=>t!==topicTag).map(t=>TAG_RULES.find(r=>r.id===t)).filter(Boolean) : null}/>
                     ))}
@@ -1788,7 +1785,7 @@ export default function App() {
                       onMouseEnter={()=>{ if(i===pagedPosts.length-1) saveReadPos('feed',p.id) }}>
                       <PostCard p={p}
                         favorites={favorites} onFav={toggleFav}
-                        onIgnore={addIgnore} onLike={handleLike} setLightbox={setLightbox}/>
+                        onIgnore={addIgnore} onVote={handleVote} setLightbox={setLightbox}/>
                     </div>
                   ))}
                   <Paginator page={page} totalPages={totalPages} onPage={goPage}
