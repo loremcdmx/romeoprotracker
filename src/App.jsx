@@ -10,12 +10,7 @@ import { useIsMobile } from './hooks/useIsMobile.js'
 import AnimatedValue from './components/AnimatedValue.jsx'
 
 
-// CSS moved to app.css (imported in main.jsx). Fonts via <link> in index.html.
-// PLACEHOLDER_CSS_REMOVED
-
 // ─── HELPERS (imported from utils.js) ────────────────────────────────────────
-
-// AnimatedValue component imported from ./components/AnimatedValue.jsx
 
 // ─── SPARKLINE ────────────────────────────────────────────────────────────────
 function Sparkline({ values, width = 64, height = 24, color = '#4caf50' }) {
@@ -1780,7 +1775,7 @@ export default function App() {
               <div style={{fontSize:11,color:'var(--dim)',fontFamily:"'Roboto Mono',monospace",marginBottom:4}}>
                 <span style={{color:'var(--dim2)',fontWeight:600}}>RomeoPro Marathon</span>
                 {' '}
-                <span style={{color:'#444'}}>v2.2</span>
+                <span style={{color:'#444'}}>v2.3</span>
               </div>
               <div style={{fontSize:10,color:'#444',marginBottom:4}}>
                 made by{' '}
@@ -1788,7 +1783,7 @@ export default function App() {
                   style={{color:'var(--dim)',textDecoration:'none'}}>LoremCDMX</a>
               </div>
               <div style={{fontSize:10,color:'#333'}}>
-                обновлено: 08.04.2026
+                обновлено: 09.04.2026
               </div>
             </div>
 
@@ -1798,9 +1793,10 @@ export default function App() {
                 Changelog
               </div>
               {[
-                ['08.04', 'v2.2', 'Иконки румов в тултипе (GG, Stars, King, Coin, Luxon). Полные тексты постов без обрезки. Превью картинок в топ-постах. Аудит безопасности и очистка'],
-                ['08.04', 'v2.1', 'Автоскрапер через GitHub Actions (каждые 30 мин). Авторазбор скриншотов БР через Claude API. Мобилка: статистика и топ постов. Широкий макет. Пунктирные направляющие на графике'],
-                ['08.04', 'v2.0', 'Полный рефакторинг: стили, компоненты, хуки вынесены из App.jsx. Быстрая загрузка. Плавные кривые без горбов. Белая тема. Анимированный счётчик БР. Прогресс-бар $10k→$10M'],
+                ['09.04', 'v2.3', 'Авторетрай извлечения БР при сбоях API. Точные данные из скриншотов (без округлений). Исправлены даты на графике. Кликабельные ссылки в тултипе. Защита от наложения меток'],
+                ['08.04', 'v2.2', 'Иконки румов в тултипе. Полные тексты постов. Превью картинок в топ-постах. Аудит безопасности'],
+                ['08.04', 'v2.1', 'Автоскрапер через GitHub Actions. Авторазбор скриншотов БР через Claude API. Мобильная статистика'],
+                ['08.04', 'v2.0', 'Рефакторинг. Плавные кривые. Белая тема. Анимированный счётчик БР. Прогресс-бар'],
                 ['07.04', 'v1.3', 'График с bezier-кривыми и анимацией. Мобильная вёрстка'],
                 ['06.04', 'v1.2', 'Виджет активности по дням. Топ-10 постов. Автообновление'],
                 ['05.04', 'v1.0', 'Первый запуск — лента, цитаты, пагинация, график марафона, темы, избранное, фильтры'],
