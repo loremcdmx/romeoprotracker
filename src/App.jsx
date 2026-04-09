@@ -95,7 +95,7 @@ function MarathonChart({ posts, meta, startBR, setLightbox, day }) {
     </div>
   )
 
-  const W=700, H=280, pL=52, pR=20, pT=14, pB=8
+  const W=700, H=280, pL=52, pR=20, pT=14, pB=44
   const minV = 0
   const maxV = Math.max(...points.map(p=>p.br), startBR) * 1.05
   const yOf  = v => pT + (1-(v-minV)/(maxV-minV)) * (H-pT-pB)
@@ -230,8 +230,40 @@ function MarathonChart({ posts, meta, startBR, setLightbox, day }) {
         />
         {/* Pick evenly spaced labels with minimum gap enforcement */}
         {(() => {
-          return points.map((p,i) => ({ p, i }))
-        })().map(({ p, i }) => {
+          // Precompute which points get labels: ~8 evenly spaced, min 55px apart
+          const labelSet = new Set([0, points.length - 1])
+          const totalW = coords.length > 1 ? coords[coords.length-1].x - coords[0].x : 0
+          if (totalW > 0) {
+            const nLabels = Math.min(8, points.length)
+            const step = totalW / (nLabels - 1)
+            for (let s = 1; s < nLabels - 1; s++) {
+              const targetX = coords[0].x + s * step
+              let bestIdx = -1, bestDist = Infinity
+              for (let j = 1; j < points.length - 1; j++) {
+                const d = Math.abs(coords[j].x - targetX)
+                if (d < bestDist) { bestDist = d; bestIdx = j }
+              }
+              if (bestIdx >= 0) labelSet.add(bestIdx)
+            }
+          }
+          // Remove labels that are too close to neighbors (min 55px gap)
+          const sorted = [...labelSet].sort((a,b) => a - b)
+          const finalLabels = new Set()
+          let prevX = -Infinity
+          for (const idx of sorted) {
+            if (coords[idx].x - prevX >= 55 || idx === points.length - 1) {
+              // For the last point, remove previous if too close
+              if (idx === points.length - 1 && coords[idx].x - prevX < 55) {
+                for (const prev of [...finalLabels].reverse()) {
+                  if (prev !== 0) { finalLabels.delete(prev); break }
+                }
+              }
+              finalLabels.add(idx)
+              prevX = coords[idx].x
+            }
+          }
+          return points.map((p,i) => ({ p, i, showL: finalLabels.has(i) }))
+        })().map(({ p, i, showL }) => {
           const showDot = !isMobile || mobileVisible.has(i)
           const isLast = i===points.length-1
           const cx=coords[i].x, cy=coords[i].y, profit=p.br-p.brPrev
@@ -244,6 +276,23 @@ function MarathonChart({ posts, meta, startBR, setLightbox, day }) {
                 className={isLast?'mc-dot mc-dot-last':'mc-dot'}
                 fill={profit>=0?'#4caf50':'#e53935'}
                 style={{transition:'r .12s', ...(isLast?{color:profit>=0?'#4caf50':'#e53935'}:{})}}/>}
+              {showL && (() => {
+                const lx = Math.min(Math.max(cx,pL),W-pR)
+                return (
+                  <g>
+                    <line x1={lx} y1={cy} x2={lx} y2={H+pB-32}
+                      stroke="rgba(255,255,255,0.06)" strokeWidth="1" strokeDasharray="2 3"/>
+                    <text x={lx} y={H+pB-22} textAnchor="middle" fontFamily="'Roboto Mono',monospace"
+                      fontSize="11" fontWeight="600" fill="#888">
+                      {cumMTT[i] ? fmtInt(cumMTT[i]) : '—'}
+                    </text>
+                    <text x={lx} y={H+pB-8} textAnchor="middle" fontFamily="'Roboto Mono',monospace"
+                      fontSize="8" fill="#444">
+                      {fmtDateShort(p.timestamp)}
+                    </text>
+                  </g>
+                )
+              })()}
             </g>
           )
         })}
