@@ -64,7 +64,7 @@ function MarathonChart({ posts, meta, startBR, setLightbox, day }) {
           br:h.brAfter, brPrev:i===0?startBR:arr[i-1].brAfter,
           date:h.date, text:h.text||'', url:h.url,
           images:[], sessionResult:h.sessionResult, rooms:h.rooms||null,
-          tournaments:h.tournaments||null,
+          tournaments:h.tournaments||null, totalTournaments:h.totalTournaments||null,
         }))
     }
     return posts
@@ -94,11 +94,8 @@ function MarathonChart({ posts, meta, startBR, setLightbox, day }) {
   const yOf  = v => pT + (1-(v-minV)/(maxV-minV)) * (H-pT-pB)
 
   // X-позиция пропорциональна накопленным МТТ если данные есть, иначе равномерно
-  const hasMTT = points.length > 1 && points.some(p => p.tournaments)
-  const cumMTT = (() => {
-    let acc = 0
-    return points.map(p => { acc += (p.tournaments || 0); return acc })
-  })()
+  const hasMTT = points.length > 1 && points.some(p => p.totalTournaments)
+  const cumMTT = points.map(p => p.totalTournaments || 0)
   const totalMTT = cumMTT[cumMTT.length - 1] || 1
 
   const xOf = (() => {
