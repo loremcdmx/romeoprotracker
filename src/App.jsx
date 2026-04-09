@@ -293,7 +293,8 @@ function MarathonChart({ posts, meta, startBR, setLightbox, day }) {
           right:right?`calc(${100-pct}% - 8px)`:'auto',
         }
         return (
-          <div className="mc-tooltip" style={{...mobileStyle, position: isMobile ? 'fixed' : 'absolute'}}>
+          <div className="mc-tooltip" style={{...mobileStyle, position: isMobile ? 'fixed' : 'absolute'}}
+            onClick={e => e.stopPropagation()}>
             {/* Pill — всегда в правом верхнем углу тултипа */}
             <div className="mc-pill" style={{
               position:'absolute', top:12, right:12,
@@ -325,7 +326,7 @@ function MarathonChart({ posts, meta, startBR, setLightbox, day }) {
             )}
             {tip.p.text && <div style={{fontSize:11,color:'var(--dim2)',lineHeight:1.6,display:'-webkit-box',WebkitLineClamp:3,WebkitBoxOrient:'vertical',overflow:'hidden'}}>{tip.p.text.substring(0,180)}</div>}
             <div style={{fontSize:10,color:'var(--dim)',marginTop:5,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-              <span>закрыть</span>
+              <span style={{cursor:'pointer'}} onClick={()=>setTip(null)}>закрыть</span>
               {tip.p.url && <a href={tip.p.url} target="_blank" rel="noreferrer"
                 onClick={e=>e.stopPropagation()}
                 style={{color:'var(--red2)',fontSize:11}}>→ форум</a>}
