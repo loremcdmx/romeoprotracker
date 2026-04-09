@@ -85,9 +85,9 @@ function MarathonChart({ posts, meta, startBR, setLightbox, day }) {
     </div>
   )
 
-  const W=700, H=160, pL=52, pR=20, pT=14, pB=44
-  const minV = Math.min(...points.map(p=>p.br), startBR) * 0.97
-  const maxV = Math.max(...points.map(p=>p.br), startBR) * 1.03
+  const W=700, H=220, pL=52, pR=20, pT=14, pB=44
+  const minV = 0
+  const maxV = Math.max(...points.map(p=>p.br), startBR) * 1.08
   const yOf  = v => pT + (1-(v-minV)/(maxV-minV)) * (H-pT-pB)
 
   // X-позиция пропорциональна накопленным МТТ если данные есть, иначе равномерно
@@ -129,7 +129,16 @@ function MarathonChart({ posts, meta, startBR, setLightbox, day }) {
   const coords = points.map((p,i) => ({ x:xOf(i), y:yOf(p.br) }))
   const linePath = makeBezierPath(coords)
   const areaPath = makeBezierArea(coords, H)
-  const yTicks = [0,.33,.67,1].map(t => ({ v:minV+(maxV-minV)*t, y:yOf(minV+(maxV-minV)*t) }))
+  // Nice Y ticks: round intervals from 0
+  const yTicks = (() => {
+    const range = maxV - minV
+    const step = range <= 5000 ? 1000 : range <= 15000 ? 2000 : range <= 30000 ? 5000 : 10000
+    const ticks = []
+    for (let v = 0; v <= maxV; v += step) {
+      ticks.push({ v, y: yOf(v) })
+    }
+    return ticks
+  })()
 
   // ── Mobile: show only significant points (big swings), hide flat stretches ──
   const mobileVisible = useMemo(() => {
@@ -196,7 +205,7 @@ function MarathonChart({ posts, meta, startBR, setLightbox, day }) {
         {yTicks.map(({v,y},i) => (
           <g key={i}>
             <line x1={pL} y1={y} x2={W-pR} y2={y} className="mc-grid"/>
-            <text x={pL-5} y={y+3} className="mc-ylabel">{fkAbs(v)}</text>
+            <text x={pL-5} y={y+3} className="mc-ylabel">{v >= 1000 ? `$${v/1000%1===0?(v/1000)+'k':(v/1000).toFixed(1)+'k'}` : `$${v}`}</text>
           </g>
         ))}
         <line x1={pL} y1={yOf(startBR)} x2={W-pR} y2={yOf(startBR)} className="mc-zero"/>
