@@ -58,7 +58,7 @@ a{color:var(--red2);text-decoration:none}
 .mc-svg{width:100%;overflow:visible}
 .mc-dot{stroke:#111;stroke-width:2;cursor:pointer;transition:r .1s}
 .mc-ylabel{font-size:10px;fill:#777;text-anchor:end;font-family:'Roboto Mono',monospace;font-weight:600}
-.mc-zero{stroke:#e5393955;stroke-width:1.5;stroke-dasharray:6 4}
+.mc-zero{stroke:#ffffff18;stroke-width:1;stroke-dasharray:4 3}
 .mc-grid{stroke:#1e1e1e;stroke-width:1}
 
 /* ACTIVITY CHART */
@@ -164,7 +164,7 @@ a{color:var(--red2);text-decoration:none}
 .light .topbar-tab.active{background:#e8e8e8;color:#111}
 .light .hero{background:linear-gradient(135deg,#fff5f5 0%,#f8f8f8 100%)}
 .light .mc-grid{stroke:#e8e8e8}
-.light .mc-zero{stroke:#ddd}
+.light .mc-zero{stroke:#00000012}
 .light .mc-ylabel{fill:#aaa}
 .light .chart-label{fill:#aaa}
 .light .mc-dot{stroke:#fff}

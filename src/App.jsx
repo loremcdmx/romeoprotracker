@@ -97,7 +97,7 @@ function MarathonChart({ posts, meta, startBR, setLightbox, day }) {
 
   const W=700, H=220, pL=52, pR=20, pT=14, pB=44
   const minV = 0
-  const maxV = Math.max(...points.map(p=>p.br), startBR) * 1.08
+  const maxV = Math.max(...points.map(p=>p.br), startBR) * 1.05
   const yOf  = v => pT + (1-(v-minV)/(maxV-minV)) * (H-pT-pB)
 
   // X-позиция пропорциональна накопленным МТТ если данные есть, иначе равномерно
@@ -139,12 +139,12 @@ function MarathonChart({ posts, meta, startBR, setLightbox, day }) {
   const coords = points.map((p,i) => ({ x:xOf(i), y:yOf(p.br) }))
   const linePath = makeBezierPath(coords)
   const areaPath = makeBezierArea(coords, H)
-  // Nice Y ticks: round intervals from 0
+  // Nice Y ticks: round intervals, skip $0
   const yTicks = (() => {
-    const range = maxV - minV
+    const range = maxV
     const step = range <= 5000 ? 1000 : range <= 15000 ? 2000 : range <= 30000 ? 5000 : 10000
     const ticks = []
-    for (let v = 0; v <= maxV; v += step) {
+    for (let v = step; v <= maxV; v += step) {
       ticks.push({ v, y: yOf(v) })
     }
     return ticks
