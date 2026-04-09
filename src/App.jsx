@@ -840,6 +840,16 @@ function renderPostText(text, collapseQuotes=false) {
 
 
 // ─── POST CARD ────────────────────────────────────────────────────────────────
+const S_MENU = {position:'absolute',top:44,left:12,background:'var(--bg-popup)',border:'1px solid var(--border-popup)',borderRadius:8,padding:'6px 0',zIndex:200,minWidth:160,boxShadow:'0 4px 20px rgba(0,0,0,.8)'}
+const S_MENU_ITEM = {display:'flex',alignItems:'center',gap:8,padding:'8px 14px',color:'var(--dim2)',fontSize:12,textDecoration:'none'}
+const S_FLEX1 = {flex:1,minWidth:0}
+const S_EXPAND = {background:'none',border:'1px solid var(--border2)',borderRadius:20,color:'var(--dim2)',cursor:'pointer',fontFamily:'inherit',fontWeight:600,fontSize:11,padding:'3px 10px',display:'inline-flex',alignItems:'center',gap:4,marginLeft:4,transition:'all .15s'}
+const S_ARROW = {fontSize:9,opacity:.7}
+const S_TAGS_WRAP = {display:'inline-flex',gap:4,marginLeft:4}
+const S_TAG = {fontSize:9,color:'var(--dim)',background:'var(--bg3)',borderRadius:10,padding:'2px 6px'}
+const S_MONO = {fontFamily:"'Roboto Mono',monospace",fontWeight:700}
+const menuHover = e => e.currentTarget.style.background = 'var(--bg3)'
+const menuLeave = e => e.currentTarget.style.background = ''
 const PostCard = memo(function PostCard({ p, favorites, onFav, onIgnore, onLike, setLightbox, noClamp=false, tags=null }) {
   const [exp, setExp]     = useState(false)
   const [menu, setMenu]   = useState(false)
@@ -877,14 +887,13 @@ const PostCard = memo(function PostCard({ p, favorites, onFav, onIgnore, onLike,
         </div>
         {/* Dropdown меню профиля */}
         {menu && (
-          <div ref={menuRef} style={{position:'absolute',top:44,left:12,background:'var(--bg-popup)',border:'1px solid var(--border-popup)',
-            borderRadius:8,padding:'6px 0',zIndex:200,minWidth:160,boxShadow:'0 4px 20px rgba(0,0,0,.8)'}}
+          <div ref={menuRef} style={S_MENU}
             onClick={e=>e.stopPropagation()}>
             {ROMEO_RE.test(p.author) && (
               <a href="https://forum.gipsyteam.ru/index.php?showforum=141" target="_blank" rel="noreferrer"
-                style={{display:'flex',alignItems:'center',gap:8,padding:'8px 14px',color:'var(--dim2)',fontSize:12,textDecoration:'none'}}
-                onMouseEnter={e=>e.currentTarget.style.background='var(--bg3)'}
-                onMouseLeave={e=>e.currentTarget.style.background=''}>
+                style={S_MENU_ITEM}
+                onMouseEnter={menuHover}
+                onMouseLeave={menuLeave}>
                 📝 Блог
               </a>
             )}
@@ -903,7 +912,7 @@ const PostCard = memo(function PostCard({ p, favorites, onFav, onIgnore, onLike,
             </a>
           </div>
         )}
-        <div style={{flex:1,minWidth:0}}>
+        <div style={S_FLEX1}>
           <div className="pc-author" style={{cursor:'pointer'}}
             onClick={e=>{e.stopPropagation();setMenu(m=>!m)}}>
             {p.author}
@@ -921,7 +930,7 @@ const PostCard = memo(function PostCard({ p, favorites, onFav, onIgnore, onLike,
                   <rect x="6.4" y="1" width="2.5" height="9"/>
                   <rect x="9.6" y="0" width="2.5" height="10"/>
                 </svg>
-                <span style={{fontFamily:"'Roboto Mono',monospace",fontWeight:700}}>{p.rating.toLocaleString()}</span>
+                <span style={S_MONO}>{p.rating.toLocaleString()}</span>
               </a></>
             )}
           </div>
@@ -946,20 +955,15 @@ const PostCard = memo(function PostCard({ p, favorites, onFav, onIgnore, onLike,
         {onLike && <button className="pc-like-btn" onClick={e=>{e.stopPropagation();onLike(p.id)}} title="Поставить лайк на GipsyTeam">+1</button>}
         {p.brAfter && <span className="pc-br">БР: {fmtNum(p.brAfter)}</span>}
         {isLong && (
-          <button onClick={()=>setExp(s=>!s)} style={{
-            background:'none',border:'1px solid var(--border2)',borderRadius:20,
-            color:'var(--dim2)',cursor:'pointer',fontFamily:'inherit',fontWeight:600,
-            fontSize:11,padding:'3px 10px',display:'inline-flex',alignItems:'center',gap:4,
-            marginLeft:4,transition:'all .15s',
-          }}>
-            <span style={{fontSize:9,opacity:.7}}>{exp?'▲':'▼'}</span>
+          <button onClick={()=>setExp(s=>!s)} style={S_EXPAND}>
+            <span style={S_ARROW}>{exp?'▲':'▼'}</span>
             {exp ? 'свернуть' : 'читать'}
           </button>
         )}
         {tags && tags.length > 0 && (
-          <span style={{display:'inline-flex',gap:4,marginLeft:4}}>
+          <span style={S_TAGS_WRAP}>
             {tags.map(t=>(
-              <span key={t.id} style={{fontSize:9,color:'var(--dim)',background:'var(--bg3)',borderRadius:10,padding:'2px 6px'}}>
+              <span key={t.id} style={S_TAG}>
                 {t.icon} {t.label}
               </span>
             ))}
@@ -1075,7 +1079,7 @@ function SidebarTopList({ posts, setLightbox }) {
                 ? <img src={p.avatar} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}} onError={e=>e.target.style.display='none'}/>
                 : initial}
             </div>
-            <div style={{flex:1,minWidth:0}}>
+            <div style={S_FLEX1}>
               <div style={{fontSize:10,color:'var(--dim2)',fontWeight:600,marginBottom:2}}>{p.author}</div>
               {p.images?.[0] && (
                 <img src={p.images[0]} alt=""

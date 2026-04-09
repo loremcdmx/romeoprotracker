@@ -13,7 +13,6 @@
   },
   "dependencies": {
     "@vercel/analytics": "^2.0.1",
-    "cheerio": "^1.2.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },
@@ -21,6 +20,7 @@
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@vitejs/plugin-react": "^4.2.1",
+    "cheerio": "^1.2.0",
     "jsdom": "^29.0.2",
     "vite": "^5.0.8",
     "vitest": "^4.1.3"
