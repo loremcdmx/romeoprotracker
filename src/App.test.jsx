@@ -87,8 +87,9 @@ describe('App', () => {
     const tabs = screen.getAllByText('Темы')
     fireEvent.click(tabs[0])
     expect(screen.getByText(/Марафон/)).toBeInTheDocument()
-    expect(screen.getByText(/Обсуждение/)).toBeInTheDocument()
-    expect(screen.getByText(/Дебаты/)).toBeInTheDocument()
+    expect(screen.getByText(/Про Ромео/)).toBeInTheDocument()
+    expect(screen.getByText(/Топ-контент/)).toBeInTheDocument()
+    expect(screen.getByText(/По темам/)).toBeInTheDocument()
   })
 
   it('switches to settings tab and shows ignore list', async () => {
