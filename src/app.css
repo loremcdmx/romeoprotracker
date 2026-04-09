@@ -56,10 +56,7 @@ a{color:var(--red2);text-decoration:none}
 /* MARATHON CHART */
 .marathon-chart{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:12px;position:relative}
 .mc-svg{width:100%;overflow:visible}
-.mc-area{fill:url(#mcGrad);opacity:.25}
-.mc-line{fill:none;stroke:#e53935;stroke-width:2;stroke-linejoin:round}
 .mc-dot{stroke:#111;stroke-width:2;cursor:pointer;transition:r .1s}
-.mc-label{font-size:9px;fill:#555;text-anchor:middle;font-family:'Roboto Mono',monospace}
 .mc-ylabel{font-size:9px;fill:#555;text-anchor:end;font-family:'Roboto Mono',monospace}
 .mc-zero{stroke:#2a2a2a;stroke-width:1;stroke-dasharray:4 3}
 .mc-grid{stroke:#1e1e1e;stroke-width:1}
@@ -80,11 +77,9 @@ a{color:var(--red2);text-decoration:none}
 .filter-pill.off:hover{border-color:#444;color:var(--text)}
 .filter-pill.on{background:var(--red);color:#fff;border:1px solid var(--red)}
 .filter-active-count{font-size:11px;color:var(--dim);margin-left:auto;white-space:nowrap}
-.feed-filters{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;align-items:center}
 .feed-select{background:var(--bg3);border:1px solid var(--border);border-radius:20px;color:var(--text);font-family:inherit;font-size:11px;padding:5px 10px;outline:none;cursor:pointer}
 .feed-search{background:var(--bg3);border:1px solid var(--border);border-radius:20px;color:var(--text);font-family:inherit;font-size:11px;padding:5px 12px;outline:none;flex:1;min-width:140px}
 .feed-search:focus,.feed-select:focus{border-color:#444}
-.feed-count{font-size:11px;color:var(--dim);margin-left:auto;white-space:nowrap}
 
 /* TOPIC TABS */
 .topic-tabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
@@ -150,9 +145,6 @@ a{color:var(--red2);text-decoration:none}
 .btn-sm{padding:5px 12px;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-family:inherit;transition:all .15s}
 .btn-sm:hover{border-color:#555;color:var(--white)}
 
-/* QUOTE */
-.pc-quote{background:var(--bg3);border-left:3px solid var(--border2);border-radius:0 4px 4px 0;padding:8px 12px;margin-bottom:8px;font-size:12px;color:var(--dim2)}
-.pc-quote-author{font-size:10px;color:var(--dim);margin-bottom:4px;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
 .lightbox{position:fixed;inset:0;background:#000d;display:flex;align-items:center;justify-content:center;z-index:500;cursor:zoom-out}
 .lightbox img{max-width:92vw;max-height:92vh;border-radius:4px;box-shadow:0 0 60px rgba(0,0,0,.8)}
 
@@ -173,7 +165,7 @@ a{color:var(--red2);text-decoration:none}
 .light .hero{background:linear-gradient(135deg,#fff5f5 0%,#f8f8f8 100%)}
 .light .mc-grid{stroke:#e8e8e8}
 .light .mc-zero{stroke:#ddd}
-.light .mc-label,.light .mc-ylabel{fill:#aaa}
+.light .mc-ylabel{fill:#aaa}
 .light .chart-label{fill:#aaa}
 .light .mc-dot{stroke:#fff}
 .light ::-webkit-scrollbar-track{background:#e8e8e8}
@@ -208,7 +200,7 @@ a{color:var(--red2);text-decoration:none}
 .light .lightbox{background:rgba(0,0,0,.7)}
 .light .sidebar-popup{background:var(--bg-popup)!important;border-color:var(--border-popup)!important;box-shadow:var(--shadow-popup)!important}
 .light .sidebar-popup *{color:inherit}
-.light .pc-body blockquote,.light .quote-block{background:var(--bg-quote)!important;border-left-color:var(--border-quote)!important}
+.light .pc-body blockquote{background:var(--bg-quote)!important;border-left-color:var(--border-quote)!important}
 .light .marathon-progress{background:#e0e0e0}
 .light .mobile-nav{background:#fff;border-top-color:#eee}
 
@@ -286,7 +278,6 @@ a{color:var(--red2);text-decoration:none}
 }
 @keyframes fadeIn{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:scale(1)}}
 .mc-dot-last{animation:pulseDot 2s ease-in-out infinite}
-.mc-animate{animation:drawLine 1.4s cubic-bezier(.4,0,.2,1) forwards}
 .mc-tooltip{animation:fadeIn .15s ease}
 .mobile-nav{
   display:none;
@@ -387,11 +378,10 @@ a{color:var(--red2);text-decoration:none}
   /* CHART */
   .chart-wrap{margin:10px 12px 0;border-radius:12px;overflow:hidden;padding:10px 8px}
   .mc-svg{overflow:hidden;display:block;max-width:100%}
-  .mc-label{font-size:10px}.mc-ylabel{font-size:11px}
+  .mc-ylabel{font-size:11px}
   .marathon-chart{overflow:hidden;padding:12px;margin:10px 12px 0;border-radius:14px}
   .section-title{font-size:14px}
   .section-count{font-size:12px}
-  .chart-wrap.activity{margin:10px 12px 0}
 
   /* FILTERS */
   .filter-bar{margin:10px 12px 0;padding:10px;border-radius:12px;gap:8px;flex-wrap:wrap}
