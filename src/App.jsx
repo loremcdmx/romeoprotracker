@@ -48,6 +48,7 @@ function MarathonChart({ posts, meta, startBR, setLightbox, day }) {
   const [tip, setTip]     = useState(null)
   const [pathLen, setPathLen] = useState(null)
   const pathRef = useRef(null)
+  const chartRef = useRef(null)
   const isMobile = useIsMobile()
 
   const points = useMemo(() => {
@@ -167,13 +168,18 @@ function MarathonChart({ posts, meta, startBR, setLightbox, day }) {
   const handleTouchMove = () => { clearTimeout(longPressTimer.current) }
 
   return (
-    <div className="marathon-chart" onClick={tip?()=>setTip(null):undefined}>
+    <div className="marathon-chart" ref={chartRef} onClick={tip?()=>setTip(null):undefined}>
       <div className="section-head" style={{marginBottom:12}}>
         <span className="section-title">📈 График марафона</span>
         <span className="section-count">{day?`день #${day}`:`${points.length} сессий`}</span>
       </div>
       <svg className="mc-svg" viewBox={`0 0 ${W} ${H+pB}`}
-        onMouseLeave={()=>setTip(null)}
+        onMouseLeave={(e)=>{
+          // Don't close tooltip if mouse moved to the tooltip itself
+          const related = e.relatedTarget
+          if (related && chartRef.current?.contains(related)) return
+          setTip(null)
+        }}
         onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}
         style={{touchAction:'pan-y',WebkitUserSelect:'none',userSelect:'none',WebkitTouchCallout:'none'}}>
         <defs>
