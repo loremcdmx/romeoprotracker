@@ -476,15 +476,28 @@ function ActivityChart({ posts, favorites, onFav, onIgnore, setLightbox,
         const romeoPs   = tip.posts.filter(p => ROMEO_RE.test(p.author))
         const topPost   = [...tip.posts].sort((a,b) => (b.likes||0)-(a.likes||0))[0]
         const topClean  = (topPost?.text||'').replace(/\[QUOTE\][\s\S]*?\[\/QUOTE\]/gi,'').replace(/\[QUOTE\]/gi,'').replace(/\[\/QUOTE\]/gi,'').trim()
-        // Топ авторов по репе
+        // Взвешенный скоринг авторов: лайки поста * 3 + репа/1000 + бонус за уникальность (1 пост в треде)
         const byAuthor = {}
-        tip.posts.filter(p=>p.author).forEach(p => {
-          if (!byAuthor[p.author] || (p.rating||0) > (byAuthor[p.author]||0))
-            byAuthor[p.author] = p.rating||0
+        tip.posts.filter(p=>p.author && !ROMEO_RE.test(p.author)).forEach(p => {
+          const a = p.author
+          if (!byAuthor[a]) byAuthor[a] = { rating: p.rating||0, bestLikes: 0, count: 0 }
+          byAuthor[a].count++
+          if ((p.likes||0) > byAuthor[a].bestLikes) byAuthor[a].bestLikes = p.likes||0
+          if ((p.rating||0) > byAuthor[a].rating) byAuthor[a].rating = p.rating||0
         })
+        // Считаем общее кол-во постов автора во всём треде для бонуса уникальности
+        const globalCounts = {}
+        posts?.forEach(p => { if (p.author) globalCounts[p.author] = (globalCounts[p.author]||0)+1 })
         const topAuthors = Object.entries(byAuthor)
-          .filter(([,r]) => r >= 10000)
-          .sort((a,b) => b[1]-a[1])
+          .map(([name, {rating, bestLikes, count}]) => {
+            const gc = globalCounts[name] || count
+            const uniqueBonus = gc <= 3 ? 5 : gc <= 10 ? 2 : 0 // редкий гость
+            const score = bestLikes * 3 + (rating/1000) + uniqueBonus
+            return [name, rating, score, bestLikes]
+          })
+          .filter(([,,score]) => score >= 3)
+          .sort((a,b) => b[2]-a[2])
+          .slice(0, 6)
         return (
           <div className="chart-tooltip" style={{
             bottom:52,
@@ -500,17 +513,20 @@ function ActivityChart({ posts, favorites, onFav, onIgnore, setLightbox,
             {topAuthors.length > 0 && (
               <div style={{marginBottom:6}}>
                 <div style={{fontSize:9,color:'#555',textTransform:'uppercase',letterSpacing:'.08em',marginBottom:4}}>авторитетные авторы</div>
-                {topAuthors.map(([name, rating]) => (
+                {topAuthors.map(([name, rating, , bestLikes]) => (
                   <div key={name} style={{fontSize:11,color:'#bbb',display:'flex',justifyContent:'space-between',gap:8,lineHeight:1.6}}>
                     <span style={{color:'#ddd'}}>{name}</span>
-                    <span style={{color:'#4caf50',fontSize:10,fontFamily:"'Roboto Mono',monospace",display:'inline-flex',alignItems:'center',gap:2}}>
-                      <svg viewBox="0 0 12 10" style={{width:9,height:8,fill:'#4caf50',flexShrink:0}}>
-                        <rect x="0" y="6" width="2.5" height="4"/>
-                        <rect x="3.2" y="3" width="2.5" height="7"/>
-                        <rect x="6.4" y="1" width="2.5" height="9"/>
-                        <rect x="9.6" y="0" width="2.5" height="10"/>
-                      </svg>
-                      {fmtInt(rating)}
+                    <span style={{fontSize:10,fontFamily:"'Roboto Mono',monospace",display:'inline-flex',alignItems:'center',gap:4}}>
+                      {bestLikes > 0 && <span style={{color:'#ffb74d'}}>+{bestLikes} 👍</span>}
+                      <span style={{color:'#4caf50',display:'inline-flex',alignItems:'center',gap:2}}>
+                        <svg viewBox="0 0 12 10" style={{width:9,height:8,fill:'#4caf50',flexShrink:0}}>
+                          <rect x="0" y="6" width="2.5" height="4"/>
+                          <rect x="3.2" y="3" width="2.5" height="7"/>
+                          <rect x="6.4" y="1" width="2.5" height="9"/>
+                          <rect x="9.6" y="0" width="2.5" height="10"/>
+                        </svg>
+                        {fmtInt(rating)}
+                      </span>
                     </span>
                   </div>
                 ))}
