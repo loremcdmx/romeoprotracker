@@ -42,11 +42,11 @@ function Sparkline({ values, width = 64, height = 24, color = '#4caf50' }) {
 // ─── MARATHON CHART (bezier functions imported from utils.js) ─────────────────
 
 const CHART_ROOMS = [
-  { key:'gg',   label:'GG',    logo:'https://www.gipsyteam.ru/upload/Pokerroomwidgetlogo/default/34.webp?1702662842' },
+  { key:'gg',   label:'GG',    logo:'https://t3.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=http://ggpoker.com&size=64' },
   { key:'ps',   label:'Stars', logo:'https://www.gipsyteam.ru/upload/Pokerroomwidgetlogo/default/1.png?1651069603' },
   { key:'king', label:'King',  logo:'https://www.gipsyteam.ru/upload/Pokerroomwidgetlogo/default/9.png?1650962615' },
   { key:'coin', label:'Coin',  logo:'https://www.gipsyteam.ru/upload/Pokerroomwidgetlogo/default/1/109.webp?1772698374' },
-  { key:'lux',  label:'Lux',   logo:null },
+  { key:'lux',  label:'Lux',   logo:'https://t3.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=http://luxon.com&size=64' },
 ]
 
 function MarathonChart({ posts, meta, startBR, setLightbox, day }) {
