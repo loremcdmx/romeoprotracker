@@ -51,6 +51,16 @@ function MarathonChart({ posts, meta, startBR, setLightbox, day }) {
   const chartRef = useRef(null)
   const isMobile = useIsMobile()
 
+  // Close tooltip on click outside chart
+  useEffect(() => {
+    if (!tip) return
+    const handler = (e) => {
+      if (chartRef.current && !chartRef.current.contains(e.target)) setTip(null)
+    }
+    document.addEventListener('click', handler)
+    return () => document.removeEventListener('click', handler)
+  }, [tip])
+
   const points = useMemo(() => {
     if (meta?.brHistory?.length) {
       return meta.brHistory
