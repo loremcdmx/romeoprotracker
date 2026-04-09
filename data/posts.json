@@ -64161,10 +64161,26 @@
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_04_2026/post-6195-1775646728f6fe_thumb.webp"
     ],
-    "brBefore": null,
-    "brAfter": null,
-    "sessionResult": null,
-    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8211900"
+    "brBefore": 10190,
+    "brAfter": 10190,
+    "sessionResult": 0,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8211900",
+    "rooms": {
+      "before": {
+        "gg": 8753,
+        "ps": 1188,
+        "king": 232,
+        "coin": 17,
+        "lux": 0
+      },
+      "after": {
+        "gg": 8753,
+        "ps": 1188,
+        "king": 232,
+        "coin": 17,
+        "lux": 0
+      }
+    }
   },
   {
     "id": "8211901",
@@ -65967,10 +65983,26 @@
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_04_2026/post-6195-1775472791f5a1_thumb.webp"
     ],
-    "brBefore": null,
-    "brAfter": null,
-    "sessionResult": null,
-    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8210296"
+    "brBefore": 10190,
+    "brAfter": 8697,
+    "sessionResult": -1493,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8210296",
+    "rooms": {
+      "before": {
+        "gg": 8753,
+        "ps": 1188,
+        "king": 232,
+        "coin": 17,
+        "lux": 0
+      },
+      "after": {
+        "gg": 7260,
+        "ps": 1188,
+        "king": 232,
+        "coin": 17,
+        "lux": 0
+      }
+    }
   },
   {
     "id": "8210479",
@@ -66107,10 +66139,26 @@
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_04_2026/post-6195-1775532360cbe4_thumb.webp"
     ],
-    "brBefore": null,
-    "brAfter": null,
-    "sessionResult": null,
-    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8210847"
+    "brBefore": 8697,
+    "brAfter": 10270,
+    "sessionResult": 1573,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8210847",
+    "rooms": {
+      "before": {
+        "gg": 7260,
+        "ps": 1188,
+        "king": 232,
+        "coin": 17,
+        "lux": 0
+      },
+      "after": {
+        "gg": 8833,
+        "ps": 1188,
+        "king": 232,
+        "coin": 17,
+        "lux": 0
+      }
+    }
   },
   {
     "id": "8210852",
@@ -67167,7 +67215,7 @@
     "date": "11 мин назад11 мин назад",
     "timestamp": 1775692054,
     "text": "",
-    "likes": 138,
+    "likes": 139,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_04_2026/post-51613-17756920506be6_thumb.webp"
     ],
@@ -68132,10 +68180,26 @@
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_04_2026/post-6195-1775740235cce7_thumb.webp"
     ],
-    "brBefore": null,
-    "brAfter": null,
-    "sessionResult": null,
-    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8212770"
+    "brBefore": 10270,
+    "brAfter": 11334,
+    "sessionResult": 1064,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8212770",
+    "rooms": {
+      "before": {
+        "gg": 8833,
+        "ps": 1188,
+        "king": 232,
+        "coin": 17,
+        "lux": 0
+      },
+      "after": {
+        "gg": 9897,
+        "ps": 1188,
+        "king": 232,
+        "coin": 17,
+        "lux": 0
+      }
+    }
   },
   {
     "id": "8212774",

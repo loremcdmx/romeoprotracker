@@ -1,11 +1,11 @@
 {
-  "bankroll": 10190,
+  "bankroll": 11334,
   "startBankroll": 10000,
   "targetBankroll": 10000000,
   "day": 1,
   "status": "active",
-  "lastUpdated": "2026-04-08T15:00:00.000Z",
-  "totalPosts": 3627,
+  "lastUpdated": "2026-04-09T16:58:45.029Z",
+  "totalPosts": 3996,
   "scrapedPages": 0,
   "chronicle": [],
   "authorName": "Romeopro",
@@ -505,7 +505,115 @@
       "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676",
       "tournaments": 742,
       "totalTournaments": 4307
+    },
+    {
+      "id": "8211900",
+      "date": "9 мин назад",
+      "timestamp": 1775646730,
+      "brBefore": 10190,
+      "brAfter": 10190,
+      "sessionResult": 0,
+      "rooms": {
+        "before": {
+          "gg": 8753,
+          "ps": 1188,
+          "king": 232,
+          "coin": 17,
+          "lux": 0
+        },
+        "after": {
+          "gg": 8753,
+          "ps": 1188,
+          "king": 232,
+          "coin": 17,
+          "lux": 0
+        }
+      },
+      "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8211900",
+      "tournaments": 206,
+      "totalTournaments": 4513
+    },
+    {
+      "id": "8210296",
+      "date": "6 апреля, 14:536 апреля, 14:53",
+      "timestamp": 1775472793,
+      "brBefore": 10190,
+      "brAfter": 8697,
+      "sessionResult": -1493,
+      "rooms": {
+        "before": {
+          "gg": 8753,
+          "ps": 1188,
+          "king": 232,
+          "coin": 17,
+          "lux": 0
+        },
+        "after": {
+          "gg": 7260,
+          "ps": 1188,
+          "king": 232,
+          "coin": 17,
+          "lux": 0
+        }
+      },
+      "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8210296",
+      "tournaments": 275,
+      "totalTournaments": 4788
+    },
+    {
+      "id": "8210847",
+      "date": "7 апреля, 07:267 апреля, 07:26",
+      "timestamp": 1775532383,
+      "brBefore": 8697,
+      "brAfter": 10270,
+      "sessionResult": 1573,
+      "rooms": {
+        "before": {
+          "gg": 7260,
+          "ps": 1188,
+          "king": 232,
+          "coin": 17,
+          "lux": 0
+        },
+        "after": {
+          "gg": 8833,
+          "ps": 1188,
+          "king": 232,
+          "coin": 17,
+          "lux": 0
+        }
+      },
+      "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8210847",
+      "tournaments": 261,
+      "totalTournaments": 5049
+    },
+    {
+      "id": "8212770",
+      "date": "53 мин назад53 мин назад",
+      "timestamp": 1775740242,
+      "brBefore": 10270,
+      "brAfter": 11334,
+      "sessionResult": 1064,
+      "rooms": {
+        "before": {
+          "gg": 8833,
+          "ps": 1188,
+          "king": 232,
+          "coin": 17,
+          "lux": 0
+        },
+        "after": {
+          "gg": 9897,
+          "ps": 1188,
+          "king": 232,
+          "coin": 17,
+          "lux": 0
+        }
+      },
+      "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8212770",
+      "tournaments": 318,
+      "totalTournaments": 5367
     }
   ],
-  "totalTournaments": 4307
+  "totalTournaments": 5367
 }
