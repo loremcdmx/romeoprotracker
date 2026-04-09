@@ -17,7 +17,7 @@ import * as cheerio from 'cheerio'
 
 const FORUM_URL = 'https://forum.gipsyteam.ru/index.php?viewtopic=181676'
 const ROMEO_RE  = /romeopro/i
-const DELAY_MS  = 800        // polite delay between page fetches
+const DELAY_MS  = 500        // polite delay between page fetches
 const MODE      = process.env.SCRAPE_MODE || 'normal'
 
 // ─── UTILS ───────────────────────────────────────────────────────────────────
@@ -210,21 +210,17 @@ async function extractBrFromImages(post, lastBrHistory) {
   )
   if (brImages.length === 0) return null
 
-  // Try full-res first, fall back to thumb if full-res 404s
-  const fullResImages = []
-  for (const url of brImages) {
+  // Try full-res first, fall back to thumb if full-res 404s (parallel)
+  const fullResImages = await Promise.all(brImages.map(async url => {
     const fullUrl = url.replace('_thumb.webp', '.webp').replace('_thumb.jpg', '.jpg').replace('_thumb.png', '.png')
-    if (fullUrl !== url) {
-      try {
-        const head = await fetch(fullUrl, { method: 'HEAD' })
-        fullResImages.push(head.ok ? fullUrl : url)
-      } catch {
-        fullResImages.push(url)
-      }
-    } else {
-      fullResImages.push(url)
+    if (fullUrl === url) return url
+    try {
+      const head = await fetch(fullUrl, { method: 'HEAD', signal: AbortSignal.timeout(5000) })
+      return head.ok ? fullUrl : url
+    } catch {
+      return url
     }
-  }
+  }))
 
   const content = [
     {
@@ -387,8 +383,9 @@ async function main() {
     return
   }
 
-  // Find last page
-  const firstPageHtml = await fetchPage(FORUM_URL)
+  // Find last page (reuse this HTML for parsing too)
+  const firstPageUrl = FORUM_URL
+  const firstPageHtml = await fetchPage(firstPageUrl)
   const lastSt = findLastSt(firstPageHtml)
   if (!lastSt) {
     console.log('⚠ Could not find last page')
@@ -398,39 +395,46 @@ async function main() {
   // Build list of pages to scan
   const pagesToScan = []
   if (isFullScan) {
-    // Full scan: ALL pages (for likes update)
     for (let st = 0; st <= lastSt; st += 20) {
       pagesToScan.push(st === 0 ? FORUM_URL : `${FORUM_URL}&st=${st}`)
     }
   } else {
-    // Normal: last 5 pages
+    // Normal: last 5 pages, newest first for early exit
     for (let i = 0; i < 5; i++) {
       const st = lastSt - i * 20
       if (st < 0) break
       pagesToScan.push(st === 0 ? FORUM_URL : `${FORUM_URL}&st=${st}`)
     }
-    pagesToScan.reverse()
   }
 
-  console.log(`📄 Scanning ${pagesToScan.length} pages...`)
+  console.log(`📄 Scanning up to ${pagesToScan.length} pages...`)
 
-  // Scrape all pages
+  // Scrape pages
   const allScraped = []
   const newPosts = []
   for (let i = 0; i < pagesToScan.length; i++) {
     const url = pagesToScan[i]
     if (i % 20 === 0 || !isFullScan) console.log(`📄 Page ${i + 1}/${pagesToScan.length}: ${url}`)
-    const html = await fetchPage(url)
+    // Reuse already-fetched first page
+    const html = (url === firstPageUrl) ? firstPageHtml : await fetchPage(url)
     const pagePosts = parsePosts(html)
     allScraped.push(...pagePosts)
 
+    let pageHasNew = false
     for (const p of pagePosts) {
       if (!knownIds.has(p.id)) {
         newPosts.push(p)
         knownIds.add(p.id)
+        pageHasNew = true
       }
     }
-    await sleep(DELAY_MS)
+
+    // Normal mode: stop scanning older pages once no new posts found
+    if (!isFullScan && !pageHasNew && i > 0) {
+      console.log(`⏩ No new posts on page ${i + 1}, stopping early`)
+      break
+    }
+    if (url !== firstPageUrl) await sleep(DELAY_MS)
   }
 
   // Update likes on existing posts
@@ -575,10 +579,41 @@ async function main() {
   // Pull remote changes BEFORE writing data files to avoid merge conflicts
   try { execSync('git pull --rebase origin main') } catch {}
 
-  // Write data after pull so our files are always on top of latest remote
+  // Write full data
   await writeFile('data/posts.json', JSON.stringify(merged, null, 2))
   await writeFile('data/meta.json', JSON.stringify(meta, null, 2))
-  execSync('git add data/posts.json data/meta.json')
+
+  // Write compact posts for frontend (strip nulls, dedupe avatars, truncate text)
+  const avatarMap = {}
+  let avatarIdx = 0
+  merged.forEach(p => {
+    if (p.avatar && !avatarMap[p.avatar]) avatarMap[p.avatar] = avatarIdx++
+  })
+  const compactPosts = merged.map(p => {
+    const o = {
+      i: p.id,
+      a: p.author,
+      t: p.timestamp,
+      l: p.likes || 0,
+    }
+    if (p.text) o.x = ROMEO_RE.test(p.author) ? p.text : p.text.substring(0, 600)
+    if (p.avatar) o.v = avatarMap[p.avatar]
+    if (p.rating)      o.r = p.rating
+    if (p.msgCount)    o.m = p.msgCount
+    if (p.regData)     o.g = p.regData
+    if (p.date)        o.d = p.date
+    if (p.images?.length) o.p = p.images
+    if (p.brAfter != null) o.ba = p.brAfter
+    if (p.brBefore != null) o.bb = p.brBefore
+    if (p.sessionResult != null) o.sr = p.sessionResult
+    if (p.rooms) o.rm = p.rooms
+    return o
+  })
+  const avatarList = Object.entries(avatarMap).sort((a,b)=>a[1]-b[1]).map(e=>e[0])
+  const compactData = { avatars: avatarList, posts: compactPosts }
+  await writeFile('data/posts.min.json', JSON.stringify(compactData))
+
+  execSync('git add data/posts.json data/meta.json data/posts.min.json')
 
   try {
     execSync(`git commit -m "${msg}"`)
