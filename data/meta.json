@@ -4,7 +4,7 @@
   "targetBankroll": 10000000,
   "day": 1,
   "status": "active",
-  "lastUpdated": "2026-04-09T17:11:36.465Z",
+  "lastUpdated": "2026-04-09T17:17:44.328Z",
   "totalPosts": 3997,
   "scrapedPages": 0,
   "chronicle": [],
@@ -333,7 +333,7 @@
       },
       "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8200086",
       "tournaments": 210,
-      "totalTournaments": 2376
+      "totalTournaments": 2166
     },
     {
       "id": "8200442",
@@ -360,7 +360,7 @@
       },
       "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8200442",
       "tournaments": 210,
-      "totalTournaments": 2586
+      "totalTournaments": 2376
     },
     {
       "id": "8203224",
@@ -387,7 +387,7 @@
       },
       "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8203224",
       "tournaments": 160,
-      "totalTournaments": 2746
+      "totalTournaments": 2536
     },
     {
       "id": "8203871",
@@ -414,7 +414,7 @@
       },
       "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8203871",
       "tournaments": 102,
-      "totalTournaments": 2848
+      "totalTournaments": 2638
     },
     {
       "id": "8206633",
@@ -441,7 +441,7 @@
       },
       "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8206633",
       "tournaments": 206,
-      "totalTournaments": 3054
+      "totalTournaments": 2844
     },
     {
       "id": "8207321",
@@ -468,7 +468,7 @@
       },
       "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8207321",
       "tournaments": 217,
-      "totalTournaments": 3271
+      "totalTournaments": 3061
     },
     {
       "id": "8207918",
@@ -495,7 +495,7 @@
       },
       "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8207918",
       "tournaments": 253,
-      "totalTournaments": 3524
+      "totalTournaments": 3314
     },
     {
       "id": "8209598",
@@ -522,7 +522,7 @@
       },
       "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8209598",
       "tournaments": 251,
-      "totalTournaments": 3775
+      "totalTournaments": 3565
     },
     {
       "id": "8210296",
@@ -549,7 +549,7 @@
       },
       "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8210296",
       "tournaments": 275,
-      "totalTournaments": 4050
+      "totalTournaments": 3840
     },
     {
       "id": "8210847",
@@ -576,7 +576,7 @@
       },
       "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8210847",
       "tournaments": 261,
-      "totalTournaments": 4311
+      "totalTournaments": 4101
     },
     {
       "id": "8211900",
@@ -603,7 +603,7 @@
       },
       "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8211900",
       "tournaments": 206,
-      "totalTournaments": 4517
+      "totalTournaments": 4307
     },
     {
       "id": "8212770",
@@ -630,8 +630,8 @@
       },
       "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8212770",
       "tournaments": 318,
-      "totalTournaments": 4835
+      "totalTournaments": 4625
     }
   ],
-  "totalTournaments": 4835
+  "totalTournaments": 4625
 }
