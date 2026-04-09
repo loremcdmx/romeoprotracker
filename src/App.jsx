@@ -95,7 +95,7 @@ function MarathonChart({ posts, meta, startBR, setLightbox, day }) {
     </div>
   )
 
-  const W=700, H=220, pL=52, pR=20, pT=14, pB=44
+  const W=700, H=280, pL=52, pR=20, pT=14, pB=44
   const minV = 0
   const maxV = Math.max(...points.map(p=>p.br), startBR) * 1.05
   const yOf  = v => pT + (1-(v-minV)/(maxV-minV)) * (H-pT-pB)
