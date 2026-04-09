@@ -62,7 +62,8 @@ function MarathonChart({ posts, meta, startBR, setLightbox, day }) {
         .sort((a,b) => (a.timestamp||0)-(b.timestamp||0))
         .map((h,i,arr) => ({
           br:h.brAfter, brPrev:i===0?startBR:arr[i-1].brAfter,
-          date:h.date, text:h.text||'', url:h.url,
+          date:h.date, timestamp:h.timestamp, text:h.text||'',
+          url:h.url||`https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=${h.id}`,
           images:[], sessionResult:h.sessionResult, rooms:h.rooms||null,
           tournaments:h.tournaments||null, totalTournaments:h.totalTournaments||null,
         }))
@@ -72,7 +73,7 @@ function MarathonChart({ posts, meta, startBR, setLightbox, day }) {
       .sort((a,b) => (a.timestamp||0)-(b.timestamp||0))
       .map((p,i,arr) => ({
         br:p.brAfter, brPrev:i===0?startBR:arr[i-1].brAfter,
-        date:p.date, text:p.text, url:p.url,
+        date:p.date, timestamp:p.timestamp, text:p.text, url:p.url,
         images:p.images||[], sessionResult:p.sessionResult,
       }))
   }, [posts, meta, startBR])
