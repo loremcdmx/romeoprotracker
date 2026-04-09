@@ -183,9 +183,21 @@ async function extractBrFromImages(post, lastBrHistory) {
   )
   if (brImages.length === 0) return null
 
-  const fullResImages = brImages.map(url =>
-    url.replace('_thumb.webp', '.webp').replace('_thumb.jpg', '.jpg').replace('_thumb.png', '.png')
-  )
+  // Try full-res first, fall back to thumb if full-res 404s
+  const fullResImages = []
+  for (const url of brImages) {
+    const fullUrl = url.replace('_thumb.webp', '.webp').replace('_thumb.jpg', '.jpg').replace('_thumb.png', '.png')
+    if (fullUrl !== url) {
+      try {
+        const head = await fetch(fullUrl, { method: 'HEAD' })
+        fullResImages.push(head.ok ? fullUrl : url)
+      } catch {
+        fullResImages.push(url)
+      }
+    } else {
+      fullResImages.push(url)
+    }
+  }
 
   const lastEntry = lastBrHistory?.[lastBrHistory.length - 1]
   const prevBr = lastEntry ? lastEntry.brAfter : 10000
