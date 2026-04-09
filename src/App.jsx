@@ -1685,7 +1685,7 @@ export default function App() {
               <div style={{fontSize:11,color:'var(--dim)',fontFamily:"'Roboto Mono',monospace",marginBottom:4}}>
                 <span style={{color:'var(--dim2)',fontWeight:600}}>RomeoPro Tracker</span>
                 {' '}
-                <span style={{color:'#444'}}>v2.1</span>
+                <span style={{color:'#444'}}>v2.2</span>
               </div>
               <div style={{fontSize:10,color:'#444',marginBottom:4}}>
                 made by{' '}
@@ -1693,7 +1693,7 @@ export default function App() {
                   style={{color:'var(--dim)',textDecoration:'none'}}>LoremCDMX</a>
               </div>
               <div style={{fontSize:10,color:'#333'}}>
-                обновлено: 08.04.2025
+                обновлено: 08.04.2026
               </div>
             </div>
 
@@ -1703,7 +1703,8 @@ export default function App() {
                 Changelog
               </div>
               {[
-                ['08.04', 'v2.1', 'Автоскрапер через GitHub Actions (каждые 30 мин). Авторазбор скриншотов БР через Claude API. Мобилка: статистика и топ постов прямо в ленте. Широкий макет сайта. Пунктирные направляющие на графике'],
+                ['08.04', 'v2.2', 'Иконки румов в тултипе (GG, Stars, King, Coin, Luxon). Полные тексты постов без обрезки. Превью картинок в топ-постах. Аудит безопасности и очистка'],
+                ['08.04', 'v2.1', 'Автоскрапер через GitHub Actions (каждые 30 мин). Авторазбор скриншотов БР через Claude API. Мобилка: статистика и топ постов. Широкий макет. Пунктирные направляющие на графике'],
                 ['08.04', 'v2.0', 'Полный рефакторинг: стили, компоненты, хуки вынесены из App.jsx. Быстрая загрузка. Плавные кривые без горбов. Белая тема. Анимированный счётчик БР. Прогресс-бар $10k→$10M'],
                 ['07.04', 'v1.3', 'График с bezier-кривыми и анимацией. Мобильная вёрстка'],
                 ['06.04', 'v1.2', 'Виджет активности по дням. Топ-10 постов. Автообновление'],
