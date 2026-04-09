@@ -29,20 +29,20 @@ a{color:var(--red2);text-decoration:none}
 .topbar-right{margin-left:auto;display:flex;align-items:center;gap:6px}
 
 /* LAYOUT */
-.page{max-width:1480px;margin:0 auto;padding:10px 16px 60px;display:grid;grid-template-columns:1fr 320px;gap:16px;align-items:start}
+.page{max-width:1480px;margin:0 auto;padding:6px 16px 60px;display:grid;grid-template-columns:1fr 320px;gap:16px;align-items:start}
 .page.wide{grid-template-columns:1fr}
 
 /* HERO */
-.hero{background:linear-gradient(135deg,#1a0a0a 0%,#1a1a1a 100%);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:12px;position:relative;overflow:hidden}
+.hero{background:linear-gradient(135deg,#1a0a0a 0%,#1a1a1a 100%);border:1px solid var(--border);border-radius:var(--r);padding:12px;margin-bottom:10px;position:relative;overflow:hidden}
 .hero::before{content:'';position:absolute;top:-40px;right:-40px;width:200px;height:200px;background:radial-gradient(circle,#e5393520,transparent 70%);pointer-events:none}
-.hero-top{display:flex;align-items:flex-start;gap:16px;margin-bottom:16px}
+.hero-top{display:flex;align-items:flex-start;gap:16px;margin-bottom:10px}
 .hero-avatar{width:40px;height:40px;border-radius:50%;background:var(--red);flex-shrink:0;border:2px solid #e5393540;overflow:hidden}
 .hero-avatar img{width:100%;height:100%;object-fit:cover}
 .hero-name{font-size:15px;font-weight:700;color:var(--white);display:flex;align-items:center;gap:8px}
 .hero-badge{background:var(--red);color:#fff;font-size:9px;font-weight:700;padding:2px 6px;border-radius:3px;text-transform:uppercase}
 .hero-desc{font-size:11px;color:var(--dim2);margin-top:2px}
 .hero-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
-.hstat{background:#ffffff08;border:1px solid var(--border);border-radius:5px;padding:12px;text-align:center}
+.hstat{background:#ffffff08;border:1px solid var(--border);border-radius:5px;padding:10px;text-align:center}
 .hstat-label{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px}
 .hstat-value{font-size:16px;font-weight:700;color:var(--white);font-family:'Roboto Mono',monospace;line-height:1.2}
 .hstat-value.green{color:#66bb6a}.hstat-value.gold{color:var(--gold)}.hstat-value.red{color:var(--red2)}
