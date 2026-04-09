@@ -42,7 +42,7 @@ a{color:var(--red2);text-decoration:none}
 .hero-badge{background:var(--red);color:#fff;font-size:9px;font-weight:700;padding:2px 6px;border-radius:3px;text-transform:uppercase}
 .hero-desc{font-size:11px;color:var(--dim2);margin-top:2px}
 .hero-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
-.hstat{background:#ffffff08;border:1px solid var(--border);border-radius:5px;padding:12px}
+.hstat{background:#ffffff08;border:1px solid var(--border);border-radius:5px;padding:12px;text-align:center}
 .hstat-label{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px}
 .hstat-value{font-size:16px;font-weight:700;color:var(--white);font-family:'Roboto Mono',monospace;line-height:1.2}
 .hstat-value.green{color:#66bb6a}.hstat-value.gold{color:var(--gold)}.hstat-value.red{color:var(--red2)}
