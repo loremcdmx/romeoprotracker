@@ -411,31 +411,44 @@ async function main() {
     }
   }
 
-  // After all BR processing, sort brHistory chronologically and recompute the brBefore/sessionResult chain
-  if (metaUpdated) {
+  // Always sort brHistory chronologically and recompute the brBefore/sessionResult chain
+  // This fixes any out-of-order entries from retries or prior bugs
+  {
+    const allPostsMap = new Map([...posts, ...newPosts].map(p => [p.id, p]))
     meta.brHistory.sort((a, b) => a.timestamp - b.timestamp)
     let totalTournaments = 0
+    let metaFixed = false
     for (let i = 0; i < meta.brHistory.length; i++) {
       const entry = meta.brHistory[i]
       const prev = i > 0 ? meta.brHistory[i - 1] : null
-      entry.brBefore = prev ? prev.brAfter : 10000
-      entry.sessionResult = entry.brAfter - entry.brBefore
+      const correctBrBefore = prev ? prev.brAfter : 10000
+      if (entry.brBefore !== correctBrBefore) {
+        entry.brBefore = correctBrBefore
+        entry.sessionResult = entry.brAfter - entry.brBefore
+        metaFixed = true
+      }
       if (entry.tournaments) {
         totalTournaments += entry.tournaments
         entry.totalTournaments = totalTournaments
       }
       // Sync with the corresponding post object
-      const post = [...posts, ...newPosts].find(p => p.id === entry.id)
+      const post = allPostsMap.get(entry.id)
       if (post) {
         post.brBefore = entry.brBefore
         post.sessionResult = entry.sessionResult
-        if (post.date) entry.date = post.date  // keep brHistory dates in sync
+        if (post.date) entry.date = post.date
       }
     }
     const lastEntry = meta.brHistory[meta.brHistory.length - 1]
-    meta.bankroll = lastEntry.brAfter
-    meta.totalTournaments = totalTournaments
-    meta.lastUpdated = new Date().toISOString()
+    if (lastEntry && meta.bankroll !== lastEntry.brAfter) {
+      meta.bankroll = lastEntry.brAfter
+      metaFixed = true
+    }
+    if (metaFixed) {
+      meta.totalTournaments = totalTournaments
+      meta.lastUpdated = new Date().toISOString()
+      metaUpdated = true
+    }
   }
 
   // Check if anything changed
@@ -451,10 +464,7 @@ async function main() {
   meta.totalPosts = merged.length
 
   await writeFile('data/posts.json', JSON.stringify(merged, null, 2))
-
-  if (metaUpdated) {
-    await writeFile('data/meta.json', JSON.stringify(meta, null, 2))
-  }
+  await writeFile('data/meta.json', JSON.stringify(meta, null, 2))
 
   // Build commit message
   const parts = []
