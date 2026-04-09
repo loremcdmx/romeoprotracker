@@ -3,7 +3,7 @@ import { fetchPublicData } from './storage.js'
 import { Analytics } from '@vercel/analytics/react'
 import {
   timeAgo, fmtBR, fmtNum, fmtInt, fmtExact, fmtDateShort, extractDay, extractBR,
-  fk, fkAbs, ROMEO_RE, autoCloseQuotes, stripQuoteTags,
+  fk, fkAbs, ROMEO_RE, autoCloseQuotes, stripQuoteTags, extractQuoteBody,
   makeBezierPath, makeBezierArea,
 } from './utils.js'
 import { useIsMobile } from './hooks/useIsMobile.js'
@@ -1042,7 +1042,7 @@ function SidebarTopList({ posts, setLightbox }) {
               +{p.likes} 👍 · {p.date}
             </div>
             <div style={{fontSize:12,color:'var(--text)',lineHeight:1.6,overflowY:'auto',flex:1,paddingRight:4}}>
-              {p.images?.[0] && (
+              {!((p.text||'').includes('[QUOTE]')) && p.images?.[0] && (
                 <img src={p.images[0]} alt="" style={{maxWidth:'100%',borderRadius:4,marginBottom:10,display:'block'}}
                   onError={e=>e.target.style.display='none'}/>
               )}
@@ -1066,8 +1066,12 @@ function SidebarTopList({ posts, setLightbox }) {
         const hasQuote = (p.text||'').includes('[QUOTE]')
         const isQuoteOnly = !clean && hasQuote
         const quoteAuthor = hasQuote ? (p.text.match(/\[QUOTE\]([^|\n]*)/)?.[1]?.trim() || '') : ''
-        const preview = clean || (p.images?.[0] ? '📷 изображение' : '')
+        const quoteBody = hasQuote ? extractQuoteBody(p.text) : ''
+        const isShortQuote = hasQuote && quoteBody.length <= 150
+        const preview = clean || ((!hasQuote && p.images?.[0]) ? '📷 изображение' : '')
         const initial = (p.author||'?')[0].toUpperCase()
+        // Don't show images in sidebar for posts with quotes (image may be from the quote)
+        const showImage = !hasQuote && p.images?.[0]
         return (
           <div key={i}
             style={{display:'flex',gap:10,padding:'9px 0',borderBottom:'1px solid var(--border)',
@@ -1084,13 +1088,17 @@ function SidebarTopList({ posts, setLightbox }) {
             </div>
             <div style={S_FLEX1}>
               <div style={{fontSize:10,color:'var(--dim2)',fontWeight:600,marginBottom:2}}>{p.author}</div>
-              {p.images?.[0] && (
+              {showImage && (
                 <img src={p.images[0]} alt=""
                   style={{width:'100%',maxHeight:160,objectFit:'cover',borderRadius:4,marginBottom:6,display:'block',cursor:'zoom-in'}}
                   onClick={e=>{e.stopPropagation();setLightbox(p.images[0])}}
                   onError={e=>e.target.style.display='none'}/>
               )}
-              {isQuoteOnly ? (
+              {isShortQuote ? (
+                <div style={{fontSize:11,color:'var(--text)',lineHeight:1.5}}>
+                  {renderPostText(p.text, false)}
+                </div>
+              ) : isQuoteOnly ? (
                 <div style={{fontSize:11,color:'var(--dim)',lineHeight:1.5,fontStyle:'italic'}}>
                   ↩ {quoteAuthor ? `ответ на ${quoteAuthor}` : 'цитата'} — <span style={{color:'var(--red2)',fontStyle:'normal',textDecoration:'underline'}}>открыть на форуме</span>
                 </div>
@@ -1904,7 +1912,7 @@ export default function App() {
               <div style={{fontSize:11,color:'var(--dim)',fontFamily:"'Roboto Mono',monospace",marginBottom:4}}>
                 <span style={{color:'var(--dim2)',fontWeight:600}}>RomeoPro Marathon</span>
                 {' '}
-                <span style={{color:'#444'}}>v2.3</span>
+                <span style={{color:'#444'}}>v1.4</span>
               </div>
               <div style={{fontSize:10,color:'#444',marginBottom:4}}>
                 made by{' '}
@@ -1922,12 +1930,10 @@ export default function App() {
                 Changelog
               </div>
               {[
-                ['09.04', 'v2.3', 'Авторетрай извлечения БР при сбоях API. Точные данные из скриншотов (без округлений). Исправлены даты на графике. Кликабельные ссылки в тултипе. Защита от наложения меток'],
-                ['08.04', 'v2.2', 'Иконки румов в тултипе. Полные тексты постов. Превью картинок в топ-постах. Аудит безопасности'],
-                ['08.04', 'v2.1', 'Автоскрапер через GitHub Actions. Авторазбор скриншотов БР через Claude API. Мобильная статистика'],
-                ['08.04', 'v2.0', 'Рефакторинг. Плавные кривые. Белая тема. Анимированный счётчик БР. Прогресс-бар'],
-                ['07.04', 'v1.3', 'График с bezier-кривыми и анимацией. Мобильная вёрстка'],
-                ['06.04', 'v1.2', 'Виджет активности по дням. Топ-10 постов. Автообновление'],
+                ['09.04', 'v1.4', 'Лайки/дизлайки через GipsyTeam. Баббл новых постов. Компактный формат (−57%). Скрапер каждые 15 мин. Точные данные из скриншотов. График в первый экран'],
+                ['08.04', 'v1.3', 'Рефакторинг. Белая тема. Автоскрапер через GitHub Actions. Авторазбор скриншотов через Claude API. Полные тексты постов'],
+                ['07.04', 'v1.2', 'График с bezier-кривыми и анимацией. Мобильная вёрстка'],
+                ['06.04', 'v1.1', 'Виджет активности по дням. Топ-10 постов. Автообновление'],
                 ['05.04', 'v1.0', 'Первый запуск — лента, цитаты, пагинация, график марафона, темы, избранное, фильтры'],
               ].map(([date, ver, desc]) => (
                 <div key={date+ver} style={{display:'flex',gap:8,marginBottom:6,alignItems:'baseline'}}>

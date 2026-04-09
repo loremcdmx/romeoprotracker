@@ -1,7 +1,7 @@
 {
   "name": "romeoprotracker",
   "private": true,
-  "version": "2.3.0",
+  "version": "1.4.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
