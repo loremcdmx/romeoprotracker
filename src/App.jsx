@@ -1050,7 +1050,29 @@ export default function App() {
   useEffect(() => {
     const loadData = () =>
       fetchPublicData()
-        .then(({posts, meta}) => { setPosts(posts||[]); setMeta(meta||{}) })
+        .then(({posts, meta}) => {
+          // Enrich Romeo posts with brAfter from brHistory
+          const brHistory = meta?.brHistory
+          if (brHistory?.length) {
+            const brById = new Map(brHistory.filter(h=>h.id).map(h=>[h.id, h]))
+            const brByTs = [...brHistory].sort((a,b)=>(a.timestamp||0)-(b.timestamp||0))
+            posts?.forEach(p => {
+              if (!ROMEO_RE.test(p.author) || p.brAfter) return
+              // Match by post id
+              const byId = brById.get(p.id)
+              if (byId) { p.brAfter = byId.brAfter; return }
+              // Match by closest timestamp (within 2 hours)
+              if (!p.timestamp) return
+              let best = null, bestDiff = Infinity
+              for (const h of brByTs) {
+                const diff = Math.abs((h.timestamp||0) - p.timestamp)
+                if (diff < bestDiff) { bestDiff = diff; best = h }
+              }
+              if (best && bestDiff < 7200) p.brAfter = best.brAfter
+            })
+          }
+          setPosts(posts||[]); setMeta(meta||{})
+        })
         .catch(() => {})
 
     loadData().finally(() => setLoading(false))
