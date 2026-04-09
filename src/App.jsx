@@ -1554,7 +1554,7 @@ export default function App() {
                 const cutoffs = { day: now-86400, week: now-604800, month: now-2592000, all: 0 }
                 const labels = { day:'День', week:'Неделя', month:'Месяц', all:'Все' }
                 const filtered = hotPosts.filter(p => (p.timestamp||0) >= cutoffs[sidebarTopPeriod])
-                const topList = (filtered.length ? filtered : hotPosts).slice(0,5)
+                const topList = (filtered.length ? filtered : hotPosts).slice(0,7)
                 return (
                   <div className="mobile-top-posts">
                     <div className="mobile-top-header">
@@ -1574,7 +1574,7 @@ export default function App() {
                           <span className="mobile-top-rank">{i+1}</span>
                           <div className="mobile-top-body">
                             <span className="mobile-top-author">{p.author}</span>
-                            <span className="mobile-top-text">{stripQuoteTags(p.text)?.substring(0,60) || '→ форум'}</span>
+                            <span className="mobile-top-text">{stripQuoteTags(p.text)?.substring(0,120) || '→ форум'}</span>
                           </div>
                           <span className="mobile-top-likes">+{p.likes}</span>
                         </a>
