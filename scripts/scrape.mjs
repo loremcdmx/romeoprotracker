@@ -211,10 +211,12 @@ async function extractBrFromImages(post, lastBrHistory) {
 
 Текст поста: "${post.text.substring(0, 1000)}"
 
-Извлеки из скриншота(ов) данные о банкролле ДО и ПОСЛЕ сессии по каждому руму. Также найди количество турниров за сессию если указано.
+Извлеки из скриншота(ов) данные о банкролле ДО и ПОСЛЕ сессии по каждому руму. Также найди:
+- "tournaments": количество турниров за сессию (ячейка "Турниров сыграно за сессию")
+- "totalTournaments": общее количество турниров (ячейка "Турниров сыграно всего")
 
 Ответь СТРОГО в формате JSON (без markdown, без комментариев):
-{"brBefore":число,"brAfter":число,"roomsBefore":{"gg":число,"ps":число,"king":число,"coin":число,"lux":число},"roomsAfter":{"gg":число,"ps":число,"king":число,"coin":число,"lux":число},"tournaments":число_или_null}
+{"brBefore":число,"brAfter":число,"roomsBefore":{"gg":число,"ps":число,"king":число,"coin":число,"lux":число},"roomsAfter":{"gg":число,"ps":число,"king":число,"coin":число,"lux":число},"tournaments":число_или_null,"totalTournaments":число_или_null}
 
 Если на скриншоте НЕТ данных о банкролле — ответь: {"skip":true}
 Числа должны быть точные, в долларах. НЕ округляй — используй точные значения со скриншота.`
@@ -267,6 +269,7 @@ async function extractBrFromImages(post, lastBrHistory) {
         after: parseRooms(parsed.roomsAfter),
       },
       tournaments: parsed.tournaments || null,
+      totalTournaments: parsed.totalTournaments || null,
     }
   } catch (e) {
     console.log(`  ⚠ Claude API parse error: ${e.message}`)
@@ -323,10 +326,6 @@ async function main() {
       p.sessionResult = brData.sessionResult
       p.rooms = brData.rooms
 
-      const tournamentsTotal = brData.tournaments
-        ? (meta.totalTournaments || 0) + brData.tournaments
-        : null
-
       meta.brHistory.push({
         id: p.id,
         date: p.date,
@@ -337,12 +336,12 @@ async function main() {
         rooms: brData.rooms,
         url: p.url,
         tournaments: brData.tournaments,
-        ...(tournamentsTotal != null ? { totalTournaments: tournamentsTotal } : {})
+        ...(brData.totalTournaments != null ? { totalTournaments: brData.totalTournaments } : {})
       })
 
       meta.bankroll = brData.brAfter
-      if (brData.tournaments) {
-        meta.totalTournaments = (meta.totalTournaments || 0) + brData.tournaments
+      if (brData.totalTournaments != null) {
+        meta.totalTournaments = brData.totalTournaments
       }
       meta.lastUpdated = new Date().toISOString()
 
@@ -447,14 +446,12 @@ async function main() {
       rooms: brData.rooms,
       url: p.url,
       tournaments: brData.tournaments,
-      ...(brData.tournaments ? {
-        totalTournaments: (meta.totalTournaments || 0) + brData.tournaments
-      } : {})
+      ...(brData.totalTournaments != null ? { totalTournaments: brData.totalTournaments } : {})
     })
 
     meta.bankroll = brData.brAfter
-    if (brData.tournaments) {
-      meta.totalTournaments = (meta.totalTournaments || 0) + brData.tournaments
+    if (brData.totalTournaments != null) {
+      meta.totalTournaments = brData.totalTournaments
     }
     meta.lastUpdated = new Date().toISOString()
 
@@ -491,8 +488,8 @@ async function main() {
   {
     const allPostsMap = new Map([...posts, ...newPosts].map(p => [p.id, p]))
     meta.brHistory.sort((a, b) => a.timestamp - b.timestamp)
-    let totalTournaments = 0
     let metaFixed = false
+    let lastTotalTournaments = null
     for (let i = 0; i < meta.brHistory.length; i++) {
       const entry = meta.brHistory[i]
       // sessionResult is always brAfter - brBefore (both from image)
@@ -501,9 +498,9 @@ async function main() {
         entry.sessionResult = correctResult
         metaFixed = true
       }
-      if (entry.tournaments) {
-        totalTournaments += entry.tournaments
-        entry.totalTournaments = totalTournaments
+      // totalTournaments comes from the image, not computed
+      if (entry.totalTournaments != null) {
+        lastTotalTournaments = entry.totalTournaments
       }
       // Sync with the corresponding post object
       const post = allPostsMap.get(entry.id)
@@ -519,8 +516,11 @@ async function main() {
       meta.bankroll = lastEntry.brAfter
       metaFixed = true
     }
+    if (lastTotalTournaments != null && meta.totalTournaments !== lastTotalTournaments) {
+      meta.totalTournaments = lastTotalTournaments
+      metaFixed = true
+    }
     if (metaFixed) {
-      meta.totalTournaments = totalTournaments
       meta.lastUpdated = new Date().toISOString()
       metaUpdated = true
     }
