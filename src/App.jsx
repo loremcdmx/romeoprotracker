@@ -1567,13 +1567,29 @@ export default function App() {
         const start  = stats.startBR || 10000
         const raw = (stats.br - start) / (target - start) * 100
         const pct = Math.max(0, Math.min(100, raw))
+        const remaining = Math.max(0, target - stats.br)
+        const mult = stats.br / start
         return (
           <div className="marathon-progress">
-            <div className="marathon-progress-label">
-              <span>Прогресс к $10M</span><b>{pct.toFixed(2)}%</b>
-            </div>
-            <div className="marathon-progress-track">
-              <div className="marathon-progress-fill" style={{width:`${pct}%`}}/>
+            <div className="marathon-progress-inner">
+              <div className="marathon-progress-main">
+                <div className="marathon-progress-label">
+                  <span>Прогресс к $10M</span><b>{pct.toFixed(2)}%</b>
+                </div>
+                <div className="marathon-progress-track">
+                  <div className="marathon-progress-fill" style={{width:`${pct}%`}}/>
+                </div>
+              </div>
+              <div className="marathon-progress-side">
+                <div className="mps-item">
+                  <span className="mps-label">Осталось</span>
+                  <span className="mps-value">{fmtExact(remaining)}</span>
+                </div>
+                <div className="mps-item">
+                  <span className="mps-label">Коэф.</span>
+                  <span className="mps-value">×{mult.toFixed(2)}</span>
+                </div>
+              </div>
             </div>
           </div>
         )
