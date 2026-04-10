@@ -246,23 +246,38 @@ a{color:var(--red2);text-decoration:none}
 /* ─── PROGRESS BAR ─────────────────────────────────────────────────────── */
 .marathon-progress{
   position:sticky;top:40px;z-index:99;width:100%;
-  padding:10px 16px 14px;background:var(--bg);
-  border-bottom:1px solid var(--border);
+  background:var(--bg);border-bottom:1px solid var(--border);
 }
+.marathon-progress-inner{
+  max-width:1480px;margin:0 auto;padding:10px 16px 14px;
+  display:grid;grid-template-columns:1fr 320px;gap:16px;align-items:end;
+}
+.marathon-progress-main{min-width:0}
 .marathon-progress-label{
-  max-width:1480px;margin:0 auto 6px;display:flex;justify-content:space-between;align-items:baseline;
+  display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;
   font-size:11px;font-family:'Roboto Mono',monospace;letter-spacing:.3px;color:var(--dim)
 }
 .marathon-progress-label b{color:var(--text);font-weight:700}
 .marathon-progress-track{
-  max-width:1480px;margin:0 auto;height:8px;background:var(--bg3);
-  border-radius:999px;overflow:hidden;
+  height:8px;background:var(--bg3);border-radius:999px;overflow:hidden;
 }
 .marathon-progress-fill{
   height:100%;border-radius:999px;
   background:linear-gradient(90deg,var(--red) 0%,#ff9800 60%,var(--gold) 100%);
   transition:width 1.4s cubic-bezier(.4,0,.2,1);
   box-shadow:0 0 6px rgba(229,57,53,.5);
+}
+.marathon-progress-side{
+  display:flex;align-items:center;justify-content:flex-end;gap:14px;
+  font-family:'Roboto Mono',monospace;padding-bottom:2px;
+}
+.mps-item{display:flex;flex-direction:column;align-items:flex-end;gap:2px;line-height:1}
+.mps-label{font-size:10px;color:var(--dim);letter-spacing:.3px;text-transform:uppercase}
+.mps-value{font-size:13px;font-weight:700;color:var(--text)}
+@media(max-width:720px){
+  .marathon-progress-inner{grid-template-columns:1fr;gap:8px;padding:8px 12px 10px}
+  .marathon-progress-side{justify-content:space-between}
+  .mps-item{align-items:flex-start}
 }
 
 /* ─── SESSION PILL on chart ─────────────────────────────────────────────── */
