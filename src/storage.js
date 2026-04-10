@@ -1,8 +1,8 @@
 // storage.js — fetch compact data with localStorage caching
 const REPO = 'loremcdmx/romeoprotracker'
 const BASE = `https://raw.githubusercontent.com/${REPO}/main/data`
-const CACHE_KEY = 'rpt_cache_v2'
-const CACHE_TTL = 2 * 60 * 1000 // 2 min — don't refetch within this window
+const CACHE_KEY = 'rpt_cache_v3'
+const CACHE_TTL = 60 * 1000 // 1 min — don't refetch within this window
 
 function getCache() {
   try {
