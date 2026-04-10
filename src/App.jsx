@@ -1590,8 +1590,8 @@ export default function App() {
                 {mttNeeded && <>
                   <div className="mps-divider"/>
                   <div className="mps-item">
-                    <span className="mps-label">МТТ до цели</span>
-                    <span className="mps-value">{fmtInt(mttNeeded)}</span>
+                    <span className="mps-label">МТТ текущим темпом</span>
+                    <span className="mps-value" title="Сколько МТТ нужно сыграть до $10M при текущем $/МТТ">~{fmtInt(mttNeeded)}</span>
                   </div>
                 </>}
               </div>
