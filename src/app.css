@@ -250,7 +250,7 @@ a{color:var(--red2);text-decoration:none}
 }
 .marathon-progress-inner{
   max-width:1480px;margin:0 auto;padding:10px 16px 14px;
-  display:grid;grid-template-columns:1fr 320px;gap:16px;align-items:end;
+  display:grid;grid-template-columns:1fr 320px;gap:16px;align-items:center;
 }
 .marathon-progress-main{min-width:0}
 .marathon-progress-label{
@@ -268,16 +268,20 @@ a{color:var(--red2);text-decoration:none}
   box-shadow:0 0 6px rgba(229,57,53,.5);
 }
 .marathon-progress-side{
-  display:flex;align-items:center;justify-content:flex-end;gap:14px;
-  font-family:'Roboto Mono',monospace;padding-bottom:2px;
+  display:flex;align-items:stretch;gap:0;
+  background:var(--bg2);border:1px solid var(--border);border-radius:8px;
+  padding:6px 4px;font-family:'Roboto Mono',monospace;
 }
-.mps-item{display:flex;flex-direction:column;align-items:flex-end;gap:2px;line-height:1}
-.mps-label{font-size:10px;color:var(--dim);letter-spacing:.3px;text-transform:uppercase}
-.mps-value{font-size:13px;font-weight:700;color:var(--text)}
+.mps-item{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:3px;line-height:1;padding:2px 8px;min-width:0;
+}
+.mps-label{font-size:9px;color:var(--dim);letter-spacing:.4px;text-transform:uppercase;white-space:nowrap}
+.mps-value{font-size:13px;font-weight:700;color:var(--text);white-space:nowrap}
+.mps-divider{width:1px;background:var(--border);margin:2px 0}
+.light .marathon-progress-side{background:#fafafa}
 @media(max-width:720px){
   .marathon-progress-inner{grid-template-columns:1fr;gap:8px;padding:8px 12px 10px}
-  .marathon-progress-side{justify-content:space-between}
-  .mps-item{align-items:flex-start}
 }
 
 /* ─── SESSION PILL on chart ─────────────────────────────────────────────── */

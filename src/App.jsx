@@ -1587,12 +1587,13 @@ export default function App() {
                   <span className="mps-label">Осталось</span>
                   <span className="mps-value">${fmtInt(remaining)}</span>
                 </div>
-                {mttNeeded && (
+                {mttNeeded && <>
+                  <div className="mps-divider"/>
                   <div className="mps-item">
                     <span className="mps-label">МТТ до цели</span>
                     <span className="mps-value">{fmtInt(mttNeeded)}</span>
                   </div>
-                )}
+                </>}
               </div>
             </div>
           </div>
