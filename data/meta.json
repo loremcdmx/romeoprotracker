@@ -1,10 +1,10 @@
 {
-  "bankroll": 11334,
+  "bankroll": 22131,
   "startBankroll": 10000,
   "targetBankroll": 10000000,
   "day": 1,
   "status": "active",
-  "lastUpdated": "2026-04-09T17:17:44.328Z",
+  "lastUpdated": "2026-04-10T04:46:24.974Z",
   "totalPosts": 4062,
   "scrapedPages": 0,
   "chronicle": [],
@@ -631,7 +631,34 @@
       "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8212770",
       "tournaments": 318,
       "totalTournaments": 4625
+    },
+    {
+      "id": "8213167",
+      "date": "9 апреля, 21:47",
+      "timestamp": 1775792876,
+      "brBefore": 11334,
+      "brAfter": 22131,
+      "sessionResult": 10797,
+      "rooms": {
+        "before": {
+          "gg": 9897,
+          "ps": 1188,
+          "king": 232,
+          "coin": 17,
+          "lux": 0
+        },
+        "after": {
+          "gg": 20694,
+          "ps": 1188,
+          "king": 232,
+          "coin": 17,
+          "lux": 0
+        }
+      },
+      "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8213167",
+      "tournaments": 257,
+      "totalTournaments": 4882
     }
   ],
-  "totalTournaments": 4625
+  "totalTournaments": 4882
 }
