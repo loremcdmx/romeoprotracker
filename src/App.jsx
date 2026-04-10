@@ -1568,7 +1568,9 @@ export default function App() {
         const raw = (stats.br - start) / (target - start) * 100
         const pct = Math.max(0, Math.min(100, raw))
         const remaining = Math.max(0, target - stats.br)
-        const mult = stats.br / start
+        const profit = stats.br - start
+        const totalMTT = stats.totalTourneys || meta?.totalTournaments
+        const mttNeeded = (profit > 0 && totalMTT) ? Math.ceil(remaining * totalMTT / profit) : null
         return (
           <div className="marathon-progress">
             <div className="marathon-progress-inner">
@@ -1583,12 +1585,14 @@ export default function App() {
               <div className="marathon-progress-side">
                 <div className="mps-item">
                   <span className="mps-label">Осталось</span>
-                  <span className="mps-value">{fmtExact(remaining)}</span>
+                  <span className="mps-value">${fmtInt(remaining)}</span>
                 </div>
-                <div className="mps-item">
-                  <span className="mps-label">Коэф.</span>
-                  <span className="mps-value">×{mult.toFixed(2)}</span>
-                </div>
+                {mttNeeded && (
+                  <div className="mps-item">
+                    <span className="mps-label">МТТ до цели</span>
+                    <span className="mps-value">{fmtInt(mttNeeded)}</span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
