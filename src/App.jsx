@@ -1565,14 +1565,12 @@ export default function App() {
       {!loading && stats?.br && (() => {
         const target = 10_000_000
         const start  = stats.startBR || 10000
-        // Логарифмический прогресс: выглядит честнее на длинных дистанциях
-        const logProgress = Math.max(0.003,
-          Math.log10(Math.max(1, stats.br) / start) / Math.log10(target / start)
-        )
-        const pct = Math.min(100, logProgress * 100)
+        const raw = (stats.br - start) / (target - start) * 100
+        const pct = Math.max(0, Math.min(100, raw))
         return (
-          <div className="marathon-progress" title={`Прогресс к $10M: ${(pct).toFixed(3)}%`}>
+          <div className="marathon-progress">
             <div className="marathon-progress-fill" style={{width:`${pct}%`}}/>
+            <div className="marathon-progress-label">Прогресс к $10M: {pct.toFixed(2)}%</div>
           </div>
         )
       })()}

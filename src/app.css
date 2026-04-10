@@ -244,12 +244,17 @@ a{color:var(--red2);text-decoration:none}
 }
 
 /* ─── PROGRESS BAR ─────────────────────────────────────────────────────── */
-.marathon-progress{height:2px;background:var(--bg3);position:sticky;top:40px;z-index:99;width:100%}
+.marathon-progress{height:18px;background:var(--bg3);position:sticky;top:40px;z-index:99;width:100%;overflow:hidden}
 .marathon-progress-fill{
   height:100%;
   background:linear-gradient(90deg,var(--red) 0%,#ff9800 60%,var(--gold) 100%);
   transition:width 1.4s cubic-bezier(.4,0,.2,1);
   box-shadow:0 0 6px rgba(229,57,53,.5);
+}
+.marathon-progress-label{
+  position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:700;font-family:'Roboto Mono',monospace;
+  color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.6);letter-spacing:.3px;pointer-events:none;
 }
 
 /* ─── SESSION PILL on chart ─────────────────────────────────────────────── */
