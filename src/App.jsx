@@ -1569,8 +1569,12 @@ export default function App() {
         const pct = Math.max(0, Math.min(100, raw))
         return (
           <div className="marathon-progress">
-            <div className="marathon-progress-fill" style={{width:`${pct}%`}}/>
-            <div className="marathon-progress-label">Прогресс к $10M: {pct.toFixed(2)}%</div>
+            <div className="marathon-progress-label">
+              <span>Прогресс к $10M</span><b>{pct.toFixed(2)}%</b>
+            </div>
+            <div className="marathon-progress-track">
+              <div className="marathon-progress-fill" style={{width:`${pct}%`}}/>
+            </div>
           </div>
         )
       })()}
