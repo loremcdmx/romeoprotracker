@@ -138,25 +138,9 @@ function MarathonChart({ posts, meta, startBR, setLightbox, day }) {
   const xOf = (() => {
     if (!hasMTT || totalMTT === 0)
       return i => pL + (i / Math.max(points.length - 1, 1)) * (W - pL - pR)
-
-    // Сырые позиции по МТТ
-    const raw = cumMTT.map(c => pL + (c / totalMTT) * (W - pL - pR))
-
-    // Минимальный отступ между соседними точками — иначе кривая схлопывается
-    const minGap = 20
-    const pos = [...raw]
-    for (let i = 1; i < pos.length; i++) {
-      if (pos[i] - pos[i-1] < minGap) pos[i] = pos[i-1] + minGap
-    }
-    // Если вышли за правый край — масштабируем назад
-    const overflow = pos[pos.length-1] - (W - pR)
-    if (overflow > 0) {
-      const span = pos[pos.length-1] - pos[0]
-      const target = W - pR - pos[0]
-      for (let i = 1; i < pos.length; i++)
-        pos[i] = pos[0] + (pos[i] - pos[0]) * (target / span)
-    }
-    return i => pos[i]
+    // Строго пропорционально накопленным МТТ — без минимальных gap'ов,
+    // иначе сессии с близким кол-вом турниров искусственно раздвигаются.
+    return i => pL + (cumMTT[i] / totalMTT) * (W - pL - pR)
   })()
   const coords = points.map((p,i) => ({ x:xOf(i), y:yOf(p.br) }))
   const linePath = makeBezierPath(coords)
@@ -234,7 +218,7 @@ function MarathonChart({ posts, meta, startBR, setLightbox, day }) {
             </button>
           ))}
         </div>
-        <span className="section-count">{day?`день #${day}`:`${points.length} сессий`}</span>
+        <span className="section-count">{points.length} сессий</span>
       </div>
       <svg className="mc-svg" viewBox={`0 0 ${W} ${H+pB}`}
         onMouseLeave={(e)=>{
@@ -1821,7 +1805,9 @@ export default function App() {
                   ['Профит', fmtBR(stats.profit), !stats.profit?'':stats.profit>=0?'green':'red'],
                   ['День', `#${stats.day||meta?.day||'—'}`, 'gold'],
                   ['МТТ', fmtInt(meta?.totalTournaments ?? 3565), ''],
-                ].map(([k,v,cls])=>(
+                  stats.avgMTT != null && ['МТТ / сессия', fmtInt(stats.avgMTT), ''],
+                  stats.winRate != null && ['Плюсовых сессий', `${Math.round(stats.winRate*100)}%`, ''],
+                ].filter(Boolean).map(([k,v,cls])=>(
                   <div key={k} className="mobile-stat">
                     <div className="mobile-stat-label">{k}</div>
                     <div className={`mobile-stat-value ${cls}`}>{v}</div>
@@ -1941,7 +1927,7 @@ export default function App() {
                     ['День', <span key="d" className="srow-val gold">#{stats.day||meta?.day||'—'}</span>],
                     ['Сыграно МТТ', <span key="mtt" className="srow-val">{fmtInt(meta?.totalTournaments ?? 3565)}</span>],
                     stats.avgMTT != null && ['МТТ / сессия', <span key="avg" className="srow-val" title="Среднее число турниров за сессию">{fmtInt(stats.avgMTT)}</span>],
-                    stats.winRate != null && ['Плюсовых сессий', <span key="wr" className={`srow-val ${stats.winRate>=0.5?'green':stats.winRate>=0.35?'':'red'}`} title={`${Math.round(stats.winRate*stats.sessionsCount)} из ${stats.sessionsCount}`}>{Math.round(stats.winRate*100)}%</span>],
+                    stats.winRate != null && ['Плюсовых сессий', <span key="wr" className="srow-val" title={`${Math.round(stats.winRate*stats.sessionsCount)} из ${stats.sessionsCount}`}>{Math.round(stats.winRate*100)}%</span>],
                     ['Постов', <span key="p" className="srow-val">{fmtInt(posts.length)}</span>],
                     ['Топ лайков', <span key="l" className="srow-val">{hotPosts[0]?`+${hotPosts[0].likes}`:'—'}</span>],
                   ].filter(Boolean).map(([k,v])=>(
