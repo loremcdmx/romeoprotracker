@@ -549,7 +549,12 @@ function ActivityChart({ posts, favorites, onFav, onIgnore, setLightbox,
         const romeoPs   = tip.posts.filter(p => ROMEO_RE.test(p.author))
         const topPost   = [...tip.posts].sort((a,b) => (b.likes||0)-(a.likes||0))[0]
         const topClean  = (topPost?.text||'').replace(/\[QUOTE\][\s\S]*?\[\/QUOTE\]/gi,'').replace(/\[QUOTE\]/gi,'').replace(/\[\/QUOTE\]/gi,'').trim()
-        // Взвешенный скоринг авторов: лайки поста * 3 + репа/1000 + бонус за уникальность (1 пост в треде)
+        // "Авторитетные авторы": репутация — жёсткий гейт, лайки — модификатор.
+        //  - rating < MIN_RATING → вообще не в списке (мало репы ≠ авторитет, сколько бы лайков ни было)
+        //  - очень авторитетный (>= VIP_RATING) + пост не-хуйня (> 5 лайков) → крупный буст, гарантированно в топе
+        //  - uniqueBonus: редкий гость в треде ценнее регулярного флудера
+        const MIN_RATING = 15000
+        const VIP_RATING = 25000
         const byAuthor = {}
         tip.posts.filter(p=>p.author && !ROMEO_RE.test(p.author)).forEach(p => {
           const a = p.author
@@ -562,13 +567,18 @@ function ActivityChart({ posts, favorites, onFav, onIgnore, setLightbox,
         const globalCounts = {}
         posts?.forEach(p => { if (p.author) globalCounts[p.author] = (globalCounts[p.author]||0)+1 })
         const topAuthors = Object.entries(byAuthor)
+          .filter(([, {rating}]) => rating >= MIN_RATING)
           .map(([name, {rating, bestLikes, count}]) => {
             const gc = globalCounts[name] || count
-            const uniqueBonus = gc <= 3 ? 5 : gc <= 10 ? 2 : 0 // редкий гость
-            const score = bestLikes * 3 + (rating/1000) + uniqueBonus
+            const uniqueBonus = gc <= 3 ? 10 : gc <= 10 ? 4 : 0
+            // log10(1+r)*20: 500→54, 1k→60, 5k→74, 10k→80, 50k→94
+            const authority = Math.log10(rating + 1) * 20
+            const likeScore = (bestLikes || 0) * 2
+            // VIP-буст: авторитет + пост реально зашёл → автоматом в топ
+            const vipBoost = (rating >= VIP_RATING && bestLikes > 5) ? 80 : 0
+            const score = authority + likeScore + vipBoost + uniqueBonus
             return [name, rating, score, bestLikes]
           })
-          .filter(([,,score]) => score >= 3)
           .sort((a,b) => b[2]-a[2])
           .slice(0, 6)
         return (
