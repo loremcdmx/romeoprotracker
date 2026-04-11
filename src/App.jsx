@@ -47,6 +47,12 @@ const CHART_ROOMS = [
 function MarathonChart({ posts, meta, startBR, setLightbox, day }) {
   const [tip, setTip]     = useState(null)
   const [pathLen, setPathLen] = useState(null)
+  const [period, setPeriod] = useState(() => {
+    try { return localStorage.getItem('rpt_chart_period') || 'all' } catch { return 'all' }
+  })
+  const setPeriodPersist = (p) => {
+    setPeriod(p); try { localStorage.setItem('rpt_chart_period', p) } catch {}
+  }
   const pathRef = useRef(null)
   const chartRef = useRef(null)
   const isMobile = useIsMobile()
@@ -61,7 +67,10 @@ function MarathonChart({ posts, meta, startBR, setLightbox, day }) {
     return () => document.removeEventListener('click', handler)
   }, [tip])
 
-  const points = useMemo(() => {
+  // Reset animation on period change so line redraws
+  useEffect(() => { setPathLen(null) }, [period])
+
+  const allPoints = useMemo(() => {
     if (meta?.brHistory?.length) {
       return meta.brHistory
         .slice()
@@ -83,6 +92,15 @@ function MarathonChart({ posts, meta, startBR, setLightbox, day }) {
         images:p.images||[], sessionResult:p.sessionResult,
       }))
   }, [posts, meta, startBR])
+
+  // Period filter: keep points within cutoff. If result < 2 points, fall back to all.
+  const points = useMemo(() => {
+    if (period === 'all' || !allPoints.length) return allPoints
+    const now = Date.now() / 1000
+    const cutoff = period === 'week' ? now - 7*86400 : period === 'month' ? now - 30*86400 : 0
+    const filtered = allPoints.filter(p => (p.timestamp||0) >= cutoff)
+    return filtered.length >= 2 ? filtered : allPoints
+  }, [allPoints, period])
 
   useEffect(() => {
     if (pathRef.current) setPathLen(pathRef.current.getTotalLength())
@@ -111,7 +129,9 @@ function MarathonChart({ posts, meta, startBR, setLightbox, day }) {
     for (let i = 1; i < raw.length; i++) {
       if (!raw[i] && raw[i-1]) raw[i] = raw[i-1] + (points[i].tournaments || 0)
     }
-    return raw
+    // Normalize to visible range so filtered views start at x=0
+    const base = raw[0] || 0
+    return raw.map(c => c - base)
   })()
   const totalMTT = cumMTT[cumMTT.length - 1] || 1
 
@@ -192,8 +212,28 @@ function MarathonChart({ posts, meta, startBR, setLightbox, day }) {
 
   return (
     <div className="marathon-chart" ref={chartRef} onClick={tip?()=>setTip(null):undefined}>
-      <div className="section-head" style={{marginBottom:6}}>
+      <div className="section-head" style={{marginBottom:6,display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
         <span className="section-title">📈 График марафона</span>
+        <div style={{display:'flex',gap:4,marginLeft:'auto'}}>
+          {[['week','Неделя'],['month','Месяц'],['all','Всё время']].map(([k,label])=>(
+            <button key={k} onClick={()=>setPeriodPersist(k)}
+              style={{
+                background: period===k?'var(--red)':'var(--bg3)',
+                border:'1px solid '+(period===k?'var(--red)':'var(--border2)'),
+                borderRadius:4,
+                color: period===k?'#fff':'var(--dim2)',
+                fontSize:10,
+                padding:'3px 8px',
+                cursor:'pointer',
+                fontFamily:'inherit',
+                fontWeight:600,
+                textTransform:'uppercase',
+                letterSpacing:'.04em',
+              }}>
+              {label}
+            </button>
+          ))}
+        </div>
         <span className="section-count">{day?`день #${day}`:`${points.length} сессий`}</span>
       </div>
       <svg className="mc-svg" viewBox={`0 0 ${W} ${H+pB}`}
@@ -1243,13 +1283,21 @@ export default function App() {
       const profit = br - startBR
       const totalTourneys = meta?.totalTournaments || null
 
+      // Session-level stats
+      const sessionsCount = brHistory.length
+      const positiveSessions = brHistory.filter(h => (h.sessionResult||0) > 0).length
+      const winRate = sessionsCount ? positiveSessions / sessionsCount : null
+      const avgMTT = (totalTourneys && sessionsCount)
+        ? Math.round(totalTourneys / sessionsCount)
+        : null
+
       // День из текста постов Ромео (как он сам нумерует), fallback на кол-во сессий
       const romeoByDate = posts.filter(p => ROMEO_RE.test(p.author)).sort((a,b) => (b.timestamp||0)-(a.timestamp||0))
       let day = null
       for (const p of romeoByDate) { day = extractDay(p.text); if (day) break }
       if (!day) day = brHistory.length
 
-      return { br, profit, startBR, day, lastDate: last.date, totalTourneys }
+      return { br, profit, startBR, day, lastDate: last.date, totalTourneys, sessionsCount, winRate, avgMTT }
     }
 
     if (!posts.length) return { startBR }
@@ -1892,9 +1940,11 @@ export default function App() {
                     ['Профит', <span key="pr" className={`srow-val ${!stats.profit?'':stats.profit>=0?'green':'red'}`}>{fmtBR(stats.profit)}</span>],
                     ['День', <span key="d" className="srow-val gold">#{stats.day||meta?.day||'—'}</span>],
                     ['Сыграно МТТ', <span key="mtt" className="srow-val">{fmtInt(meta?.totalTournaments ?? 3565)}</span>],
+                    stats.avgMTT != null && ['МТТ / сессия', <span key="avg" className="srow-val" title="Среднее число турниров за сессию">{fmtInt(stats.avgMTT)}</span>],
+                    stats.winRate != null && ['Плюсовых сессий', <span key="wr" className={`srow-val ${stats.winRate>=0.5?'green':stats.winRate>=0.35?'':'red'}`} title={`${Math.round(stats.winRate*stats.sessionsCount)} из ${stats.sessionsCount}`}>{Math.round(stats.winRate*100)}%</span>],
                     ['Постов', <span key="p" className="srow-val">{fmtInt(posts.length)}</span>],
                     ['Топ лайков', <span key="l" className="srow-val">{hotPosts[0]?`+${hotPosts[0].likes}`:'—'}</span>],
-                  ].map(([k,v])=>(
+                  ].filter(Boolean).map(([k,v])=>(
                     <div key={k} className="srow"><span className="srow-key">{k}</span>{v}</div>
                   ))}
                 </div>
