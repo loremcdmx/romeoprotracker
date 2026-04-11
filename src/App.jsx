@@ -1193,8 +1193,26 @@ export default function App() {
         .catch(() => {})
 
     loadData().finally(() => setLoading(false))
-    const interval = setInterval(loadData, 2 * 60 * 1000) // check every 2 min
-    return () => clearInterval(interval)
+    // Poll every 2 min, but only while tab is visible; refetch immediately on focus.
+    let interval = null
+    const start = () => {
+      if (interval) return
+      interval = setInterval(loadData, 2 * 60 * 1000)
+    }
+    const stop = () => {
+      if (!interval) return
+      clearInterval(interval); interval = null
+    }
+    const onVisibility = () => {
+      if (document.hidden) { stop() }
+      else { loadData(); start() }
+    }
+    start()
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => {
+      stop()
+      document.removeEventListener('visibilitychange', onVisibility)
+    }
   }, [])
 
   // Apply theme class to root
