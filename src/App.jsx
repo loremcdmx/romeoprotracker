@@ -131,7 +131,15 @@ function MarathonChart({ posts, meta, startBR, setLightbox, day }) {
     }
     // Normalize to visible range so filtered views start at x=0
     const base = raw[0] || 0
-    return raw.map(c => c - base)
+    const norm = raw.map(c => c - base)
+    // Anti-overlap nudge: only for data anomalies (duplicate/decreasing totalTournaments).
+    // Strict proportionality otherwise. ~0.8% of total range = visible gap.
+    const maxSoFar = norm[norm.length - 1] || 1
+    const nudge = Math.max(1, maxSoFar * 0.008)
+    for (let i = 1; i < norm.length; i++) {
+      if (norm[i] <= norm[i-1]) norm[i] = norm[i-1] + nudge
+    }
+    return norm
   })()
   const totalMTT = cumMTT[cumMTT.length - 1] || 1
 
@@ -1565,6 +1573,14 @@ export default function App() {
 
   // ── ANIMATED COUNTER ─────────────────────────────────────────────────────
   const brVal  = stats?.br || meta?.bankroll || 0
+  // Real BR trajectory for the hero counter: start → every brAfter in chronological order.
+  // Animating this replays the marathon (dip below start, recovery, etc.) instead of a boring linear climb.
+  const brPath = useMemo(() => {
+    const hist = meta?.brHistory
+    if (!hist?.length) return null
+    const sorted = [...hist].sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0))
+    return [stats?.startBR || 10000, ...sorted.map(h => h.brAfter)]
+  }, [meta, stats?.startBR])
 
   return (
     <>
@@ -1684,8 +1700,17 @@ export default function App() {
               <div className="hero-stats">
                 <div className="hstat">
                   <div className="hstat-label">Банкролл</div>
-                  <div className={`hstat-value ${brVal?'green':''}`} style={{fontSize:18}}>
-                    <AnimatedValue target={brVal} format={fmtExact} />
+                  <div className="hstat-value" style={{fontSize:18}}>
+                    <AnimatedValue
+                      target={brVal}
+                      path={brPath}
+                      format={fmtExact}
+                      render={(v) => (
+                        <span style={{color: v >= (stats.startBR || 10000) ? '#66bb6a' : 'var(--red2)', transition:'color .15s'}}>
+                          {fmtExact(v)}
+                        </span>
+                      )}
+                    />
                   </div>
                   <div className="hstat-sub">старт: {fmtExact(stats.startBR)}</div>
                 </div>
