@@ -2384,33 +2384,41 @@ export default function App() {
                 обновлено: 11.04.2026
               </div>
               {(() => {
-                // meta.lastUpdated reflects when the scraper rewrote meta.json, but
-                // incremental scraper runs that only add posts don't always bump it.
-                // The newest post's timestamp is a lower bound for "when did we last
-                // successfully pull from the forum", so take the max of the two.
-                const metaTs = meta?.lastUpdated ? Date.parse(meta.lastUpdated) : 0
+                // lastScrapeRun: heartbeat from scraper, bumped every run (even no-op).
+                // Fallback to lastUpdated (bumped only on real changes) for old data.
+                const scrapeTs = meta?.lastScrapeRun
+                  ? Date.parse(meta.lastScrapeRun)
+                  : meta?.lastUpdated ? Date.parse(meta.lastUpdated) : 0
                 const newestPostTs = posts?.length
                   ? Math.max(...posts.map(p => (p.timestamp || 0) * 1000))
                   : 0
-                const ts = Math.max(metaTs || 0, newestPostTs || 0)
-                if (!ts) return null
-                const mins = Math.round((Date.now() - ts) / 60000)
+                if (!scrapeTs && !newestPostTs) return null
+                const fmt = (ts) => {
+                  const d = new Date(ts)
+                  const sameDay = d.toDateString() === new Date().toDateString()
+                  const time = d.toLocaleTimeString('ru-RU', { hour:'2-digit', minute:'2-digit' })
+                  return sameDay
+                    ? `сегодня в ${time}`
+                    : `${d.toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit'})} в ${time}`
+                }
+                const mins = Math.round((Date.now() - scrapeTs) / 60000)
                 const fresh = mins < 20
                 const stale = mins > 90
-                const d = new Date(ts)
-                const now = new Date()
-                const sameDay = d.toDateString() === now.toDateString()
-                const time = d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
-                const label = sameDay
-                  ? `сегодня в ${time}`
-                  : `${d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' })} в ${time}`
                 const color = fresh ? '#4caf5099' : stale ? '#ff525299' : '#998866'
                 return (
-                  <div style={{fontSize:10,color,marginTop:3,fontFamily:"'Roboto Mono',monospace"}}
-                    title={`Самый свежий пост получен: ${d.toLocaleString('ru-RU')}`}>
-                    <span style={{display:'inline-block',width:6,height:6,borderRadius:'50%',background:color,marginRight:5,verticalAlign:'middle'}}/>
-                    последний раз воровали посты с форума: {label}
-                  </div>
+                  <>
+                    <div style={{fontSize:10,color,marginTop:3,fontFamily:"'Roboto Mono',monospace"}}
+                      title={`Последний прогон скрапера: ${new Date(scrapeTs).toLocaleString('ru-RU')}`}>
+                      <span style={{display:'inline-block',width:6,height:6,borderRadius:'50%',background:color,marginRight:5,verticalAlign:'middle'}}/>
+                      скрапер бегал: {fmt(scrapeTs)}
+                    </div>
+                    {newestPostTs > 0 && (
+                      <div style={{fontSize:10,color:'#666',marginTop:2,fontFamily:"'Roboto Mono',monospace",paddingLeft:11}}
+                        title={`Timestamp самого свежего поста на форуме: ${new Date(newestPostTs).toLocaleString('ru-RU')}`}>
+                        самый свежий пост: {fmt(newestPostTs)}
+                      </div>
+                    )}
+                  </>
                 )
               })()}
             </div>

@@ -552,9 +552,19 @@ async function main() {
     }
   }
 
+  // Heartbeat: always record that a scrape run completed successfully.
+  // lastScrapeRun bumps every run; lastUpdated keeps its old semantics
+  // (only when BR/posts actually changed) for backwards compat.
+  const prevScrapeRun = meta.lastScrapeRun ? Date.parse(meta.lastScrapeRun) : 0
+  const nowMs = Date.now()
+  meta.lastScrapeRun = new Date(nowMs).toISOString()
+  // Commit heartbeat-only updates at most once per 30 min to keep git log clean.
+  const heartbeatDue = nowMs - prevScrapeRun > 30 * 60 * 1000
+
   // Check if anything changed
   const hasRetries = retryPosts.length > 0 && metaUpdated
-  const hasChanges = newPosts.length > 0 || likesUpdated > 0 || metaUpdated
+  const hasRealChanges = newPosts.length > 0 || likesUpdated > 0 || metaUpdated
+  const hasChanges = hasRealChanges || heartbeatDue
   if (!hasChanges) {
     console.log('✅ No changes')
     return
@@ -570,6 +580,7 @@ async function main() {
   if (likesUpdated > 0) parts.push(`likes: ${likesUpdated} updated`)
   if (hasRetries) parts.push(`retried ${retryPosts.length} BR`)
   if (metaUpdated) parts.push(`BR → $${meta.bankroll}`)
+  if (parts.length === 0) parts.push('heartbeat')
   const msg = `scraper: ${parts.join(', ')} (total ${merged.length})`
 
   // Git commit & push
