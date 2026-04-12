@@ -919,7 +919,7 @@ const S_TAG = {fontSize:9,color:'var(--dim)',background:'var(--bg3)',borderRadiu
 const S_MONO = {fontFamily:"'Roboto Mono',monospace",fontWeight:700}
 const menuHover = e => e.currentTarget.style.background = 'var(--bg3)'
 const menuLeave = e => e.currentTarget.style.background = ''
-const PostCard = memo(function PostCard({ p, favorites, ignored, onFav, onIgnore, onUnignore, onVote, setLightbox, noClamp=false, tags=null }) {
+const PostCard = memo(function PostCard({ p, favorites, ignored, onFav, onIgnore, onUnignore, setLightbox, noClamp=false, tags=null }) {
   const [exp, setExp]     = useState(false)
   const [menu, setMenu]   = useState(false)
   const [revealIgnored, setRevealIgnored] = useState(false)
@@ -1038,9 +1038,7 @@ const PostCard = memo(function PostCard({ p, favorites, ignored, onFav, onIgnore
         </div>
       )}
       <div className="pc-foot">
-        {onVote && <button className="pc-vote-btn" onClick={e=>{e.stopPropagation();onVote(p.id,1)}} title="Лайк">👍</button>}
         <span className={`pc-likes ${likes>0?'pos':likes<0?'neg':'zero'}`}>{likes>0?'+':''}{likes}</span>
-        {onVote && <button className="pc-vote-btn" onClick={e=>{e.stopPropagation();onVote(p.id,-1)}} title="Дизлайк">👎</button>}
         {p.brAfter && <span className="pc-br">БР: {fmtNum(p.brAfter)}</span>}
         {isLong && (
           <button onClick={()=>setExp(s=>!s)} style={S_EXPAND}>
@@ -1086,7 +1084,7 @@ function TempoValue({ target, title }) {
 }
 
 // ─── AUTHORS PANEL ────────────────────────────────────────────────────────────
-function AuthorsPanel({ authors, favorites, ignored, onFav, onIgnore, onUnignore, onVote, setLightbox }) {
+function AuthorsPanel({ authors, favorites, ignored, onFav, onIgnore, onUnignore, setLightbox }) {
   const [expanded, setExpanded] = useState(null)
   return (
     <div>
@@ -1116,7 +1114,7 @@ function AuthorsPanel({ authors, favorites, ignored, onFav, onIgnore, onUnignore
                 {a.posts.slice(0, 20).map(p => (
                   <PostCard key={p.id||p.url} p={p}
                     favorites={favorites} ignored={ignored} onFav={onFav}
-                    onIgnore={onIgnore} onUnignore={onUnignore} onVote={onVote} setLightbox={setLightbox}/>
+                    onIgnore={onIgnore} onUnignore={onUnignore} setLightbox={setLightbox}/>
                 ))}
               </div>
             )}
@@ -1729,52 +1727,6 @@ export default function App() {
     })
   }, [])
 
-  // ─── LIKE (GipsyTeam vote) ──────────────────────────────────────────────────
-  const [toast, setToast] = useState(null)
-  const toastTimer = useRef(null)
-  const showToast = useCallback((msg, type='info') => {
-    clearTimeout(toastTimer.current)
-    setToast({ msg, type })
-    toastTimer.current = setTimeout(() => setToast(null), 5000)
-  }, [])
-
-  const handleVote = useCallback(async (postId, value) => {
-    const isLike = value === 1
-    const label = isLike ? 'Лайк' : 'Дизлайк'
-    // Optimistic UI update
-    setPosts(prev => prev.map(p => p.id === postId ? { ...p, likes: (p.likes||0) + value } : p))
-    showToast(`Открываем GipsyTeam...`, 'info')
-
-    try {
-      const before = await fetch(`/api/check-likes?pid=${postId}`).then(r => r.json())
-      const likesBefore = before.likes
-
-      const popup = window.open(
-        `https://forum.gipsyteam.ru/index.php?autocom=postvote&pid=${postId}&value=${value}`,
-        'gt_vote',
-        'width=600,height=400,scrollbars=yes'
-      )
-
-      await new Promise(r => setTimeout(r, 3000))
-      if (popup && !popup.closed) popup.close()
-
-      const after = await fetch(`/api/check-likes?pid=${postId}`).then(r => r.json())
-      const likesAfter = after.likes
-
-      if (likesAfter !== likesBefore) {
-        const beforeSet = new Set(before.voters || [])
-        const newVoter = (after.voters || []).find(v => !beforeSet.has(v))
-        showToast(newVoter ? `${label} проставлен, ${newVoter}!` : `${label} проставлен!`, 'success')
-        setPosts(prev => prev.map(p => p.id === postId ? { ...p, likes: likesAfter } : p))
-      } else {
-        setPosts(prev => prev.map(p => p.id === postId ? { ...p, likes: likesBefore } : p))
-        showToast('Не засчитан — нужно быть залогиненным на GipsyTeam', 'error')
-      }
-    } catch (e) {
-      showToast('Ошибка проверки', 'error')
-    }
-  }, [showToast])
-
   // ── ANIMATED COUNTER ─────────────────────────────────────────────────────
   const brVal  = stats?.br || meta?.bankroll || 0
   // Remember the last BR the user saw on their previous visit, so the animation
@@ -1840,11 +1792,6 @@ export default function App() {
         </div>
       )}
 
-      {toast && (
-        <div className={`toast toast-${toast.type}`} onClick={()=>setToast(null)}>
-          {toast.type==='success' && '✓ '}{toast.type==='error' && '✗ '}{toast.msg}
-        </div>
-      )}
 
       <div className="topbar">
         <div className="topbar-inner">
@@ -2115,7 +2062,7 @@ export default function App() {
                       : <AuthorsPanel authors={classifiedPosts.authorStats}
                           favorites={favorites} ignored={ignored}
                           onFav={toggleFav} onIgnore={addIgnore} onUnignore={removeIgnore}
-                          onVote={handleVote} setLightbox={setLightbox}/>)
+                          setLightbox={setLightbox}/>)
                   : all.length===0
                   ? <div className="empty-state">{isTagMode && !topicTag ? 'Выберите тему выше' : 'Постов не найдено'}</div>
                   : <>
@@ -2124,7 +2071,7 @@ export default function App() {
                     {paged.map(p=>(
                       <PostCard key={p.id||p.url} p={p}
                         favorites={favorites} ignored={ignored} onFav={toggleFav}
-                        onIgnore={addIgnore} onUnignore={removeIgnore} onVote={handleVote} setLightbox={setLightbox}
+                        onIgnore={addIgnore} onUnignore={removeIgnore} setLightbox={setLightbox}
                         noClamp={topicTab==='marathon'}
                         tags={p._tags && isTagMode ? p._tags.filter(t=>t!==topicTag).map(t=>TAG_RULES.find(r=>r.id===t)).filter(Boolean) : null}/>
                     ))}
@@ -2241,7 +2188,7 @@ export default function App() {
                       onMouseEnter={()=>{ if(i===pagedPosts.length-1) saveReadPos('feed',p.id) }}>
                       <PostCard p={p}
                         favorites={favorites} ignored={ignored} onFav={toggleFav}
-                        onIgnore={addIgnore} onUnignore={removeIgnore} onVote={handleVote} setLightbox={setLightbox}/>
+                        onIgnore={addIgnore} onUnignore={removeIgnore} setLightbox={setLightbox}/>
                     </div>
                   ))}
                   <Paginator page={page} totalPages={totalPages} onPage={goPage}
