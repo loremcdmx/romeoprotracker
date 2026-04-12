@@ -1038,7 +1038,7 @@ const PostCard = memo(function PostCard({ p, favorites, ignored, onFav, onIgnore
         </div>
       )}
       <div className="pc-foot">
-        <span className={`pc-likes ${likes>0?'pos':likes<0?'neg':'zero'}`}>{likes>0?'+':''}{likes}</span>
+        <span className={`pc-likes ${likes>0?'pos':likes<0?'neg':'zero'}`}>{likes>0?'👍 +':likes<0?'👎 ':''}{likes}</span>
         {p.brAfter && <span className="pc-br">БР: {fmtNum(p.brAfter)}</span>}
         {isLong && (
           <button onClick={()=>setExp(s=>!s)} style={S_EXPAND}>
