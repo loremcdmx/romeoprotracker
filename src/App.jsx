@@ -923,7 +923,9 @@ const PostCard = memo(function PostCard({ p, favorites, ignored, onFav, onIgnore
   const [exp, setExp]     = useState(false)
   const [menu, setMenu]   = useState(false)
   const [revealIgnored, setRevealIgnored] = useState(false)
+  const [overflows, setOverflows] = useState(false)
   const menuRef           = useRef(null)
+  const bodyRef           = useRef(null)
   const isFav  = favorites?.has(p.author)
   const isIgnored = ignored?.has(p.author)
 
@@ -954,6 +956,11 @@ const PostCard = memo(function PostCard({ p, favorites, ignored, onFav, onIgnore
   const likes  = p.likes || 0
   const initial = (p.author||'?')[0].toUpperCase()
   const isLong  = !noClamp && (p.text?.replace(/\[QUOTE\][\s\S]*?\[\/QUOTE\]/gi, '').length || 0) > 600
+  useEffect(() => {
+    if (!isLong || exp) return
+    const el = bodyRef.current
+    if (el) setOverflows(el.scrollHeight > el.clientHeight + 2)
+  }, [isLong, exp])
 
   // URL профиля на GT (по нику)
   const profileUrl = `https://forum.gipsyteam.ru/index.php?showuser=${encodeURIComponent(p.author)}`
@@ -1028,7 +1035,7 @@ const PostCard = memo(function PostCard({ p, favorites, ignored, onFav, onIgnore
           <button className="pc-action" onClick={()=>onIgnore(p.author)} title="Игнорировать">🚫</button>
         </div>
       </div>
-      <div className={`pc-body ${!exp && isLong ? 'clamped' : ''}`}>{renderPostText(p.text)}</div>
+      <div ref={bodyRef} className={`pc-body ${!exp && isLong ? 'clamped' : ''}`}>{renderPostText(p.text)}</div>
       {p.images?.length>0 && (
         <div className="pc-images">
           {p.images.map((src,j)=>(
@@ -1040,7 +1047,7 @@ const PostCard = memo(function PostCard({ p, favorites, ignored, onFav, onIgnore
       <div className="pc-foot">
         <span className={`pc-likes ${likes>0?'pos':likes<0?'neg':'zero'}`}>{likes>0?'👍 +':likes<0?'👎 ':''}{likes}</span>
         {p.brAfter && <span className="pc-br">БР: {fmtNum(p.brAfter)}</span>}
-        {isLong && (
+        {(isLong && (overflows || exp)) && (
           <button onClick={()=>setExp(s=>!s)} style={S_EXPAND}>
             <span style={S_ARROW}>{exp?'▲':'▼'}</span>
             {exp ? 'свернуть' : 'читать'}
