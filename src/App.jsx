@@ -774,7 +774,7 @@ function FilterBar({ sortBy, setSortBy, search, setSearch, showSearch, setShowSe
         <div style={{display:'flex',alignItems:'center',gap:4}}>
           <label style={{fontSize:11,color:'var(--dim)',whiteSpace:'nowrap',display:'flex',alignItems:'center',gap:3}} title="Минимальная репутация автора">
             <img src="https://www.gipsyteam.ru/public/style_images/master/reputation_pos.png" alt="rep"
-              style={{width:12,height:12,objectFit:'contain'}} onError={e=>{e.target.style.display='none'}}/>
+              referrerPolicy="no-referrer" style={{width:12,height:12,objectFit:'contain'}} onError={e=>{e.target.style.display='none'}}/>
             репа
           </label>
           <input className="filter-num" type="number" min="0" step="100" value={minRating}
@@ -967,7 +967,7 @@ const PostCard = memo(function PostCard({ p, favorites, ignored, onFav, onIgnore
       <div className="pc-head">
         <div className="pc-avatar" style={{cursor:'pointer'}} onClick={e=>{e.stopPropagation();setMenu(m=>!m)}}>
           {p.avatar
-            ? <img src={p.avatar} alt={p.author} onError={e=>{e.target.style.display='none'}}/>
+            ? <img src={p.avatar} alt={p.author} referrerPolicy="no-referrer" onError={e=>{e.target.style.display='none'}}/>
             : initial}
         </div>
         {/* Dropdown меню профиля */}
@@ -1097,7 +1097,7 @@ function AuthorsPanel({ authors, favorites, ignored, onFav, onIgnore, onUnignore
               onClick={()=>setExpanded(open ? null : a.name)}>
               <div style={{width:28,height:28,borderRadius:'50%',background:'var(--red)',overflow:'hidden',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,fontWeight:700,color:'#fff'}}>
                 {a.posts[0]?.avatar
-                  ? <img src={a.posts[0].avatar} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}} onError={e=>e.target.style.display='none'}/>
+                  ? <img src={a.posts[0].avatar} alt="" referrerPolicy="no-referrer" style={{width:'100%',height:'100%',objectFit:'cover'}} onError={e=>e.target.style.display='none'}/>
                   : a.name[0]?.toUpperCase()}
               </div>
               <div style={S_FLEX1}>
@@ -1232,7 +1232,7 @@ function SidebarTopList({ posts, setLightbox }) {
               overflow:'hidden',display:'flex',alignItems:'center',justifyContent:'center',
               fontSize:11,fontWeight:700,color:'#fff',marginTop:2}}>
               {p.avatar
-                ? <img src={p.avatar} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}} onError={e=>e.target.style.display='none'}/>
+                ? <img src={p.avatar} alt="" referrerPolicy="no-referrer" style={{width:'100%',height:'100%',objectFit:'cover'}} onError={e=>e.target.style.display='none'}/>
                 : initial}
             </div>
             <div style={S_FLEX1}>
@@ -1849,7 +1849,7 @@ export default function App() {
           <div className="logo">
             <div className="logo-badge" style={{padding:0,width:32,height:32,overflow:'hidden',borderRadius:6,display:'flex',alignItems:'center',justifyContent:'center'}}>
               <img src="https://www.gipsyteam.ru/apple-touch-icon.png" alt="GT"
-                style={{width:32,height:32,objectFit:'contain',borderRadius:6}}
+                referrerPolicy="no-referrer" style={{width:32,height:32,objectFit:'contain',borderRadius:6}}
                 onError={e=>{e.target.style.display='none'}}/>
             </div>
             <div>
@@ -1970,7 +1970,7 @@ export default function App() {
               <div className="hero-top">
                 <div className="hero-avatar">
                   <img src="https://www.gipsyteam.ru/upload/Avatar/default/2/6/6/26670.jpg"
-                    alt="Romeopro" onError={e=>e.target.style.display='none'}/>
+                    alt="Romeopro" referrerPolicy="no-referrer" onError={e=>e.target.style.display='none'}/>
                 </div>
                 <div style={{flex:1, minWidth:0, overflow:'hidden'}}>
                   <div className="hero-name">Romeopro <span className="hero-badge">Автор</span></div>
