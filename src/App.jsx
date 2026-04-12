@@ -70,7 +70,7 @@ const CHART_ROOMS = [
   { key:'lux',  label:'Lux',   logo:'https://t3.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=http://luxon.com&size=64' },
 ]
 
-function MarathonChart({ posts, meta, startBR, setLightbox, day, period, setPeriod }) {
+function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod }) {
   const [tip, setTip]     = useState(null)
   const [pathLen, setPathLen] = useState(null)
   const setPeriodPersist = (p) => {
@@ -107,7 +107,7 @@ function MarathonChart({ posts, meta, startBR, setLightbox, day, period, setPeri
         }))
     }
     return posts
-      .filter(p => /romeopro/i.test(p.author) && p.brAfter)
+      .filter(p => ROMEO_RE.test(p.author) && p.brAfter)
       .sort((a,b) => (a.timestamp||0)-(b.timestamp||0))
       .map((p,i,arr) => ({
         br:p.brAfter, brPrev:i===0?startBR:arr[i-1].brAfter,
@@ -143,16 +143,18 @@ function MarathonChart({ posts, meta, startBR, setLightbox, day, period, setPeri
   const maxV = dataMax * 1.05
   const yOf  = v => pT + (1-(v-minV)/(maxV-minV)) * (H-pT-pB)
 
-  // X-позиция пропорциональна накопленным МТТ если данные есть, иначе равномерно
-  // Fill gaps: if a point has no totalTournaments, interpolate from neighbors
+  // Two arrays: cumMTT (absolute totals, used for display labels) and cumMTTX
+  // (normalized + anti-overlap, used for X-axis positioning). Mixing them caused
+  // the "last point shows 5004 instead of 5171" bug — normalization subtracted
+  // the first session's own MTT count as base.
   const hasMTT = points.length > 1 && points.some(p => p.totalTournaments)
-  const cumMTT = (() => {
+  const { cumMTT, cumMTTX } = (() => {
     const raw = points.map(p => p.totalTournaments || 0)
     // Forward-fill zeros (use previous value + session tournaments)
     for (let i = 1; i < raw.length; i++) {
       if (!raw[i] && raw[i-1]) raw[i] = raw[i-1] + (points[i].tournaments || 0)
     }
-    // Normalize to visible range so filtered views start at x=0
+    // Positioning: normalize so filtered views start at x=0
     const base = raw[0] || 0
     const norm = raw.map(c => c - base)
     // Anti-overlap nudge: only for data anomalies (duplicate/decreasing totalTournaments).
@@ -162,16 +164,14 @@ function MarathonChart({ posts, meta, startBR, setLightbox, day, period, setPeri
     for (let i = 1; i < norm.length; i++) {
       if (norm[i] <= norm[i-1]) norm[i] = norm[i-1] + nudge
     }
-    return norm
+    return { cumMTT: raw, cumMTTX: norm }
   })()
-  const totalMTT = cumMTT[cumMTT.length - 1] || 1
+  const totalMTTX = cumMTTX[cumMTTX.length - 1] || 1
 
   const xOf = (() => {
-    if (!hasMTT || totalMTT === 0)
+    if (!hasMTT || totalMTTX === 0)
       return i => pL + (i / Math.max(points.length - 1, 1)) * (W - pL - pR)
-    // Строго пропорционально накопленным МТТ — без минимальных gap'ов,
-    // иначе сессии с близким кол-вом турниров искусственно раздвигаются.
-    return i => pL + (cumMTT[i] / totalMTT) * (W - pL - pR)
+    return i => pL + (cumMTTX[i] / totalMTTX) * (W - pL - pR)
   })()
   const coords = points.map((p,i) => ({ x:xOf(i), y:yOf(p.br) }))
   const linePath = makeBezierPath(coords)
@@ -1376,16 +1376,30 @@ export default function App() {
   // Auto-fit to screen: scale root so 1500px design fits user's desktop viewport.
   // Clamped so big monitors don't over-inflate and small ones don't shrink past readable.
   // Skipped on mobile — the ≤720px media query handles narrow layout separately.
+  // rAF-throttled and only writes when the value actually changes, so live resize is smooth.
   useEffect(() => {
+    let raf = 0
+    let lastZ = ''
     const fit = () => {
+      raf = 0
       const vw = window.innerWidth
-      if (vw < 900) { document.documentElement.style.zoom = ''; return }
-      const z = Math.min(1.25, Math.max(0.85, vw / 1500))
-      document.documentElement.style.zoom = z.toFixed(3)
+      const next = vw < 900
+        ? ''
+        : Math.min(1.25, Math.max(0.85, vw / 1500)).toFixed(2)
+      if (next === lastZ) return
+      lastZ = next
+      document.documentElement.style.zoom = next
+    }
+    const onResize = () => {
+      if (raf) return
+      raf = requestAnimationFrame(fit)
     }
     fit()
-    window.addEventListener('resize', fit)
-    return () => window.removeEventListener('resize', fit)
+    window.addEventListener('resize', onResize, { passive: true })
+    return () => {
+      window.removeEventListener('resize', onResize)
+      if (raf) cancelAnimationFrame(raf)
+    }
   }, [])
 
   // Stats из постов Ромео
@@ -1419,7 +1433,7 @@ export default function App() {
 
     if (!posts.length) return { startBR }
     const romeoByDate = posts
-      .filter(p => /romeopro/i.test(p.author))
+      .filter(p => ROMEO_RE.test(p.author))
       .sort((a,b) => (b.timestamp||0)-(a.timestamp||0))
 
     let day = null, br = null
@@ -1486,7 +1500,7 @@ export default function App() {
   const feedPosts = useMemo(() =>
     posts
       .filter(passesIgnored)
-      .filter(p => !romeoOnly || /romeopro/i.test(p.author))
+      .filter(p => !romeoOnly || ROMEO_RE.test(p.author))
       .filter(p => !search || p.text?.toLowerCase().includes(search.toLowerCase()))
       .filter(passesLikeRating)
       .sort((a,b) => {
@@ -2157,7 +2171,7 @@ export default function App() {
               {periodStats && (
                 <div className="mobile-stats-note">* с учётом фильтра на графике ({periodLabel})</div>
               )}
-              <MarathonChart posts={posts} meta={meta} startBR={stats.startBR} setLightbox={setLightbox} day={stats.day}
+              <MarathonChart posts={posts} meta={meta} startBR={stats.startBR} setLightbox={setLightbox}
                 period={chartPeriod} setPeriod={setChartPeriod}/>
               <ActivityChart posts={posts}
                 favorites={favorites} ignored={ignored} onFav={toggleFav}
@@ -2383,14 +2397,17 @@ export default function App() {
                 const mins = Math.round((Date.now() - ts) / 60000)
                 const fresh = mins < 20
                 const stale = mins > 90
-                const label = mins < 1 ? 'только что'
-                  : mins < 60 ? pl(mins, ['минуту','минуты','минут']) + ' назад'
-                  : mins < 1440 ? pl(Math.round(mins/60), ['час','часа','часов']) + ' назад'
-                  : pl(Math.round(mins/1440), ['день','дня','дней']) + ' назад'
+                const d = new Date(ts)
+                const now = new Date()
+                const sameDay = d.toDateString() === now.toDateString()
+                const time = d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
+                const label = sameDay
+                  ? `сегодня в ${time}`
+                  : `${d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' })} в ${time}`
                 const color = fresh ? '#4caf5099' : stale ? '#ff525299' : '#998866'
                 return (
                   <div style={{fontSize:10,color,marginTop:3,fontFamily:"'Roboto Mono',monospace"}}
-                    title={`Самый свежий пост получен: ${new Date(ts).toLocaleString('ru-RU')}`}>
+                    title={`Самый свежий пост получен: ${d.toLocaleString('ru-RU')}`}>
                     <span style={{display:'inline-block',width:6,height:6,borderRadius:'50%',background:color,marginRight:5,verticalAlign:'middle'}}/>
                     последний раз воровали посты с форума: {label}
                   </div>
@@ -2404,7 +2421,7 @@ export default function App() {
                 Changelog
               </div>
               {[
-                ['11.04', 'v1.5', 'Фильтры неделя/месяц на графике — темп МТТ до $10M теперь считается по выбранному отрезку. Избранное и игнор теперь по авторам. Новые разделы в темах: Хайлайты и Авторы. % плюсовых сессий и среднее МТТ/сессия в статистике'],
+                ['11.04', 'v1.5', 'Фильтры неделя/месяц на графике — темп МТТ до $10M теперь считается по выбранному отрезку. Избранное и игнор теперь по авторам. Новые разделы в темах: Хайлайты и Авторы. % плюсовых сессий и среднее МТТ/сессия в статистике (учитывают выбранный фильтр на графике). Фикс графика: последняя точка показывала неверное кол-во МТТ. Auto fit-to-screen под ширину окна. Рефакторинг: чистка мёртвого кода, фикс утечек raf в анимациях'],
                 ['09.04', 'v1.4', 'Лайки/дизлайки через GipsyTeam. Баббл новых постов. Скрапер каждые 15 мин. График в первый экран'],
                 ['08.04', 'v1.3', 'Белая тема. Автоскрапер через GitHub Actions'],
                 ['07.04', 'v1.2', 'График с bezier-кривыми и анимацией. Мобильная вёрстка'],

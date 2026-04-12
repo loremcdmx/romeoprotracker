@@ -32,13 +32,15 @@ function useAnimatedCounter(target, duration = 1100) {
   useEffect(() => {
     if (!target) return
     const start = Date.now()
+    let raf
     const tick = () => {
       const p = Math.min(1, (Date.now() - start) / duration)
       const ease = 1 - Math.pow(1 - p, 3)
       setVal(Math.round(ease * target))
-      if (p < 1) requestAnimationFrame(tick)
+      if (p < 1) raf = requestAnimationFrame(tick)
     }
-    requestAnimationFrame(tick)
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
   }, [target, duration])
   return val
 }
@@ -55,6 +57,7 @@ function useAnimatedPath(path, duration) {
     }
     const start = Date.now()
     const segCount = path.length - 1
+    let raf
     const tick = () => {
       const elapsed = Date.now() - start
       const p = Math.min(1, elapsed / duration)
@@ -64,9 +67,10 @@ function useAnimatedPath(path, duration) {
       const segFrac = segPos - segIdx
       const v = path[segIdx] + (path[segIdx + 1] - path[segIdx]) * segFrac
       setVal(Math.round(v))
-      if (p < 1) requestAnimationFrame(tick)
+      if (p < 1) raf = requestAnimationFrame(tick)
     }
-    requestAnimationFrame(tick)
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
   }, [pathKey, duration])
   return val
 }
