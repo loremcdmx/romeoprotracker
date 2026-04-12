@@ -1,4 +1,31 @@
-import { useState, useEffect, memo } from 'react'
+import { useState, useEffect, useRef, memo } from 'react'
+
+// Smoothly tween the displayed number from its previous value to a new target
+// whenever `target` changes. Unlike useAnimatedCounter this does NOT reset to 0
+// — it remembers what was on screen and eases from there. Useful for values
+// that change in response to user interaction (e.g. filter toggles).
+export function useTweenValue(target, duration = 650) {
+  const [val, setVal] = useState(target || 0)
+  const fromRef = useRef(target || 0)
+  useEffect(() => {
+    if (target == null) return
+    const from = fromRef.current
+    if (from === target) { setVal(target); return }
+    const start = Date.now()
+    let raf
+    const tick = () => {
+      const p = Math.min(1, (Date.now() - start) / duration)
+      const ease = 1 - Math.pow(1 - p, 3)
+      const v = from + (target - from) * ease
+      setVal(v)
+      if (p < 1) raf = requestAnimationFrame(tick)
+      else fromRef.current = target
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [target, duration])
+  return val
+}
 
 function useAnimatedCounter(target, duration = 1100) {
   const [val, setVal] = useState(0)

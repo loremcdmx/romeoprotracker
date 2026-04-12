@@ -1,30 +1,43 @@
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
+// Russian plural picker. Usage: plural(n, ['сессия','сессии','сессий']).
+// Returns the correct form for n: 1 → [0], 2-4 → [1], 0/5+/11-14 → [2].
+export function plural(n, forms) {
+  const abs = Math.abs(n) % 100
+  const mod10 = abs % 10
+  if (abs > 10 && abs < 20) return forms[2]
+  if (mod10 > 1 && mod10 < 5) return forms[1]
+  if (mod10 === 1) return forms[0]
+  return forms[2]
+}
+// Shorthand: returns "N слово" with the correctly declined word
+export const pl = (n, forms) => `${n} ${plural(n, forms)}`
+
 export function timeAgo(timestamp) {
   if (!timestamp) return null
   const sec  = Math.floor((Date.now() / 1000) - timestamp)
   if (sec < 60)   return 'только что'
-  if (sec < 3600) return Math.floor(sec/60) + ' мин назад'
-  if (sec < 86400) return Math.floor(sec/3600) + ' ч назад'
-  if (sec < 2592000) return Math.floor(sec/86400) + ' дн назад'
-  if (sec < 31536000) return Math.floor(sec/2592000) + ' мес назад'
-  return Math.floor(sec/31536000) + ' г назад'
+  if (sec < 3600) return pl(Math.floor(sec/60),    ['минуту','минуты','минут']) + ' назад'
+  if (sec < 86400) return pl(Math.floor(sec/3600), ['час','часа','часов']) + ' назад'
+  if (sec < 2592000) return pl(Math.floor(sec/86400), ['день','дня','дней']) + ' назад'
+  if (sec < 31536000) return pl(Math.floor(sec/2592000), ['месяц','месяца','месяцев']) + ' назад'
+  return pl(Math.floor(sec/31536000), ['год','года','лет']) + ' назад'
 }
 
 export const fmtBR = n => {
   if (!n && n !== 0) return '—'
   const abs = Math.abs(n)
   const s = n < 0 ? '-' : n > 0 ? '+' : ''
-  if (abs >= 1_000_000) return s + '$' + (abs/1_000_000).toFixed(2) + 'M'
-  if (abs >= 1_000)     return s + '$' + (abs/1_000).toFixed(1) + 'k'
-  return s + '$' + abs
+  if (abs >= 1_000_000) return s + (abs/1_000_000).toFixed(2) + 'M$'
+  if (abs >= 1_000)     return s + (abs/1_000).toFixed(1) + 'k$'
+  return s + abs + '$'
 }
 
 export const fmtNum = n => {
   if (!n && n !== 0) return '—'
   const abs = Math.abs(n)
-  if (abs >= 1_000_000) return '$' + (abs/1_000_000).toFixed(2) + 'M'
-  if (abs >= 1_000)     return '$' + (abs/1_000).toFixed(1) + 'k'
-  return '$' + abs
+  if (abs >= 1_000_000) return (abs/1_000_000).toFixed(2) + 'M$'
+  if (abs >= 1_000)     return (abs/1_000).toFixed(1) + 'k$'
+  return abs + '$'
 }
 
 // Целое число с тонким пробелом как разделитель тысяч
@@ -37,8 +50,8 @@ export const fmtInt = n => {
 export const fmtExact = n => {
   if (!n && n !== 0) return '—'
   const rounded = Math.round(n)
-  if (rounded >= 1000) return '$' + Math.floor(rounded / 1000) + '\u202F' + String(rounded % 1000).padStart(3, '0')
-  return '$' + rounded
+  if (rounded >= 1000) return Math.floor(rounded / 1000) + '\u202F' + String(rounded % 1000).padStart(3, '0') + '$'
+  return rounded + '$'
 }
 
 const MONTHS_SHORT = ['янв','фев','мар','апр','мая','июн','июл','авг','сен','окт','ноя','дек']
@@ -71,7 +84,7 @@ export function extractBR(text) {
 export const fk = (n, withSign = true) => {
   const a = Math.abs(n)
   const s = withSign ? (n < 0 ? '-' : n > 0 ? '+' : '') : ''
-  return a >= 1000 ? s + '$' + (a / 1000).toFixed(1) + 'k' : s + '$' + a
+  return a >= 1000 ? s + (a / 1000).toFixed(1) + 'k$' : s + a + '$'
 }
 
 export const ROMEO_RE = /romeopro/i
@@ -100,7 +113,7 @@ export const extractQuoteBody = t => {
   return (nl !== -1 ? inner.slice(nl + 1) : inner).replace(/\[\/QUOTE\].*/,'').trim()
 }
 
-export const fkAbs = v => v >= 1000 ? `$${(v/1000).toFixed(1)}k` : `$${Math.round(v)}`
+export const fkAbs = v => v >= 1000 ? `${(v/1000).toFixed(1)}k$` : `${Math.round(v)}$`
 
 // ─── MONOTONE CUBIC BEZIER (no overshoot/humps) ─────────────────────────────
 // Fritsch–Carlson monotone interpolation: tangents are clamped so the curve
