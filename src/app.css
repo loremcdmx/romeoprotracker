@@ -253,16 +253,21 @@ a{color:var(--red2);text-decoration:none}
 }
 .marathon-progress-inner{
   max-width:1480px;margin:0 auto;padding:10px 16px 14px;
-  display:grid;grid-template-columns:1fr 320px;gap:16px;align-items:center;
+  display:grid;grid-template-columns:1fr 320px;gap:16px;align-items:stretch;
 }
-.marathon-progress-main{min-width:0}
+.marathon-progress-main{
+  min-width:0;display:flex;flex-direction:column;
+  padding:8px 0 0 0;
+}
 .marathon-progress-label{
-  display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;
-  font-size:11px;font-family:'Roboto Mono',monospace;letter-spacing:.3px;color:var(--dim)
+  display:flex;justify-content:space-between;align-items:baseline;
+  font-size:10px;font-family:'Roboto Mono',monospace;letter-spacing:.3px;color:var(--dim);
+  line-height:1;
 }
-.marathon-progress-label b{color:var(--text);font-weight:700}
+.marathon-progress-label b{color:var(--text);font-weight:700;font-variant-numeric:tabular-nums}
 .marathon-progress-track{
   height:8px;background:var(--bg3);border-radius:999px;overflow:hidden;
+  margin-top:auto;
 }
 .marathon-progress-fill{
   height:100%;border-radius:999px;

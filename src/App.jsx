@@ -1373,6 +1373,21 @@ export default function App() {
     try { localStorage.setItem('rpt_theme', theme) } catch {}
   }, [theme])
 
+  // Auto-fit to screen: scale root so 1500px design fits user's desktop viewport.
+  // Clamped so big monitors don't over-inflate and small ones don't shrink past readable.
+  // Skipped on mobile — the ≤720px media query handles narrow layout separately.
+  useEffect(() => {
+    const fit = () => {
+      const vw = window.innerWidth
+      if (vw < 900) { document.documentElement.style.zoom = ''; return }
+      const z = Math.min(1.25, Math.max(0.85, vw / 1500))
+      document.documentElement.style.zoom = z.toFixed(3)
+    }
+    fit()
+    window.addEventListener('resize', fit)
+    return () => window.removeEventListener('resize', fit)
+  }, [])
+
   // Stats из постов Ромео
   const stats = useMemo(() => {
     const startBR = meta?.startBankroll || 10000
