@@ -745,6 +745,8 @@ function ActivityChart({ posts, favorites, ignored, onFav, onIgnore, onUnignore,
 
 // ─── FILTER BAR ──────────────────────────────────────────────────────────────
 const ROMEO_AVATAR = 'https://www.gipsyteam.ru/upload/Avatar/default/2/6/6/26670.jpg'
+const DEFAULT_AVATAR = 'https://forum.gipsyteam.ru/img/imguser.png'
+const avatarError = e => { e.target.onerror = null; e.target.src = DEFAULT_AVATAR }
 
 function FilterBar({ sortBy, setSortBy, search, setSearch, showSearch, setShowSearch,
                      romeoOnly, setRomeoOnly, minLikes, setMinLikes,
@@ -967,8 +969,8 @@ const PostCard = memo(function PostCard({ p, favorites, ignored, onFav, onIgnore
       <div className="pc-head">
         <div className="pc-avatar" style={{cursor:'pointer'}} onClick={e=>{e.stopPropagation();setMenu(m=>!m)}}>
           {p.avatar
-            ? <img src={p.avatar} alt={p.author} referrerPolicy="no-referrer" onError={e=>{e.target.style.display='none'}}/>
-            : initial}
+            ? <img src={p.avatar} alt={p.author} referrerPolicy="no-referrer" onError={avatarError}/>
+            : <img src={DEFAULT_AVATAR} alt={p.author} referrerPolicy="no-referrer" style={{width:'100%',height:'100%',objectFit:'cover'}}/>}
         </div>
         {/* Dropdown меню профиля */}
         {menu && (
@@ -1097,7 +1099,7 @@ function AuthorsPanel({ authors, favorites, ignored, onFav, onIgnore, onUnignore
               onClick={()=>setExpanded(open ? null : a.name)}>
               <div style={{width:28,height:28,borderRadius:'50%',background:'var(--red)',overflow:'hidden',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,fontWeight:700,color:'#fff'}}>
                 {a.posts[0]?.avatar
-                  ? <img src={a.posts[0].avatar} alt="" referrerPolicy="no-referrer" style={{width:'100%',height:'100%',objectFit:'cover'}} onError={e=>e.target.style.display='none'}/>
+                  ? <img src={a.posts[0].avatar} alt="" referrerPolicy="no-referrer" style={{width:'100%',height:'100%',objectFit:'cover'}} onError={avatarError}/>
                   : a.name[0]?.toUpperCase()}
               </div>
               <div style={S_FLEX1}>
@@ -1232,7 +1234,7 @@ function SidebarTopList({ posts, setLightbox }) {
               overflow:'hidden',display:'flex',alignItems:'center',justifyContent:'center',
               fontSize:11,fontWeight:700,color:'#fff',marginTop:2}}>
               {p.avatar
-                ? <img src={p.avatar} alt="" referrerPolicy="no-referrer" style={{width:'100%',height:'100%',objectFit:'cover'}} onError={e=>e.target.style.display='none'}/>
+                ? <img src={p.avatar} alt="" referrerPolicy="no-referrer" style={{width:'100%',height:'100%',objectFit:'cover'}} onError={avatarError}/>
                 : initial}
             </div>
             <div style={S_FLEX1}>
@@ -1970,7 +1972,7 @@ export default function App() {
               <div className="hero-top">
                 <div className="hero-avatar">
                   <img src="https://www.gipsyteam.ru/upload/Avatar/default/2/6/6/26670.jpg"
-                    alt="Romeopro" referrerPolicy="no-referrer" onError={e=>e.target.style.display='none'}/>
+                    alt="Romeopro" referrerPolicy="no-referrer" onError={avatarError}/>
                 </div>
                 <div style={{flex:1, minWidth:0, overflow:'hidden'}}>
                   <div className="hero-name">Romeopro <span className="hero-badge">Автор</span></div>
