@@ -4,13 +4,39 @@ import { Analytics } from '@vercel/analytics/react'
 import {
   timeAgo, fmtBR, fmtNum, fmtInt, fmtExact, fmtDateShort, extractDay, extractBR,
   fk, fkAbs, ROMEO_RE, autoCloseQuotes, stripQuoteTags, extractQuoteBody,
-  makeBezierPath, makeBezierArea,
+  makeBezierPath, makeBezierArea, pl, plural,
 } from './utils.js'
 import { useIsMobile } from './hooks/useIsMobile.js'
-import AnimatedValue from './components/AnimatedValue.jsx'
+import AnimatedValue, { useTweenValue } from './components/AnimatedValue.jsx'
 
 
 // ─── HELPERS (imported from utils.js) ────────────────────────────────────────
+
+// Dedup brHistory: consecutive entries with same totalTournaments are the same session
+// reported at two states (interim + final). Keep only the final, merge session window.
+function dedupBrHistory(hist) {
+  if (!hist?.length) return hist
+  const sorted = [...hist].sort((a,b)=>(a.timestamp||0)-(b.timestamp||0))
+  const out = []
+  for (const h of sorted) {
+    const prev = out[out.length-1]
+    const sameSession = prev
+      && (h.totalTournaments||0) > 0
+      && h.totalTournaments === prev.totalTournaments
+    if (sameSession) {
+      out[out.length-1] = {
+        ...h,
+        brBefore: prev.brBefore ?? h.brBefore,
+        sessionResult: (h.brAfter||0) - (prev.brBefore ?? h.brBefore ?? 0),
+        tournaments: Math.max(prev.tournaments||0, h.tournaments||0),
+        _mergedFrom: [...(prev._mergedFrom||[prev.id]).filter(Boolean), h.id].filter(Boolean),
+      }
+    } else {
+      out.push(h)
+    }
+  }
+  return out
+}
 
 // ─── SPARKLINE ────────────────────────────────────────────────────────────────
 function Sparkline({ values, width = 64, height = 24, color = '#4caf50' }) {
@@ -44,9 +70,12 @@ const CHART_ROOMS = [
   { key:'lux',  label:'Lux',   logo:'https://t3.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=http://luxon.com&size=64' },
 ]
 
-function MarathonChart({ posts, meta, startBR, setLightbox, day }) {
+function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod }) {
   const [tip, setTip]     = useState(null)
   const [pathLen, setPathLen] = useState(null)
+  const setPeriodPersist = (p) => {
+    setPeriod(p)
+  }
   const pathRef = useRef(null)
   const chartRef = useRef(null)
   const isMobile = useIsMobile()
@@ -61,7 +90,10 @@ function MarathonChart({ posts, meta, startBR, setLightbox, day }) {
     return () => document.removeEventListener('click', handler)
   }, [tip])
 
-  const points = useMemo(() => {
+  // Reset animation on period change so line redraws
+  useEffect(() => { setPathLen(null) }, [period])
+
+  const allPoints = useMemo(() => {
     if (meta?.brHistory?.length) {
       return meta.brHistory
         .slice()
@@ -75,7 +107,7 @@ function MarathonChart({ posts, meta, startBR, setLightbox, day }) {
         }))
     }
     return posts
-      .filter(p => /romeopro/i.test(p.author) && p.brAfter)
+      .filter(p => ROMEO_RE.test(p.author) && p.brAfter)
       .sort((a,b) => (a.timestamp||0)-(b.timestamp||0))
       .map((p,i,arr) => ({
         br:p.brAfter, brPrev:i===0?startBR:arr[i-1].brAfter,
@@ -83,6 +115,15 @@ function MarathonChart({ posts, meta, startBR, setLightbox, day }) {
         images:p.images||[], sessionResult:p.sessionResult,
       }))
   }, [posts, meta, startBR])
+
+  // Period filter: keep points within cutoff. If result < 2 points, fall back to all.
+  const points = useMemo(() => {
+    if (period === 'all' || !allPoints.length) return allPoints
+    const now = Date.now() / 1000
+    const cutoff = period === 'week' ? now - 7*86400 : period === 'month' ? now - 30*86400 : 0
+    const filtered = allPoints.filter(p => (p.timestamp||0) >= cutoff)
+    return filtered.length >= 2 ? filtered : allPoints
+  }, [allPoints, period])
 
   useEffect(() => {
     if (pathRef.current) setPathLen(pathRef.current.getTotalLength())
@@ -102,41 +143,35 @@ function MarathonChart({ posts, meta, startBR, setLightbox, day }) {
   const maxV = dataMax * 1.05
   const yOf  = v => pT + (1-(v-minV)/(maxV-minV)) * (H-pT-pB)
 
-  // X-позиция пропорциональна накопленным МТТ если данные есть, иначе равномерно
-  // Fill gaps: if a point has no totalTournaments, interpolate from neighbors
+  // Two arrays: cumMTT (absolute totals, used for display labels) and cumMTTX
+  // (normalized + anti-overlap, used for X-axis positioning). Mixing them caused
+  // the "last point shows 5004 instead of 5171" bug — normalization subtracted
+  // the first session's own MTT count as base.
   const hasMTT = points.length > 1 && points.some(p => p.totalTournaments)
-  const cumMTT = (() => {
+  const { cumMTT, cumMTTX } = (() => {
     const raw = points.map(p => p.totalTournaments || 0)
     // Forward-fill zeros (use previous value + session tournaments)
     for (let i = 1; i < raw.length; i++) {
       if (!raw[i] && raw[i-1]) raw[i] = raw[i-1] + (points[i].tournaments || 0)
     }
-    return raw
+    // Positioning: normalize so filtered views start at x=0
+    const base = raw[0] || 0
+    const norm = raw.map(c => c - base)
+    // Anti-overlap nudge: only for data anomalies (duplicate/decreasing totalTournaments).
+    // Strict proportionality otherwise. ~0.8% of total range = visible gap.
+    const maxSoFar = norm[norm.length - 1] || 1
+    const nudge = Math.max(1, maxSoFar * 0.008)
+    for (let i = 1; i < norm.length; i++) {
+      if (norm[i] <= norm[i-1]) norm[i] = norm[i-1] + nudge
+    }
+    return { cumMTT: raw, cumMTTX: norm }
   })()
-  const totalMTT = cumMTT[cumMTT.length - 1] || 1
+  const totalMTTX = cumMTTX[cumMTTX.length - 1] || 1
 
   const xOf = (() => {
-    if (!hasMTT || totalMTT === 0)
+    if (!hasMTT || totalMTTX === 0)
       return i => pL + (i / Math.max(points.length - 1, 1)) * (W - pL - pR)
-
-    // Сырые позиции по МТТ
-    const raw = cumMTT.map(c => pL + (c / totalMTT) * (W - pL - pR))
-
-    // Минимальный отступ между соседними точками — иначе кривая схлопывается
-    const minGap = 20
-    const pos = [...raw]
-    for (let i = 1; i < pos.length; i++) {
-      if (pos[i] - pos[i-1] < minGap) pos[i] = pos[i-1] + minGap
-    }
-    // Если вышли за правый край — масштабируем назад
-    const overflow = pos[pos.length-1] - (W - pR)
-    if (overflow > 0) {
-      const span = pos[pos.length-1] - pos[0]
-      const target = W - pR - pos[0]
-      for (let i = 1; i < pos.length; i++)
-        pos[i] = pos[0] + (pos[i] - pos[0]) * (target / span)
-    }
-    return i => pos[i]
+    return i => pL + (cumMTTX[i] / totalMTTX) * (W - pL - pR)
   })()
   const coords = points.map((p,i) => ({ x:xOf(i), y:yOf(p.br) }))
   const linePath = makeBezierPath(coords)
@@ -192,9 +227,29 @@ function MarathonChart({ posts, meta, startBR, setLightbox, day }) {
 
   return (
     <div className="marathon-chart" ref={chartRef} onClick={tip?()=>setTip(null):undefined}>
-      <div className="section-head" style={{marginBottom:6}}>
+      <div className="section-head" style={{marginBottom:6,display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
         <span className="section-title">📈 График марафона</span>
-        <span className="section-count">{day?`день #${day}`:`${points.length} сессий`}</span>
+        <div style={{display:'flex',gap:4,marginLeft:'auto'}}>
+          {[['week','Неделя'],['month','Месяц'],['all','Всё время']].map(([k,label])=>(
+            <button key={k} onClick={()=>setPeriodPersist(k)}
+              style={{
+                background: period===k?'var(--red)':'var(--bg3)',
+                border:'1px solid '+(period===k?'var(--red)':'var(--border2)'),
+                borderRadius:4,
+                color: period===k?'#fff':'var(--dim2)',
+                fontSize:10,
+                padding:'3px 8px',
+                cursor:'pointer',
+                fontFamily:'inherit',
+                fontWeight:600,
+                textTransform:'uppercase',
+                letterSpacing:'.04em',
+              }}>
+              {label}
+            </button>
+          ))}
+        </div>
+        <span className="section-count">{pl(points.length, ['сессия','сессии','сессий'])}</span>
       </div>
       <svg className="mc-svg" viewBox={`0 0 ${W} ${H+pB}`}
         onMouseLeave={(e)=>{
@@ -385,14 +440,14 @@ function makeDaySummary(ps) {
     .map(([name, d]) => `${name}${d.rating ? ' ⭐'+d.rating : ''}`)
 
   let summary = ''
-  if (romeoCount) summary += `Ромео: ${romeoCount} пост${romeoCount > 1 ? 'а' : ''}. `
+  if (romeoCount) summary += `Ромео: ${pl(romeoCount, ['пост','поста','постов'])}. `
   if (topLikes > 0) summary += `Топ: +${topLikes} 👍. `
-  if (popular.length) summary += `${popular.length} постов набрали 20+ лайков. `
+  if (popular.length) summary += `${pl(popular.length, ['пост набрал','поста набрали','постов набрали'])} 20+ лайков. `
   if (topAuthors.length) summary += `Активные: ${topAuthors.join(', ')}.`
-  return summary || `${ps.length} постов.`
+  return summary || `${pl(ps.length, ['пост','поста','постов'])}.`
 }
 
-function ActivityChart({ posts, favorites, onFav, onIgnore, setLightbox,
+function ActivityChart({ posts, favorites, ignored, onFav, onIgnore, onUnignore, setLightbox,
                          sortBy, setSortBy, minLikes, setMinLikes, minRating, setMinRating, search }) {
   const [tip,      setTip]      = useState(null)
   const [selected, setSelected] = useState(null)
@@ -430,7 +485,7 @@ function ActivityChart({ posts, favorites, onFav, onIgnore, setLightbox,
       <div className="chart-wrap">
         <div className="section-head" style={{marginBottom:8}}>
           <span className="section-title">Активность постов</span>
-          <span className="section-count">{data.length} дней</span>
+          <span className="section-count">{pl(data.length, ['день','дня','дней'])}</span>
           {selected && (
             <button onClick={()=>setSelected(null)}
               style={{marginLeft:'auto',background:'none',border:'none',color:'var(--dim)',fontSize:13,cursor:'pointer',fontFamily:'inherit'}}>
@@ -482,7 +537,7 @@ function ActivityChart({ posts, favorites, onFav, onIgnore, setLightbox,
           return (
             <div style={{marginTop:8}}>
               <div style={{fontSize:11,fontWeight:700,color:'var(--dim2)',textTransform:'uppercase',letterSpacing:'.1em',marginBottom:6}}>
-                📅 {selected.date} — {selected.posts.length} постов
+                📅 {selected.date} — {pl(selected.posts.length, ['пост','поста','постов'])}
               </div>
               <div style={{fontSize:11,color:'var(--text)',lineHeight:1.5,padding:'8px 10px',background:'var(--bg3)',borderRadius:'var(--r)',marginBottom:8,borderLeft:'3px solid var(--red)'}}>
                 {summary}
@@ -491,8 +546,9 @@ function ActivityChart({ posts, favorites, onFav, onIgnore, setLightbox,
                 ? <div className="empty-state">Нет постов по фильтрам</div>
                 : dayPosts.map(p => (
                   <PostCard key={p.id||p.url} p={p}
-                    favorites={favorites||new Set()} onFav={onFav||(() =>{})}
-                    onIgnore={onIgnore||(() =>{})} setLightbox={setLightbox||(() =>{})}/>
+                    favorites={favorites||new Set()} ignored={ignored||new Set()}
+                    onFav={onFav||(() =>{})} onIgnore={onIgnore||(() =>{})} onUnignore={onUnignore||(() =>{})}
+                    setLightbox={setLightbox||(() =>{})}/>
                 ))
               }
             </div>
@@ -516,7 +572,7 @@ function ActivityChart({ posts, favorites, onFav, onIgnore, setLightbox,
     <div className="chart-wrap">
       <div className="section-head" style={{marginBottom:8}}>
         <span className="section-title">Активность постов</span>
-        <span className="section-count">последние {data.length} дней</span>
+        <span className="section-count">последние {pl(data.length, ['день','дня','дней'])}</span>
         {selected && (
           <button onClick={()=>setSelected(null)}
             style={{marginLeft:'auto',background:'none',border:'none',color:'var(--dim)',fontSize:11,cursor:'pointer',fontFamily:'inherit'}}>
@@ -589,7 +645,7 @@ function ActivityChart({ posts, favorites, onFav, onIgnore, setLightbox,
           }}>
             <div style={{fontWeight:700,color:'#fff',fontSize:12,marginBottom:4}}>📅 {tip.date}</div>
             <div style={{fontSize:11,color:'#888',marginBottom:6}}>
-              {tip.count} постов
+              {pl(tip.count, ['пост','поста','постов'])}
               {romeoPs.length ? ` · Ромео: ${romeoPs.length}` : ''}
               {topPost?.likes >= 5 ? ` · топ +${topPost.likes} 👍` : ''}
             </div>
@@ -647,7 +703,7 @@ function ActivityChart({ posts, favorites, onFav, onIgnore, setLightbox,
         return (
           <div style={{marginTop:12}}>
             <div style={{fontSize:11,fontWeight:700,color:'var(--dim2)',textTransform:'uppercase',letterSpacing:'.1em',marginBottom:8}}>
-              📅 {selected.date} — {selected.posts.length} постов
+              📅 {selected.date} — {pl(selected.posts.length, ['пост','поста','постов'])}
             </div>
             <div style={{fontSize:12,color:'var(--text)',lineHeight:1.6,padding:'10px 12px',background:'var(--bg3)',borderRadius:'var(--r)',marginBottom:10,borderLeft:'3px solid var(--red)'}}>{summary}</div>
             {/* Мини-фильтры */}
@@ -666,15 +722,16 @@ function ActivityChart({ posts, favorites, onFav, onIgnore, setLightbox,
                 <input className="filter-num" type="number" min="0" step="100" value={minRating} onChange={e=>setMinRating?.(+e.target.value||0)}
                   onFocus={e=>e.target.select()}/>
               </div>
-              <span style={{fontSize:11,color:'var(--dim)',marginLeft:'auto'}}>{dayPosts.length} постов</span>
+              <span style={{fontSize:11,color:'var(--dim)',marginLeft:'auto'}}>{pl(dayPosts.length, ['пост','поста','постов'])}</span>
             </div>
             <div style={{marginTop:4}}>
               {dayPosts.length === 0
                 ? <div className="empty-state">Нет постов по текущим фильтрам</div>
                 : dayPosts.map(p => (
                   <PostCard key={p.id||p.url} p={p}
-                    favorites={favorites||new Set()} onFav={onFav||(() =>{})}
-                    onIgnore={onIgnore||(() =>{})} setLightbox={setLightbox||(() =>{})}/>
+                    favorites={favorites||new Set()} ignored={ignored||new Set()}
+                    onFav={onFav||(() =>{})} onIgnore={onIgnore||(() =>{})} onUnignore={onUnignore||(() =>{})}
+                    setLightbox={setLightbox||(() =>{})}/>
                 ))
               }
             </div>
@@ -735,7 +792,7 @@ function FilterBar({ sortBy, setSortBy, search, setSearch, showSearch, setShowSe
           setRomeoOnly(false); setMinLikes(3); setMinRating(0); setSearch(''); setShowSearch(false);
         }}>✕</button>
       )}
-      <span className="filter-active-count">{count} постов</span>
+      <span className="filter-active-count">{pl(count, ['пост','поста','постов'])}</span>
     </div>
   )
 }
@@ -860,11 +917,29 @@ const S_TAG = {fontSize:9,color:'var(--dim)',background:'var(--bg3)',borderRadiu
 const S_MONO = {fontFamily:"'Roboto Mono',monospace",fontWeight:700}
 const menuHover = e => e.currentTarget.style.background = 'var(--bg3)'
 const menuLeave = e => e.currentTarget.style.background = ''
-const PostCard = memo(function PostCard({ p, favorites, onFav, onIgnore, onVote, setLightbox, noClamp=false, tags=null }) {
+const PostCard = memo(function PostCard({ p, favorites, ignored, onFav, onIgnore, onUnignore, onVote, setLightbox, noClamp=false, tags=null }) {
   const [exp, setExp]     = useState(false)
   const [menu, setMenu]   = useState(false)
+  const [revealIgnored, setRevealIgnored] = useState(false)
   const menuRef           = useRef(null)
-  const isFav  = favorites.has(p.id)
+  const isFav  = favorites?.has(p.author)
+  const isIgnored = ignored?.has(p.author)
+
+  if (isIgnored && !revealIgnored) {
+    return (
+      <div className="post-card" style={{opacity:.55,cursor:'pointer',padding:'10px 14px',display:'flex',alignItems:'center',gap:10,fontSize:12,color:'var(--dim2)'}}
+        onClick={()=>setRevealIgnored(true)}
+        title="Нажмите, чтобы развернуть">
+        <span style={{fontSize:16}}>🚫</span>
+        <span style={S_FLEX1}>
+          Пост от <b>{p.author}</b> (в игноре) · +{p.likes||0} 👍 · нажмите, чтобы посмотреть
+        </span>
+        {onUnignore && (
+          <button className="btn-sm" onClick={e=>{e.stopPropagation();onUnignore(p.author)}}>Вернуть</button>
+        )}
+      </div>
+    )
+  }
 
   useEffect(() => {
     if (!menu) return
@@ -928,7 +1003,7 @@ const PostCard = memo(function PostCard({ p, favorites, onFav, onIgnore, onVote,
             {p.author}
           </div>
           <div className="pc-author-meta">
-            {p.msgCount && <span>{fmtInt(p.msgCount)} постов</span>}
+            {p.msgCount && <span>{fmtInt(p.msgCount)} {plural(p.msgCount, ['пост','поста','постов'])}</span>}
             {p.regData  && <span>· {p.regData}</span>}
             {p.rating != null && (
               <><span>·</span><a href={ratingUrl} target="_blank" rel="noreferrer"
@@ -947,7 +1022,7 @@ const PostCard = memo(function PostCard({ p, favorites, onFav, onIgnore, onVote,
         </div>
         <div className="pc-date" title={p.date}>{timeAgo(p.timestamp) || p.date}</div>
         <div className="pc-actions">
-          <button className={`pc-action ${isFav?'on':''}`} onClick={()=>onFav(p.id)} title="Избранное">⭐</button>
+          <button className={`pc-action ${isFav?'on':''}`} onClick={()=>onFav(p.author)} title={isFav?'Убрать автора из избранного':'Добавить автора в избранное'}>⭐</button>
           <button className="pc-action" onClick={()=>onIgnore(p.author)} title="Игнорировать">🚫</button>
         </div>
       </div>
@@ -985,6 +1060,70 @@ const PostCard = memo(function PostCard({ p, favorites, onFav, onIgnore, onVote,
     </div>
   )
 })
+
+// ─── TEMPO VALUE (animated, used in progress bar) ────────────────────────────
+// Smoothly tweens `target` when it changes (e.g. user toggles chart period).
+// Briefly pulses with a subtle highlight to draw the eye.
+function TempoValue({ target, title }) {
+  const v = useTweenValue(target, 700)
+  const [pulse, setPulse] = useState(false)
+  const prev = useRef(target)
+  useEffect(() => {
+    if (prev.current !== target) {
+      prev.current = target
+      setPulse(true)
+      const t = setTimeout(() => setPulse(false), 700)
+      return () => clearTimeout(t)
+    }
+  }, [target])
+  return (
+    <span className={`mps-value tempo-val ${pulse?'pulse':''}`} title={title}>
+      ~{fmtInt(Math.round(v))}
+    </span>
+  )
+}
+
+// ─── AUTHORS PANEL ────────────────────────────────────────────────────────────
+function AuthorsPanel({ authors, favorites, ignored, onFav, onIgnore, onUnignore, onVote, setLightbox }) {
+  const [expanded, setExpanded] = useState(null)
+  return (
+    <div>
+      {authors.map(a => {
+        const open = expanded === a.name
+        const isFav = favorites?.has(a.name)
+        return (
+          <div key={a.name} className="author-row" style={{marginBottom:6,border:'1px solid var(--border)',borderRadius:8,background:'var(--bg2)'}}>
+            <div style={{display:'flex',alignItems:'center',gap:10,padding:'10px 14px',cursor:'pointer'}}
+              onClick={()=>setExpanded(open ? null : a.name)}>
+              <div style={{width:28,height:28,borderRadius:'50%',background:'var(--red)',overflow:'hidden',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,fontWeight:700,color:'#fff'}}>
+                {a.posts[0]?.avatar
+                  ? <img src={a.posts[0].avatar} alt="" style={{width:'100%',height:'100%',objectFit:'cover'}} onError={e=>e.target.style.display='none'}/>
+                  : a.name[0]?.toUpperCase()}
+              </div>
+              <div style={S_FLEX1}>
+                <div style={{fontWeight:700,color:'var(--white)',fontSize:13}}>{a.name} {isFav && <span title="В избранном">⭐</span>}</div>
+                <div style={{fontSize:11,color:'var(--dim)',fontFamily:"'Roboto Mono',monospace"}}>
+                  {pl(a.count, ['пост','поста','постов'])} · <span style={{color:'var(--green)'}}>+{a.likes}</span> 👍
+                </div>
+              </div>
+              <button className="pc-action" onClick={e=>{e.stopPropagation();onFav?.(a.name)}} title="В избранное">⭐</button>
+              <span style={{fontSize:11,color:'var(--dim)',opacity:.7}}>{open ? '▲' : '▼'}</span>
+            </div>
+            {open && (
+              <div style={{borderTop:'1px solid var(--border)',padding:'8px 10px'}}>
+                {a.posts.slice(0, 20).map(p => (
+                  <PostCard key={p.id||p.url} p={p}
+                    favorites={favorites} ignored={ignored} onFav={onFav}
+                    onIgnore={onIgnore} onUnignore={onUnignore} onVote={onVote} setLightbox={setLightbox}/>
+                ))}
+              </div>
+            )}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
 
 // ─── PAGINATOR ────────────────────────────────────────────────────────────────
 function Paginator({ page, totalPages, onPage, perPage, onPerPage, total }) {
@@ -1158,8 +1297,9 @@ export default function App() {
   const [ignored, setIgnored] = useState(() => {
     try { return new Set(JSON.parse(localStorage.getItem('rpt_ignored')||'[]')) } catch { return new Set() }
   })
+  // favorites = per-author (Set of author names). Favorited authors' posts bypass like/rating filters.
   const [favorites, setFavorites] = useState(() => {
-    try { return new Set(JSON.parse(localStorage.getItem('rpt_favs')||'[]')) } catch { return new Set() }
+    try { return new Set(JSON.parse(localStorage.getItem('rpt_fav_authors')||'[]')) } catch { return new Set() }
   })
   const [ignoreInput, setIgnoreInput] = useState('')
 
@@ -1168,6 +1308,8 @@ export default function App() {
 
   useEffect(() => {
     const enrichPosts = (posts, meta) => {
+      // Merge same-session duplicate brHistory entries before anything else touches it.
+      if (meta?.brHistory?.length) meta.brHistory = dedupBrHistory(meta.brHistory)
       const brHistory = meta?.brHistory
       if (brHistory?.length) {
         const brById = new Map(brHistory.filter(h=>h.id).map(h=>[h.id, h]))
@@ -1231,6 +1373,35 @@ export default function App() {
     try { localStorage.setItem('rpt_theme', theme) } catch {}
   }, [theme])
 
+  // Auto-fit to screen: scale root so 1500px design fits user's desktop viewport.
+  // Clamped so big monitors don't over-inflate and small ones don't shrink past readable.
+  // Skipped on mobile — the ≤720px media query handles narrow layout separately.
+  // rAF-throttled and only writes when the value actually changes, so live resize is smooth.
+  useEffect(() => {
+    let raf = 0
+    let lastZ = ''
+    const fit = () => {
+      raf = 0
+      const vw = window.innerWidth
+      const next = vw < 900
+        ? ''
+        : Math.min(1.25, Math.max(0.85, vw / 1500)).toFixed(2)
+      if (next === lastZ) return
+      lastZ = next
+      document.documentElement.style.zoom = next
+    }
+    const onResize = () => {
+      if (raf) return
+      raf = requestAnimationFrame(fit)
+    }
+    fit()
+    window.addEventListener('resize', onResize, { passive: true })
+    return () => {
+      window.removeEventListener('resize', onResize)
+      if (raf) cancelAnimationFrame(raf)
+    }
+  }, [])
+
   // Stats из постов Ромео
   const stats = useMemo(() => {
     const startBR = meta?.startBankroll || 10000
@@ -1243,18 +1414,26 @@ export default function App() {
       const profit = br - startBR
       const totalTourneys = meta?.totalTournaments || null
 
+      // Session-level stats
+      const sessionsCount = brHistory.length
+      const positiveSessions = brHistory.filter(h => (h.sessionResult||0) > 0).length
+      const winRate = sessionsCount ? positiveSessions / sessionsCount : null
+      const avgMTT = (totalTourneys && sessionsCount)
+        ? Math.round(totalTourneys / sessionsCount)
+        : null
+
       // День из текста постов Ромео (как он сам нумерует), fallback на кол-во сессий
       const romeoByDate = posts.filter(p => ROMEO_RE.test(p.author)).sort((a,b) => (b.timestamp||0)-(a.timestamp||0))
       let day = null
       for (const p of romeoByDate) { day = extractDay(p.text); if (day) break }
       if (!day) day = brHistory.length
 
-      return { br, profit, startBR, day, lastDate: last.date, totalTourneys }
+      return { br, profit, startBR, day, lastDate: last.date, totalTourneys, sessionsCount, winRate, avgMTT }
     }
 
     if (!posts.length) return { startBR }
     const romeoByDate = posts
-      .filter(p => /romeopro/i.test(p.author))
+      .filter(p => ROMEO_RE.test(p.author))
       .sort((a,b) => (b.timestamp||0)-(a.timestamp||0))
 
     let day = null, br = null
@@ -1269,29 +1448,68 @@ export default function App() {
 
   const [sidebarTopPeriod, setSidebarTopPeriod] = useState('all')
 
+  // Period for marathon chart & tempo estimates — lifted up so progress bar can react.
+  const [chartPeriod, setChartPeriodRaw] = useState(() => {
+    try { return localStorage.getItem('rpt_chart_period') || 'all' } catch { return 'all' }
+  })
+  const setChartPeriod = (p) => {
+    setChartPeriodRaw(p); try { localStorage.setItem('rpt_chart_period', p) } catch {}
+  }
+
+  // Session stats recomputed against the chart-period filter so МТТ/сессия
+  // and % плюсовых react when the user toggles week/month/all.
+  const periodStats = useMemo(() => {
+    const hist = meta?.brHistory
+    if (!hist?.length || chartPeriod === 'all') return null
+    const now = Date.now() / 1000
+    const cutoff = chartPeriod === 'week' ? now - 7*86400 : now - 30*86400
+    const sub = hist.filter(h => (h.timestamp || 0) >= cutoff)
+    if (sub.length < 2) return null
+    const positive = sub.filter(h => (h.sessionResult || 0) > 0).length
+    const totalMTT = sub.reduce((s, h) => s + (h.tournaments || 0), 0)
+    const avgMTT = totalMTT ? Math.round(totalMTT / sub.length) : null
+    return {
+      sessionsCount: sub.length,
+      positiveSessions: positive,
+      winRate: positive / sub.length,
+      avgMTT,
+    }
+  }, [meta, chartPeriod])
+  const periodLabel = chartPeriod === 'week' ? 'неделю' : chartPeriod === 'month' ? 'месяц' : null
+
+  // Favorited authors bypass like/rating filters entirely.
+  // Ignored authors are hidden unless post has >=30 likes (then PostCard shows a placeholder).
+  const IGNORED_THRESHOLD = 30
+  const passesLikeRating = (p) => {
+    if (favorites.has(p.author)) return true
+    if (minLikes  && (p.likes||0)  < minLikes)  return false
+    if (minRating && (p.rating||0) < minRating) return false
+    return true
+  }
+  const passesIgnored = (p) => !ignored.has(p.author) || (p.likes||0) >= IGNORED_THRESHOLD
+
   // hotPosts — для сайдбара "Больше всего плюсиков"
   const hotPosts = useMemo(() =>
     posts
-      .filter(p => !ignored.has(p.author))
-      .filter(p => !minRating || (p.rating||0) >= minRating)
-      .filter(p => (p.likes||0) >= Math.max(minLikes, 1))
+      .filter(p => !ignored.has(p.author)) // top list never shows ignored
+      .filter(p => favorites.has(p.author) || (!minRating || (p.rating||0) >= minRating))
+      .filter(p => favorites.has(p.author) || (p.likes||0) >= Math.max(minLikes, 1))
       .sort((a,b) => (b.likes||0) - (a.likes||0))
-  , [posts, ignored, minLikes, minRating])
+  , [posts, ignored, favorites, minLikes, minRating])
 
   const feedPosts = useMemo(() =>
     posts
-      .filter(p => !ignored.has(p.author))
-      .filter(p => !romeoOnly || /romeopro/i.test(p.author))
+      .filter(passesIgnored)
+      .filter(p => !romeoOnly || ROMEO_RE.test(p.author))
       .filter(p => !search || p.text?.toLowerCase().includes(search.toLowerCase()))
-      .filter(p => !minLikes  || (p.likes||0)  >= minLikes)
-      .filter(p => !minRating || (p.rating||0) >= minRating)
+      .filter(passesLikeRating)
       .sort((a,b) => {
         if (sortBy==='date_desc') return (b.timestamp||0)-(a.timestamp||0)
         if (sortBy==='date_asc')  return (a.timestamp||0)-(b.timestamp||0)
         if (sortBy==='likes')     return (b.likes||0)-(a.likes||0)
         return 0
       }),
-  [posts, ignored, search, sortBy, romeoOnly, minLikes, minRating])
+  [posts, ignored, favorites, search, sortBy, romeoOnly, minLikes, minRating])
 
   // При смене фильтров — умный сброс страницы
   // Если были в конце — остаёмся в конце, если в начале — в начале
@@ -1306,7 +1524,7 @@ export default function App() {
       setPage(Math.max(1, Math.round(ratio * currentTotal)))
     }
     // Если page === 1 — ничего не делаем, остаёмся на 1
-  }, [ignored, search, sortBy, romeoOnly, minLikes, minRating]) // eslint-disable-line
+  }, [ignored, favorites, search, sortBy, romeoOnly, minLikes, minRating]) // eslint-disable-line
 
   // Восстанавливаем позицию чтения при первой загрузке постов
   useEffect(() => {
@@ -1320,16 +1538,20 @@ export default function App() {
 
   // ── КЛАССИФИКАЦИЯ ПО ТЕМАМ ──────────────────────────────────────────────
   const TAG_RULES = [
-    { id:'staking',    icon:'💰', label:'Стейкинг/Доли',    re:/стейкинг|стейк|бекинг|бек\b|доли\b|доля\b|продаж.*дол|конюшн|инвестор|инвестиц|кэф.*дол/i },
+    { id:'staking',    icon:'💰', label:'Стейкинг',          re:/стейкинг|стейк|бекинг|бек\b|доли\b|доля\b|продаж.*дол|конюшн|инвестор|инвестиц|кэф.*дол/i },
     { id:'debt',       icon:'🔴', label:'Долги',             re:/долг|должен|кредит|занял|отдаст|должник/i },
+    { id:'money',      icon:'💵', label:'Деньги/Банкролл',   re:/банкролл|\bбр\b|депозит|вывод|кэшаут|cashout|10\s*млн|миллион|проигрыш|выигрыш|прибыль|убыт/i },
     { id:'strategy',   icon:'📊', label:'Стратегия',         re:/стратег|рои\b|roi\b|abi\b|аби\b|скилл|brm|эдж|солвер|ренж|рейнж|префлоп|постфлоп|\bev\b|рейк|ракебек|загрузк/i },
     { id:'variance',   icon:'🎲', label:'Дисперсия',         re:/дисперси|даунстрик|апстрик|свинг|вариан/i },
     { id:'psychology', icon:'🧠', label:'Психология',        re:/психолог|тилт\b|tilt\b|эмоц|дисциплин|мышлени|менталь|мотивац|выгоран|депресс|стресс/i },
     { id:'mtt',        icon:'🏆', label:'МТТ/Турниры',       re:/мтт|турнир|mystery|мистери|баунти|фризаут|сателлит/i },
+    { id:'rooms',      icon:'🏷', label:'Румы/Софт',         re:/\bgg\b|pokerstars|\bps\b|старз|покерок|покерки|king|кинг|coin|coinpoker|ipoker|partypoker|winamax|888poker/i },
     { id:'content',    icon:'📺', label:'Стримы/Контент',    re:/стрим|твич|twitch|ютуб|youtube|подкаст|видео|контент|блог|донат/i },
     { id:'chess',      icon:'♟',  label:'Шахматы/Гнат',      re:/шахмат|гнат\b|gnat\b|фишер.*шахмат|карлсен/i },
     { id:'life',       icon:'🏠', label:'Жизнь/Офтоп',       re:/жизн|семь[яи]|жен[аеыщ]|муж\b|дет[яиейс]|ребен|здоров|работ[аеу]|карьер|образован|универ|учеб/i },
     { id:'live',       icon:'🎰', label:'Лайв/Кеш',          re:/офлайн|оффлайн|кеш\s*гейм|cash.*game|живая.*игр|живой.*покер|казино|вегас|серия\b/i },
+    { id:'critique',   icon:'⚡', label:'Критика/Скепсис',    re:/хайп|развод|скам|скептич|не\s*верю|обман|фейк|пиар\b|нерельно|мечт|утопи/i },
+    { id:'goal',       icon:'🎯', label:'Цель/Прогноз',       re:/успеет|не\s*успеет|дойдёт|дойдет|не\s*дойд|прогноз|шансы|ставк.*на/i },
   ]
 
   const detectTags = (text) => {
@@ -1339,14 +1561,15 @@ export default function App() {
   }
 
   const classifiedPosts = useMemo(() => {
-    if (!posts.length) return { marathon:[], discussion:[], debate:[], byTag:{} }
-    const result = { marathon:[], discussion:[], debate:[], byTag:{} }
+    const empty = { marathon:[], discussion:[], debate:[], highlikes:[], byTag:{}, authorStats:[] }
+    if (!posts.length) return empty
+    const result = { marathon:[], discussion:[], debate:[], highlikes:[], byTag:{}, authorStats:[] }
     TAG_RULES.forEach(r => { result.byTag[r.id] = [] })
+    const byAuthor = new Map() // author -> { count, likes, posts:[] }
 
     posts.forEach(p => {
-      if (ignored.has(p.author)) return
-      if (minLikes  && (p.likes||0)  < minLikes)  return
-      if (minRating && (p.rating||0) < minRating) return
+      if (!passesIgnored(p)) return
+      if (!passesLikeRating(p)) return
       if (search && !p.text?.toLowerCase().includes(search.toLowerCase())) return
       const text = p.text || ''
       const likes = p.likes || 0
@@ -1355,13 +1578,23 @@ export default function App() {
 
       if (ROMEO_RE.test(p.author)) {
         result.marathon.push(tagged)
-      } else if (ROMEO_RE.test(text) && (text.length > 80 || likes >= 5)) {
-        result.discussion.push(tagged)
-      }
-
-      // Дебаты — длинный качественный контент
-      if (!ROMEO_RE.test(p.author) && text.length > 300 && likes >= 20) {
-        result.debate.push(tagged)
+      } else {
+        // Про Ромео — обсуждения с упоминанием
+        if (ROMEO_RE.test(text) && (text.length > 80 || likes >= 5)) {
+          result.discussion.push(tagged)
+        }
+        // Дебаты — длинный качественный контент
+        if (text.length > 300 && likes >= 20) {
+          result.debate.push(tagged)
+        }
+        // Хайлайты — посты с ≥10 лайков от не-Ромео (короткие вайбы тоже ок)
+        if (likes >= 10) {
+          result.highlikes.push(tagged)
+        }
+        // Статистика авторов
+        const a = byAuthor.get(p.author) || { count:0, likes:0, posts:[] }
+        a.count++; a.likes += likes; a.posts.push(tagged)
+        byAuthor.set(p.author, a)
       }
 
       // Теги — пост может попасть в несколько тегов
@@ -1373,11 +1606,19 @@ export default function App() {
     result.marathon.sort((a,b) => (b.timestamp||0)-(a.timestamp||0))
     result.discussion.sort((a,b) => (b.timestamp||0)-(a.timestamp||0))
     result.debate.sort((a,b) => (b.likes||0)-(a.likes||0))
+    result.highlikes.sort((a,b) => (b.likes||0)-(a.likes||0))
     TAG_RULES.forEach(r => {
       result.byTag[r.id].sort((a,b) => (b.likes||0)-(a.likes||0))
     })
+
+    // Топ-авторы (≥3 постов или ≥10 суммарных лайков), сортировка по суммарным лайкам
+    result.authorStats = [...byAuthor.entries()]
+      .map(([name, v]) => ({ name, count:v.count, likes:v.likes, posts:v.posts.sort((a,b)=>(b.likes||0)-(a.likes||0)) }))
+      .filter(a => a.count >= 3 || a.likes >= 10)
+      .sort((a,b) => b.likes - a.likes)
+
     return result
-  }, [posts, ignored, minLikes, minRating, search])
+  }, [posts, ignored, favorites, minLikes, minRating, search])
 
   const [topicTab, setTopicTab] = useState('marathon')
   const [topicPage, setTopicPage] = useState(1)
@@ -1456,11 +1697,12 @@ export default function App() {
     setTopicPage(1)
   }
 
-  const toggleFav = useCallback(id => {
+  const toggleFav = useCallback(author => {
+    if (!author) return
     setFavorites(prev => {
       const next = new Set(prev)
-      next.has(id) ? next.delete(id) : next.add(id)
-      localStorage.setItem('rpt_favs', JSON.stringify([...next]))
+      next.has(author) ? next.delete(author) : next.add(author)
+      localStorage.setItem('rpt_fav_authors', JSON.stringify([...next]))
       return next
     })
   }, [])
@@ -1533,6 +1775,46 @@ export default function App() {
 
   // ── ANIMATED COUNTER ─────────────────────────────────────────────────────
   const brVal  = stats?.br || meta?.bankroll || 0
+  // Remember the last BR the user saw on their previous visit, so the animation
+  // starts from that value (not from marathon start) and highlights only what
+  // changed since then. Captured once on mount; persisted after each animation.
+  const [lastSeenBR] = useState(() => {
+    try { const v = parseFloat(localStorage.getItem('rpt_last_seen_br')); return Number.isFinite(v) ? v : null }
+    catch { return null }
+  })
+  // Real BR trajectory for the hero counter, sliced to "since last visit".
+  // If we have no prior seen value, we replay the full marathon from start.
+  const brPath = useMemo(() => {
+    const hist = meta?.brHistory
+    if (!hist?.length || !brVal) return null
+    const sorted = [...hist].sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0))
+    const full = [stats?.startBR || 10000, ...sorted.map(h => h.brAfter)]
+    if (lastSeenBR == null) return full
+    // Find waypoint closest by value to lastSeenBR and animate from there.
+    let closestIdx = 0, best = Infinity
+    for (let i = 0; i < full.length; i++) {
+      const d = Math.abs(full[i] - lastSeenBR)
+      if (d < best) { best = d; closestIdx = i }
+    }
+    if (closestIdx >= full.length - 1) return [lastSeenBR, brVal]
+    return [lastSeenBR, ...full.slice(closestIdx + 1)]
+  }, [meta, stats?.startBR, lastSeenBR, brVal])
+  // Delta-aware dramatism: tiny change → slow + dramatic, big change → fast scrub.
+  const brDuration = useMemo(() => {
+    if (lastSeenBR == null || !brVal) return 4200
+    const ratio = Math.abs(brVal - lastSeenBR) / brVal
+    if (ratio < 0.005) return 5200
+    if (ratio < 0.03)  return 4000
+    if (ratio < 0.1)   return 3000
+    return 2200
+  }, [lastSeenBR, brVal])
+  useEffect(() => {
+    if (!brVal) return
+    const t = setTimeout(() => {
+      try { localStorage.setItem('rpt_last_seen_br', String(brVal)) } catch {}
+    }, brDuration + 250)
+    return () => clearTimeout(t)
+  }, [brVal, brDuration])
 
   return (
     <>
@@ -1596,9 +1878,49 @@ export default function App() {
         const raw = (stats.br - start) / (target - start) * 100
         const pct = Math.max(0, Math.min(100, raw))
         const remaining = Math.max(0, target - stats.br)
-        const profit = stats.br - start
-        const totalMTT = stats.totalTourneys || meta?.totalTournaments
-        const mttNeeded = (profit > 0 && totalMTT) ? Math.ceil(remaining * totalMTT / profit) : null
+
+        // Темп зависит от выбранного периода графика:
+        //   week  → $/MTT за последние 7 дней сессий
+        //   month → за последние 30 дней
+        //   all   → за весь марафон (как раньше)
+        const hist = meta?.brHistory
+        let periodProfit = null, periodMTT = null
+        if (hist?.length) {
+          if (chartPeriod === 'all') {
+            periodProfit = stats.br - start
+            periodMTT    = stats.totalTourneys || meta?.totalTournaments || null
+          } else {
+            const now = Date.now() / 1000
+            const cutoff = chartPeriod === 'week' ? now - 7*86400 : now - 30*86400
+            const sorted = [...hist].sort((a,b)=>(a.timestamp||0)-(b.timestamp||0))
+            const insideIdx = sorted.findIndex(h => (h.timestamp||0) >= cutoff)
+            if (insideIdx >= 0) {
+              const firstInside = sorted[insideIdx]
+              const baseBR = insideIdx === 0 ? start : sorted[insideIdx-1].brAfter
+              const lastBR = sorted[sorted.length-1].brAfter
+              periodProfit = lastBR - baseBR
+              periodMTT = sorted.slice(insideIdx).reduce((s,h)=>s+(h.tournaments||0), 0) || null
+              if (!periodMTT) {
+                // fallback: delta of cumulative totalTournaments
+                const baseTotal = insideIdx === 0 ? 0 : (sorted[insideIdx-1].totalTournaments||0)
+                const lastTotal = sorted[sorted.length-1].totalTournaments||0
+                periodMTT = Math.max(0, lastTotal - baseTotal) || null
+              }
+            }
+          }
+        }
+        const mttNeeded = (periodProfit > 0 && periodMTT)
+          ? Math.ceil(remaining * periodMTT / periodProfit)
+          : null
+        const dollarPerMTT = (periodProfit > 0 && periodMTT)
+          ? periodProfit / periodMTT
+          : null
+        const tempoLabel = chartPeriod === 'week'  ? 'МТТ темпом недели'
+                         : chartPeriod === 'month' ? 'МТТ темпом месяца'
+                         : 'МТТ текущим темпом'
+        const tempoTitle = chartPeriod === 'all'
+          ? 'Сколько МТТ нужно сыграть до $10M при среднем $/МТТ за весь марафон'
+          : `Темп оценён по профиту и МТТ за выбранный период на графике (${chartPeriod==='week'?'7':'30'} дней)`
         return (
           <div className="marathon-progress">
             <div className="marathon-progress-inner">
@@ -1613,13 +1935,23 @@ export default function App() {
               <div className="marathon-progress-side">
                 <div className="mps-item">
                   <span className="mps-label">Осталось</span>
-                  <span className="mps-value">${fmtInt(remaining)}</span>
+                  <span className="mps-value">{fmtInt(remaining)}$</span>
                 </div>
                 {mttNeeded && <>
                   <div className="mps-divider"/>
                   <div className="mps-item">
-                    <span className="mps-label">МТТ текущим темпом</span>
-                    <span className="mps-value" title="Сколько МТТ нужно сыграть до $10M при текущем $/МТТ">~{fmtInt(mttNeeded)}</span>
+                    <span className="mps-label">{tempoLabel}</span>
+                    <span className="mps-value-row">
+                      <TempoValue target={mttNeeded} title={tempoTitle}/>
+                      {dollarPerMTT != null && (
+                        <span className="mps-rate-inline" title="Текущий $/МТТ за выбранный период">
+                          {(() => {
+                            const r = Math.round(dollarPerMTT * 2) / 2
+                            return (Number.isInteger(r) ? r : r.toFixed(1)) + '$/МТТ'
+                          })()}
+                        </span>
+                      )}
+                    </span>
                   </div>
                 </>}
               </div>
@@ -1652,14 +1984,37 @@ export default function App() {
               <div className="hero-stats">
                 <div className="hstat">
                   <div className="hstat-label">Банкролл</div>
-                  <div className={`hstat-value ${brVal?'green':''}`} style={{fontSize:18}}>
-                    <AnimatedValue target={brVal} format={fmtExact} />
+                  <div className="hstat-value br-anim">
+                    <AnimatedValue
+                      target={brVal}
+                      path={brPath}
+                      duration={brDuration}
+                      format={fmtExact}
+                      render={(v) => {
+                        const up = v >= (stats.startBR || 10000)
+                        const color = up ? '#66bb6a' : 'var(--red2)'
+                        const glow  = up ? 'rgba(102,187,106,.28)' : 'rgba(239,83,80,.28)'
+                        return (
+                          <span style={{
+                            color,
+                            fontFamily:"'Roboto Mono',ui-monospace,monospace",
+                            fontVariantNumeric:'tabular-nums',
+                            fontWeight:700,
+                            letterSpacing:'-0.02em',
+                            textShadow:`0 0 14px ${glow}`,
+                            transition:'color .2s, text-shadow .2s',
+                          }}>
+                            {fmtExact(v)}
+                          </span>
+                        )
+                      }}
+                    />
                   </div>
                   <div className="hstat-sub">старт: {fmtExact(stats.startBR)}</div>
                 </div>
                 <div className="hstat">
                   <div className="hstat-label">Профит</div>
-                  <div className={`hstat-value ${!stats.profit?'':stats.profit>=0?'green':'red'}`} style={{fontSize:18}}>
+                  <div className={`hstat-value ${!stats.profit?'':stats.profit>=0?'green':'red'}`}>
                     {fmtBR(stats.profit)}
                   </div>
                 </div>
@@ -1679,13 +2034,16 @@ export default function App() {
             {/* ТЕМЫ */}
             {activeTab==='topics' && (() => {
               const MAIN_TABS = [
-                { id:'marathon',   icon:'📈', label:'Марафон',    desc:'Все посты Ромео' },
-                { id:'discussion', icon:'💬', label:'Про Ромео',  desc:'Обсуждение и реакции на Ромео' },
-                { id:'debate',     icon:'🔥', label:'Топ-контент',desc:'Длинные посты с высоким рейтингом' },
-                { id:'tags',       icon:'🏷', label:'По темам',   desc:'Все посты по тематикам' },
+                { id:'marathon',   icon:'📈', label:'Марафон',     desc:'Все посты Ромео' },
+                { id:'discussion', icon:'💬', label:'Про Ромео',   desc:'Обсуждение и реакции на Ромео' },
+                { id:'debate',     icon:'🔥', label:'Длинные посты', desc:'Серьёзный контент (300+ символов, 20+ лайков)' },
+                { id:'highlikes',  icon:'⭐', label:'Хайлайты',    desc:'Самые залайканные посты форума' },
+                { id:'authors',    icon:'👥', label:'Авторы',      desc:'Топ-контрибьюторы треда' },
+                { id:'tags',       icon:'🏷', label:'По темам',    desc:'Все посты по тематикам' },
               ]
               const { paged, totalPages: tpg, all } = currentTopicPosts
               const isTagMode = topicTab === 'tags'
+              const isAuthorsMode = topicTab === 'authors'
               const activeTagRule = isTagMode && topicTag ? TAG_RULES.find(r=>r.id===topicTag) : null
               return <>
                 <FilterBar
@@ -1707,7 +2065,9 @@ export default function App() {
                       <span className="tc">{
                         t.id === 'tags'
                           ? Object.values(classifiedPosts.byTag).reduce((s,a)=>s+a.length, 0)
-                          : classifiedPosts[t.id]?.length||0
+                          : t.id === 'authors'
+                            ? (classifiedPosts.authorStats?.length || 0)
+                            : (classifiedPosts[t.id]?.length || 0)
                       }</span>
                     </div>
                   ))}
@@ -1727,7 +2087,7 @@ export default function App() {
                             border: '1px solid ' + (active ? 'var(--red)' : 'var(--border)'),
                             borderRadius:20, color: active ? '#fff' : 'var(--dim2)',
                             fontSize:11, padding:'5px 12px', cursor:'pointer', fontFamily:'inherit',
-                            transition:'all .15s',
+                            transition:'all .15s', whiteSpace:'nowrap', flexShrink:0,
                           }}>
                           {r.icon} {r.label} <span style={{opacity:.6,fontSize:10}}>{count}</span>
                         </button>
@@ -1740,20 +2100,29 @@ export default function App() {
                 <div style={{fontSize:12,color:'var(--dim)',marginBottom:10}}>
                   {isTagMode
                     ? (activeTagRule ? `${activeTagRule.icon} ${activeTagRule.label}` : 'Выберите тему')
-                    : MAIN_TABS.find(t=>t.id===topicTab)?.desc
-                  } · {all.length} постов
+                    : isAuthorsMode
+                      ? `Топ-контрибьюторы (${classifiedPosts.authorStats?.length||0})`
+                      : MAIN_TABS.find(t=>t.id===topicTab)?.desc
+                  }{!isAuthorsMode && ` · ${pl(all.length, ['пост','поста','постов'])}`}
                 </div>
 
-                {/* Теги постов */}
-                {all.length===0
+                {/* Авторы-режим */}
+                {isAuthorsMode
+                  ? ((classifiedPosts.authorStats?.length||0)===0
+                      ? <div className="empty-state">Пока нет данных</div>
+                      : <AuthorsPanel authors={classifiedPosts.authorStats}
+                          favorites={favorites} ignored={ignored}
+                          onFav={toggleFav} onIgnore={addIgnore} onUnignore={removeIgnore}
+                          onVote={handleVote} setLightbox={setLightbox}/>)
+                  : all.length===0
                   ? <div className="empty-state">{isTagMode && !topicTag ? 'Выберите тему выше' : 'Постов не найдено'}</div>
                   : <>
                     <Paginator page={topicPage} totalPages={tpg} onPage={goTopicPage}
                       perPage={TOPIC_PER_PAGE} onPerPage={()=>{}} total={all.length}/>
                     {paged.map(p=>(
                       <PostCard key={p.id||p.url} p={p}
-                        favorites={favorites} onFav={toggleFav}
-                        onIgnore={addIgnore} onVote={handleVote} setLightbox={setLightbox}
+                        favorites={favorites} ignored={ignored} onFav={toggleFav}
+                        onIgnore={addIgnore} onUnignore={removeIgnore} onVote={handleVote} setLightbox={setLightbox}
                         noClamp={topicTab==='marathon'}
                         tags={p._tags && isTagMode ? p._tags.filter(t=>t!==topicTag).map(t=>TAG_RULES.find(r=>r.id===t)).filter(Boolean) : null}/>
                     ))}
@@ -1769,21 +2138,44 @@ export default function App() {
               {/* Mobile-only stats strip */}
               <div className="mobile-stats">
                 {[
-                  ['БР', fmtExact(stats.br||meta?.bankroll), stats.br?'green':''],
+                  ['БР',
+                    <AnimatedValue key="br-anim" target={brVal} path={brPath} duration={brDuration}
+                      format={fmtExact}
+                      render={(v)=>{
+                        const up = v >= (stats.startBR || 10000)
+                        const color = up ? '#66bb6a' : 'var(--red2)'
+                        const glow  = up ? 'rgba(102,187,106,.28)' : 'rgba(239,83,80,.28)'
+                        return <span style={{color,fontVariantNumeric:'tabular-nums',letterSpacing:'-0.02em',textShadow:`0 0 12px ${glow}`,transition:'color .2s, text-shadow .2s'}}>{fmtExact(v)}</span>
+                      }}/>,
+                    ''],
                   ['Профит', fmtBR(stats.profit), !stats.profit?'':stats.profit>=0?'green':'red'],
                   ['День', `#${stats.day||meta?.day||'—'}`, 'gold'],
                   ['МТТ', fmtInt(meta?.totalTournaments ?? 3565), ''],
-                ].map(([k,v,cls])=>(
+                  (periodStats?.avgMTT ?? stats.avgMTT) != null && [
+                    'МТТ / сессия' + (periodStats?.avgMTT != null ? '*' : ''),
+                    fmtInt(periodStats?.avgMTT ?? stats.avgMTT),
+                    '',
+                  ],
+                  (periodStats?.winRate ?? stats.winRate) != null && [
+                    'Плюсовых сессий' + (periodStats?.winRate != null ? '*' : ''),
+                    `${Math.round((periodStats?.winRate ?? stats.winRate)*100)}%`,
+                    '',
+                  ],
+                ].filter(Boolean).map(([k,v,cls])=>(
                   <div key={k} className="mobile-stat">
                     <div className="mobile-stat-label">{k}</div>
                     <div className={`mobile-stat-value ${cls}`}>{v}</div>
                   </div>
                 ))}
               </div>
-              <MarathonChart posts={posts} meta={meta} startBR={stats.startBR} setLightbox={setLightbox} day={stats.day}/>
+              {periodStats && (
+                <div className="mobile-stats-note">* с учётом фильтра на графике ({periodLabel})</div>
+              )}
+              <MarathonChart posts={posts} meta={meta} startBR={stats.startBR} setLightbox={setLightbox}
+                period={chartPeriod} setPeriod={setChartPeriod}/>
               <ActivityChart posts={posts}
-                favorites={favorites} onFav={toggleFav}
-                onIgnore={addIgnore} setLightbox={setLightbox}
+                favorites={favorites} ignored={ignored} onFav={toggleFav}
+                onIgnore={addIgnore} onUnignore={removeIgnore} setLightbox={setLightbox}
                 sortBy={sortBy} setSortBy={setSortBy}
                 minLikes={minLikes} setMinLikes={setMinLikes}
                 minRating={minRating} setMinRating={setMinRating}
@@ -1834,7 +2226,7 @@ export default function App() {
               />
               {newPostIds.length > 0 && activeTab === 'feed' && (
                 <button className="new-posts-bubble" onClick={goToNewPosts}>
-                  {newPostIds.length} {newPostIds.length === 1 ? 'новый пост' : newPostIds.length < 5 ? 'новых поста' : 'новых постов'}!
+                  {newPostIds.length} {plural(newPostIds.length, ['новый пост','новых поста','новых постов'])}!
                 </button>
               )}
               {feedPosts.length===0
@@ -1846,8 +2238,8 @@ export default function App() {
                     <div key={p.id||p.url} id={`post-${p.id}`}
                       onMouseEnter={()=>{ if(i===pagedPosts.length-1) saveReadPos('feed',p.id) }}>
                       <PostCard p={p}
-                        favorites={favorites} onFav={toggleFav}
-                        onIgnore={addIgnore} onVote={handleVote} setLightbox={setLightbox}/>
+                        favorites={favorites} ignored={ignored} onFav={toggleFav}
+                        onIgnore={addIgnore} onUnignore={removeIgnore} onVote={handleVote} setLightbox={setLightbox}/>
                     </div>
                   ))}
                   <Paginator page={page} totalPages={totalPages} onPage={goPage}
@@ -1892,11 +2284,29 @@ export default function App() {
                     ['Профит', <span key="pr" className={`srow-val ${!stats.profit?'':stats.profit>=0?'green':'red'}`}>{fmtBR(stats.profit)}</span>],
                     ['День', <span key="d" className="srow-val gold">#{stats.day||meta?.day||'—'}</span>],
                     ['Сыграно МТТ', <span key="mtt" className="srow-val">{fmtInt(meta?.totalTournaments ?? 3565)}</span>],
+                    (periodStats?.avgMTT ?? stats.avgMTT) != null && [
+                      'МТТ / сессия' + (periodStats?.avgMTT != null ? '*' : ''),
+                      <span key="avg" className="srow-val" title={periodStats?.avgMTT != null ? `За ${periodLabel}` : 'Среднее число турниров за сессию'}>
+                        {fmtInt(periodStats?.avgMTT ?? stats.avgMTT)}
+                      </span>,
+                    ],
+                    (periodStats?.winRate ?? stats.winRate) != null && [
+                      'Плюсовых сессий' + (periodStats?.winRate != null ? '*' : ''),
+                      <span key="wr" className="srow-val"
+                        title={periodStats
+                          ? `${periodStats.positiveSessions} из ${periodStats.sessionsCount} за ${periodLabel}`
+                          : `${Math.round(stats.winRate*stats.sessionsCount)} из ${stats.sessionsCount}`}>
+                        {Math.round((periodStats?.winRate ?? stats.winRate)*100)}%
+                      </span>,
+                    ],
                     ['Постов', <span key="p" className="srow-val">{fmtInt(posts.length)}</span>],
                     ['Топ лайков', <span key="l" className="srow-val">{hotPosts[0]?`+${hotPosts[0].likes}`:'—'}</span>],
-                  ].map(([k,v])=>(
+                  ].filter(Boolean).map(([k,v])=>(
                     <div key={k} className="srow"><span className="srow-key">{k}</span>{v}</div>
                   ))}
+                  {periodStats && (
+                    <div className="srow-note">* с учётом фильтра на графике ({periodLabel})</div>
+                  )}
                 </div>
               </div>
 
@@ -1963,7 +2373,7 @@ export default function App() {
               <div style={{fontSize:11,color:'var(--dim)',fontFamily:"'Roboto Mono',monospace",marginBottom:4}}>
                 <span style={{color:'var(--dim2)',fontWeight:600}}>RomeoPro Marathon</span>
                 {' '}
-                <span style={{color:'#444'}}>v1.4</span>
+                <span style={{color:'#444'}}>v1.5</span>
               </div>
               <div style={{fontSize:10,color:'#444',marginBottom:4}}>
                 made by{' '}
@@ -1971,8 +2381,38 @@ export default function App() {
                   style={{color:'var(--dim)',textDecoration:'none'}}>LoremCDMX</a>
               </div>
               <div style={{fontSize:10,color:'#333'}}>
-                обновлено: 09.04.2026
+                обновлено: 11.04.2026
               </div>
+              {(() => {
+                // meta.lastUpdated reflects when the scraper rewrote meta.json, but
+                // incremental scraper runs that only add posts don't always bump it.
+                // The newest post's timestamp is a lower bound for "when did we last
+                // successfully pull from the forum", so take the max of the two.
+                const metaTs = meta?.lastUpdated ? Date.parse(meta.lastUpdated) : 0
+                const newestPostTs = posts?.length
+                  ? Math.max(...posts.map(p => (p.timestamp || 0) * 1000))
+                  : 0
+                const ts = Math.max(metaTs || 0, newestPostTs || 0)
+                if (!ts) return null
+                const mins = Math.round((Date.now() - ts) / 60000)
+                const fresh = mins < 20
+                const stale = mins > 90
+                const d = new Date(ts)
+                const now = new Date()
+                const sameDay = d.toDateString() === now.toDateString()
+                const time = d.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })
+                const label = sameDay
+                  ? `сегодня в ${time}`
+                  : `${d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' })} в ${time}`
+                const color = fresh ? '#4caf5099' : stale ? '#ff525299' : '#998866'
+                return (
+                  <div style={{fontSize:10,color,marginTop:3,fontFamily:"'Roboto Mono',monospace"}}
+                    title={`Самый свежий пост получен: ${d.toLocaleString('ru-RU')}`}>
+                    <span style={{display:'inline-block',width:6,height:6,borderRadius:'50%',background:color,marginRight:5,verticalAlign:'middle'}}/>
+                    последний раз воровали посты с форума: {label}
+                  </div>
+                )
+              })()}
             </div>
 
             {/* Правая часть — чейнджлог */}
@@ -1981,8 +2421,9 @@ export default function App() {
                 Changelog
               </div>
               {[
-                ['09.04', 'v1.4', 'Лайки/дизлайки через GipsyTeam. Баббл новых постов. Компактный формат (−57%). Скрапер каждые 15 мин. Точные данные из скриншотов. График в первый экран'],
-                ['08.04', 'v1.3', 'Рефакторинг. Белая тема. Автоскрапер через GitHub Actions. Авторазбор скриншотов через Claude API. Полные тексты постов'],
+                ['11.04', 'v1.5', 'Фильтры неделя/месяц на графике — темп МТТ до $10M теперь считается по выбранному отрезку. Избранное и игнор теперь по авторам. Новые разделы в темах: Хайлайты и Авторы. % плюсовых сессий и среднее МТТ/сессия в статистике (учитывают выбранный фильтр на графике). Фикс графика: последняя точка показывала неверное кол-во МТТ. Auto fit-to-screen под ширину окна. Рефакторинг: чистка мёртвого кода, фикс утечек raf в анимациях'],
+                ['09.04', 'v1.4', 'Лайки/дизлайки через GipsyTeam. Баббл новых постов. Скрапер каждые 15 мин. График в первый экран'],
+                ['08.04', 'v1.3', 'Белая тема. Автоскрапер через GitHub Actions'],
                 ['07.04', 'v1.2', 'График с bezier-кривыми и анимацией. Мобильная вёрстка'],
                 ['06.04', 'v1.1', 'Виджет активности по дням. Топ-10 постов. Автообновление'],
                 ['05.04', 'v1.0', 'Первый запуск — лента, цитаты, пагинация, график марафона, темы, избранное, фильтры'],
