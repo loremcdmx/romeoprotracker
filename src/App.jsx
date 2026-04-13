@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef, useCallback, memo } from 'react'
+import { useState, useEffect, useLayoutEffect, useMemo, useRef, useCallback, memo } from 'react'
 import { fetchPublicData } from './storage.js'
 import { Analytics } from '@vercel/analytics/react'
 import {
@@ -9,6 +9,78 @@ import {
 import { useIsMobile } from './hooks/useIsMobile.js'
 import AnimatedValue, { useTweenValue } from './components/AnimatedValue.jsx'
 
+
+// ─── i18n ────────────────────────────────────────────────────────────────────
+let _lang = 'ru'
+const FORUM_WORD = { ru: 'форум', en: 'forum', es: 'foro' }
+
+const MONTHS_SHORT_BY_LANG = {
+  ru: ['янв','фев','мар','апр','мая','июн','июл','авг','сен','окт','ноя','дек'],
+  en: ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],
+  es: ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'],
+}
+function fmtDateShortLang(ts, lang) {
+  if (!ts) return '—'
+  const d = new Date(ts * 1000)
+  return d.getDate() + ' ' + (MONTHS_SHORT_BY_LANG[lang] || MONTHS_SHORT_BY_LANG.ru)[d.getMonth()]
+}
+
+const LANG_DICT = {
+  ru: {
+    marathon_sub: 'марафон $10k → $10M',
+    tab_feed: 'Лента', tab_topics: 'Темы', tab_settings: 'Настройки',
+    theme_light: 'Светлая тема', theme_dark: 'Тёмная тема',
+    loading: 'Загружаем данные марафона…',
+    progress_to: 'Прогресс к $10M', left: 'Осталось',
+    tempo_week: 'МТТ темпом недели', tempo_month: 'МТТ темпом месяца', tempo_now: 'МТТ текущим темпом',
+    hs_br: 'Банкролл', hs_profit: 'Профит', hs_day: 'День марафона', hs_tourneys: 'Сыграно МТТ',
+    hs_start: 'старт', hs_since: 'с 10 марта 2026', hs_all_marathon: 'всего за марафон',
+    stats: 'Статистика',
+    sr_br: 'БР', sr_profit: 'Профит', sr_day: 'День', sr_tourneys: 'Сыграно МТТ',
+    sr_avg: 'МТТ / сессия', sr_winrate: 'Плюсовых сессий', sr_posts: 'Постов', sr_top: 'Топ лайков',
+    footer_made: 'made by', footer_updated: 'обновлено', footer_changelog: 'Changelog',
+    lang_title: 'Язык',
+    chart_marathon: '📈 График марафона', chart_activity: 'Активность постов',
+    period_week: 'Неделя', period_month: 'Месяц', period_all: 'Всё время', period_all_marathon: 'Весь марафон',
+    tip_br: 'БР', tip_mtt_since: '🃏 сыграно МТТ с последнего отчёта', close: 'закрыть',
+  },
+  en: {
+    marathon_sub: '$10k → $10M marathon',
+    tab_feed: 'Feed', tab_topics: 'Topics', tab_settings: 'Settings',
+    theme_light: 'Light theme', theme_dark: 'Dark theme',
+    loading: 'Loading marathon data…',
+    progress_to: 'Progress to $10M', left: 'Left',
+    tempo_week: 'MTTs at week pace', tempo_month: 'MTTs at month pace', tempo_now: 'MTTs at current pace',
+    hs_br: 'Bankroll', hs_profit: 'Profit', hs_day: 'Marathon day', hs_tourneys: 'MTTs played',
+    hs_start: 'start', hs_since: 'since Mar 10, 2026', hs_all_marathon: 'whole marathon',
+    stats: 'Statistics',
+    sr_br: 'BR', sr_profit: 'Profit', sr_day: 'Day', sr_tourneys: 'MTTs played',
+    sr_avg: 'MTTs / session', sr_winrate: 'Winning sessions', sr_posts: 'Posts', sr_top: 'Top likes',
+    footer_made: 'made by', footer_updated: 'updated', footer_changelog: 'Changelog',
+    lang_title: 'Language',
+    chart_marathon: '📈 Marathon chart', chart_activity: 'Post activity',
+    period_week: 'Week', period_month: 'Month', period_all: 'All time', period_all_marathon: 'Whole marathon',
+    tip_br: 'BR', tip_mtt_since: '🃏 MTTs played since last report', close: 'close',
+  },
+  es: {
+    marathon_sub: 'maratón $10k → $10M',
+    tab_feed: 'Feed', tab_topics: 'Temas', tab_settings: 'Ajustes',
+    theme_light: 'Tema claro', theme_dark: 'Tema oscuro',
+    loading: 'Cargando datos del maratón…',
+    progress_to: 'Progreso hacia $10M', left: 'Falta',
+    tempo_week: 'MTT al ritmo semanal', tempo_month: 'MTT al ritmo mensual', tempo_now: 'MTT al ritmo actual',
+    hs_br: 'Bankroll', hs_profit: 'Ganancia', hs_day: 'Día del maratón', hs_tourneys: 'MTT jugados',
+    hs_start: 'inicio', hs_since: 'desde el 10 de marzo 2026', hs_all_marathon: 'todo el maratón',
+    stats: 'Estadísticas',
+    sr_br: 'BR', sr_profit: 'Ganancia', sr_day: 'Día', sr_tourneys: 'MTT jugados',
+    sr_avg: 'MTT / sesión', sr_winrate: 'Sesiones ganadoras', sr_posts: 'Posts', sr_top: 'Top likes',
+    footer_made: 'hecho por', footer_updated: 'actualizado', footer_changelog: 'Changelog',
+    lang_title: 'Idioma',
+    chart_marathon: '📈 Gráfico del maratón', chart_activity: 'Actividad de posts',
+    period_week: 'Semana', period_month: 'Mes', period_all: 'Todo', period_all_marathon: 'Todo el maratón',
+    tip_br: 'BR', tip_mtt_since: '🃏 MTT jugados desde el último reporte', close: 'cerrar',
+  },
+}
 
 // ─── HELPERS (imported from utils.js) ────────────────────────────────────────
 
@@ -70,7 +142,7 @@ const CHART_ROOMS = [
   { key:'lux',  label:'Lux',   logo:'https://t3.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=http://luxon.com&size=64' },
 ]
 
-function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod }) {
+function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, lang, t }) {
   const [tip, setTip]     = useState(null)
   const [pathLen, setPathLen] = useState(null)
   const setPeriodPersist = (p) => {
@@ -131,8 +203,8 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod })
 
   if (!points.length) return (
     <div className="marathon-chart">
-      <div className="section-head"><span className="section-title">📈 График марафона</span></div>
-      <div className="empty-state">Данных пока нет — запустите скрапер</div>
+      <div className="section-head"><span className="section-title">{t('chart_marathon')}</span></div>
+      {lang==='ru' && <div className="empty-state">Данных пока нет — запустите скрапер</div>}
     </div>
   )
 
@@ -228,9 +300,9 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod })
   return (
     <div className="marathon-chart" ref={chartRef} onClick={tip?()=>setTip(null):undefined}>
       <div className="section-head" style={{marginBottom:6,display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
-        <span className="section-title">📈 График марафона</span>
+        <span className="section-title">{t('chart_marathon')}</span>
         <div style={{display:'flex',gap:4,marginLeft:'auto'}}>
-          {[['week','Неделя'],['month','Месяц'],['all','Всё время']].map(([k,label])=>(
+          {[['week',t('period_week')],['month',t('period_month')],['all',t('period_all')]].map(([k,label])=>(
             <button key={k} onClick={()=>setPeriodPersist(k)}
               style={{
                 background: period===k?'var(--red)':'var(--bg3)',
@@ -249,7 +321,7 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod })
             </button>
           ))}
         </div>
-        <span className="section-count">{pl(points.length, ['сессия','сессии','сессий'])}</span>
+        {lang==='ru' && <span className="section-count">{pl(points.length, ['сессия','сессии','сессий'])}</span>}
       </div>
       <svg className="mc-svg" viewBox={`0 0 ${W} ${H+pB}`}
         onMouseLeave={(e)=>{
@@ -339,15 +411,15 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod })
                 const lx = Math.min(Math.max(cx,pL),W-pR)
                 return (
                   <g>
-                    <line x1={lx} y1={cy} x2={lx} y2={H+pB-32}
-                      stroke="rgba(255,255,255,0.06)" strokeWidth="1" strokeDasharray="2 3"/>
+                    <line x1={lx} y1={cy + (isLast?6:4) + 3} x2={lx} y2={H+pB-32}
+                      stroke="var(--border2)" strokeWidth="1" strokeDasharray="1 3" opacity="0.55"/>
                     <text x={lx} y={H+pB-22} textAnchor="middle" fontFamily="'Roboto Mono',monospace"
-                      fontSize="11" fontWeight="600" fill="#888">
+                      fontSize="11" fontWeight="600" fill="var(--dim)">
                       {cumMTT[i] ? fmtInt(cumMTT[i]) : '—'}
                     </text>
                     <text x={lx} y={H+pB-8} textAnchor="middle" fontFamily="'Roboto Mono',monospace"
-                      fontSize="8" fill="#444">
-                      {fmtDateShort(p.timestamp)}
+                      fontSize="8" fill="var(--dim)">
+                      {fmtDateShortLang(p.timestamp, lang)}
                     </text>
                   </g>
                 )
@@ -355,7 +427,10 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod })
             </g>
           )
         })}
-        {tip && <line x1={tip.x} y1={pT} x2={tip.x} y2={H} stroke="rgba(255,255,255,0.08)" strokeWidth="1" strokeDasharray="3 3"/>}
+        {tip && <>
+          <line x1={tip.x} y1={pT} x2={tip.x} y2={tip.y - 11} stroke="var(--border2)" strokeWidth="1" strokeDasharray="1 3" opacity="0.55"/>
+          <line x1={tip.x} y1={tip.y + 11} x2={tip.x} y2={H} stroke="var(--border2)" strokeWidth="1" strokeDasharray="1 3" opacity="0.55"/>
+        </>}
       </svg>
       {tip && (() => {
         const pct=tip.x/W*100, right=pct>60
@@ -372,7 +447,7 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod })
           right:right?`calc(${100-pct}% - 8px)`:'auto',
         }
         return (
-          <div className="mc-tooltip" style={{...mobileStyle, position: isMobile ? 'fixed' : 'absolute'}}
+          <div className="mc-tooltip" style={{...mobileStyle, position: isMobile ? 'fixed' : 'absolute', pointerEvents: isMobile ? 'auto' : 'none'}}
             onClick={e => e.stopPropagation()}>
             {/* Pill — всегда в правом верхнем углу тултипа */}
             <div className="mc-pill" style={{
@@ -385,11 +460,11 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod })
             </div>
             <div style={{fontWeight:700,color:'var(--white)',fontSize:13,marginBottom:5,paddingRight:64}}>{tip.p.date}</div>
             <div style={{display:'flex',gap:12,fontSize:12,marginBottom:tip.p.tournaments?4:roomDeltas.length?8:4}}>
-              <span style={{color:'var(--dim)'}}>БР: <b style={{color:'var(--white)'}}>{fkAbs(tip.p.br)}</b></span>
+              <span style={{color:'var(--dim)'}}>{t('tip_br')}: <b style={{color:'var(--white)'}}>{fkAbs(tip.p.br)}</b></span>
             </div>
             {tip.p.tournaments && (
               <div style={{fontSize:11,color:'var(--dim)',marginBottom:roomDeltas.length?8:4}}>
-                🃏 сыграно МТТ с последнего отчёта: <b style={{color:'var(--dim2)'}}>{fmtInt(tip.p.tournaments)}</b>
+                {t('tip_mtt_since')}: <b style={{color:'var(--dim2)'}}>{fmtInt(tip.p.tournaments)}</b>
               </div>
             )}
             {roomDeltas.length>0 && (
@@ -404,11 +479,11 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod })
               </div>
             )}
             {tip.p.text && <div style={{fontSize:11,color:'var(--dim2)',lineHeight:1.6,display:'-webkit-box',WebkitLineClamp:3,WebkitBoxOrient:'vertical',overflow:'hidden'}}>{tip.p.text.substring(0,180)}</div>}
-            <div style={{fontSize:10,color:'var(--dim)',marginTop:5,display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-              <span style={{cursor:'pointer'}} onClick={()=>setTip(null)}>закрыть</span>
+            <div style={{fontSize:10,color:'var(--dim)',marginTop:5,display:'flex',justifyContent:'space-between',alignItems:'center',pointerEvents:'auto'}}>
+              <span style={{cursor:'pointer'}} onClick={()=>setTip(null)}>{t('close')}</span>
               {tip.p.url && <a href={tip.p.url} target="_blank" rel="noreferrer"
                 onClick={e=>e.stopPropagation()}
-                style={{color:'var(--red2)',fontSize:11}}>→ форум</a>}
+                style={{color:'var(--red2)',fontSize:11}}>→ {FORUM_WORD[_lang] || 'форум'}</a>}
             </div>
           </div>
         )
@@ -421,37 +496,207 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod })
 // ─── ROOM WIDGET ─────────────────────────────────────────────────────────────
 // ─── ACTIVITY CHART ───────────────────────────────────────────────────────────
 
-function makeDaySummary(ps) {
-  const withAuthor = ps.filter(p => p.author)
-  const totalUniq  = new Set(withAuthor.map(p => p.author)).size
-  const popular    = ps.filter(p => (p.likes||0) >= 20).sort((a,b) => (b.likes||0)-(a.likes||0))
-  const topLikes   = ps.reduce((m,p) => Math.max(m, p.likes||0), 0)
-  const romeoCount = ps.filter(p => ROMEO_RE.test(p.author)).length
+function cleanText(t) {
+  return (t||'').replace(/\[QUOTE\][\s\S]*?\[\/QUOTE\]/gi,'').replace(/\[.*?\]/g,'').trim()
+}
 
-  const byAuthor = {}
-  withAuthor.forEach(p => {
-    if (!byAuthor[p.author] || (p.rating||0) > (byAuthor[p.author].rating||0))
-      byAuthor[p.author] = { rating: p.rating||0, posts: 0 }
-    byAuthor[p.author].posts++
-  })
-  const topAuthors = Object.entries(byAuthor)
-    .sort((a,b) => b[1].rating - a[1].rating)
+function trimWord(s, n) {
+  if (s.length <= n) return s
+  const cut = s.slice(0, n)
+  const sp = cut.lastIndexOf(' ')
+  return (sp > n * 0.6 ? cut.slice(0, sp) : cut).replace(/[.,;:!?—\-–\s]+$/, '') + '…'
+}
+
+function makeDayEvents(ps) {
+  const events = []
+  const sorted = [...ps].sort((a,b) => (a.timestamp||0) - (b.timestamp||0))
+  const romeoPosts = sorted.filter(p => ROMEO_RE.test(p.author))
+  if (romeoPosts.length) {
+    const brPost = romeoPosts.find(p => p.sessionResult != null)
+    if (brPost) {
+      events.push({ kind:'session', result: brPost.sessionResult, brAfter: brPost.brAfter, post: brPost, image: brPost.images?.[0] })
+    } else {
+      const rp = romeoPosts[0]
+      const s = cleanText(rp.text)
+      if (s) events.push({ kind:'romeo', text: trimWord(s, 160), post: rp, image: rp.images?.[0] })
+      else events.push({ kind:'romeo-empty', count: romeoPosts.length, post: rp, image: rp.images?.[0] })
+    }
+  }
+  const topOthers = sorted
+    .filter(p => !ROMEO_RE.test(p.author) && (p.likes||0) >= 3)
+    .sort((a,b) => (b.likes||0) - (a.likes||0))
     .slice(0, 3)
-    .map(([name, d]) => `${name}${d.rating ? ' ⭐'+d.rating : ''}`)
+  for (const p of topOthers) {
+    const s = cleanText(p.text)
+    if (!s && !p.images?.[0]) continue
+    events.push({ kind:'reply', author: p.author, likes: p.likes||0, text: s ? trimWord(s, 160) : '', post: p, image: p.images?.[0] })
+  }
+  return events
+}
 
-  let summary = ''
-  if (romeoCount) summary += `Ромео: ${pl(romeoCount, ['пост','поста','постов'])}. `
-  if (topLikes > 0) summary += `Топ: +${topLikes} 👍. `
-  if (popular.length) summary += `${pl(popular.length, ['пост набрал','поста набрали','постов набрали'])} 20+ лайков. `
-  if (topAuthors.length) summary += `Активные: ${topAuthors.join(', ')}.`
-  return summary || `${pl(ps.length, ['пост','поста','постов'])}.`
+function scrollToPost(p) {
+  if (!p?.id) return
+  const el = document.getElementById(`post-${p.id}`)
+  if (!el) return
+  el.scrollIntoView({ behavior:'smooth', block:'center' })
+  el.classList.add('post-highlight')
+  setTimeout(() => el.classList.remove('post-highlight'), 1800)
+}
+
+function makeDaySummary(ps) {
+  const events = makeDayEvents(ps)
+  if (!events.length) return `${pl(ps.length, ['пост','поста','постов'])}.`
+  return events.map(e => {
+    if (e.kind === 'session') return `Ромео отчитался о сессии: ${fmtBR(e.result)}${e.brAfter ? ' (БР ' + fmtNum(e.brAfter) + ')' : ''}`
+    if (e.kind === 'romeo') return `Ромео: «${e.text}»`
+    if (e.kind === 'romeo-empty') return `Ромео написал ${pl(e.count, ['пост','поста','постов'])}`
+    return `${e.author} (+${e.likes} 👍): «${e.text}»`
+  }).join(' · ')
+}
+
+function DayEventsList({ events, compact, onPostClick, setLightbox }) {
+  if (!events.length) return null
+  const handleClick = (e, ev) => {
+    if (e.target.closest('.day-event-thumb')) return
+    if (onPostClick) onPostClick(ev.post)
+    else scrollToPost(ev.post)
+  }
+  const thumb = (src) => (
+    <img src={src} alt="" className="day-event-thumb" loading="lazy"
+      onClick={e => { e.stopPropagation(); setLightbox?.(src) }}/>
+  )
+  return (
+    <div className={compact ? 'day-events day-events-compact' : 'day-events'}>
+      {events.map((ev, i) => {
+        const clickable = !!ev.post
+        const cls = (kind) => `day-event day-event-${kind}${clickable ? ' day-event-clickable' : ''}`
+        const onClick = clickable ? (e) => handleClick(e, ev) : undefined
+        if (ev.kind === 'session') {
+          const positive = ev.result >= 0
+          return (
+            <div key={i} className={cls('session')} onClick={onClick}>
+              <span className="day-event-icon">🎯</span>
+              <div className="day-event-body">
+                <span className="day-event-author">Ромео</span>
+                <span className="day-event-meta"> отчитался о сессии</span>
+                <span className={'day-event-pill ' + (positive ? 'pos' : 'neg')}>{fmtBR(ev.result)}</span>
+                {ev.brAfter && <span className="day-event-br">БР {fmtNum(ev.brAfter)}</span>}
+                {ev.image && thumb(ev.image)}
+              </div>
+            </div>
+          )
+        }
+        if (ev.kind === 'romeo') {
+          return (
+            <div key={i} className={cls('romeo')} onClick={onClick}>
+              <span className="day-event-icon">💬</span>
+              <div className="day-event-body">
+                <span className="day-event-author">Ромео</span>
+                <span className="day-event-quote">«{ev.text}»</span>
+                {ev.image && thumb(ev.image)}
+              </div>
+            </div>
+          )
+        }
+        if (ev.kind === 'romeo-empty') {
+          return (
+            <div key={i} className={cls('romeo')} onClick={onClick}>
+              <span className="day-event-icon">💬</span>
+              <div className="day-event-body">
+                <span className="day-event-author">Ромео</span>
+                <span className="day-event-meta"> написал {pl(ev.count, ['пост','поста','постов'])}</span>
+                {ev.image && thumb(ev.image)}
+              </div>
+            </div>
+          )
+        }
+        return (
+          <div key={i} className={cls('reply')} onClick={onClick}>
+            <span className="day-event-icon">↳</span>
+            <div className="day-event-body">
+              <span className="day-event-author">{ev.author}</span>
+              <span className="day-event-likes">+{ev.likes} 👍</span>
+              {ev.text && <span className="day-event-quote">«{ev.text}»</span>}
+              {ev.image && thumb(ev.image)}
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+function pickTopAuthors(dayPosts, allPosts) {
+  const MIN_RATING = 15000
+  const VIP_RATING = 25000
+  const byAuthor = {}
+  dayPosts.filter(p => p.author && !ROMEO_RE.test(p.author)).forEach(p => {
+    const a = p.author
+    if (!byAuthor[a]) byAuthor[a] = { rating: p.rating||0, bestLikes: 0, count: 0 }
+    byAuthor[a].count++
+    if ((p.likes||0) > byAuthor[a].bestLikes) byAuthor[a].bestLikes = p.likes||0
+    if ((p.rating||0) > byAuthor[a].rating) byAuthor[a].rating = p.rating||0
+  })
+  const globalCounts = {}
+  allPosts?.forEach(p => { if (p.author) globalCounts[p.author] = (globalCounts[p.author]||0)+1 })
+  return Object.entries(byAuthor)
+    .filter(([, {rating}]) => rating >= MIN_RATING)
+    .map(([name, {rating, bestLikes, count}]) => {
+      const gc = globalCounts[name] || count
+      const uniqueBonus = gc <= 3 ? 10 : gc <= 10 ? 4 : 0
+      const authority = Math.log10(rating + 1) * 20
+      const likeScore = (bestLikes || 0) * 2
+      const vipBoost = (rating >= VIP_RATING && bestLikes > 5) ? 80 : 0
+      const score = authority + likeScore + vipBoost + uniqueBonus
+      return { name, rating, score, bestLikes }
+    })
+    .sort((a,b) => b.score - a.score)
+    .slice(0, 5)
+}
+
+function smartSortPosts(ps) {
+  if (ps.length < 2) return ps
+  const sorted = [...ps].sort((a,b) => (a.timestamp||0) - (b.timestamp||0))
+  // "Spark" = earliest post with decent engagement, or the most liked if none
+  let sparkIdx = sorted.findIndex(p => (p.likes||0) >= 8)
+  if (sparkIdx < 0) {
+    let maxL = 0
+    sorted.forEach((p,i) => { if ((p.likes||0) > maxL) { maxL = p.likes||0; sparkIdx = i } })
+  }
+  if (sparkIdx < 0) sparkIdx = 0
+  const spark = sorted[sparkIdx]
+  const after = sorted.slice(sparkIdx + 1).sort((a,b) => (b.likes||0) - (a.likes||0))
+  const before = sorted.slice(0, sparkIdx).sort((a,b) => (b.likes||0) - (a.likes||0))
+  return [spark, ...after, ...before]
 }
 
 function ActivityChart({ posts, favorites, ignored, onFav, onIgnore, onUnignore, setLightbox,
-                         sortBy, setSortBy, minLikes, setMinLikes, minRating, setMinRating, search }) {
+                         sortBy, setSortBy, minLikes, setMinLikes, minRating, setMinRating, search, onPostClick, lang, t }) {
   const [tip,      setTip]      = useState(null)
   const [selected, setSelected] = useState(null)
+  const [period,   setPeriod]   = useState('month')
   const isMobile = useIsMobile()
+  const tipHideTimer = useRef(null)
+  const tipShowTimer = useRef(null)
+  const tipLocked    = useRef(false)
+  const scheduleTipHide = () => {
+    clearTimeout(tipHideTimer.current)
+    tipHideTimer.current = setTimeout(() => { setTip(null); tipLocked.current = false }, 200)
+  }
+  const cancelTipHide = () => clearTimeout(tipHideTimer.current)
+  const requestTip = (t) => {
+    if (tipLocked.current) return
+    cancelTipHide()
+    clearTimeout(tipShowTimer.current)
+    tipShowTimer.current = setTimeout(() => setTip(t), 90)
+  }
+  useEffect(() => () => {
+    clearTimeout(tipHideTimer.current)
+    clearTimeout(tipShowTimer.current)
+  }, [])
+
+  const PERIOD_DAYS = { week: 7, month: 30, all: null }
+  const PERIOD_LABELS = { week: t('period_week'), month: t('period_month'), all: t('period_all_marathon') }
 
   const data = useMemo(() => {
     const byDate = {}
@@ -463,8 +708,26 @@ function ActivityChart({ posts, favorites, ignored, onFav, onIgnore, onUnignore,
       byDate[k].count++
       byDate[k].posts.push(p)
     })
-    return Object.entries(byDate).sort((a,b)=>a[0]>b[0]?1:-1).slice(-30)
-  }, [posts])
+    const sorted = Object.entries(byDate).sort((a,b)=>a[0]>b[0]?1:-1)
+    const days = PERIOD_DAYS[period]
+    return days ? sorted.slice(-days) : sorted
+  }, [posts, period])
+
+  // Precompute tooltip payload per date — avoids re-running makeDayEvents / pickTopAuthors
+  // on every hover frame. Building this once per `data/posts` change is much cheaper
+  // than doing it inside the render path of the hover tooltip.
+  const dayMeta = useMemo(() => {
+    const meta = new Map()
+    for (const [date, { posts: dp }] of data) {
+      const romeoCount = dp.reduce((n, p) => n + (ROMEO_RE.test(p.author) ? 1 : 0), 0)
+      meta.set(date, {
+        events: makeDayEvents(dp),
+        topAuthors: pickTopAuthors(dp, posts).slice(0, 3),
+        romeoCount,
+      })
+    }
+    return meta
+  }, [data, posts])
 
   const scrollRef = useRef(null)
   useEffect(() => {
@@ -483,13 +746,21 @@ function ActivityChart({ posts, favorites, ignored, onFav, onIgnore, onUnignore,
 
     return (
       <div className="chart-wrap">
-        <div className="section-head" style={{marginBottom:8}}>
-          <span className="section-title">Активность постов</span>
-          <span className="section-count">{pl(data.length, ['день','дня','дней'])}</span>
+        <div className="section-head" style={{marginBottom:8,flexWrap:'wrap',gap:8}}>
+          <span className="section-title">{t('chart_activity')}</span>
+          {lang==='ru' && <span className="section-count">{pl(data.length, ['день','дня','дней'])}</span>}
+          <div style={{display:'flex',gap:4,marginLeft:'auto'}}>
+            {Object.keys(PERIOD_DAYS).map(k => (
+              <button key={k} onClick={()=>setPeriod(k)}
+                style={{background:period===k?'var(--red)':'var(--bg3)',border:'1px solid '+(period===k?'var(--red)':'var(--border2)'),borderRadius:4,color:period===k?'#fff':'var(--dim2)',fontSize:10,padding:'4px 8px',cursor:'pointer',fontFamily:'inherit',fontWeight:600}}>
+                {PERIOD_LABELS[k]}
+              </button>
+            ))}
+          </div>
           {selected && (
             <button onClick={()=>setSelected(null)}
-              style={{marginLeft:'auto',background:'none',border:'none',color:'var(--dim)',fontSize:13,cursor:'pointer',fontFamily:'inherit'}}>
-              ✕ закрыть
+              style={{background:'none',border:'none',color:'var(--dim)',fontSize:13,cursor:'pointer',fontFamily:'inherit'}}>
+              ✕ {t('close')}
             </button>
           )}
         </div>
@@ -504,7 +775,7 @@ function ActivityChart({ posts, favorites, ignored, onFav, onIgnore, onUnignore,
                 <div key={date} style={{display:'flex',flexDirection:'column',alignItems:'center',gap:4,cursor:'pointer',minWidth:BAR_W}}
                   onClick={()=>setSelected(selected?.date===date ? null : {date,posts:dp})}>
                   {/* Число постов над баром */}
-                  <span style={{fontSize:10,color:isSelected?'#fff':'#666',fontFamily:"'Roboto Mono',monospace",fontWeight:isSelected?700:400}}>
+                  <span style={{fontSize:10,color:isSelected?'var(--white)':'var(--dim)',fontFamily:"'Roboto Mono',monospace",fontWeight:isSelected?700:400}}>
                     {count}
                   </span>
                   <div style={{
@@ -515,7 +786,7 @@ function ActivityChart({ posts, favorites, ignored, onFav, onIgnore, onUnignore,
                     boxShadow: isSelected?'0 0 8px #e5393580':'none'
                   }}/>
                   {/* Дата под баром */}
-                  <span style={{fontSize:11,color:isSelected?'var(--text)':'#666',fontFamily:"'Roboto Mono',monospace",whiteSpace:'nowrap'}}>
+                  <span style={{fontSize:11,color:isSelected?'var(--text)':'var(--dim)',fontFamily:"'Roboto Mono',monospace",whiteSpace:'nowrap'}}>
                     {date.slice(5)}
                   </span>
                 </div>
@@ -523,27 +794,23 @@ function ActivityChart({ posts, favorites, ignored, onFav, onIgnore, onUnignore,
             })}
           </div>
         </div>
-        <div style={{fontSize:11,color:'#444',textAlign:'center',padding:'4px 0 6px'}}>← листай для старых дней · нажми = детали</div>
+        {lang==='ru' && <div style={{fontSize:11,color:'var(--dim)',textAlign:'center',padding:'4px 0 6px'}}>← листай для старых дней · нажми = детали</div>}
 
         {/* Selected day posts */}
-        {/* Selected day posts */}
         {selected && (() => {
-          const summary = makeDaySummary(selected.posts)
-          let dayPosts = [...selected.posts]
+          const events = makeDayEvents(selected.posts)
+          let dayPosts = smartSortPosts([...selected.posts]
             .filter(p => !minLikes  || (p.likes||0)  >= minLikes)
             .filter(p => !minRating || (p.rating||0) >= minRating)
-            .filter(p => !search    || p.text?.toLowerCase().includes(search?.toLowerCase()))
-          dayPosts.sort((a,b) => (b.likes||0)-(a.likes||0))
+            .filter(p => !search    || p.text?.toLowerCase().includes(search?.toLowerCase())))
           return (
             <div style={{marginTop:8}}>
               <div style={{fontSize:11,fontWeight:700,color:'var(--dim2)',textTransform:'uppercase',letterSpacing:'.1em',marginBottom:6}}>
-                📅 {selected.date} — {pl(selected.posts.length, ['пост','поста','постов'])}
+                📅 {selected.date}{lang==='ru' && ` — ${pl(selected.posts.length, ['пост','поста','постов'])}`}
               </div>
-              <div style={{fontSize:11,color:'var(--text)',lineHeight:1.5,padding:'8px 10px',background:'var(--bg3)',borderRadius:'var(--r)',marginBottom:8,borderLeft:'3px solid var(--red)'}}>
-                {summary}
-              </div>
+              {lang==='ru' && events.length > 0 && <div style={{marginBottom:10}}><DayEventsList events={events} setLightbox={setLightbox} onPostClick={onPostClick}/></div>}
               {dayPosts.length === 0
-                ? <div className="empty-state">Нет постов по фильтрам</div>
+                ? (lang==='ru' ? <div className="empty-state">Нет постов по фильтрам</div> : null)
                 : dayPosts.map(p => (
                   <PostCard key={p.id||p.url} p={p}
                     favorites={favorites||new Set()} ignored={ignored||new Set()}
@@ -568,30 +835,38 @@ function ActivityChart({ posts, favorites, ignored, onFav, onIgnore, onUnignore,
   const lastShown = [...labelSet].filter(i => i < data.length - 1).at(-1) ?? -Infinity
   if (data.length - 1 - lastShown >= step * 0.6) labelSet.add(data.length - 1)
 
+  const svgRef = useRef(null)
   return (
     <div className="chart-wrap">
-      <div className="section-head" style={{marginBottom:8}}>
-        <span className="section-title">Активность постов</span>
-        <span className="section-count">последние {pl(data.length, ['день','дня','дней'])}</span>
-        {selected && (
-          <button onClick={()=>setSelected(null)}
-            style={{marginLeft:'auto',background:'none',border:'none',color:'var(--dim)',fontSize:11,cursor:'pointer',fontFamily:'inherit'}}>
-            ✕ закрыть
-          </button>
-        )}
+      <div className="section-head" style={{marginBottom:8,gap:10}}>
+        <span className="section-title">{t('chart_activity')}</span>
+        {lang==='ru' && <span className="section-count">{period==='all' ? `весь марафон · ${pl(data.length, ['день','дня','дней'])}` : `последние ${pl(data.length, ['день','дня','дней'])}`}</span>}
+        <div style={{display:'flex',gap:4,marginLeft:'auto'}}>
+          {Object.keys(PERIOD_DAYS).map(k => (
+            <button key={k} onClick={()=>setPeriod(k)}
+              style={{background:period===k?'var(--red)':'var(--bg3)',border:'1px solid '+(period===k?'var(--red)':'var(--border2)'),borderRadius:4,color:period===k?'#fff':'var(--dim2)',fontSize:10,padding:'3px 7px',cursor:'pointer',fontFamily:'inherit',fontWeight:600}}>
+              {PERIOD_LABELS[k]}
+            </button>
+          ))}
+          {selected && (
+            <button onClick={()=>setSelected(null)}
+              style={{background:'none',border:'none',color:'var(--dim)',fontSize:11,cursor:'pointer',fontFamily:'inherit',marginLeft:4}}>
+              ✕ {t('close')}
+            </button>
+          )}
+        </div>
       </div>
-      <svg className="chart-svg" viewBox={`0 0 ${W} ${H+22}`} onMouseLeave={()=>setTip(null)}>
+      <svg ref={svgRef} className="chart-svg" viewBox={`0 0 ${W} ${H+22}`} onMouseLeave={scheduleTipHide}>
         {data.map(([date, {count, posts:dp}], i) => {
           const x  = i * (bw + pad)
           const bh = Math.max(3, (count / max) * H)
           const isSelected = selected?.date === date
           return (
-            <g key={date} style={{cursor:'pointer'}}
-              onMouseEnter={()=>setTip({date,count,posts:dp,x:x+bw/2})}
+            <g key={date} className="activity-bar" style={{cursor:'pointer'}}
+              onMouseEnter={()=>requestTip({date,count,posts:dp,x:x+bw/2})}
               onClick={()=>setSelected(selected?.date===date ? null : {date,posts:dp})}>
               <rect x={x} y={H-bh} width={bw} height={bh} rx={2}
-                fill={isSelected?'#e53935':tip?.date===date?'#e5393570':'#e5393530'}
-                style={{transition:'fill .1s'}}/>
+                className={isSelected ? 'activity-bar-rect active' : 'activity-bar-rect'}/>
               {labelSet.has(i) && <text x={x+bw/2} y={H+16} className="chart-label">{date.slice(5)}</text>}
             </g>
           )
@@ -599,135 +874,101 @@ function ActivityChart({ posts, favorites, ignored, onFav, onIgnore, onUnignore,
       </svg>
 
       {/* HOVER TOOLTIP */}
-      {tip && !selected && (() => {
-        const pct = (tip.x/W)*100
-        const right = pct>65
-        const romeoPs   = tip.posts.filter(p => ROMEO_RE.test(p.author))
-        const topPost   = [...tip.posts].sort((a,b) => (b.likes||0)-(a.likes||0))[0]
-        const topClean  = (topPost?.text||'').replace(/\[QUOTE\][\s\S]*?\[\/QUOTE\]/gi,'').replace(/\[QUOTE\]/gi,'').replace(/\[\/QUOTE\]/gi,'').trim()
-        // "Авторитетные авторы": репутация — жёсткий гейт, лайки — модификатор.
-        //  - rating < MIN_RATING → вообще не в списке (мало репы ≠ авторитет, сколько бы лайков ни было)
-        //  - очень авторитетный (>= VIP_RATING) + пост не-хуйня (> 5 лайков) → крупный буст, гарантированно в топе
-        //  - uniqueBonus: редкий гость в треде ценнее регулярного флудера
-        const MIN_RATING = 15000
-        const VIP_RATING = 25000
-        const byAuthor = {}
-        tip.posts.filter(p=>p.author && !ROMEO_RE.test(p.author)).forEach(p => {
-          const a = p.author
-          if (!byAuthor[a]) byAuthor[a] = { rating: p.rating||0, bestLikes: 0, count: 0 }
-          byAuthor[a].count++
-          if ((p.likes||0) > byAuthor[a].bestLikes) byAuthor[a].bestLikes = p.likes||0
-          if ((p.rating||0) > byAuthor[a].rating) byAuthor[a].rating = p.rating||0
-        })
-        // Считаем общее кол-во постов автора во всём треде для бонуса уникальности
-        const globalCounts = {}
-        posts?.forEach(p => { if (p.author) globalCounts[p.author] = (globalCounts[p.author]||0)+1 })
-        const topAuthors = Object.entries(byAuthor)
-          .filter(([, {rating}]) => rating >= MIN_RATING)
-          .map(([name, {rating, bestLikes, count}]) => {
-            const gc = globalCounts[name] || count
-            const uniqueBonus = gc <= 3 ? 10 : gc <= 10 ? 4 : 0
-            // log10(1+r)*20: 500→54, 1k→60, 5k→74, 10k→80, 50k→94
-            const authority = Math.log10(rating + 1) * 20
-            const likeScore = (bestLikes || 0) * 2
-            // VIP-буст: авторитет + пост реально зашёл → автоматом в топ
-            const vipBoost = (rating >= VIP_RATING && bestLikes > 5) ? 80 : 0
-            const score = authority + likeScore + vipBoost + uniqueBonus
-            return [name, rating, score, bestLikes]
-          })
-          .sort((a,b) => b[2]-a[2])
-          .slice(0, 6)
+      {lang==='ru' && tip && !selected && (() => {
+        const m = dayMeta.get(tip.date) || { events: [], topAuthors: [], romeoCount: 0 }
+        const topAuthors = m.topAuthors
+        const romeoCount = m.romeoCount
+        const svgRect = svgRef.current?.getBoundingClientRect()
+        if (!svgRect) return null
+        // Normalize everything to pre-zoom CSS px. GBCR returns post-zoom visual
+        // coords; CSS values (top/left/width/maxHeight) on descendants of a
+        // zoomed ancestor are interpreted pre-zoom then scaled by the browser.
+        // window.innerWidth/Height are the physical viewport, so dividing by
+        // zoom gives the logical viewport in the same coord system as CSS values.
+        const zoom = parseFloat(document.documentElement.style.zoom) || 1
+        const vw = window.innerWidth / zoom
+        const vh = window.innerHeight / zoom
+        const sRect = { left: svgRect.left/zoom, right: svgRect.right/zoom, top: svgRect.top/zoom, bottom: svgRect.bottom/zoom, width: svgRect.width/zoom }
+        const TOOLTIP_W = 380
+        const MIN_W = 280
+        const EDGE = 8
+        const GAP = 12
+        // Anchor on the hovered bar (≈ mouse position), pick the side with
+        // more room next to it, and vertically center on the chart band.
+        const barScreenX = sRect.left + (tip.x / W) * sRect.width
+        const spaceRight = vw - barScreenX - GAP - EDGE
+        const spaceLeft  = barScreenX - GAP - EDGE
+        const useRight = spaceRight >= spaceLeft
+        const avail = useRight ? spaceRight : spaceLeft
+        const widthPx = Math.max(MIN_W, Math.min(TOOLTIP_W, avail))
+        const leftPx = useRight ? barScreenX + GAP : barScreenX - GAP - widthPx
+        // Vertical: always pin to the top of the viewport so the popup has
+        // the full page height to grow into and never gets clipped at bottom.
+        const vStyle = { top: EDGE, maxHeight: vh - EDGE * 2 }
         return (
-          <div className="chart-tooltip" style={{
-            bottom:52,
-            left:  right?'auto':`calc(${pct}% - 8px)`,
-            right: right?`calc(${100-pct}% - 8px)`:'auto',
-          }}>
-            <div style={{fontWeight:700,color:'#fff',fontSize:12,marginBottom:4}}>📅 {tip.date}</div>
-            <div style={{fontSize:11,color:'#888',marginBottom:6}}>
+          <div className="chart-tooltip"
+            onMouseEnter={()=>{ cancelTipHide(); tipLocked.current = true }}
+            onMouseLeave={()=>{ tipLocked.current = false; scheduleTipHide() }}
+            style={{
+              position:'fixed', left:leftPx, ...vStyle,
+              pointerEvents:'auto',
+              width:widthPx, maxWidth:`calc(100vw - ${EDGE*2}px)`, minWidth:280,
+              overflowY:'auto',
+            }}>
+            <div style={{fontWeight:700,color:'var(--white)',fontSize:12,marginBottom:4}}>📅 {tip.date}</div>
+            {lang==='ru' && <div style={{fontSize:11,color:'var(--dim)',marginBottom:8}}>
               {pl(tip.count, ['пост','поста','постов'])}
-              {romeoPs.length ? ` · Ромео: ${romeoPs.length}` : ''}
-              {topPost?.likes >= 5 ? ` · топ +${topPost.likes} 👍` : ''}
-            </div>
-            {topAuthors.length > 0 && (
-              <div style={{marginBottom:6}}>
-                <div style={{fontSize:9,color:'#555',textTransform:'uppercase',letterSpacing:'.08em',marginBottom:4}}>авторитетные авторы</div>
-                {topAuthors.map(([name, rating, , bestLikes]) => (
-                  <div key={name} style={{fontSize:11,color:'#bbb',display:'flex',justifyContent:'space-between',gap:8,lineHeight:1.6}}>
-                    <span style={{color:'#ddd'}}>{name}</span>
-                    <span style={{fontSize:10,fontFamily:"'Roboto Mono',monospace",display:'inline-flex',alignItems:'center',gap:4}}>
-                      {bestLikes > 0 && <span style={{color:'#ffb74d'}}>+{bestLikes} 👍</span>}
-                      <span style={{color:rating>=0?'#4caf50':'#ff5252',display:'inline-flex',alignItems:'center',gap:2}}>
-                        <svg viewBox="0 0 12 10" style={{width:9,height:8,fill:rating>=0?'#4caf50':'#ff5252',flexShrink:0}}>
+              {romeoCount ? ` · Ромео: ${romeoCount}` : ''}
+            </div>}
+            {lang==='ru' && topAuthors.length > 0 && (
+              <div style={{marginBottom:8}}>
+                <div style={{fontSize:9,color:'var(--dim)',textTransform:'uppercase',letterSpacing:'.08em',marginBottom:4}}>авторитетные авторы</div>
+                {topAuthors.map(a => (
+                  <div key={a.name} style={{fontSize:11,color:'var(--dim2)',display:'flex',justifyContent:'space-between',gap:8,lineHeight:1.6}}>
+                    <span style={{color:'var(--text)'}}>{a.name}</span>
+                    <span style={{fontSize:10,fontFamily:"'Roboto Mono',monospace",display:'inline-flex',alignItems:'center',gap:6}}>
+                      {a.bestLikes > 0 && <span style={{color:'#ffb74d'}}>+{a.bestLikes} 👍</span>}
+                      <span style={{color:'#4caf50',display:'inline-flex',alignItems:'center',gap:2}}>
+                        <svg viewBox="0 0 12 10" style={{width:9,height:8,fill:'#4caf50',flexShrink:0}}>
                           <rect x="0" y="6" width="2.5" height="4"/>
                           <rect x="3.2" y="3" width="2.5" height="7"/>
                           <rect x="6.4" y="1" width="2.5" height="9"/>
                           <rect x="9.6" y="0" width="2.5" height="10"/>
                         </svg>
-                        {fmtInt(rating)}
+                        {fmtInt(a.rating)}
                       </span>
                     </span>
                   </div>
                 ))}
               </div>
             )}
-            {topClean && (
-              <div style={{fontSize:11,color:'#bbb',lineHeight:1.6,borderTop:'1px solid #2a2a2a',paddingTop:6,marginTop:2}}>
-                <div style={{color:'#666',fontSize:10,marginBottom:3}}>{topPost.author} · <span style={{color:'#4caf50',fontWeight:700}}>+{topPost.likes} 👍</span></div>
-                <div style={{display:'-webkit-box',WebkitLineClamp:5,WebkitBoxOrient:'vertical',overflow:'hidden'}}>
-                  {topClean.substring(0,300)}
-                </div>
-              </div>
-            )}
-            <div style={{fontSize:10,color:'#444',marginTop:5}}>кликни → детали дня</div>
+            <div style={{borderTop:'1px solid var(--border)',paddingTop:6,marginTop:2}}>
+              <DayEventsList events={m.events} compact
+                setLightbox={(src)=>{ setLightbox?.(src); setTip(null); tipLocked.current = false }}
+                onPostClick={(p)=>{ setTip(null); tipLocked.current = false; onPostClick?.(p) }}/>
+            </div>
           </div>
         )
       })()}
 
       {/* EXPANDED DAY VIEW */}
       {selected && (() => {
-        const summary = makeDaySummary(selected.posts)
+        const events = makeDayEvents(selected.posts)
         let dayPosts = [...selected.posts]
           .filter(p => !minLikes  || (p.likes||0)  >= minLikes)
           .filter(p => !minRating || (p.rating||0) >= minRating)
           .filter(p => !search    || p.text?.toLowerCase().includes(search?.toLowerCase()))
-        if (sortBy === 'likes')          dayPosts.sort((a,b) => (b.likes||0)-(a.likes||0))
-        else if (sortBy === 'date_asc')  dayPosts.sort((a,b) => (a.timestamp||0)-(b.timestamp||0))
-        else                             dayPosts.sort((a,b) => (b.timestamp||0)-(a.timestamp||0))
-        const btnStyle = (active) => ({
-          background: active ? 'var(--red)' : 'var(--bg3)',
-          border: '1px solid ' + (active ? 'var(--red)' : 'var(--border)'),
-          borderRadius: 20, color: active ? '#fff' : 'var(--dim2)',
-          fontSize: 11, padding: '4px 10px', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600
-        })
+        dayPosts = smartSortPosts(dayPosts)
         return (
           <div style={{marginTop:12}}>
             <div style={{fontSize:11,fontWeight:700,color:'var(--dim2)',textTransform:'uppercase',letterSpacing:'.1em',marginBottom:8}}>
-              📅 {selected.date} — {pl(selected.posts.length, ['пост','поста','постов'])}
+              📅 {selected.date}{lang==='ru' && ` — ${pl(selected.posts.length, ['пост','поста','постов'])}`}
             </div>
-            <div style={{fontSize:12,color:'var(--text)',lineHeight:1.6,padding:'10px 12px',background:'var(--bg3)',borderRadius:'var(--r)',marginBottom:10,borderLeft:'3px solid var(--red)'}}>{summary}</div>
-            {/* Мини-фильтры */}
-            <div style={{display:'flex',gap:6,flexWrap:'wrap',alignItems:'center',marginBottom:10,padding:'8px 0'}}>
-              <button style={btnStyle(sortBy==='date_desc')} onClick={()=>setSortBy?.('date_desc')}>Новые</button>
-              <button style={btnStyle(sortBy==='date_asc')}  onClick={()=>setSortBy?.('date_asc')}>Старые</button>
-              <button style={btnStyle(sortBy==='likes')}     onClick={()=>setSortBy?.('likes')}>По лайкам</button>
-              <div style={{width:1,height:16,background:'var(--border)',margin:'0 4px'}}/>
-              <div style={{display:'flex',alignItems:'center',gap:4}}>
-                <span style={{fontSize:11,color:'var(--dim)'}}>👍 мин.</span>
-                <input className="filter-num" type="number" min="0" value={minLikes} onChange={e=>setMinLikes?.(+e.target.value||0)}
-                  onFocus={e=>e.target.select()}/>
-              </div>
-              <div style={{display:'flex',alignItems:'center',gap:4}}>
-                <span style={{fontSize:11,color:'var(--dim)'}}>⭐ репа</span>
-                <input className="filter-num" type="number" min="0" step="100" value={minRating} onChange={e=>setMinRating?.(+e.target.value||0)}
-                  onFocus={e=>e.target.select()}/>
-              </div>
-              <span style={{fontSize:11,color:'var(--dim)',marginLeft:'auto'}}>{pl(dayPosts.length, ['пост','поста','постов'])}</span>
-            </div>
+            {lang==='ru' && events.length > 0 && <div style={{marginBottom:12}}><DayEventsList events={events} setLightbox={setLightbox}/></div>}
             <div style={{marginTop:4}}>
               {dayPosts.length === 0
-                ? <div className="empty-state">Нет постов по текущим фильтрам</div>
-                : dayPosts.map(p => (
+                ? (lang==='ru' ? <div className="empty-state">Нет постов по текущим фильтрам</div> : null)
+                : dayPosts.map((p,i) => (
                   <PostCard key={p.id||p.url} p={p}
                     favorites={favorites||new Set()} ignored={ignored||new Set()}
                     onFav={onFav||(() =>{})} onIgnore={onIgnore||(() =>{})} onUnignore={onUnignore||(() =>{})}
@@ -815,7 +1056,7 @@ function CollapsibleQuote({ author, date, body }) {
             ? body.replace(/\n{2,}/g,'\n').split('\n').filter(p=>/[^\s\u00a0]/.test(p)).map((p,j,arr)=>(
                 <span key={j} style={{display:'block',marginBottom:j<arr.length-1?4:0}}>{p}</span>
               ))
-            : <span style={{fontStyle:'italic',color:'#444'}}>↩ изображение или медиа</span>
+            : <span style={{fontStyle:'italic',color:'var(--dim)'}}>↩ изображение или медиа</span>
           }
         </div>
       )}
@@ -886,7 +1127,7 @@ function renderPostText(text, collapseQuotes=false) {
               ? part.body.replace(/\n{2,}/g,'\n').split('\n').filter(p=>/[^\s\u00a0]/.test(p)).map((p,j,arr)=>(
                   <span key={j} style={{display:'block',marginBottom:j<arr.length-1?4:0}}>{p}</span>
                 ))
-              : <span style={{fontStyle:'italic',color:'#444'}}>↩ изображение или медиа</span>
+              : <span style={{fontStyle:'italic',color:'var(--dim)'}}>↩ изображение или медиа</span>
             }
           </div>
         </div>
@@ -955,12 +1196,27 @@ const PostCard = memo(function PostCard({ p, favorites, ignored, onFav, onIgnore
   }, [menu])
   const likes  = p.likes || 0
   const initial = (p.author||'?')[0].toUpperCase()
-  const isLong  = !noClamp && (p.text?.replace(/\[QUOTE\][\s\S]*?\[\/QUOTE\]/gi, '').length || 0) > 600
-  useEffect(() => {
-    if (!isLong || exp) return
+  const isLong  = !noClamp && (p.text?.replace(/\[QUOTE\][\s\S]*?\[\/QUOTE\]/gi, '').length || 0) > 720
+  const [shouldClamp, setShouldClamp] = useState(isLong)
+  useLayoutEffect(() => {
+    if (!isLong || exp) { setShouldClamp(false); return }
     const el = bodyRef.current
-    if (el) setOverflows(el.scrollHeight > el.clientHeight + 2)
-  }, [isLong, exp])
+    if (!el) return
+    el.classList.add('clamped')
+    const clampedH = el.clientHeight
+    el.classList.remove('clamped')
+    const fullH = el.scrollHeight
+    const lineH = parseFloat(getComputedStyle(el).lineHeight) || 21
+    const hiddenLines = (fullH - clampedH) / lineH
+    if (hiddenLines > 2) {
+      el.classList.add('clamped')
+      setShouldClamp(true)
+      setOverflows(true)
+    } else {
+      setShouldClamp(false)
+      setOverflows(false)
+    }
+  }, [isLong, exp, p.text])
 
   // URL профиля на GT (по нику)
   const profileUrl = `https://forum.gipsyteam.ru/index.php?showuser=${encodeURIComponent(p.author)}`
@@ -1035,7 +1291,7 @@ const PostCard = memo(function PostCard({ p, favorites, ignored, onFav, onIgnore
           <button className="pc-action" onClick={()=>onIgnore(p.author)} title="Игнорировать">🚫</button>
         </div>
       </div>
-      <div ref={bodyRef} className={`pc-body ${!exp && isLong ? 'clamped' : ''}`}>{renderPostText(p.text)}</div>
+      <div ref={bodyRef} className={`pc-body ${!exp && shouldClamp ? 'clamped' : ''}`}>{renderPostText(p.text)}</div>
       {p.images?.length>0 && (
         <div className="pc-images">
           {p.images.map((src,j)=>(
@@ -1047,7 +1303,7 @@ const PostCard = memo(function PostCard({ p, favorites, ignored, onFav, onIgnore
       <div className="pc-foot">
         <span className={`pc-likes ${likes>0?'pos':likes<0?'neg':'zero'}`}>{likes>0?'👍 +':likes<0?'👎 ':''}{likes}</span>
         {p.brAfter && <span className="pc-br">БР: {fmtNum(p.brAfter)}</span>}
-        {(isLong && (overflows || exp)) && (
+        {((shouldClamp && overflows) || (isLong && exp)) && (
           <button onClick={()=>setExp(s=>!s)} style={S_EXPAND}>
             <span style={S_ARROW}>{exp?'▲':'▼'}</span>
             {exp ? 'свернуть' : 'читать'}
@@ -1062,7 +1318,7 @@ const PostCard = memo(function PostCard({ p, favorites, ignored, onFav, onIgnore
             ))}
           </span>
         )}
-        {p.url&&<a className="pc-link" href={p.url} target="_blank" rel="noreferrer">→ форум</a>}
+        {p.url&&<a className="pc-link" href={p.url} target="_blank" rel="noreferrer">→ {FORUM_WORD[_lang] || 'форум'}</a>}
       </div>
     </div>
   )
@@ -1133,7 +1389,7 @@ function AuthorsPanel({ authors, favorites, ignored, onFav, onIgnore, onUnignore
 }
 
 // ─── PAGINATOR ────────────────────────────────────────────────────────────────
-function Paginator({ page, totalPages, onPage, perPage, onPerPage, total }) {
+function Paginator({ page, totalPages, onPage, perPage, onPerPage, total, lang }) {
   const isMob = useIsMobile()
   const pages = []
   const delta = isMob ? 1 : 2
@@ -1152,9 +1408,9 @@ function Paginator({ page, totalPages, onPage, perPage, onPerPage, total }) {
         : <button key={p} className={`page-btn ${p===page?'active':''}`} onClick={()=>onPage(p)}>{p}</button>
       )}
       <button className="page-btn" disabled={page===totalPages} onClick={()=>onPage(page+1)}>›</button>
-      {!isMob && <span className="page-info">{(page-1)*perPage+1}–{Math.min(page*perPage,total)} из {total}</span>}
+      {!isMob && <span className="page-info">{(page-1)*perPage+1}–{Math.min(page*perPage,total)}{lang==='ru'?` из ${total}`:` / ${total}`}</span>}
       <select className="perpage-select" value={perPage} onChange={e=>{onPerPage(+e.target.value);onPage(1)}}>
-        {[10,20,50,100].map(n=><option key={n} value={n}>{n} на стр.</option>)}
+        {[10,20,50,100].map(n=><option key={n} value={n}>{lang==='ru'?`${n} на стр.`:`${n} / page`}</option>)}
       </select>
     </div>
   )
@@ -1163,30 +1419,64 @@ function Paginator({ page, totalPages, onPage, perPage, onPerPage, total }) {
 // ─── SIDEBAR TOP LIST ─────────────────────────────────────────────────────────
 function SidebarTopList({ posts, setLightbox }) {
   const [hovered, setHovered] = useState(null)
-  const [popupPos, setPopupPos] = useState({x:0, y:0})
+  const [anchor, setAnchor] = useState(null)
+  const hideTimerRef = useRef(null)
+  const scheduleHide = () => {
+    clearTimeout(hideTimerRef.current)
+    hideTimerRef.current = setTimeout(() => setHovered(null), 180)
+  }
+  const cancelHide = () => clearTimeout(hideTimerRef.current)
+  useEffect(() => () => clearTimeout(hideTimerRef.current), [])
 
   const stripQuotes = stripQuoteTags
 
   return (
     <div style={{padding:'6px 14px'}}
-      onMouseLeave={()=>setHovered(null)}>
+      onMouseLeave={scheduleHide}>
 
-      {hovered !== null && (() => {
+      {hovered !== null && anchor && (() => {
         const p = posts[hovered]
         if (!p) return null
-        const left = Math.max(8, Math.min(popupPos.x - 310, window.innerWidth - 320))
-        // If mouse is in lower half of screen, show popup above cursor
-        const flipUp = popupPos.y > window.innerHeight * 0.55
-        const top = flipUp
-          ? Math.max(8, popupPos.y - 420)
-          : Math.max(8, Math.min(popupPos.y - 40, window.innerHeight - 480))
-        const maxH = flipUp
-          ? Math.min(popupPos.y - 16, 560)
-          : Math.min(window.innerHeight - top - 16, 560)
+        const POPUP_W = 340
+        const GAP = 6
+        const EDGE = 8
+        // Normalize anchor (GBCR, visual post-zoom) to pre-zoom CSS px so math
+        // matches the viewport values and CSS values we emit.
+        const zoom = parseFloat(document.documentElement.style.zoom) || 1
+        const vw = window.innerWidth / zoom
+        const vh = window.innerHeight / zoom
+        const a = { left: anchor.left/zoom, right: anchor.right/zoom, top: anchor.top/zoom, bottom: anchor.bottom/zoom }
+        // Horizontal: open on the opposite side of the row's midpoint. Use
+        // anchorX + translateX to bypass any box-model math for left-open.
+        const itemMid = (a.left + a.right) / 2
+        const openLeft = itemMid > vw / 2
+        const anchorX = openLeft ? a.left - GAP : a.right + GAP
+        const popupTransform = openLeft ? 'translateX(-100%)' : 'none'
+        // Vertical: always use `top` + `maxHeight`. Align popup top with row top
+        // when there's enough room below; otherwise pin to viewport EDGE and
+        // clamp maxHeight so the popup sits inside the viewport fully.
+        const itemMidY = (a.top + a.bottom) / 2
+        const rowInLowerHalf = itemMidY > vh / 2
+        let vPos, maxH
+        if (!rowInLowerHalf) {
+          // Row in upper half: anchor popup top a bit above the row top.
+          const top = Math.max(EDGE, a.top - 4)
+          vPos = { top }
+          maxH = vh - top - EDGE
+        } else {
+          // Row in lower half: pin popup to viewport top so it grows upward
+          // visually while staying fully on-screen. Bottom edge stops near row.
+          vPos = { top: EDGE }
+          maxH = Math.max(120, (a.bottom + 4) - EDGE)
+          // Clamp so we never exceed the viewport.
+          maxH = Math.min(maxH, vh - EDGE * 2)
+        }
         return (
-          <div className="sidebar-popup" style={{
-            position:'fixed', left, top,
-            width:300, background:'var(--bg-popup)', border:'1px solid var(--border-popup)',
+          <div className="sidebar-popup" onMouseEnter={cancelHide} onMouseLeave={scheduleHide} style={{
+            position:'fixed',
+            left: anchorX, transform: popupTransform,
+            ...vPos,
+            width:POPUP_W, background:'var(--bg-popup)', border:'1px solid var(--border-popup)', borderRight:'3px solid var(--red)',
             borderRadius:8, padding:14, zIndex:9999,
             boxShadow:'var(--shadow-popup)',
             pointerEvents:'auto',
@@ -1194,12 +1484,14 @@ function SidebarTopList({ posts, setLightbox }) {
             display:'flex', flexDirection:'column',
           }}>
             <div style={{fontWeight:700,color:'var(--white)',fontSize:13,marginBottom:4}}>{p.author}</div>
-            <div style={{fontSize:11,color:'var(--green)',marginBottom:8,fontFamily:"'Roboto Mono',monospace"}}>
-              +{p.likes} 👍 · {p.date}
+            <div style={{fontSize:11,color:'var(--dim)',marginBottom:8,fontFamily:"'Roboto Mono',monospace"}}>
+              <span style={{color:'var(--green)'}}>+{p.likes} 👍</span> · {p.date}
             </div>
             <div style={{fontSize:12,color:'var(--text)',lineHeight:1.6,overflowY:'auto',flex:1,paddingRight:4}}>
               {!((p.text||'').includes('[QUOTE]')) && p.images?.[0] && (
-                <img src={p.images[0]} alt="" style={{maxWidth:'100%',borderRadius:4,marginBottom:10,display:'block'}}
+                <img src={p.images[0]} alt=""
+                  style={{maxWidth:'100%',maxHeight:260,width:'auto',height:'auto',objectFit:'contain',borderRadius:4,marginBottom:10,display:'block',cursor:'zoom-in'}}
+                  onClick={e=>{e.stopPropagation();setLightbox(p.images[0])}}
                   onError={e=>e.target.style.display='none'}/>
               )}
               {renderPostText(p.text, true)}
@@ -1233,7 +1525,12 @@ function SidebarTopList({ posts, setLightbox }) {
             style={{display:'flex',gap:10,padding:'9px 0',borderBottom:'1px solid var(--border)',
               alignItems:'flex-start',cursor:'pointer'}}
             onClick={()=>p.url&&window.open(p.url,'_blank')}
-            onMouseEnter={e=>{ setHovered(i); setPopupPos({x:e.clientX, y:e.clientY}) }}>
+            onMouseEnter={e=>{
+              cancelHide()
+              setHovered(i)
+              const r = e.currentTarget.getBoundingClientRect()
+              setAnchor({left:r.left, right:r.right, top:r.top, bottom:r.bottom})
+            }}>
             <span style={{color:'var(--gold)',fontWeight:700,fontSize:11,minWidth:16,flexShrink:0,paddingTop:10}}>{i+1}</span>
             <div style={{width:28,height:28,borderRadius:'50%',background:'var(--red)',flexShrink:0,
               overflow:'hidden',display:'flex',alignItems:'center',justifyContent:'center',
@@ -1246,7 +1543,7 @@ function SidebarTopList({ posts, setLightbox }) {
               <div style={{fontSize:10,color:'var(--dim2)',fontWeight:600,marginBottom:2}}>{p.author}</div>
               {showImage && (
                 <img src={p.images[0]} alt=""
-                  style={{width:'100%',maxHeight:160,objectFit:'cover',borderRadius:4,marginBottom:6,display:'block',cursor:'zoom-in'}}
+                  style={{width:'100%',height:'auto',borderRadius:4,marginBottom:6,display:'block',cursor:'zoom-in'}}
                   onClick={e=>{e.stopPropagation();setLightbox(p.images[0])}}
                   onError={e=>e.target.style.display='none'}/>
               )}
@@ -1283,6 +1580,8 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('feed')
   const [lightbox,  setLightbox]  = useState(null)
   const [theme, setTheme] = useState(() => { try { return localStorage.getItem('rpt_theme') || 'dark' } catch { return 'dark' } })
+  const [lang, setLang] = useState(() => { try { return localStorage.getItem('rpt_lang') || 'ru' } catch { return 'ru' } })
+  const t = (k) => (LANG_DICT[lang] && LANG_DICT[lang][k]) || LANG_DICT.ru[k] || k
   const [sortBy,  setSortByRaw]  = useState(() => { try { return localStorage.getItem('rpt_sortby') || 'date_asc' } catch { return 'date_asc' } })
   const [search,  setSearch]  = useState('')
   const [showSearch, setShowSearch] = useState(false)
@@ -1379,6 +1678,9 @@ export default function App() {
     document.documentElement.classList.toggle('light', theme === 'light')
     try { localStorage.setItem('rpt_theme', theme) } catch {}
   }, [theme])
+  useEffect(() => { try { localStorage.setItem('rpt_lang', lang) } catch {} }, [lang])
+  _lang = lang
+  useEffect(() => { if (lang!=='ru' && activeTab!=='feed') setActiveTab('feed') }, [lang, activeTab])
 
   // Auto-fit to screen: scale root so 1500px design fits user's desktop viewport.
   // Clamped so big monitors don't over-inflate and small ones don't shrink past readable.
@@ -1475,11 +1777,13 @@ export default function App() {
     const positive = sub.filter(h => (h.sessionResult || 0) > 0).length
     const totalMTT = sub.reduce((s, h) => s + (h.tournaments || 0), 0)
     const avgMTT = totalMTT ? Math.round(totalMTT / sub.length) : null
+    const profit = sub.reduce((s, h) => s + (h.sessionResult || 0), 0)
     return {
       sessionsCount: sub.length,
       positiveSessions: positive,
       winRate: positive / sub.length,
       avgMTT,
+      profit,
     }
   }, [meta, chartPeriod])
   const periodLabel = chartPeriod === 'week' ? 'неделю' : chartPeriod === 'month' ? 'месяц' : null
@@ -1507,16 +1811,16 @@ export default function App() {
   const feedPosts = useMemo(() =>
     posts
       .filter(passesIgnored)
-      .filter(p => !romeoOnly || ROMEO_RE.test(p.author))
+      .filter(p => lang!=='ru' ? ROMEO_RE.test(p.author) : (!romeoOnly || ROMEO_RE.test(p.author)))
       .filter(p => !search || p.text?.toLowerCase().includes(search.toLowerCase()))
-      .filter(passesLikeRating)
+      .filter(p => lang!=='ru' || passesLikeRating(p))
       .sort((a,b) => {
         if (sortBy==='date_desc') return (b.timestamp||0)-(a.timestamp||0)
         if (sortBy==='date_asc')  return (a.timestamp||0)-(b.timestamp||0)
         if (sortBy==='likes')     return (b.likes||0)-(a.likes||0)
         return 0
       }),
-  [posts, ignored, favorites, search, sortBy, romeoOnly, minLikes, minRating])
+  [posts, ignored, favorites, search, sortBy, romeoOnly, minLikes, minRating, lang])
 
   // При смене фильтров — умный сброс страницы
   // Если были в конце — остаёмся в конце, если в начале — в начале
@@ -1674,6 +1978,30 @@ export default function App() {
     })
   }
 
+  const goToPost = useCallback((p) => {
+    if (!p?.id) return
+    const doScroll = () => {
+      const el = document.getElementById(`post-${p.id}`)
+      if (!el) return
+      const rect = el.getBoundingClientRect()
+      // Place post ~80px from top of viewport (below topbar), not centered
+      const target = window.scrollY + rect.top - 80
+      window.scrollTo({ top: target, behavior: 'smooth' })
+      el.classList.remove('post-highlight')
+      void el.offsetWidth // reflow so animation restarts
+      el.classList.add('post-highlight')
+      setTimeout(() => el.classList.remove('post-highlight'), 2400)
+    }
+    if (activeTab !== 'feed') setActiveTab('feed')
+    const idx = feedPosts.findIndex(x => x.id === p.id)
+    if (idx !== -1) {
+      const targetPage = Math.floor(idx / perPage) + 1
+      if (targetPage !== page) setPage(targetPage)
+    }
+    // Double rAF lets React commit the page/tab change before we measure
+    requestAnimationFrame(() => requestAnimationFrame(doScroll))
+  }, [activeTab, feedPosts, perPage, page])
+
   const goToNewPosts = useCallback(() => {
     if (!newPostIds.length) return
     // Find the first new post in current feedPosts order
@@ -1810,19 +2138,28 @@ export default function App() {
             </div>
             <div>
               <div className="logo-text">RomeoPro Marathon</div>
-              <div className="logo-sub">марафон $10k → $10M</div>
+              <div className="logo-sub">{t('marathon_sub')}</div>
             </div>
           </div>
           <div className="topbar-tabs">
-            {[['feed','Лента'],['topics','Темы'],['settings','Настройки']].map(([id,label])=>(
+            {(lang==='ru' ? [['feed',t('tab_feed')],['topics',t('tab_topics')],['settings',t('tab_settings')]] : [['feed',t('tab_feed')]]).map(([id,label])=>(
               <div key={id} className={`topbar-tab ${activeTab===id?'active':''}`} onClick={()=>switchTab(id)}>{label}</div>
             ))}
           </div>
           <div className="topbar-right">
-            <button className="theme-toggle" onClick={()=>setTheme(t=>t==='dark'?'light':'dark')}
-              title={theme==='dark'?'Светлая тема':'Тёмная тема'}>
+            <button className="theme-toggle" onClick={()=>setTheme(tv=>tv==='dark'?'light':'dark')}
+              title={theme==='dark'?t('theme_light'):t('theme_dark')}>
               {theme==='dark'?'☀️':'🌙'}
             </button>
+            <div className="lang-switch" role="group" title={t('lang_title')}>
+              {['ru','en','es'].map(code => (
+                <button key={code}
+                  className={'lang-switch-btn'+(lang===code?' active':'')}
+                  onClick={()=>setLang(code)}>
+                  {code.toUpperCase()}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </div>
@@ -1871,9 +2208,9 @@ export default function App() {
         const dollarPerMTT = (periodProfit > 0 && periodMTT)
           ? periodProfit / periodMTT
           : null
-        const tempoLabel = chartPeriod === 'week'  ? 'МТТ темпом недели'
-                         : chartPeriod === 'month' ? 'МТТ темпом месяца'
-                         : 'МТТ текущим темпом'
+        const tempoLabel = chartPeriod === 'week'  ? t('tempo_week')
+                         : chartPeriod === 'month' ? t('tempo_month')
+                         : t('tempo_now')
         const tempoTitle = chartPeriod === 'all'
           ? 'Сколько МТТ нужно сыграть до $10M при среднем $/МТТ за весь марафон'
           : `Темп оценён по профиту и МТТ за выбранный период на графике (${chartPeriod==='week'?'7':'30'} дней)`
@@ -1882,7 +2219,7 @@ export default function App() {
             <div className="marathon-progress-inner">
               <div className="marathon-progress-main">
                 <div className="marathon-progress-label">
-                  <span>Прогресс к $10M</span><b>{pct.toFixed(2)}%</b>
+                  <span>{t('progress_to')}</span><b>{pct.toFixed(2)}%</b>
                 </div>
                 <div className="marathon-progress-track">
                   <div className="marathon-progress-fill" style={{width:`${pct}%`}}/>
@@ -1890,7 +2227,7 @@ export default function App() {
               </div>
               <div className="marathon-progress-side">
                 <div className="mps-item">
-                  <span className="mps-label">Осталось</span>
+                  <span className="mps-label">{t('left')}</span>
                   <span className="mps-value">{fmtInt(remaining)}$</span>
                 </div>
                 {mttNeeded && <>
@@ -1917,7 +2254,7 @@ export default function App() {
       })()}
 
       {loading
-        ? <div className="loading">Загружаем данные марафона…</div>
+        ? <div className="loading">{t('loading')}</div>
         : (
         <div className={`page ${activeTab==='settings'?'wide':''}`}>
           <div>
@@ -1939,7 +2276,7 @@ export default function App() {
               </div>
               <div className="hero-stats">
                 <div className="hstat">
-                  <div className="hstat-label">Банкролл</div>
+                  <div className="hstat-label">{t('hs_br')}</div>
                   <div className="hstat-value br-anim">
                     <AnimatedValue
                       target={brVal}
@@ -1966,23 +2303,23 @@ export default function App() {
                       }}
                     />
                   </div>
-                  <div className="hstat-sub">старт: {fmtExact(stats.startBR)}</div>
+                  <div className="hstat-sub">{t('hs_start')}: {fmtExact(stats.startBR)}</div>
                 </div>
                 <div className="hstat">
-                  <div className="hstat-label">Профит</div>
+                  <div className="hstat-label">{t('hs_profit')}</div>
                   <div className={`hstat-value ${!stats.profit?'':stats.profit>=0?'green':'red'}`}>
                     {fmtBR(stats.profit)}
                   </div>
                 </div>
                 <div className="hstat">
-                  <div className="hstat-label">День марафона</div>
+                  <div className="hstat-label">{t('hs_day')}</div>
                   <div className="hstat-value gold">#{stats.day||meta?.day||'—'}</div>
-                  <div className="hstat-sub">с 10 марта 2026</div>
+                  <div className="hstat-sub">{t('hs_since')}</div>
                 </div>
                 <div className="hstat">
-                  <div className="hstat-label">Сыграно МТТ</div>
+                  <div className="hstat-label">{t('hs_tourneys')}</div>
                   <div className="hstat-value">{fmtInt(meta?.totalTournaments ?? 3565)}</div>
-                  <div className="hstat-sub">всего за марафон</div>
+                  <div className="hstat-sub">{t('hs_all_marathon')}</div>
                 </div>
               </div>
             </div>
@@ -2104,7 +2441,11 @@ export default function App() {
                         return <span style={{color,fontVariantNumeric:'tabular-nums',letterSpacing:'-0.02em',textShadow:`0 0 12px ${glow}`,transition:'color .2s, text-shadow .2s'}}>{fmtExact(v)}</span>
                       }}/>,
                     ''],
-                  ['Профит', fmtBR(stats.profit), !stats.profit?'':stats.profit>=0?'green':'red'],
+                  (() => {
+                    const pv = periodStats?.profit ?? stats.profit
+                    return ['Профит' + (periodStats?.profit != null ? '*' : ''),
+                      fmtBR(pv), !pv?'':pv>=0?'green':'red']
+                  })(),
                   ['День', `#${stats.day||meta?.day||'—'}`, 'gold'],
                   ['МТТ', fmtInt(meta?.totalTournaments ?? 3565), ''],
                   (periodStats?.avgMTT ?? stats.avgMTT) != null && [
@@ -2124,20 +2465,20 @@ export default function App() {
                   </div>
                 ))}
               </div>
-              {periodStats && (
+              {lang==='ru' && periodStats && (
                 <div className="mobile-stats-note">* с учётом фильтра на графике ({periodLabel})</div>
               )}
               <MarathonChart posts={posts} meta={meta} startBR={stats.startBR} setLightbox={setLightbox}
-                period={chartPeriod} setPeriod={setChartPeriod}/>
+                period={chartPeriod} setPeriod={setChartPeriod} lang={lang} t={t}/>
               <ActivityChart posts={posts}
                 favorites={favorites} ignored={ignored} onFav={toggleFav}
                 onIgnore={addIgnore} onUnignore={removeIgnore} setLightbox={setLightbox}
                 sortBy={sortBy} setSortBy={setSortBy}
                 minLikes={minLikes} setMinLikes={setMinLikes}
                 minRating={minRating} setMinRating={setMinRating}
-                search={search}/>
+                search={search} onPostClick={goToPost} lang={lang} t={t}/>
               {/* Mobile-only top posts */}
-              {hotPosts.length > 0 && (() => {
+              {lang==='ru' && hotPosts.length > 0 && (() => {
                 const now = Date.now() / 1000
                 const cutoffs = { day: now-86400, week: now-604800, month: now-2592000, all: 0 }
                 const labels = { day:'День', week:'Неделя', month:'Месяц', all:'Все' }
@@ -2162,7 +2503,7 @@ export default function App() {
                           <span className="mobile-top-rank">{i+1}</span>
                           <div className="mobile-top-body">
                             <span className="mobile-top-author">{p.author}</span>
-                            <span className="mobile-top-text">{stripQuoteTags(p.text)?.substring(0,120) || '→ форум'}</span>
+                            <span className="mobile-top-text">{stripQuoteTags(p.text)?.substring(0,120) || `→ ${FORUM_WORD[_lang] || 'форум'}`}</span>
                           </div>
                           <span className="mobile-top-likes">+{p.likes}</span>
                         </a>
@@ -2171,7 +2512,7 @@ export default function App() {
                   </div>
                 )
               })()}
-              <FilterBar
+              {lang==='ru' && <FilterBar
                 sortBy={sortBy} setSortBy={setSortBy}
                 search={search} setSearch={setSearch}
                 showSearch={showSearch} setShowSearch={setShowSearch}
@@ -2179,17 +2520,17 @@ export default function App() {
                 minLikes={minLikes} setMinLikes={setMinLikes}
                 minRating={minRating} setMinRating={setMinRating}
                 count={feedPosts.length} showSort={true}
-              />
-              {newPostIds.length > 0 && activeTab === 'feed' && (
+              />}
+              {lang==='ru' && newPostIds.length > 0 && activeTab === 'feed' && (
                 <button className="new-posts-bubble" onClick={goToNewPosts}>
                   {newPostIds.length} {plural(newPostIds.length, ['новый пост','новых поста','новых постов'])}!
                 </button>
               )}
               {feedPosts.length===0
-                ? <div className="empty-state">Постов нет — смягчите фильтры или запустите скрапер</div>
+                ? (lang==='ru' ? <div className="empty-state">Постов нет — смягчите фильтры или запустите скрапер</div> : null)
                 : <>
                   <Paginator page={page} totalPages={totalPages} onPage={goPage}
-                    perPage={perPage} onPerPage={setPerPage} total={feedPosts.length} />
+                    perPage={perPage} onPerPage={setPerPage} total={feedPosts.length} lang={lang} />
                   {pagedPosts.map((p,i)=>(
                     <div key={p.id||p.url} id={`post-${p.id}`}
                       onMouseEnter={()=>{ if(i===pagedPosts.length-1) saveReadPos('feed',p.id) }}>
@@ -2199,13 +2540,13 @@ export default function App() {
                     </div>
                   ))}
                   <Paginator page={page} totalPages={totalPages} onPage={goPage}
-                    perPage={perPage} onPerPage={setPerPage} total={feedPosts.length} />
+                    perPage={perPage} onPerPage={setPerPage} total={feedPosts.length} lang={lang} />
                 </>
               }
             </>}
 
             {/* НАСТРОЙКИ */}
-            {activeTab==='settings' && (
+            {lang==='ru' && activeTab==='settings' && (
               <div className="sblock">
                 <div className="sblock-title">🚫 Игнорируемые авторы</div>
                 {ignored.size===0
@@ -2233,40 +2574,45 @@ export default function App() {
           {activeTab!=='settings' && (
             <div className="sidebar">
               <div className="sblock">
-                <div className="sblock-title">📊 Статистика</div>
+                <div className="sblock-title">📊 {t('stats')}</div>
                 <div className="sblock-body">
                   {[
-                    ['БР', <span key="br" className={`srow-val ${stats.br?'green':''}`}>{fmtExact(stats.br||meta?.bankroll)}</span>],
-                    ['Профит', <span key="pr" className={`srow-val ${!stats.profit?'':stats.profit>=0?'green':'red'}`}>{fmtBR(stats.profit)}</span>],
-                    ['День', <span key="d" className="srow-val gold">#{stats.day||meta?.day||'—'}</span>],
-                    ['Сыграно МТТ', <span key="mtt" className="srow-val">{fmtInt(meta?.totalTournaments ?? 3565)}</span>],
+                    [t('sr_br'), <span key="br" className={`srow-val ${stats.br?'green':''}`}>{fmtExact(stats.br||meta?.bankroll)}</span>],
+                    (() => {
+                      const pv = periodStats?.profit ?? stats.profit
+                      return [t('sr_profit') + (periodStats?.profit != null ? '*' : ''),
+                        <span key="pr" className={`srow-val ${!pv?'':pv>=0?'green':'red'}`}
+                          title={lang==='ru' && periodStats?.profit != null ? `За ${periodLabel}` : undefined}>{fmtBR(pv)}</span>]
+                    })(),
+                    [t('sr_day'), <span key="d" className="srow-val gold">#{stats.day||meta?.day||'—'}</span>],
+                    [t('sr_tourneys'), <span key="mtt" className="srow-val">{fmtInt(meta?.totalTournaments ?? 3565)}</span>],
                     (periodStats?.avgMTT ?? stats.avgMTT) != null && [
-                      'МТТ / сессия' + (periodStats?.avgMTT != null ? '*' : ''),
-                      <span key="avg" className="srow-val" title={periodStats?.avgMTT != null ? `За ${periodLabel}` : 'Среднее число турниров за сессию'}>
+                      t('sr_avg') + (periodStats?.avgMTT != null ? '*' : ''),
+                      <span key="avg" className="srow-val" title={lang!=='ru' ? undefined : (periodStats?.avgMTT != null ? `За ${periodLabel}` : 'Среднее число турниров за сессию')}>
                         {fmtInt(periodStats?.avgMTT ?? stats.avgMTT)}
                       </span>,
                     ],
                     (periodStats?.winRate ?? stats.winRate) != null && [
-                      'Плюсовых сессий' + (periodStats?.winRate != null ? '*' : ''),
+                      t('sr_winrate') + (periodStats?.winRate != null ? '*' : ''),
                       <span key="wr" className="srow-val"
-                        title={periodStats
+                        title={lang!=='ru' ? undefined : (periodStats
                           ? `${periodStats.positiveSessions} из ${periodStats.sessionsCount} за ${periodLabel}`
-                          : `${Math.round(stats.winRate*stats.sessionsCount)} из ${stats.sessionsCount}`}>
+                          : `${Math.round(stats.winRate*stats.sessionsCount)} из ${stats.sessionsCount}`)}>
                         {Math.round((periodStats?.winRate ?? stats.winRate)*100)}%
                       </span>,
                     ],
-                    ['Постов', <span key="p" className="srow-val">{fmtInt(posts.length)}</span>],
-                    ['Топ лайков', <span key="l" className="srow-val">{hotPosts[0]?`+${hotPosts[0].likes}`:'—'}</span>],
+                    [t('sr_posts'), <span key="p" className="srow-val">{fmtInt(posts.length)}</span>],
+                    [t('sr_top'), <span key="l" className="srow-val">{hotPosts[0]?`+${hotPosts[0].likes}`:'—'}</span>],
                   ].filter(Boolean).map(([k,v])=>(
                     <div key={k} className="srow"><span className="srow-key">{k}</span>{v}</div>
                   ))}
-                  {periodStats && (
+                  {lang==='ru' && periodStats && (
                     <div className="srow-note">* с учётом фильтра на графике ({periodLabel})</div>
                   )}
                 </div>
               </div>
 
-              {hotPosts.length>0 && (() => {
+              {lang==='ru' && hotPosts.length>0 && (() => {
                 const [sideTopPeriod, setSideTopPeriod] = [sidebarTopPeriod, setSidebarTopPeriod]
                 const now = Date.now() / 1000
                 const cutoffs = { day: now-86400, week: now-604800, month: now-2592000, all: 0 }
@@ -2329,17 +2675,17 @@ export default function App() {
               <div style={{fontSize:11,color:'var(--dim)',fontFamily:"'Roboto Mono',monospace",marginBottom:4}}>
                 <span style={{color:'var(--dim2)',fontWeight:600}}>RomeoPro Marathon</span>
                 {' '}
-                <span style={{color:'#444'}}>v1.5</span>
+                <span style={{color:'var(--dim)'}}>v1.7</span>
               </div>
-              <div style={{fontSize:10,color:'#444',marginBottom:4}}>
-                made by{' '}
+              <div style={{fontSize:10,color:'var(--dim)',marginBottom:4}}>
+                {t('footer_made')}{' '}
                 <a href="https://t.me/loremnopoker" target="_blank" rel="noreferrer"
-                  style={{color:'var(--dim)',textDecoration:'none'}}>LoremCDMX</a>
+                  style={{color:'var(--dim2)',textDecoration:'none'}}>LoremCDMX</a>
               </div>
-              <div style={{fontSize:10,color:'#333'}}>
-                обновлено: 11.04.2026
+              <div style={{fontSize:10,color:'var(--dim2)'}}>
+                {t('footer_updated')}: 13.04.2026
               </div>
-              {(() => {
+              {lang==='ru' && (() => {
                 // lastScrapeRun: heartbeat from scraper, bumped every run (even no-op).
                 // Fallback to lastUpdated (bumped only on real changes) for old data.
                 const scrapeTs = meta?.lastScrapeRun
@@ -2369,7 +2715,7 @@ export default function App() {
                       скрапер бегал: {fmt(scrapeTs)}
                     </div>
                     {newestPostTs > 0 && (
-                      <div style={{fontSize:10,color:'#666',marginTop:2,fontFamily:"'Roboto Mono',monospace",paddingLeft:11}}
+                      <div style={{fontSize:10,color:'var(--dim)',marginTop:2,fontFamily:"'Roboto Mono',monospace",paddingLeft:11}}
                         title={`Timestamp самого свежего поста на форуме: ${new Date(newestPostTs).toLocaleString('ru-RU')}`}>
                         самый свежий пост: {fmt(newestPostTs)}
                       </div>
@@ -2380,25 +2726,27 @@ export default function App() {
             </div>
 
             {/* Правая часть — чейнджлог */}
-            <div style={{maxWidth:420}}>
-              <div style={{fontSize:10,color:'#444',textTransform:'uppercase',letterSpacing:'.1em',marginBottom:8,fontWeight:600}}>
-                Changelog
+            {lang==='ru' && <div style={{maxWidth:420}}>
+              <div style={{fontSize:10,color:'var(--dim)',textTransform:'uppercase',letterSpacing:'.1em',marginBottom:8,fontWeight:600}}>
+                {t('footer_changelog')}
               </div>
               {[
-                ['11.04', 'v1.5', 'Фильтры неделя/месяц на графике — темп МТТ до $10M теперь считается по выбранному отрезку. Избранное и игнор теперь по авторам. Новые разделы в темах: Хайлайты и Авторы. % плюсовых сессий и среднее МТТ/сессия в статистике (учитывают выбранный фильтр на графике). Фикс графика: последняя точка показывала неверное кол-во МТТ. Auto fit-to-screen под ширину окна. Рефакторинг: чистка мёртвого кода, фикс утечек raf в анимациях'],
-                ['09.04', 'v1.4', 'Лайки/дизлайки через GipsyTeam. Баббл новых постов. Скрапер каждые 15 мин. График в первый экран'],
-                ['08.04', 'v1.3', 'Белая тема. Автоскрапер через GitHub Actions'],
-                ['07.04', 'v1.2', 'График с bezier-кривыми и анимацией. Мобильная вёрстка'],
-                ['06.04', 'v1.1', 'Виджет активности по дням. Топ-10 постов. Автообновление'],
-                ['05.04', 'v1.0', 'Первый запуск — лента, цитаты, пагинация, график марафона, темы, избранное, фильтры'],
+                ['13.04', 'v1.7', 'Попапы активности и топ-постов больше не вылезают за границы экрана в любых положениях. Под капотом готовится переключатель языков'],
+                ['13.04', 'v1.6', 'В активности — карточки дней с картинками, клик уносит к посту в ленте. Окошко топ-постов прилипает ближе и не дрожит. Длинные посты не режутся, если скрыта пара строк'],
+                ['11.04', 'v1.5', 'Фильтры графика по неделе и месяцу. Избранное и игнор по авторам. В темах — интересные моменты и самые активные. Страница подгоняется под ширину окна'],
+                ['09.04', 'v1.4', 'Можно плюсовать и минусовать посты прямо из трекера. Кнопка «новые посты» когда приходит свежак. Новые посты подтягиваются каждые 15 минут. График теперь на первом экране'],
+                ['08.04', 'v1.3', 'Светлая тема. Новые посты подтягиваются автоматически'],
+                ['07.04', 'v1.2', 'Плавные кривые на графике с анимацией. Версия для телефона'],
+                ['06.04', 'v1.1', 'Блок активности по дням. Топ-10 самых плюсанутых постов. Страница обновляется без перезагрузки'],
+                ['05.04', 'v1.0', 'Первый запуск — лента постов, цитаты, страницы, график марафона, тёмная и светлая тема, избранное, фильтры'],
               ].map(([date, ver, desc]) => (
                 <div key={date+ver} style={{display:'flex',gap:8,marginBottom:6,alignItems:'baseline'}}>
-                  <span style={{fontSize:9,color:'#444',fontFamily:"'Roboto Mono',monospace",minWidth:36,flexShrink:0}}>{date}</span>
+                  <span style={{fontSize:9,color:'var(--dim)',fontFamily:"'Roboto Mono',monospace",minWidth:36,flexShrink:0}}>{date}</span>
                   <span style={{fontSize:9,color:'var(--red)',minWidth:28,flexShrink:0,fontFamily:"'Roboto Mono',monospace"}}>{ver}</span>
-                  <span style={{fontSize:10,color:'#555',lineHeight:1.5}}>{desc}</span>
+                  <span style={{fontSize:10,color:'var(--dim2)',lineHeight:1.5}}>{desc}</span>
                 </div>
               ))}
-            </div>
+            </div>}
           </div>
         </footer>
       )}
