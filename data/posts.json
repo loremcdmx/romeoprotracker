@@ -82103,7 +82103,7 @@
     "date": "13 апреля, 02:51",
     "timestamp": 1776048686,
     "text": "Day 26:",
-    "likes": 52,
+    "likes": 53,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_04_2026/post-6195-1776048675f404_thumb.webp"
     ],
@@ -82191,7 +82191,7 @@
     "date": "13 апреля, 07:21",
     "timestamp": 1776064915,
     "text": "r2366, А что если мистер Б это Брыксин?",
-    "likes": 1,
+    "likes": 2,
     "images": [],
     "brBefore": null,
     "brAfter": null,
@@ -82438,5 +82438,22 @@
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8214997"
+  },
+  {
+    "id": "8215064",
+    "author": "doubting",
+    "avatar": "/img/imguser.png",
+    "rating": 696,
+    "msgCount": 171,
+    "regData": "13 лет на сайте",
+    "date": "13 апреля, 14:08",
+    "timestamp": 1776089289,
+    "text": "А я правильно понимаю, что отчеты формируются по цифрам в кассе после окончания сессии? Т.к. мы играем онли гг, то эти данные уже идут с учетом этих ебически завышенных коэффициентов?",
+    "likes": 0,
+    "images": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8215064"
   }
 ]
