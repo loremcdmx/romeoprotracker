@@ -334,9 +334,9 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
         style={{touchAction:'pan-y',WebkitUserSelect:'none',userSelect:'none',WebkitTouchCallout:'none'}}>
         <defs>
           <linearGradient id="mcGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%"   stopColor="#e53935" stopOpacity=".45"/>
-            <stop offset="70%"  stopColor="#e53935" stopOpacity=".08"/>
-            <stop offset="100%" stopColor="#e53935" stopOpacity="0"/>
+            <stop offset="0%"   stopColor="#ff6b6b" stopOpacity=".45"/>
+            <stop offset="70%"  stopColor="#ff6b6b" stopOpacity=".08"/>
+            <stop offset="100%" stopColor="#ff6b6b" stopOpacity="0"/>
           </linearGradient>
           <filter id="mcGlow" x="-20%" y="-20%" width="140%" height="140%">
             <feGaussianBlur stdDeviation="2" result="blur"/>
@@ -351,7 +351,7 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
         ))}
         <line x1={pL} y1={yOf(startBR)} x2={W-pR} y2={yOf(startBR)} className="mc-zero"/>
         <path d={areaPath} fill="url(#mcGrad)"/>
-        <path ref={pathRef} d={linePath} fill="none" stroke="#e53935" strokeWidth="2.5"
+        <path ref={pathRef} d={linePath} fill="none" stroke="#ff6b6b" strokeWidth="2.5"
           strokeLinecap="round" strokeLinejoin="round" filter="url(#mcGlow)"
           style={pathLen!=null ? {
             strokeDasharray: pathLen,
