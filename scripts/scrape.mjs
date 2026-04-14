@@ -470,6 +470,10 @@ async function main() {
 
   // Helper: run BR extraction for a post and update meta
   async function processPostBr(p, label) {
+    if (!process.env.ANTHROPIC_API_KEY) {
+      console.log(`  ⚠ ANTHROPIC_API_KEY not set — skipping BR extraction for ${p.id} (will retry later)`)
+      return false
+    }
     console.log(`🎰 ${label} Romeo post ${p.id} has ${p.images.length} images — analyzing...`)
     const brData = await extractBrFromImages(p, meta.brHistory)
     if (!brData) {
