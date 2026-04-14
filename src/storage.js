@@ -1,6 +1,9 @@
 // storage.js — fetch compact data with localStorage caching
 const REPO = 'loremcdmx/romeoprotracker'
-const BASE = `https://raw.githubusercontent.com/${REPO}/main/data`
+// jsDelivr mirrors GitHub via a global edge CDN with brotli — much faster
+// than raw.githubusercontent.com on mobile, and free. @main always resolves
+// to the latest commit on the main branch.
+const BASE = `https://cdn.jsdelivr.net/gh/${REPO}@main/data`
 const CACHE_KEY = 'rpt_cache_v3'
 const CACHE_TTL = 60 * 1000 // 1 min — don't refetch within this window
 
