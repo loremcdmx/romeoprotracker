@@ -29,6 +29,12 @@ function htmlToText($el, $) {
   html = html.replace(/<br\s*\/?>/gi, '\n')
   html = html.replace(/<\/(p|div)>/gi, '\n\n')
   const $clone = cheerio.load(html)
+  // Replace media figures (video iframes etc) with a [VIDEO] marker so the
+  // post body doesn't end up empty when its only content is an embed.
+  $clone('figure.media, figure').each(function () {
+    const fig = $clone(this)
+    if (fig.find('iframe').length) fig.replaceWith('\n[VIDEO]\n')
+  })
   $clone('blockquote').each(function () {
     const bq = $clone(this)
     const cite = bq.find('em.cite, .cite')
@@ -97,6 +103,13 @@ function parsePosts(html) {
       if (src?.startsWith('http') && !src.includes('smil')) images.push(src)
     })
 
+    const videos = []
+    bodyEl.find('figure.media iframe, figure iframe').each(function () {
+      if ($(this).closest('blockquote').length) return
+      const src = $(this).attr('src')
+      if (src) videos.push(src)
+    })
+
     let text = htmlToText(bodyEl, $)
     if (text.length > maxLen) {
       // Prioritize keeping the reply (after [/QUOTE]) over the quote itself
@@ -141,6 +154,7 @@ function parsePosts(html) {
       text,
       likes: likesEl.length ? parseInt(likesEl.text().trim()) || 0 : 0,
       images,
+      videos,
       brBefore: null,
       brAfter: null,
       sessionResult: null,
@@ -181,6 +195,13 @@ function updateLikes(existingPosts, scrapedPosts) {
     // Sync images (e.g. remove quoted images after scraper fix)
     if (scraped.images && JSON.stringify(scraped.images) !== JSON.stringify(post.images)) {
       post.images = scraped.images
+    }
+    // Sync videos (added by scraper fix — backfill on existing posts)
+    if (scraped.videos && JSON.stringify(scraped.videos) !== JSON.stringify(post.videos || [])) {
+      post.videos = scraped.videos
+      // Re-import text too so [VIDEO] markers appear in posts that were
+      // scraped before figure handling existed.
+      if (scraped.text && scraped.text !== post.text) post.text = scraped.text
     }
     // Update date to absolute form
     if (scraped.date && scraped.date !== post.date) {
@@ -613,6 +634,7 @@ async function main() {
     if (p.regData)     o.g = p.regData
     if (p.date)        o.d = p.date
     if (p.images?.length) o.p = p.images
+    if (p.videos?.length) o.vd = p.videos
     if (p.brAfter != null) o.ba = p.brAfter
     if (p.brBefore != null) o.bb = p.brBefore
     if (p.sessionResult != null) o.sr = p.sessionResult

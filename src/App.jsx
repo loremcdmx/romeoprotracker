@@ -1068,7 +1068,10 @@ function renderPostText(text, collapseQuotes=false) {
   if (!text) return null
 
   const parts = []
-  let remaining = autoCloseQuotes(text.trim()).replace(/\n{3,}/g, '\n\n')
+  // [VIDEO] markers are rendered as actual iframes by PostCard separately; strip
+  // them from the body text so they don't appear as literal `[VIDEO]` strings.
+  let remaining = autoCloseQuotes(text.trim()).replace(/\[VIDEO\]/g, '').replace(/\n{3,}/g, '\n\n').trim()
+  if (!remaining) return null
 
   while (remaining.length > 0) {
     // Формат из нового скрапера: [QUOTE]Автор|Автор @ дата\nтело цитаты[/QUOTE]ответ
@@ -1300,6 +1303,28 @@ const PostCard = memo(function PostCard({ p, favorites, ignored, onFav, onIgnore
           ))}
         </div>
       )}
+      {p.videos?.length>0 && (
+        <div className="pc-videos">
+          {p.videos.map((src,j)=>(
+            <div key={j} className="pc-video">
+              <iframe src={src} loading="lazy" allowFullScreen frameBorder="0"
+                style={{width:'100%',aspectRatio:'16/9',border:0,borderRadius:8,background:'#000'}}/>
+            </div>
+          ))}
+        </div>
+      )}
+      {(() => {
+        const stripped = stripQuoteTags(p.text || '').replace(/\[VIDEO\]/g, '').trim()
+        if (stripped.length === 0 && !p.images?.length && !p.videos?.length) {
+          return (
+            <a href={p.url} target="_blank" rel="noreferrer" className="pc-broken-link"
+              onClick={e=>e.stopPropagation()}>
+              ⚠ медиа не отобразилось — открыть на форуме →
+            </a>
+          )
+        }
+        return null
+      })()}
       <div className="pc-foot">
         <span className={`pc-likes ${likes>0?'pos':likes<0?'neg':'zero'}`}>{likes>0?'👍 +':likes<0?'👎 ':''}{likes}</span>
         {p.brAfter && <span className="pc-br">БР: {fmtNum(p.brAfter)}</span>}
