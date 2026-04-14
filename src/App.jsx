@@ -92,10 +92,25 @@ function dedupBrHistory(hist) {
   const out = []
   for (const h of sorted) {
     const prev = out[out.length-1]
-    const sameSession = prev
-      && (h.totalTournaments||0) > 0
-      && h.totalTournaments === prev.totalTournaments
-    if (sameSession) {
+    // Merge when the current entry is a re-post/"upd" of the previous one:
+    // both entries claim the same starting bankroll. In a normal chain
+    // h.brBefore should equal prev.brAfter (previous session's end), so a
+    // match against prev.brBefore means the current entry is replaying the
+    // same session from the same starting point — i.e. Romeo posting an
+    // "upd" for the day (e.g. "Day 12 upd: минкешнул…"). The later entry
+    // wins. Skip the merge when prev had a zero-result session (brAfter ==
+    // brBefore), where the next session legitimately starts at the same BR.
+    //
+    // totalTournaments-based matching was removed: Claude vision
+    // occasionally reads the same tt for two different days when the
+    // screenshot was taken before playing any new games, producing false
+    // merges of adjacent real sessions.
+    const sameByBrBefore = prev
+      && h.brBefore != null
+      && prev.brBefore != null
+      && h.brBefore === prev.brBefore
+      && prev.brBefore !== prev.brAfter
+    if (sameByBrBefore) {
       out[out.length-1] = {
         ...h,
         brBefore: prev.brBefore ?? h.brBefore,
