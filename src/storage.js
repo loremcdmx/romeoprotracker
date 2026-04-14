@@ -38,6 +38,7 @@ function expandPosts(compact) {
       msgCount: p.m || null,
       regData: p.g || null,
       images: p.p || [],
+      videos: p.vd || [],
       brAfter: p.ba ?? null,
       brBefore: p.bb ?? null,
       sessionResult: p.sr ?? null,
