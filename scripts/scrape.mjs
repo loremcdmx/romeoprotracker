@@ -655,20 +655,6 @@ async function main() {
     execSync(`git commit -m "${msg}"`)
     execSync('git push')
     console.log(`✅ Pushed: ${msg}`)
-    // Purge jsDelivr edge cache so mobile/CDN users get fresh data without
-    // waiting for the 12h branch-ref TTL.
-    const purgeUrls = [
-      'https://purge.jsdelivr.net/gh/loremcdmx/romeoprotracker@main/data/posts.min.json',
-      'https://purge.jsdelivr.net/gh/loremcdmx/romeoprotracker@main/data/meta.json',
-    ]
-    for (const url of purgeUrls) {
-      try {
-        const res = await fetch(url)
-        console.log(`  🧹 jsDelivr purge: ${url.split('/').pop()} → ${res.status}`)
-      } catch (e) {
-        console.log(`  ⚠ jsDelivr purge failed: ${e.message}`)
-      }
-    }
   } catch (e) {
     console.log('ℹ Nothing to commit or push failed:', e.message)
   }

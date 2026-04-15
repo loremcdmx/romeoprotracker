@@ -42,9 +42,6 @@ src/
 scripts/
   scrape.mjs           — Node.js скрапер (GitHub Actions)
 
-api/
-  check-likes.js       — Vercel serverless: верификация лайков
-
 .github/workflows/
   scrape.yml           — cron: */15 + full scan каждые 6ч
 ```

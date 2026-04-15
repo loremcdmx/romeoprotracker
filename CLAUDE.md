@@ -22,17 +22,16 @@ Single-page React app (~2500 lines in one file `src/App.jsx`) with no router. Ev
 
 ### Key files
 
-- **`src/App.jsx`** — entire UI: topbar, hero stats, marathon chart (custom SVG), activity chart (Recharts), post feed, top posts, admin/scraper panel. All CSS is a template literal injected via `<style>`.
-- **`src/storage.js`** — fetches `posts.json` and `meta.json` from GitHub raw (reads from `main` branch, repo hardcoded as `loremcdmx/romeoprotracker`).
-- **`src/userscript.js`** — generates a Tampermonkey userscript for scraping forum posts. The admin panel in App.jsx lets the user configure and launch it.
+- **`src/App.jsx`** — entire UI: topbar, hero stats, marathon chart (custom SVG), activity chart (Recharts), post feed, top posts. All CSS is a template literal injected via `<style>`.
+- **`src/storage.js`** — fetches compact `posts.min.json` and `meta.json` from `raw.githubusercontent.com` (main branch, repo hardcoded as `loremcdmx/romeoprotracker`). Has a 1-min localStorage cache.
+- **`scripts/scrape.mjs`** — scraper run by GitHub Actions (`.github/workflows/scrape.yml`) every ~5 min. Parses forum HTML with cheerio, extracts BR from Romeo's screenshots via Claude Vision, commits `data/*.json` back to main.
 - **`src/main.jsx`** — React entry point, nothing special.
 
 ### Data flow
 
-1. Data lives in `data/posts.json` and `data/meta.json` in this repo (committed to `main` branch).
-2. The app fetches these via raw.githubusercontent.com at runtime (no backend).
-3. New posts are scraped via the generated userscript, which writes back to GitHub via the API using a PAT configured in the admin panel.
-4. `public/data/` contains static copies (avatars.json, meta.json, posts.json) used as fallback/for local dev.
+1. Data lives in `data/posts.json`, `data/posts.min.json`, and `data/meta.json` in this repo (committed to `main` branch by the scraper).
+2. The frontend fetches `posts.min.json` + `meta.json` from raw.githubusercontent.com at runtime (no backend).
+3. New posts are scraped server-side by `scripts/scrape.mjs` running in GitHub Actions.
 
 ### Charts
 
