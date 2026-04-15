@@ -1,10 +1,11 @@
 // storage.js — fetch compact data with localStorage caching
 const REPO = 'loremcdmx/romeoprotracker'
-// jsDelivr mirrors GitHub via a global edge CDN with brotli — much faster
-// than raw.githubusercontent.com on mobile, and free. @main always resolves
-// to the latest commit on the main branch.
-const BASE = `https://cdn.jsdelivr.net/gh/${REPO}@main/data`
-const CACHE_KEY = 'rpt_cache_v4'
+// raw.githubusercontent.com is the source of truth: it reflects the latest
+// main commit within seconds of a push. We used to go through jsDelivr for
+// brotli+edge speed, but its Fastly cache held @main for up to 12h even
+// after purge calls (s-maxage=43200), so users saw stale data 10h behind.
+const BASE = `https://raw.githubusercontent.com/${REPO}/main/data`
+const CACHE_KEY = 'rpt_cache_v5'
 const CACHE_TTL = 60 * 1000 // 1 min — don't refetch within this window
 
 function getCache() {
