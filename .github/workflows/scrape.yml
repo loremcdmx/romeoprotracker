@@ -36,4 +36,5 @@ jobs:
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           SCRAPE_MODE: ${{ github.event.schedule == '0 */12 * * *' && 'full' || inputs.mode || 'normal' }}
+          TZ: Europe/Warsaw
         run: node scripts/scrape.mjs

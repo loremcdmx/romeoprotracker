@@ -54,11 +54,50 @@ export const fmtExact = n => {
   return rounded + '$'
 }
 
+// All date formatting is pinned to Europe/Warsaw so every visitor sees the
+// same time regardless of their browser TZ. Pre-formatted `.date` strings from
+// the scraper JSON are ignored — always derive from `.timestamp` (UTC epoch).
+const WARSAW_TZ = 'Europe/Warsaw'
+const _warsawFmt = new Intl.DateTimeFormat('en-GB', {
+  timeZone: WARSAW_TZ,
+  year: 'numeric', month: '2-digit', day: '2-digit',
+  hour: '2-digit', minute: '2-digit', hour12: false,
+})
+export function warsawParts(timestamp) {
+  if (!timestamp) return null
+  const parts = _warsawFmt.formatToParts(new Date(timestamp * 1000))
+  const pick = (type) => parts.find(p => p.type === type)?.value || ''
+  return {
+    year: pick('year'),
+    month: parseInt(pick('month'), 10),
+    day: parseInt(pick('day'), 10),
+    hour: pick('hour'),
+    minute: pick('minute'),
+  }
+}
+export function warsawDayKey(timestamp) {
+  const p = warsawParts(timestamp)
+  return p ? `${p.year}-${String(p.month).padStart(2,'0')}-${String(p.day).padStart(2,'0')}` : ''
+}
+
+const MONTHS_FULL_BY_LANG = {
+  ru: ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'],
+  en: ['January','February','March','April','May','June','July','August','September','October','November','December'],
+  es: ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'],
+}
 const MONTHS_SHORT = ['янв','фев','мар','апр','мая','июн','июл','авг','сен','окт','ноя','дек']
+
 export function fmtDateShort(timestamp) {
-  if (!timestamp) return '—'
-  const d = new Date(timestamp * 1000)
-  return d.getDate() + ' ' + MONTHS_SHORT[d.getMonth()]
+  const p = warsawParts(timestamp)
+  if (!p) return '—'
+  return `${p.day} ${MONTHS_SHORT[p.month - 1]}`
+}
+
+export function fmtDateTimeLang(timestamp, lang = 'ru') {
+  const p = warsawParts(timestamp)
+  if (!p) return '—'
+  const months = MONTHS_FULL_BY_LANG[lang] || MONTHS_FULL_BY_LANG.ru
+  return `${p.day} ${months[p.month - 1]}, ${p.hour}:${p.minute}`
 }
 
 export function extractDay(text) {

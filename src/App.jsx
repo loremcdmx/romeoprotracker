@@ -5,6 +5,7 @@ import {
   timeAgo, fmtBR, fmtNum, fmtInt, fmtExact, fmtDateShort, extractDay, extractBR,
   fk, fkAbs, ROMEO_RE, autoCloseQuotes, stripQuoteTags, extractQuoteBody,
   makeBezierPath, makeBezierArea, pl, plural,
+  warsawParts, warsawDayKey, fmtDateTimeLang,
 } from './utils.js'
 import { useIsMobile } from './hooks/useIsMobile.js'
 import AnimatedValue, { useTweenValue } from './components/AnimatedValue.jsx'
@@ -20,9 +21,9 @@ const MONTHS_SHORT_BY_LANG = {
   es: ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'],
 }
 function fmtDateShortLang(ts, lang) {
-  if (!ts) return '—'
-  const d = new Date(ts * 1000)
-  return d.getDate() + ' ' + (MONTHS_SHORT_BY_LANG[lang] || MONTHS_SHORT_BY_LANG.ru)[d.getMonth()]
+  const p = warsawParts(ts)
+  if (!p) return '—'
+  return p.day + ' ' + (MONTHS_SHORT_BY_LANG[lang] || MONTHS_SHORT_BY_LANG.ru)[p.month - 1]
 }
 
 const LANG_DICT = {
@@ -473,7 +474,7 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
             }}>
               {fk(tip.profit)}
             </div>
-            <div style={{fontWeight:700,color:'var(--white)',fontSize:13,marginBottom:5,paddingRight:64}}>{tip.p.date}</div>
+            <div style={{fontWeight:700,color:'var(--white)',fontSize:13,marginBottom:5,paddingRight:64}}>{fmtDateTimeLang(tip.p.timestamp, lang)}</div>
             <div style={{display:'flex',gap:12,fontSize:12,marginBottom:tip.p.tournaments?4:roomDeltas.length?8:4}}>
               <span style={{color:'var(--dim)'}}>{t('tip_br')}: <b style={{color:'var(--white)'}}>{fkAbs(tip.p.br)}</b></span>
             </div>
@@ -717,8 +718,8 @@ function ActivityChart({ posts, favorites, ignored, onFav, onIgnore, onUnignore,
     const byDate = {}
     posts.forEach(p => {
       if (!p.timestamp) return
-      const d = new Date(p.timestamp * 1000)
-      const k = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+      const k = warsawDayKey(p.timestamp)
+      if (!k) return
       if (!byDate[k]) byDate[k] = { count:0, posts:[] }
       byDate[k].count++
       byDate[k].posts.push(p)
@@ -1303,7 +1304,7 @@ const PostCard = memo(function PostCard({ p, favorites, ignored, onFav, onIgnore
             )}
           </div>
         </div>
-        <div className="pc-date" title={p.date}>{timeAgo(p.timestamp) || p.date}</div>
+        <div className="pc-date" title={fmtDateTimeLang(p.timestamp, _lang)}>{timeAgo(p.timestamp) || fmtDateTimeLang(p.timestamp, _lang)}</div>
         <div className="pc-actions">
           <button className={`pc-action ${isFav?'on':''}`} onClick={()=>onFav(p.author)} title={isFav?'Убрать автора из избранного':'Добавить автора в избранное'}>⭐</button>
           <button className="pc-action" onClick={()=>onIgnore(p.author)} title="Игнорировать">🚫</button>
@@ -1525,7 +1526,7 @@ function SidebarTopList({ posts, setLightbox }) {
           }}>
             <div style={{fontWeight:700,color:'var(--white)',fontSize:13,marginBottom:4}}>{p.author}</div>
             <div style={{fontSize:11,color:'var(--dim)',marginBottom:8,fontFamily:"'Roboto Mono',monospace"}}>
-              <span style={{color:'var(--green)'}}>+{p.likes} 👍</span> · {p.date}
+              <span style={{color:'var(--green)'}}>+{p.likes} 👍</span> · {fmtDateTimeLang(p.timestamp, _lang)}
             </div>
             <div style={{fontSize:12,color:'var(--text)',lineHeight:1.6,overflowY:'auto',flex:1,paddingRight:4}}>
               {!((p.text||'').includes('[QUOTE]')) && p.images?.[0] && (
@@ -1781,7 +1782,7 @@ export default function App() {
       for (const p of romeoByDate) { day = extractDay(p.text); if (day) break }
       if (!day) day = brHistory.length
 
-      return { br, profit, startBR, day, lastDate: last.date, totalTourneys, sessionsCount, winRate, avgMTT }
+      return { br, profit, startBR, day, lastTs: last.timestamp, totalTourneys, sessionsCount, winRate, avgMTT }
     }
 
     if (!posts.length) return { startBR }
@@ -1796,7 +1797,7 @@ export default function App() {
       if (day && br) break
     }
     const profit = br ? br - startBR : null
-    return { day, br, profit, startBR, lastDate: romeoByDate[0]?.date, totalTourneys: null }
+    return { day, br, profit, startBR, lastTs: romeoByDate[0]?.timestamp, totalTourneys: null }
   }, [posts, meta])
 
   const [sidebarTopPeriod, setSidebarTopPeriod] = useState('all')
@@ -2314,7 +2315,7 @@ export default function App() {
                   <div className="hero-desc">
                     From Hero to Zero · <a href="https://forum.gipsyteam.ru/index.php?viewtopic=181676"
                       target="_blank" rel="noreferrer" style={{color:'var(--dim2)'}}>GipsyTeam</a>
-                    {stats.lastDate && <span> · последний пост: {stats.lastDate}</span>}
+                    {stats.lastTs && <span> · последний пост: {fmtDateTimeLang(stats.lastTs, lang)}</span>}
                   </div>
                 </div>
               </div>
