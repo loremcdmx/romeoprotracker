@@ -23,26 +23,26 @@ describe('timeAgo', () => {
   })
 
   it('returns minutes', () => {
-    expect(timeAgo(now() - 120)).toBe('2 мин назад')
-    expect(timeAgo(now() - 3599)).toBe('59 мин назад')
+    expect(timeAgo(now() - 120)).toBe('2 минуты назад')
+    expect(timeAgo(now() - 3599)).toBe('59 минут назад')
   })
 
   it('returns hours', () => {
-    expect(timeAgo(now() - 3600)).toBe('1 ч назад')
-    expect(timeAgo(now() - 7200)).toBe('2 ч назад')
+    expect(timeAgo(now() - 3600)).toBe('1 час назад')
+    expect(timeAgo(now() - 7200)).toBe('2 часа назад')
   })
 
   it('returns days', () => {
-    expect(timeAgo(now() - 86400)).toBe('1 дн назад')
-    expect(timeAgo(now() - 86400 * 5)).toBe('5 дн назад')
+    expect(timeAgo(now() - 86400)).toBe('1 день назад')
+    expect(timeAgo(now() - 86400 * 5)).toBe('5 дней назад')
   })
 
   it('returns months', () => {
-    expect(timeAgo(now() - 86400 * 45)).toBe('1 мес назад')
+    expect(timeAgo(now() - 86400 * 45)).toBe('1 месяц назад')
   })
 
   it('returns years', () => {
-    expect(timeAgo(now() - 86400 * 400)).toBe('1 г назад')
+    expect(timeAgo(now() - 86400 * 400)).toBe('1 год назад')
   })
 })
 
@@ -54,19 +54,19 @@ describe('fmtBR', () => {
   })
 
   it('formats zero', () => {
-    expect(fmtBR(0)).toBe('$0')
+    expect(fmtBR(0)).toBe('0$')
   })
 
   it('formats positive values', () => {
-    expect(fmtBR(500)).toBe('+$500')
-    expect(fmtBR(1500)).toBe('+$1.5k')
-    expect(fmtBR(1_500_000)).toBe('+$1.50M')
+    expect(fmtBR(500)).toBe('+500$')
+    expect(fmtBR(1500)).toBe('+1.5k$')
+    expect(fmtBR(1_500_000)).toBe('+1.50M$')
   })
 
   it('formats negative values', () => {
-    expect(fmtBR(-500)).toBe('-$500')
-    expect(fmtBR(-2000)).toBe('-$2.0k')
-    expect(fmtBR(-1_000_000)).toBe('-$1.00M')
+    expect(fmtBR(-500)).toBe('-500$')
+    expect(fmtBR(-2000)).toBe('-2.0k$')
+    expect(fmtBR(-1_000_000)).toBe('-1.00M$')
   })
 })
 
@@ -77,9 +77,9 @@ describe('fmtNum', () => {
   })
 
   it('formats without sign', () => {
-    expect(fmtNum(500)).toBe('$500')
-    expect(fmtNum(1500)).toBe('$1.5k')
-    expect(fmtNum(2_000_000)).toBe('$2.00M')
+    expect(fmtNum(500)).toBe('500$')
+    expect(fmtNum(1500)).toBe('1.5k$')
+    expect(fmtNum(2_000_000)).toBe('2.00M$')
   })
 })
 
@@ -112,12 +112,12 @@ describe('fmtExact', () => {
   })
 
   it('formats small values', () => {
-    expect(fmtExact(500)).toBe('$500')
+    expect(fmtExact(500)).toBe('500$')
   })
 
   it('formats thousands with thin space', () => {
-    expect(fmtExact(9957)).toBe('$9\u202F957')
-    expect(fmtExact(10000)).toBe('$10\u202F000')
+    expect(fmtExact(9957)).toBe('9\u202F957$')
+    expect(fmtExact(10000)).toBe('10\u202F000$')
   })
 })
 
@@ -163,31 +163,31 @@ describe('extractBR', () => {
 // ─── fk ──────────────────────────────────────────────────────────────────────
 describe('fk', () => {
   it('formats with sign by default', () => {
-    expect(fk(500)).toBe('+$500')
-    expect(fk(-500)).toBe('-$500')
-    expect(fk(0)).toBe('$0')
+    expect(fk(500)).toBe('+500$')
+    expect(fk(-500)).toBe('-500$')
+    expect(fk(0)).toBe('0$')
   })
 
   it('formats thousands', () => {
-    expect(fk(1500)).toBe('+$1.5k')
-    expect(fk(-2000)).toBe('-$2.0k')
+    expect(fk(1500)).toBe('+1.5k$')
+    expect(fk(-2000)).toBe('-2.0k$')
   })
 
   it('can omit sign', () => {
-    expect(fk(500, false)).toBe('$500')
-    expect(fk(-1500, false)).toBe('$1.5k')
+    expect(fk(500, false)).toBe('500$')
+    expect(fk(-1500, false)).toBe('1.5k$')
   })
 })
 
 // ─── fkAbs ───────────────────────────────────────────────────────────────────
 describe('fkAbs', () => {
   it('formats small values', () => {
-    expect(fkAbs(500)).toBe('$500')
+    expect(fkAbs(500)).toBe('500$')
   })
 
   it('formats thousands', () => {
-    expect(fkAbs(1500)).toBe('$1.5k')
-    expect(fkAbs(10000)).toBe('$10.0k')
+    expect(fkAbs(1500)).toBe('1.5k$')
+    expect(fkAbs(10000)).toBe('10.0k$')
   })
 })
 
