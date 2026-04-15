@@ -88,7 +88,7 @@ describe('App', () => {
     fireEvent.click(tabs[0])
     expect(screen.getByText(/Марафон/)).toBeInTheDocument()
     expect(screen.getByText(/Про Ромео/)).toBeInTheDocument()
-    expect(screen.getByText(/Топ-контент/)).toBeInTheDocument()
+    expect(screen.getByText(/Хайлайты/)).toBeInTheDocument()
     expect(screen.getByText(/По темам/)).toBeInTheDocument()
   })
 
@@ -123,8 +123,8 @@ describe('App', () => {
   it('renders footer with version and changelog', async () => {
     render(<App />)
     await screen.findAllByText('Romeopro')
-    // v2.2 may appear in footer and changelog entry
-    expect(screen.getAllByText('v2.2').length).toBeGreaterThanOrEqual(1)
+    // Current app version is rendered in the footer (keep in sync with package.json)
+    expect(screen.getAllByText('v1.7').length).toBeGreaterThanOrEqual(1)
     expect(screen.getByText('Changelog')).toBeInTheDocument()
   })
 
