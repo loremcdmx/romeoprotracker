@@ -900,7 +900,7 @@ function ActivityChart({ posts, favorites, ignored, onFav, onIgnore, onUnignore,
         // zoomed ancestor are interpreted pre-zoom then scaled by the browser.
         // window.innerWidth/Height are the physical viewport, so dividing by
         // zoom gives the logical viewport in the same coord system as CSS values.
-        const zoom = parseFloat(document.documentElement.style.zoom) || 1
+        const zoom = parseFloat(document.getElementById('root')?.style.zoom) || 1
         const vw = window.innerWidth / zoom
         const vh = window.innerHeight / zoom
         const sRect = { left: svgRect.left/zoom, right: svgRect.right/zoom, top: svgRect.top/zoom, bottom: svgRect.bottom/zoom, width: svgRect.width/zoom }
@@ -1482,7 +1482,7 @@ function SidebarTopList({ posts, setLightbox }) {
         const EDGE = 8
         // Normalize anchor (GBCR, visual post-zoom) to pre-zoom CSS px so math
         // matches the viewport values and CSS values we emit.
-        const zoom = parseFloat(document.documentElement.style.zoom) || 1
+        const zoom = parseFloat(document.getElementById('root')?.style.zoom) || 1
         const vw = window.innerWidth / zoom
         const vh = window.innerHeight / zoom
         const a = { left: anchor.left/zoom, right: anchor.right/zoom, top: anchor.top/zoom, bottom: anchor.bottom/zoom }
@@ -1729,6 +1729,10 @@ export default function App() {
   useEffect(() => {
     let raf = 0
     let lastZ = ''
+    // Apply zoom to #root rather than <html>: Chromium has paint bugs when
+    // zoom toggles on documentElement during resize (content disappears until
+    // F5). Keeping it on a regular element avoids the root-layer wedge.
+    const root = document.getElementById('root')
     const fit = () => {
       raf = 0
       const vw = window.innerWidth
@@ -1737,7 +1741,7 @@ export default function App() {
         : Math.min(1.25, Math.max(0.85, vw / 1500)).toFixed(2)
       if (next === lastZ) return
       lastZ = next
-      document.documentElement.style.zoom = next
+      if (root) root.style.zoom = next
     }
     const onResize = () => {
       if (raf) return
