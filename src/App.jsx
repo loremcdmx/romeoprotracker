@@ -2993,10 +2993,20 @@ export default function App() {
     if (!hist?.length || chartPeriod === 'all') return null
     const now = Date.now() / 1000
     const cutoff = chartPeriod === 'week' ? now - 7*86400 : now - 30*86400
-    const sub = hist.filter(h => (h.timestamp || 0) >= cutoff)
+    const sorted = [...hist].sort((a,b)=>(a.timestamp||0)-(b.timestamp||0))
+    const insideIdx = sorted.findIndex(h => (h.timestamp||0) >= cutoff)
+    if (insideIdx < 0) return null
+    const sub = sorted.slice(insideIdx)
     if (sub.length < 2) return null
     const positive = sub.filter(h => (h.sessionResult || 0) > 0).length
-    const totalMTT = sub.reduce((s, h) => s + (h.tournaments || 0), 0)
+    let totalMTT = sub.reduce((s, h) => s + (h.tournaments || 0), 0)
+    if (!totalMTT) {
+      // Fallback when per-session tournament counts are missing: use the
+      // delta of cumulative totalTournaments across the window.
+      const baseTotal = insideIdx === 0 ? 0 : (sorted[insideIdx-1].totalTournaments||0)
+      const lastTotal = sorted[sorted.length-1].totalTournaments||0
+      totalMTT = Math.max(0, lastTotal - baseTotal)
+    }
     const avgMTT = totalMTT ? Math.round(totalMTT / sub.length) : null
     const profit = sub.reduce((s, h) => s + (h.sessionResult || 0), 0)
     return {
@@ -3004,6 +3014,7 @@ export default function App() {
       positiveSessions: positive,
       winRate: positive / sub.length,
       avgMTT,
+      totalMTT: totalMTT || null,
       profit,
     }
   }, [meta, chartPeriod])
@@ -3428,7 +3439,8 @@ export default function App() {
                       fmtBR(pv), !pv?'':pv>=0?'green':'red']
                   })(),
                   [t('sr_day'), `#${stats.day||meta?.day||'—'}`, 'gold'],
-                  [t('sr_mtt_short'), fmtInt(meta?.totalTournaments ?? 3565), ''],
+                  [t('sr_mtt_short') + (periodStats?.totalMTT != null ? '*' : ''),
+                    fmtInt(periodStats?.totalMTT ?? meta?.totalTournaments ?? 3565), ''],
                   (periodStats?.avgMTT ?? stats.avgMTT) != null && [
                     t('sr_avg') + (periodStats?.avgMTT != null ? '*' : ''),
                     fmtInt(periodStats?.avgMTT ?? stats.avgMTT),
@@ -3560,7 +3572,11 @@ export default function App() {
                 <div className="sblock-body">
                   {[
                     [t('sr_day'), <span key="d" className="srow-val gold">#{stats.day||meta?.day||'—'}</span>],
-                    [t('sr_tourneys'), <span key="mtt" className="srow-val">{fmtInt(meta?.totalTournaments ?? 3565)}</span>],
+                    [t('sr_tourneys') + (periodStats?.totalMTT != null ? '*' : ''),
+                      <span key="mtt" className="srow-val"
+                        title={periodStats?.totalMTT != null ? `${t('for_period')} ${t(chartPeriod==='week'?'period_week':'period_month').toLowerCase()}` : undefined}>
+                        {fmtInt(periodStats?.totalMTT ?? meta?.totalTournaments ?? 3565)}
+                      </span>],
                     (periodStats?.avgMTT ?? stats.avgMTT) != null && [
                       t('sr_avg') + (periodStats?.avgMTT != null ? '*' : ''),
                       <span key="avg" className="srow-val" title={periodStats?.avgMTT != null ? `${t('for_period')} ${t(chartPeriod==='week'?'period_week':'period_month').toLowerCase()}` : undefined}>
