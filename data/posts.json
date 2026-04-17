@@ -29093,7 +29093,13 @@
         "lux": 480
       }
     },
-    "brChecked": false
+    "brChecked": false,
+    "translations": {
+      "srcLen": 46,
+      "srcHead": "Day 11:\n\nВыиграл вчера 5 или 6 турниров на ПС.",
+      "en": "Day 11:\n\nWon 5 or 6 tournaments on PS yesterday.",
+      "es": "Día 11:\n\nAyer gané 5 o 6 torneos en PS."
+    }
   },
   {
     "id": "8199619",
@@ -32010,7 +32016,13 @@
         "lux": 2545
       }
     },
-    "brChecked": false
+    "brChecked": false,
+    "translations": {
+      "srcLen": 100,
+      "srcHead": "Day 12: Вчера 2 мелких турнира на ПС выиграл и сегодня еще второй день 109 мейна",
+      "en": "Day 12: Yesterday I won 2 small tournaments on PS and today I'm playing the second day of the 109 main event with a short stack.",
+      "es": "Day 12: Ayer gané 2 torneos pequeños en PS y hoy tengo otro segundo día de 109 main con un stack pequeño."
+    }
   },
   {
     "id": "8200089",
@@ -33134,7 +33146,13 @@
         "lux": 2545
       }
     },
-    "brChecked": false
+    "brChecked": false,
+    "translations": {
+      "srcLen": 78,
+      "srcHead": "Day 12 upd:\n\nМинкешнул по итогу МЕ и заапдейтил количество сыгранных турниров.",
+      "en": "Day 12 upd:\n\nMincashed ME in the end and updated the number of tournaments played.",
+      "es": "Day 12 upd:\n\nHice min cash al final en el ME y actualicé la cantidad de torneos jugados."
+    }
   },
   {
     "id": "8200445",
@@ -33191,7 +33209,13 @@
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8200447",
     "rooms": null,
-    "brChecked": false
+    "brChecked": false,
+    "translations": {
+      "srcLen": 2110,
+      "srcHead": "Последние 3 дня я созванивался с math/BRM guy еще со времен BitB где он меня упо",
+      "en": "Over the last 3 days I've been on calls with a math/BRM guy from back in the BitB days who has been persistently and gradually convincing me of the need to sell shares in MTTs. He's been showing me through various calculations that my strategy of grinding cheap tournaments according to Kelly is far from optimal, demonstrating the insanity of variance and its impact on bankroll growth rate in the long term due to downswings and rollbacks and the endless amount of time needed to realize EV in kilopolls. Yesterday he even used AI to write an essay/article in his substack about our discussions and the global mistakes that practically no MTT player recognizes (some just intuitively act better, some intuitively approach BRM worse - I'm definitely in the second category from my past) - I'll drop the link below. In the end he managed to convince me - especially given the urgency of grinding the BR from 7.5k to 50k by the start of GGWF where I'll take both mid-field leaderboards (if I don't get seriously sick again like last year) his task became much simpler. And already with a BR of 200k+ for tournaments 1k- (except kilopolls at 500-1k) selling shares at a \"loss\" to myself will no longer be necessary due to sufficient bankroll depth. In the current situation (there will also be a screenshot of one of the model calculations below) playing kilopolls with <100/200 BI for building a bankroll long term is strictly breakeven or losing in principle. In short and heavily simplified, the takeaway is that his model shows mandatory share selling even at half your ROI due to insane variance in tournaments you don't have at least 300 BI for in short fields and 600 BI in kilopolls. Still, I won't sell shares for 22-33$ kilopolls since I'll \"offset\" them with small fields on PS at 5-55$ with low variance. Preliminary plan to sell shares for 44-440$ on Wednesday on GG (when I finish dealing with \"poker-adjacent issues\"), and when BR is at least 20k+ then already for 500-1k+. As for shares in PS/VPN/Coin tournaments I'm still thinking about it, since the process there is much less smooth, and time as I've always considered the most valuable resource I still do. Also Felix is in the process of finishing calculations on comparative BR growth speed with and without share selling and will drop the results for you in the next few days.",
+      "es": "Los últimos 3 días he estado en llamadas con math/BRM guy desde los tiempos de BitB donde me estaba convenciendo gradualmente de la necesidad de vender stakes en MTT. Y que mi estrategia de grindear desde torneos baratos por Kelly está lejos de ser óptima mostrando varios cálculos y demostrando la locura de la varianza y su impacto en la velocidad de crecimiento del bankroll a largo plazo debido a drawdowns y retrocesos y la cantidad infinita de tiempo necesaria para realizar EV en kilopolos. Ayer incluso con la ayuda de AI en su substack essay/article escribió sobre nuestras discusiones y los errores globales que casi ningún jugador de MTT se da cuenta (alguien intuitivamente simplemente juega mejor, alguien intuitivamente se aproxima peor al BRM - yo definitivamente en el pasado pertenezco a la segunda categoría) - el link lo voy a tirar abajo. Al final logró convencerme - especialmente debido a la urgencia de hacer crecer el BR de 7.5k a 50k para el inicio de GGWF donde voy a ganar ambos líderes intermedios (si nuevamente no me enfermo gravemente como el año pasado) la tarea se simplificó mucho para él. Y ya con un BR de 200k+ en torneos de 1k- (excepto kilopolos de 500-1k) vender stakes en \"pérdida\" para mí dejará de ser necesario debido a la profundidad suficiente del bankroll. En la situación actual (también habrá una captura de pantalla de uno de los cálculos del modelo abajo) jugar en kilopolos con <100/200BI para construir el bankroll a largo plazo, por ejemplo, es estrictamente negativo en principio. En resumen y simplificando mucho, el resultado es que su modelo muestra una venta obligatoria de stakes incluso a la mitad de tu ROI debido a la varianza loca en torneos para los que no tienes al menos 300 BI en campos cortos y 600 BI en kilopolos. De todas formas en kilopolos de 22-33$ no voy a vender, ya que los \"cubrirá\" con campos pequeños en PS de 5-55$ con baja varianza. El plan preliminar es vender stakes en 44-440$ el miércoles en GG (cuando termine de resolver \"cuestiones relacionadas con poker\"), y cuando el BR sea al menos 20k+ entonces ya en 500-1k+. Sobre stakes en torneos de PS/VPN/Coin todavía estoy pensando, ya que el proceso allá es mucho menos smooth, y el tiempo como siempre lo consideré el recurso más valioso así lo sigo considerando. También Félix está en proceso de terminar los cálculos sobre la velocidad comparativa de crecimiento del BRM con venta y sin venta y en estos días les pasaré los resultados."
+    }
   },
   {
     "id": "8200448",
@@ -33212,7 +33236,13 @@
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8200448",
     "rooms": null,
-    "brChecked": true
+    "brChecked": true,
+    "translations": {
+      "srcLen": 125,
+      "srcHead": "Архетип использованный здесь в расчёте это игрок со средним ROI 15% в то время к",
+      "en": "The archetype used here in the calculation is a player with an average ROI of 15%, while in tournaments <500$ I have an average ROI of 19.9%.",
+      "es": "El arquetipo utilizado aquí en el cálculo es un jugador con un ROI promedio del 15% mientras que en mis torneos <500$ tengo un ROI promedio del 19.9%."
+    }
   },
   {
     "id": "8200449",
@@ -33253,7 +33283,13 @@
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8200450",
     "rooms": null,
-    "brChecked": false
+    "brChecked": false,
+    "translations": {
+      "srcLen": 83,
+      "srcHead": "Вышеозвученное essay/article: https://muchomota.substack.com/p/the-roman-extract",
+      "en": "The aforementioned essay/article: https://muchomota.substack.com/p/the-roman-extraction",
+      "es": "El ensayo/artículo mencionado anteriormente: https://muchomota.substack.com/p/the-roman-extraction"
+    }
   },
   {
     "id": "8200457",
@@ -40287,7 +40323,13 @@
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8201807",
     "rooms": null,
-    "brChecked": true
+    "brChecked": true,
+    "translations": {
+      "srcLen": 2201,
+      "srcHead": "Ребят,  сохраняйте какой-то хотя бы минимальный уровень здравомыслия. Я понимаю,",
+      "en": "Guys, maintain at least some minimum level of common sense. I understand that this topic is maximum not conducive to it, but still.\n\nI don't read it myself, but from various corners I'm hearing some absurd stuff like Romeo running at -10 euro bb/100 or samples on 250k hands with winrate 1 (no idea how you could get that, maybe bad mining - over all 15+ years of my career on a 250k hand sample I've seen WR of 1 or less maybe 1 time). Over the recent years that I've coached guys I don't recall us seeing a single sample on database review on 250k+ hands where my WR wasn't in the range of 6-11bb/100. Right now the adaptation period in 2025 due to strategy restructuring to increase overall yearly expectation was quite tough where there were a lot of situations and actual WR was shown at ~2 euro bb higher (between 8 and 9bb - if we removed folds on 5bet pushes with KK-AA, folds with nuts on AI against us on river etc).\n\nWinrates of 28-table play (loaded database from PS and GG - on other rooms I haven't played much yet - funny that the underperformance turned out so huge (more underperformed than overperformed :D) and by WR both overall and in late stages - so I understood that my run was very bad, but didn't understand it was that bad) overall and in mid-late stage (in the first half and even in the second half there were quite a lot of situations, but already much less than in the first, because this is already a new adaptation period from 24 to 28 tables - but I won't play more than 28 tables, because I'm hitting not a technical cognitive bottleneck related to speed and quality of thinking, but just the sheer number of clicks I need to manage):\n\nWinrates of the transition period from potential expectation of 1-2kk$ to expectation of 4-5kk$ (as I saw it and as I see it and as you hopefully will also see it in the coming years):\n\nApproximate WRs on HK over the last ~1.5 years (actually on this graph a part played before this was \"nicely\" removed in minus, but there's no part after this played in plus and in total WR on HK all-time on 100-150k hands is around 7bb/100 and with WR in late stages on HK 10bb/100+, but the sample is small - there's no graph with late stages on HK at hand so you'll just have to take my word for it):",
+      "es": "Chicos, mantengan al menos un nivel mínimo de cordura. Entiendo que este tema no lo favorece al máximo, pero aún así.\n\nYo mismo no lo leo, pero desde diferentes rincones llegan cosas absurdas del formato Romeo juega en -10евбб/100 o muestras de 250k manos con winrate 1 (no sé cómo se pudo obtener eso, tal vez mining defectuoso - en los 15+ años de carrera en una muestra de 250k manos WR 1 o menor lo he visto tal vez 1 vez). En los últimos años que he entrenado chicos no recuerdo que viéramos una muestra separada en el análisis de la base de 250k+ manos donde mi WR no estuviera en el rango de 6-11бб/100. Justamente el período de adaptación en 2025 debido a la reestructuración de la estrategia para aumentar la expectativa anual general resultó bastante difícil donde había muchos situ-outs y el WR real se mostró en ~2евбб más (entre 8 y 9бб - si hubiéramos eliminado los folds en 5bet pushes con KK-AA, folds con nuts en AI contra nosotros en el river, etc).\n\nWinrates del juego en 28 mesas (cargué la base de PS y GG - en las otras salas aún casi no he jugado - divertido que el underrun resultó ser tan enorme (se perdió más de lo que se ganó :D) y en WR tanto general como en late stages - es decir, entendía que el run era muy malo, pero no entendía que tanto) generales y en mid-late stage (en la primera mitad e incluso en la segunda mitad había bastantes situ-outs, pero mucho menos que en la primera, porque ya es un nuevo período de adaptación de 24 a 28 mesas - pero más de 28 mesas no voy a jugar, porque topo no con un bottleneck cognitivo técnico relacionado con la velocidad y calidad del pensamiento, sino con la cantidad banal de clicks que necesito hacer a tiempo):\n\nWinrates del período de transición desde la expectativa potencial de 1-2kk$ hasta la expectativa de 4-5kk$ (como lo he visto y como lo veo y como ustedes en los próximos años, espero, también lo verán):\n\nWinrates aproximados en XS durante los últimos ~1.5 años (en realidad en este gráfico se \"quitó bonito\" la parte anterior jugada en negativo, pero no está la parte posterior jugada en positivo y al final WR en XS all-time en 100-150k manos aproximadamente 7бб/100 y con WR en late stages en XS 10бб/100+, pero la muestra es pequeña - no tengo a mano el gráfico con late stages en XS así que simplemente tendrán que creerme en mi palabra):"
+    }
   },
   {
     "id": "8201810",
@@ -46546,7 +46588,13 @@
         "lux": 0
       }
     },
-    "brChecked": false
+    "brChecked": false,
+    "translations": {
+      "srcLen": 190,
+      "srcHead": "Day 14:Играл вчера меньше столов, тк не очень себя чувствовал. Ближайшие дни про",
+      "en": "Day 14: Played fewer tables yesterday because I wasn't feeling great. In the coming days I'll continue sorting out my \"poker-adjacent issues\" that need to be resolved before I get back to grinding/marathon sessions.",
+      "es": "Day 14: Jugué ayer menos mesas, ya que no me sentía muy bien. Los próximos días continuaré resolviendo mis \"cuestiones cercanas al póker\" que necesito resolver antes de volver al grind/maratón."
+    }
   },
   {
     "id": "8203881",
@@ -64268,7 +64316,13 @@
         "lux": 0
       }
     },
-    "brChecked": false
+    "brChecked": false,
+    "translations": {
+      "srcLen": 81,
+      "srcHead": "Day 17: Выиграл 5 или 6 турниров сегодня, но увы все они мелкие. Завтра выходной",
+      "en": "Day 17: Won 5 or 6 tournaments today, but unfortunately they were all small. Day off tomorrow.",
+      "es": "Día 17: Gané 5 o 6 torneos hoy, pero desafortunadamente todos eran pequeños. Mañana tengo libre."
+    }
   },
   {
     "id": "8207920",
@@ -82755,6 +82809,12 @@
         "coin": 17,
         "lux": 0
       }
+    },
+    "translations": {
+      "srcLen": 217,
+      "srcHead": "Day 27: \n\nБыли проблемы с connection'ом к ГГ.уа - при этом с моими интернетами в",
+      "en": "Day 27: \n\nHad connection issues with GG.ua - my internet was fine though (I have 3 connections) - it happened right on the FT of the 215 and a bunch of big good stacks, unfortunately. Will figure it out. Two days off ahead.",
+      "es": "Day 27: \n\nTuve problemas con la conexión a GG.ua - aunque mis internets estaban bien (tengo 3) - justo pasó en el FT de la 215 y un montón de stacks grandes buenos, desafortunadamente. Voy a investigar. Dos días libres por delante."
     }
   },
   {
@@ -84727,7 +84787,7 @@
     "date": "16 апреля, 14:38",
     "timestamp": 1776343082,
     "text": "[QUOTE]Frei-84|Frei-84 @ 16.04.26\nДолги из-за расточительной жизни и карточных игр, где Пушкин очень много проигрывал.[/QUOTE]Помимо игры и необходимости поддерживать личный статус, у него было четверо детей и необходимость поддерживать статус семьи при дворе + он был серьезно финансово неграмотен и имением управлял, как Рома своим банкроллом говно, хотя и находил интересные бизнес-ходы иногда (типа издания Онегина по частям).\n\n[QUOTE]|\nФактором следующим из причин выше был непомерно высокий уровень расходов на жизнь[/QUOTE]И, в этом смысле, тема параллелей Ромы и \"Нашего всего\" играет новыми красками: карты, дети, жена, статус и вот они оба, не по своей вине, попадают в fucked up equilibrium.",
-    "likes": 13,
+    "likes": 16,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -84763,7 +84823,7 @@
     "date": "16 апреля, 15:13",
     "timestamp": 1776345233,
     "text": "",
-    "likes": 92,
+    "likes": 105,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_04_2026/post-8893-1776345224105a_thumb.webp"
     ],
@@ -84783,7 +84843,7 @@
     "date": "16 апреля, 16:06",
     "timestamp": 1776348393,
     "text": "Наш Рома самых честных правил\n\nОднажды всё же занемог\n\nОн умирать банкрол заставил\n\nА оживить его не смог\n\n \n\nС ума свели его служанки\n\nАристократа жизни фон\n\nИ вот однажды с позаранки\n\nПришлось пуститься в марафон\n\n \n\nВ пылу агонии азартной \n\nБай инам потерял отсчёт\n\nВ турнирной сетке безотрадной\n\nОн бъеться словно рыба в лёд\n\n \n\nОн в монитор глядел упрямо\n\nИ ривер в блефе проставлял\n\nНо к  ITM`ам в этой драме\n\nПо прежнему не доезжал\n\n \n\nОн грезит «всё верну сторицей»\n\nНо в долг не даст и проводница\n\nВ судьбе сейчас один акцент\n\nНа покерке – коэффицент\n\n \n\nЕго пример другим наука\n\nЭквилибристики урок\n\nВчера – аристократа скука\n\nСегодня: чай и покерОК",
-    "likes": 203,
+    "likes": 239,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -84873,7 +84933,7 @@
     "date": "16 апреля, 18:14",
     "timestamp": 1776356086,
     "text": "[QUOTE]dronnord|dronnord @ 16.04.26\nНам всем срочно нужен мистер А[/QUOTE]\nНужен, очень нужен! Только где найти себе мистера А?",
-    "likes": 1,
+    "likes": 2,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -84927,7 +84987,7 @@
     "date": "16 апреля, 18:56",
     "timestamp": 1776358562,
     "text": "В который раз убеждаюсь, что с юмором во всех его проявлениях (иронией, постиронией, сатирой, чёрным и т.д.) у обитателей этого форума всё хорошо, что несомненно говорит о высокоинтеллектуальном развитии этих лудиков конченых.",
-    "likes": 58,
+    "likes": 70,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -84945,7 +85005,7 @@
     "date": "16 апреля, 18:57",
     "timestamp": 1776358661,
     "text": "Я не столько глуп ,чтобы променять свое  время на часы ,с бриантами ,яхту и Девочку.Ну нравится реп ,но убивать и пули нагружать не стоит в себя. Не стоит тратить время на все такое .В реальном мире-но могу и тут и там стилька раздать. Вы думаете,10 кк это много ? Я-думаю ,это не так дохуя ,так цыфры ,даже не числа .Тупые вы ,но не все ,как и я даун ,Но в Романыча верю ,дам еще силы от себя, сложно ну ты можешь , я с тобой ,негатив -только в энергию . Сила с тобой и Армия, делай -Я с тобой 2",
-    "likes": -21,
+    "likes": -22,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -84963,7 +85023,7 @@
     "date": "16 апреля, 19:03",
     "timestamp": 1776359011,
     "text": "мы тебя любим и верим,не каждый день победы ,жизни не спринт-марафон, наверное. Будешь лучшим ,дурочкам стилька раздашь-Мы верим в тебя, поможем ,ну ты и так Романыч норм летаешь. Силы с тобой ,разрулишь.",
-    "likes": -20,
+    "likes": -21,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -84981,7 +85041,7 @@
     "date": "16 апреля, 19:10",
     "timestamp": 1776359424,
     "text": "Раньше чуть что и их санитары пиздили,а сейчас сами им мобилки с выходом в инет подсовывают,прям как детям малым,лишь бы не доебывали,эх....",
-    "likes": 8,
+    "likes": 9,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -85071,7 +85131,7 @@
     "date": "16 апреля, 20:32",
     "timestamp": 1776364358,
     "text": "Ай да Пушкин, ай да сукин сын!\n\n[QUOTE]nukanuka|nukanuka @ 16.04.26\nс позаранки[/QUOTE][QUOTE]nukanuka|nukanuka @ 16.04.26\nбъеться[/QUOTE][QUOTE]nukanuka|nukanuka @ 16.04.26\nПо прежнему[/QUOTE][QUOTE]nukanuka|nukanuka @ 16.04.26\nкоэффицент[/QUOTE]",
-    "likes": 13,
+    "likes": 21,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -85107,7 +85167,7 @@
     "date": "16 апреля, 20:18",
     "timestamp": 1776363491,
     "text": "Как писали люди до изобретения абзацев?",
-    "likes": 0,
+    "likes": 1,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_04_2026/post-65-1776363483d99f_thumb.webp"
     ],
@@ -85127,7 +85187,7 @@
     "date": "16 апреля, 20:22",
     "timestamp": 1776363725,
     "text": "hombre_sencillo,",
-    "likes": 29,
+    "likes": 37,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_04_2026/post-164976-1776363721a0d5_thumb.webp"
     ],
@@ -85147,7 +85207,7 @@
     "date": "16 апреля, 20:25",
     "timestamp": 1776363952,
     "text": "NothingToSay777, Красный дракон",
-    "likes": 3,
+    "likes": 5,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -85165,7 +85225,7 @@
     "date": "16 апреля, 21:51",
     "timestamp": 1776369101,
     "text": "Hypnotic, А редактор на что",
-    "likes": 2,
+    "likes": 4,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -85201,7 +85261,7 @@
     "date": "16 апреля, 23:03",
     "timestamp": 1776373420,
     "text": "[QUOTE]nukanuka|nukanuka @ 16.04.26\nНаш Рома самых честных правил...[/QUOTE]Надеюсь, нам это хотя бы на каникулы выучить задали, а не на завтра?",
-    "likes": 8,
+    "likes": 14,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -85239,7 +85299,7 @@
     "date": "17 апреля, 03:30",
     "timestamp": 1776389450,
     "text": "[QUOTE]rezzo|rezzo @ 16.04.26\nПомимо игры и необходимости поддерживать личный статус, у него было четверо детей[/QUOTE]Век живи\n\nЯ думал он был беззаботным ромнатиком без семьи",
-    "likes": 0,
+    "likes": 1,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -85257,7 +85317,7 @@
     "date": "17 апреля, 03:40",
     "timestamp": 1776390026,
     "text": "Ребята, я, кажется, наконец понял, что тут происходит.\n\nМы все по привычке думаем, что читаем обычную арбитражную ветку. Ну там долги, претензии, оправдания, кто кому что должен, кто где поплыл, кто где обосрался. Но это, как выяснилось, уже вообще не арбитраж.\n\nСтоит героя один раз сравнить с Пушкиным и Микеланджело, и всё, ветка сразу перестаёт быть форумом. Она превращается в какой то ебанутый гуманитарный симпозиум, где у каждого в одной руке калькулятор, в другой томик классики, а в голове ипотека, кредиты , свои собственные долги , тильт от прошлой сессии, недоезд и жажда въебать метафору помощнее.\n\n \n\nПричём ведь как красиво поехало. Обычный человек написал бы просто, что под давлением человек принимает хуёвые решения. Но нет. Тут уровень другой. Тут надо было сразу открыть портал в девятнадцатый век, посадить рядом Пушкина и Микеланджело и начать им втолковывать, что у нас тут не просто лудоман с проблемами и не обычная бытовая проёбка с долгами , а трагедия таланта, у которого высокий внутренний замысел оказался несовместим с ебучей земной реальностью.\n\n \n\n \n\nИ вот с этого момента форум уже, конечно, не остановить. Потому что когда в ветке появляется Пушкин, всё, пизда. Это как если в обычную сауну с мужиками внезапно заходит монашка с кадилом, бухгалтерской книгой и начинает читать проповедь о грехе недоезда. Уже никто не помнит, кто сюда пришёл париться, но всем интересно, чем все это закончится 🙄\n\nИ вот тут, кстати, если подумать, сравнение даже не такое уж кривое. Пушкин для турниров, может, и не очень подходит. Слишком живой, быстрый, хаотичный, слишком на вдохновении. Это реально больше похоже на кеш. Сел, навёл суету, красиво попиздел, где то выиграл, где то проебал, где то в долг залез, где то снова сел залудить в дорогую игру под фиша. Чисто человек, который не живёт длинной дистанцией, а живёт моментом.\n\nА вот Микеланджело как раз для турнира вообще подозрительно точное сравнение. Потому что ты реально сидишь и лепишь эту хуйню часами. Сначала вроде просто камень. Потом потихоньку что то вырисовывается. Потом уже жалко бросить, потому что слишком много вложено. Потом блайнды растут, пот течёт, спина отваливается, а в конце тебе говорят, ну давай, брат, либо получится произведение искусства, либо ещё один красивый вылет на предфиналке. И вот ты сидишь, весь в мраморной пыли, без сна, без нервов, без денег, но с ощущением, что сейчас родится шедевр. Или очередная залупа. Турнирная романтика как она есть.\n\n \n\nСидит, значит, бедный читатель. Он вообще то зашёл узнать, как там у хиро дела, какие расклады по долгам, чем закончилась сессия и что вообще было на самом деле во всей этой мутной истории. А вместо этого попал на какой то ебанутый факультатив по литературе, лудомании и художественному сравнению человеческого пиздеца с великими историческими фигурами прошлого.\n\nЕго уже с порога хуярят целой учебной программой. Пушкин как представитель кеша. Микеланджело как человек, который турнир тащит на горбу, лепит, лепит, лепит, а потом в самом конце либо Давид, либо просто опять нахуй без денег. И где то рядом уже идёт практическое задание, нужно выучить стих под названием Наш Рома самых честных правил и другие формы интеллектуального пиздеца. Для того чтобы быть  допущенным к более глубоким  тайным знаниям иллюминатов обитателей джипситима.\n\n \n\n \n\n \n\nИ вот мне кажется, проблема некоторых людей вообще не в долгах. Проблема в том, что у человека неправильно выбран исторический покровитель дисциплины. Человек вооброжает, что он Пушкин, а у него по факту просто затяжная сессия бытового абсурда с элементами самовнушения и декоративного пиздежа.   думает, что он Пушкин, а он, возможно, вообще Салтыков Щедрин микролимитов. И отсюда весь внутренний конфликт. Он хочет написать «Я помню чудное мгновенье», а по факту у него выходит только «депнул,замазался,  слил, занял, снова додепал». На словах ты Лев Толстой а на деле ...\n\n \n\n \n\nА что если форум это вообще не форум, а тайная приёмная комиссия в университет лудомании и гуманитарного отчаяния. Один пишет и сразу видно факультет Долги и внешняя бравада. Второй отвечает и это уже кафедра пассивной агрессии и сравнительного пушкиноведения. Третий врывается с рифмой, это аспирантура. Четвёртый приносит паяльник, это уже деканат.\n\nИ где то посреди всего этого сидит бедный читатель, который просто хотел понять, как всё было на самом деле, а в итоге уже не может разобраться, он открыл покерный форум или защиту докторской по теме От онегинского сплина к недоезду в поздней стадии турнира.\n\nКстати возможно Микеланджело тут вообще, конечно, пострадал ни за что. Представляю его лицо. Человек лепил Давида, мучился с мрамором, делал искусство на века. Прошли столетия, и в 2026 году его зачем то притащили в покерную ветку,упомянули его имя всуе , чтобы объяснить, что под прессингом хуёво работается. Где то там, в раю для гениев, он сейчас просто сидит, смотрит вниз и думает, я, блядь, для этого потолки расписывал?\n\nНо в целом вы, конечно, красавцы. Не просто обсудили человека, а устроили вокруг него какой то элитный балаган для аристократов форума. Тут тебе и мораль, и поэзия, и психоанализ, и почти уже трансцендентное лудоведение.  \n\nКороче, редкий случай, когда срач не скатился, а наоборот вырос в произведение. Такое надо сохранить для потомков.",
-    "likes": 6,
+    "likes": 10,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -85275,7 +85335,7 @@
     "date": "17 апреля, 04:03",
     "timestamp": 1776391381,
     "text": "[QUOTE]AsharaAI_Support|AsharaAI_Support @ 17.04.26\nРебята, я, кажется, наконец понял, что тут происходит.\n\n \n\nКороче, редкий случай, когда срач не скатился, а наоборот вырос в произведение. Такое надо сохранить для потомков.[/QUOTE]так достаточно было",
-    "likes": 12,
+    "likes": 18,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -85293,7 +85353,7 @@
     "date": "17 апреля, 05:19",
     "timestamp": 1776395971,
     "text": "Day 29:",
-    "likes": 2,
+    "likes": 9,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_04_2026/post-6195-17763959671f39_thumb.webp"
     ],
@@ -85318,5 +85378,115 @@
         "lux": 0
       }
     }
+  },
+  {
+    "id": "8216987",
+    "author": "NasKras",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/1/4/5/5/145585.jpg",
+    "rating": 1808,
+    "msgCount": 903,
+    "regData": "6 лет на сайте",
+    "date": "17 апреля, 06:43",
+    "timestamp": 1776401025,
+    "text": "ну почти за месяц он сделал +86% БРа!\n\nПосчитав такой темп, через пол года у него будет уже 400к!\n\nДа, простейшая формула никак не учитывает диспу и самое важное - уровень оппонентов при росте лимитов. \n\nНо мы ведь всегда после первого выигранного олли-на смотрим - сколько там за первое место дается)))",
+    "likes": -4,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8216987"
+  },
+  {
+    "id": "8216988",
+    "author": "Shkipe",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/1/6/4/6/164613.jpg",
+    "rating": 14669,
+    "msgCount": 1972,
+    "regData": "14 лет на сайте",
+    "date": "17 апреля, 06:47",
+    "timestamp": 1776401231,
+    "text": "Официально заявляю Ромеопро красавчик, а я пидорас",
+    "likes": 8,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8216988"
+  },
+  {
+    "id": "8216991",
+    "author": "M45PL",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/1/5/5/1/155154.jpg",
+    "rating": 15669,
+    "msgCount": 8006,
+    "regData": "8 лет на сайте",
+    "date": "17 апреля, 07:13",
+    "timestamp": 1776402802,
+    "text": "[QUOTE]NasKras|NasKras @ 17.04.26\nну почти за месяц он сделал +86% БРа!\n\nПосчитав такой темп, через пол года у него будет уже 400к![/QUOTE]математега, которую мы заслужили....",
+    "likes": 1,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8216991"
+  },
+  {
+    "id": "8216995",
+    "author": "Pavel_Myln",
+    "avatar": "/img/imguser.png",
+    "rating": 1701,
+    "msgCount": 1381,
+    "regData": "10 лет на сайте",
+    "date": "17 апреля, 07:22",
+    "timestamp": 1776403329,
+    "text": "[QUOTE]NasKras|NasKras @ 17.04.26\nПосчитав такой темп, через пол года у него будет уже 400к![/QUOTE]Проезжая мимо станции, у меня слетела шляпа. (с)\n\nЭто Чехов. Раз уж взялись мы за классиков.",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8216995"
+  },
+  {
+    "id": "8217000",
+    "author": "Posheva_08",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/1/5/7/6/157645.jpg",
+    "rating": 371,
+    "msgCount": 29,
+    "regData": "6 лет на сайте",
+    "date": "17 апреля, 07:41",
+    "timestamp": 1776404519,
+    "text": "[QUOTE]NasKras|NasKras @ 17.04.26\nну почти за месяц он сделал +86%[/QUOTE]\n    \n\nА ещё если посчитать то он играет с РОИ в 3.5% с учётом продажи долей, некоторые из которых буквально приносят автоприбыль. \n\nПоясню цифры 6443 турниров 40 предполагаемый Аби с учётом того что скидывал раньше умножал примерно чтобы получить примерный Профит Хиро.",
+    "likes": 0,
+    "images": [
+      "https://static-forum.gipsyteam.ru/monthly_04_2026/post-132428-1776404258c316_thumb.webp"
+    ],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8217000"
+  },
+  {
+    "id": "8217001",
+    "author": "Astapix",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/1/3/9/7/139749.gif",
+    "rating": 732,
+    "msgCount": 181,
+    "regData": "6 лет на сайте",
+    "date": "17 апреля, 07:43",
+    "timestamp": 1776404588,
+    "text": "[QUOTE]Bars1986|Bars1986 @ 16.04.26\nНужен, очень нужен! Только где найти себе мистера А?[/QUOTE]Главное, чтобы Мистер А тебя сам не нашел. (отсылка к Архитектору)",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8217001"
   }
 ]

@@ -5,7 +5,7 @@
   "day": 1,
   "status": "active",
   "lastUpdated": "2026-04-17T03:36:09.659Z",
-  "totalPosts": 4453,
+  "totalPosts": 4459,
   "scrapedPages": 0,
   "chronicle": [],
   "authorName": "Romeopro",
@@ -823,5 +823,5 @@
     }
   ],
   "totalTournaments": 6433,
-  "lastScrapeRun": "2026-04-17T04:20:44.986Z"
+  "lastScrapeRun": "2026-04-17T06:16:44.190Z"
 }
