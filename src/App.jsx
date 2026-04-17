@@ -13,6 +13,7 @@ import AnimatedValue, { useTweenValue } from './components/AnimatedValue.jsx'
 
 // ─── i18n ────────────────────────────────────────────────────────────────────
 let _lang = 'ru'
+const _t = (k) => (LANG_DICT[_lang] && LANG_DICT[_lang][k]) || LANG_DICT.ru[k] || k
 const FORUM_WORD = { ru: 'форум', en: 'forum', es: 'foro' }
 
 const MONTHS_SHORT_BY_LANG = {
@@ -34,16 +35,76 @@ const LANG_DICT = {
     loading: 'Загружаем данные марафона…',
     progress_to: 'Прогресс к $10M', left: 'Осталось',
     tempo_week: 'МТТ темпом недели', tempo_month: 'МТТ темпом месяца', tempo_now: 'МТТ текущим темпом',
+    tempo_week_neg: '😢 МТТ до нуля · неделя', tempo_month_neg: '😢 МТТ до нуля · месяц', tempo_now_neg: '😢 МТТ до нуля · сейчас',
+    losing_warning: 'Тяжеловато будет, если играть в минус',
     hs_br: 'Банкролл', hs_profit: 'Профит', hs_day: 'День марафона', hs_tourneys: 'Сыграно МТТ',
     hs_start: 'старт', hs_since: 'с 10 марта 2026', hs_all_marathon: 'всего за марафон',
     stats: 'Статистика',
-    sr_br: 'БР', sr_profit: 'Профит', sr_day: 'День', sr_tourneys: 'Сыграно МТТ',
+    sr_br: 'БР', sr_profit: 'Профит', sr_day: 'День', sr_tourneys: 'Сыграно МТТ', sr_mtt_short: 'МТТ',
     sr_avg: 'МТТ / сессия', sr_winrate: 'Плюсовых сессий', sr_posts: 'Постов', sr_top: 'Топ лайков',
     footer_made: 'made by', footer_updated: 'обновлено', footer_changelog: 'Changelog',
     lang_title: 'Язык',
     chart_marathon: '📈 График марафона', chart_activity: 'Активность постов',
     period_week: 'Неделя', period_month: 'Месяц', period_all: 'Всё время', period_all_marathon: 'Весь марафон',
     tip_br: 'БР', tip_mtt_since: '🃏 сыграно МТТ с последнего отчёта', close: 'закрыть',
+    hero_badge: 'Автор', last_post: 'последний пост',
+    topic_marathon: 'Марафон', topic_marathon_desc: 'Все посты Ромео',
+    topic_discussion: 'Про Ромео', topic_discussion_desc: 'Обсуждение и реакции на Ромео',
+    topic_debate: 'Длинные посты', topic_debate_desc: 'Серьёзный контент (300+ символов, 20+ лайков)',
+    topic_highlikes: 'Хайлайты', topic_highlikes_desc: 'Самые залайканные посты форума',
+    topic_authors: 'Авторы', topic_authors_desc: 'Топ-контрибьюторы треда',
+    topic_tags: 'По темам', topic_tags_desc: 'Все посты по тематикам',
+    topics_select_topic: 'Выберите тему', topics_select_topic_above: 'Выберите тему выше',
+    topics_no_posts: 'Постов не найдено', topics_no_data: 'Пока нет данных',
+    topics_top_contributors: 'Топ-контрибьюторы',
+    sort_date_asc: 'Старые сначала', sort_date_desc: 'Новые сначала', sort_likes: 'По лайкам',
+    filter_romeo_title: 'Показывать только посты Romeopro', filter_min_likes: 'Минимум лайков на посте',
+    filter_min_rep: 'Минимальная репутация автора', filter_rep_label: 'репа',
+    filter_search_title: 'Поиск по тексту постов', filter_search_placeholder: 'Поиск…',
+    filter_reset: 'Сбросить все фильтры', filter_show: 'показать',
+    pc_ignored_body: 'в игноре · нажмите, чтобы посмотреть', pc_ignored_click_expand: 'Нажмите, чтобы развернуть',
+    pc_ignored_prefix: 'Пост от', pc_unignore: 'Вернуть',
+    pc_fav_add: 'Добавить автора в избранное', pc_fav_remove: 'Убрать автора из избранного',
+    pc_ignore: 'Игнорировать',
+    pc_media_fail: 'медиа не отобразилось — открыть на форуме',
+    pc_expand: 'читать', pc_collapse: 'свернуть',
+    author_fav_label: 'В избранном', author_fav_add: 'В избранное',
+    profile_blog: 'Блог', profile_profile: 'Профиль', profile_pm: 'Личное сообщение',
+    quote_answer_to: 'ответ на', quote_generic: 'цитата',
+    quote_full_on_forum: 'полный текст на форуме', open_on_forum: 'открыть на форуме',
+    image_caption: 'изображение', media_fallback: 'изображение или медиа',
+    tc_staking: 'Стейкинг', tc_debt: 'Долги', tc_money: 'Деньги/Банкролл', tc_strategy: 'Стратегия',
+    tc_variance: 'Дисперсия', tc_psychology: 'Психология', tc_mtt: 'МТТ/Турниры', tc_rooms: 'Румы/Софт',
+    tc_content: 'Стримы/Контент', tc_chess: 'Шахматы/Гнат', tc_life: 'Жизнь/Офтоп', tc_live: 'Лайв/Кеш',
+    tc_critique: 'Критика/Скепсис', tc_goal: 'Цель/Прогноз',
+    settings_ignored_authors: 'Игнорируемые авторы',
+    settings_ignored_empty: 'Список пуст — нажмите 🚫 на любом посте чтобы скрыть автора',
+    settings_add_author: 'Добавить автора вручную…', settings_add_btn: 'Добавить',
+    settings_ignore_short: 'Игнор', settings_links: 'Ссылки',
+    settings_forum_thread: 'Тема на GipsyTeam', settings_source: 'Исходный код',
+    footer_today_at: 'сегодня в', footer_at: 'в',
+    footer_scraper_ran: 'скрапер бегал', footer_freshest_post: 'самый свежий пост',
+    stats_note_filter: '* с учётом фильтра на графике', for_period: 'За',
+    top_likes_header: '🔥 Больше всего плюсиков', mobile_top_label: '🔥 Топ',
+    mobile_scroll_hint: '← листай для старых дней · нажми = детали',
+    tempo_tooltip_all: 'Сколько МТТ нужно сыграть до $10M при среднем $/МТТ за весь марафон',
+    tempo_tooltip_period_week: 'Темп оценён по профиту и МТТ за выбранный период на графике (7 дней)',
+    tempo_tooltip_period_month: 'Темп оценён по профиту и МТТ за выбранный период на графике (30 дней)',
+    dollar_per_mtt_title: 'Текущий $/МТТ за выбранный период',
+    day_session_by_romeo: 'Ромео отчитался о сессии', day_wrote_by_romeo: 'Ромео написал',
+    day_romeo_reports: 'отчитался о сессии', day_romeo_wrote: 'написал',
+    day_br_label: 'БР', day_romeo: 'Ромео',
+    filter_day: 'День', filter_week: 'Неделя', filter_month: 'Месяц', filter_all_short: 'Все', filter_always: 'Всегда',
+    empty_no_posts_filters: 'Постов нет — смягчите фильтры или запустите скрапер',
+    empty_no_posts_topic: 'Нет постов по текущим фильтрам',
+    empty_no_posts_day: 'Нет постов по фильтрам',
+    new_posts_badge_singular: 'новый пост', new_posts_badge_few: 'новых поста', new_posts_badge_many: 'новых постов',
+    posts_word: 'постов', post_count_suffix: 'постов',
+    page_of: 'из', per_page: 'на стр.',
+    empty_data_scraper: 'Данных пока нет — запустите скрапер',
+    ac_auth_label: 'авторитетные авторы',
+    chart_last_period: 'последние', chart_whole_marathon: 'весь марафон',
+    day_reports_session: 'отчитался о сессии', day_romeo_write_verb: 'написал',
   },
   en: {
     marathon_sub: '$10k → $10M marathon',
@@ -52,16 +113,76 @@ const LANG_DICT = {
     loading: 'Loading marathon data…',
     progress_to: 'Progress to $10M', left: 'Left',
     tempo_week: 'MTTs at week pace', tempo_month: 'MTTs at month pace', tempo_now: 'MTTs at current pace',
+    tempo_week_neg: '😢 MTTs to zero · week', tempo_month_neg: '😢 MTTs to zero · month', tempo_now_neg: '😢 MTTs to zero · now',
+    losing_warning: 'Tough going if you play at a loss',
     hs_br: 'Bankroll', hs_profit: 'Profit', hs_day: 'Marathon day', hs_tourneys: 'MTTs played',
     hs_start: 'start', hs_since: 'since Mar 10, 2026', hs_all_marathon: 'whole marathon',
     stats: 'Statistics',
-    sr_br: 'BR', sr_profit: 'Profit', sr_day: 'Day', sr_tourneys: 'MTTs played',
+    sr_br: 'BR', sr_profit: 'Profit', sr_day: 'Day', sr_tourneys: 'MTTs played', sr_mtt_short: 'MTTs',
     sr_avg: 'MTTs / session', sr_winrate: 'Winning sessions', sr_posts: 'Posts', sr_top: 'Top likes',
     footer_made: 'made by', footer_updated: 'updated', footer_changelog: 'Changelog',
     lang_title: 'Language',
     chart_marathon: '📈 Marathon chart', chart_activity: 'Post activity',
     period_week: 'Week', period_month: 'Month', period_all: 'All time', period_all_marathon: 'Whole marathon',
     tip_br: 'BR', tip_mtt_since: '🃏 MTTs played since last report', close: 'close',
+    hero_badge: 'Author', last_post: 'last post',
+    topic_marathon: 'Marathon', topic_marathon_desc: 'All Romeo posts',
+    topic_discussion: 'About Romeo', topic_discussion_desc: 'Discussion and reactions to Romeo',
+    topic_debate: 'Long posts', topic_debate_desc: 'Serious content (300+ chars, 20+ likes)',
+    topic_highlikes: 'Highlights', topic_highlikes_desc: 'Most-liked forum posts',
+    topic_authors: 'Authors', topic_authors_desc: 'Top thread contributors',
+    topic_tags: 'By tag', topic_tags_desc: 'All posts by topic',
+    topics_select_topic: 'Select a topic', topics_select_topic_above: 'Select a topic above',
+    topics_no_posts: 'No posts found', topics_no_data: 'No data yet',
+    topics_top_contributors: 'Top contributors',
+    sort_date_asc: 'Oldest first', sort_date_desc: 'Newest first', sort_likes: 'By likes',
+    filter_romeo_title: 'Show only Romeopro posts', filter_min_likes: 'Minimum likes per post',
+    filter_min_rep: 'Minimum author rating', filter_rep_label: 'rep',
+    filter_search_title: 'Search post text', filter_search_placeholder: 'Search…',
+    filter_reset: 'Reset all filters', filter_show: 'show',
+    pc_ignored_body: 'ignored · click to view', pc_ignored_click_expand: 'Click to expand',
+    pc_ignored_prefix: 'Post by', pc_unignore: 'Restore',
+    pc_fav_add: 'Favorite this author', pc_fav_remove: 'Unfavorite this author',
+    pc_ignore: 'Ignore',
+    pc_media_fail: 'media failed — open on forum',
+    pc_expand: 'read', pc_collapse: 'collapse',
+    author_fav_label: 'Favorited', author_fav_add: 'Favorite',
+    profile_blog: 'Blog', profile_profile: 'Profile', profile_pm: 'Private message',
+    quote_answer_to: 'reply to', quote_generic: 'quote',
+    quote_full_on_forum: 'full text on forum', open_on_forum: 'open on forum',
+    image_caption: 'image', media_fallback: 'image or media',
+    tc_staking: 'Staking', tc_debt: 'Debts', tc_money: 'Money/Bankroll', tc_strategy: 'Strategy',
+    tc_variance: 'Variance', tc_psychology: 'Psychology', tc_mtt: 'MTTs/Tournaments', tc_rooms: 'Rooms/Sites',
+    tc_content: 'Streams/Content', tc_chess: 'Chess/Gnat', tc_life: 'Life/Offtopic', tc_live: 'Live/Cash',
+    tc_critique: 'Critique/Skepticism', tc_goal: 'Goal/Forecast',
+    settings_ignored_authors: 'Ignored authors',
+    settings_ignored_empty: 'Empty — click 🚫 on any post to hide the author',
+    settings_add_author: 'Add author manually…', settings_add_btn: 'Add',
+    settings_ignore_short: 'Ignored', settings_links: 'Links',
+    settings_forum_thread: 'GipsyTeam thread', settings_source: 'Source code',
+    footer_today_at: 'today at', footer_at: 'at',
+    footer_scraper_ran: 'scraper ran', footer_freshest_post: 'freshest post',
+    stats_note_filter: '* adjusted for chart filter', for_period: 'For',
+    top_likes_header: '🔥 Most upvoted', mobile_top_label: '🔥 Top',
+    mobile_scroll_hint: '← swipe for older days · tap = details',
+    tempo_tooltip_all: 'How many MTTs to reach $10M at average $/MTT over the whole marathon',
+    tempo_tooltip_period_week: 'Pace estimated from profit and MTTs over the selected chart period (7 days)',
+    tempo_tooltip_period_month: 'Pace estimated from profit and MTTs over the selected chart period (30 days)',
+    dollar_per_mtt_title: 'Current $/MTT for the selected period',
+    day_session_by_romeo: 'Romeo reported a session', day_wrote_by_romeo: 'Romeo wrote',
+    day_romeo_reports: 'reported a session', day_romeo_wrote: 'wrote',
+    day_br_label: 'BR', day_romeo: 'Romeo',
+    filter_day: 'Day', filter_week: 'Week', filter_month: 'Month', filter_all_short: 'All', filter_always: 'Always',
+    empty_no_posts_filters: 'No posts — loosen filters or run the scraper',
+    empty_no_posts_topic: 'No posts for current filters',
+    empty_no_posts_day: 'No posts match filters',
+    new_posts_badge_singular: 'new post', new_posts_badge_few: 'new posts', new_posts_badge_many: 'new posts',
+    posts_word: 'posts', post_count_suffix: 'posts',
+    page_of: 'of', per_page: '/ page',
+    empty_data_scraper: 'No data yet — run the scraper',
+    ac_auth_label: 'top-rated authors',
+    chart_last_period: 'last', chart_whole_marathon: 'whole marathon',
+    day_reports_session: 'reported a session', day_romeo_write_verb: 'wrote',
   },
   es: {
     marathon_sub: 'maratón $10k → $10M',
@@ -70,17 +191,93 @@ const LANG_DICT = {
     loading: 'Cargando datos del maratón…',
     progress_to: 'Progreso hacia $10M', left: 'Falta',
     tempo_week: 'MTT al ritmo semanal', tempo_month: 'MTT al ritmo mensual', tempo_now: 'MTT al ritmo actual',
+    tempo_week_neg: '😢 MTT a cero · semana', tempo_month_neg: '😢 MTT a cero · mes', tempo_now_neg: '😢 MTT a cero · ahora',
+    losing_warning: 'Va a costar si juegas en pérdidas',
     hs_br: 'Bankroll', hs_profit: 'Ganancia', hs_day: 'Día del maratón', hs_tourneys: 'MTT jugados',
     hs_start: 'inicio', hs_since: 'desde el 10 de marzo 2026', hs_all_marathon: 'todo el maratón',
     stats: 'Estadísticas',
-    sr_br: 'BR', sr_profit: 'Ganancia', sr_day: 'Día', sr_tourneys: 'MTT jugados',
+    sr_br: 'BR', sr_profit: 'Ganancia', sr_day: 'Día', sr_tourneys: 'MTT jugados', sr_mtt_short: 'MTT',
     sr_avg: 'MTT / sesión', sr_winrate: 'Sesiones ganadoras', sr_posts: 'Posts', sr_top: 'Top likes',
     footer_made: 'hecho por', footer_updated: 'actualizado', footer_changelog: 'Changelog',
     lang_title: 'Idioma',
     chart_marathon: '📈 Gráfico del maratón', chart_activity: 'Actividad de posts',
     period_week: 'Semana', period_month: 'Mes', period_all: 'Todo', period_all_marathon: 'Todo el maratón',
     tip_br: 'BR', tip_mtt_since: '🃏 MTT jugados desde el último reporte', close: 'cerrar',
+    hero_badge: 'Autor', last_post: 'último post',
+    topic_marathon: 'Maratón', topic_marathon_desc: 'Todos los posts de Romeo',
+    topic_discussion: 'Sobre Romeo', topic_discussion_desc: 'Debate y reacciones a Romeo',
+    topic_debate: 'Posts largos', topic_debate_desc: 'Contenido serio (300+ caracteres, 20+ likes)',
+    topic_highlikes: 'Destacados', topic_highlikes_desc: 'Posts más votados del foro',
+    topic_authors: 'Autores', topic_authors_desc: 'Principales contribuyentes',
+    topic_tags: 'Por tema', topic_tags_desc: 'Todos los posts por tema',
+    topics_select_topic: 'Selecciona un tema', topics_select_topic_above: 'Selecciona un tema arriba',
+    topics_no_posts: 'No hay posts', topics_no_data: 'Aún sin datos',
+    topics_top_contributors: 'Principales contribuyentes',
+    sort_date_asc: 'Antiguos primero', sort_date_desc: 'Nuevos primero', sort_likes: 'Por likes',
+    filter_romeo_title: 'Mostrar solo posts de Romeopro', filter_min_likes: 'Mínimo de likes por post',
+    filter_min_rep: 'Mínima reputación del autor', filter_rep_label: 'rep',
+    filter_search_title: 'Buscar en posts', filter_search_placeholder: 'Buscar…',
+    filter_reset: 'Restablecer filtros', filter_show: 'mostrar',
+    pc_ignored_body: 'ignorado · clic para ver', pc_ignored_click_expand: 'Clic para expandir',
+    pc_ignored_prefix: 'Post de', pc_unignore: 'Restaurar',
+    pc_fav_add: 'Añadir autor a favoritos', pc_fav_remove: 'Quitar autor de favoritos',
+    pc_ignore: 'Ignorar',
+    pc_media_fail: 'media no cargó — abrir en foro',
+    pc_expand: 'leer', pc_collapse: 'contraer',
+    author_fav_label: 'En favoritos', author_fav_add: 'A favoritos',
+    profile_blog: 'Blog', profile_profile: 'Perfil', profile_pm: 'Mensaje privado',
+    quote_answer_to: 'respuesta a', quote_generic: 'cita',
+    quote_full_on_forum: 'texto completo en foro', open_on_forum: 'abrir en foro',
+    image_caption: 'imagen', media_fallback: 'imagen o media',
+    tc_staking: 'Staking', tc_debt: 'Deudas', tc_money: 'Dinero/Bankroll', tc_strategy: 'Estrategia',
+    tc_variance: 'Varianza', tc_psychology: 'Psicología', tc_mtt: 'MTT/Torneos', tc_rooms: 'Salas/Sitios',
+    tc_content: 'Streams/Contenido', tc_chess: 'Ajedrez/Gnat', tc_life: 'Vida/Offtopic', tc_live: 'Live/Cash',
+    tc_critique: 'Crítica/Escepticismo', tc_goal: 'Meta/Pronóstico',
+    settings_ignored_authors: 'Autores ignorados',
+    settings_ignored_empty: 'Vacío — clic 🚫 en cualquier post para ocultar al autor',
+    settings_add_author: 'Añadir autor manualmente…', settings_add_btn: 'Añadir',
+    settings_ignore_short: 'Ignorados', settings_links: 'Enlaces',
+    settings_forum_thread: 'Hilo en GipsyTeam', settings_source: 'Código fuente',
+    footer_today_at: 'hoy a las', footer_at: 'a las',
+    footer_scraper_ran: 'scraper corrió', footer_freshest_post: 'post más reciente',
+    stats_note_filter: '* ajustado al filtro del gráfico', for_period: 'Para',
+    top_likes_header: '🔥 Más votados', mobile_top_label: '🔥 Top',
+    mobile_scroll_hint: '← desliza para días anteriores · toca = detalles',
+    tempo_tooltip_all: 'Cuántos MTT para llegar a $10M al $/MTT promedio del maratón',
+    tempo_tooltip_period_week: 'Ritmo estimado por profit y MTT en el período seleccionado (7 días)',
+    tempo_tooltip_period_month: 'Ritmo estimado por profit y MTT en el período seleccionado (30 días)',
+    dollar_per_mtt_title: '$/MTT actual del período seleccionado',
+    day_session_by_romeo: 'Romeo reportó una sesión', day_wrote_by_romeo: 'Romeo escribió',
+    day_romeo_reports: 'reportó una sesión', day_romeo_wrote: 'escribió',
+    day_br_label: 'BR', day_romeo: 'Romeo',
+    filter_day: 'Día', filter_week: 'Semana', filter_month: 'Mes', filter_all_short: 'Todos', filter_always: 'Siempre',
+    empty_no_posts_filters: 'Sin posts — afloja los filtros o corre el scraper',
+    empty_no_posts_topic: 'Sin posts para los filtros actuales',
+    empty_no_posts_day: 'Sin posts para los filtros',
+    new_posts_badge_singular: 'nuevo post', new_posts_badge_few: 'nuevos posts', new_posts_badge_many: 'nuevos posts',
+    posts_word: 'posts', post_count_suffix: 'posts',
+    page_of: 'de', per_page: '/ pág.',
+    empty_data_scraper: 'Aún sin datos — ejecuta el scraper',
+    ac_auth_label: 'autores destacados',
+    chart_last_period: 'últimos', chart_whole_marathon: 'todo el maratón',
+    day_reports_session: 'reportó una sesión', day_romeo_write_verb: 'escribió',
   },
+}
+
+// Locale-aware plural helpers
+function plPosts(n, lang) {
+  if (lang === 'ru') return pl(n, ['пост','поста','постов'])
+  return `${n} post${n === 1 ? '' : 's'}`
+}
+function plDays(n, lang) {
+  if (lang === 'ru') return pl(n, ['день','дня','дней'])
+  if (lang === 'es') return `${n} día${n === 1 ? '' : 's'}`
+  return `${n} day${n === 1 ? '' : 's'}`
+}
+function plSessions(n, lang) {
+  if (lang === 'ru') return pl(n, ['сессия','сессии','сессий'])
+  if (lang === 'es') return `${n} ${n === 1 ? 'sesión' : 'sesiones'}`
+  return `${n} session${n === 1 ? '' : 's'}`
 }
 
 // ─── HELPERS (imported from utils.js) ────────────────────────────────────────
@@ -220,7 +417,7 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
   if (!points.length) return (
     <div className="marathon-chart">
       <div className="section-head"><span className="section-title">{t('chart_marathon')}</span></div>
-      {lang==='ru' && <div className="empty-state">Данных пока нет — запустите скрапер</div>}
+      <div className="empty-state">{t('empty_data_scraper')}</div>
     </div>
   )
 
@@ -337,7 +534,7 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
             </button>
           ))}
         </div>
-        {lang==='ru' && <span className="section-count">{pl(points.length, ['сессия','сессии','сессий'])}</span>}
+        <span className="section-count">{plSessions(points.length, lang)}</span>
       </div>
       <svg className="mc-svg" viewBox={`0 0 ${W} ${H+pB}`}
         onMouseLeave={(e)=>{
@@ -559,19 +756,23 @@ function scrollToPost(p) {
   setTimeout(() => el.classList.remove('post-highlight'), 1800)
 }
 
-function makeDaySummary(ps) {
+function makeDaySummary(ps, lang = _lang) {
   const events = makeDayEvents(ps)
-  if (!events.length) return `${pl(ps.length, ['пост','поста','постов'])}.`
+  const romeo = _t('day_romeo')
+  const brLbl = _t('day_br_label')
+  if (!events.length) return `${plPosts(ps.length, lang)}.`
   return events.map(e => {
-    if (e.kind === 'session') return `Ромео отчитался о сессии: ${fmtBR(e.result)}${e.brAfter ? ' (БР ' + fmtNum(e.brAfter) + ')' : ''}`
-    if (e.kind === 'romeo') return `Ромео: «${e.text}»`
-    if (e.kind === 'romeo-empty') return `Ромео написал ${pl(e.count, ['пост','поста','постов'])}`
+    if (e.kind === 'session') return `${romeo} ${_t('day_reports_session')}: ${fmtBR(e.result)}${e.brAfter ? ` (${brLbl} ${fmtNum(e.brAfter)})` : ''}`
+    if (e.kind === 'romeo') return `${romeo}: «${e.text}»`
+    if (e.kind === 'romeo-empty') return `${romeo} ${_t('day_romeo_write_verb')} ${plPosts(e.count, lang)}`
     return `${e.author} (+${e.likes} 👍): «${e.text}»`
   }).join(' · ')
 }
 
-function DayEventsList({ events, compact, onPostClick, setLightbox }) {
+function DayEventsList({ events, compact, onPostClick, setLightbox, lang = _lang }) {
   if (!events.length) return null
+  const romeo = _t('day_romeo')
+  const brLbl = _t('day_br_label')
   const handleClick = (e, ev) => {
     if (e.target.closest('.day-event-thumb')) return
     if (onPostClick) onPostClick(ev.post)
@@ -593,10 +794,10 @@ function DayEventsList({ events, compact, onPostClick, setLightbox }) {
             <div key={i} className={cls('session')} onClick={onClick}>
               <span className="day-event-icon">🎯</span>
               <div className="day-event-body">
-                <span className="day-event-author">Ромео</span>
-                <span className="day-event-meta"> отчитался о сессии</span>
+                <span className="day-event-author">{romeo}</span>
+                <span className="day-event-meta"> {_t('day_reports_session')}</span>
                 <span className={'day-event-pill ' + (positive ? 'pos' : 'neg')}>{fmtBR(ev.result)}</span>
-                {ev.brAfter && <span className="day-event-br">БР {fmtNum(ev.brAfter)}</span>}
+                {ev.brAfter && <span className="day-event-br">{brLbl} {fmtNum(ev.brAfter)}</span>}
                 {ev.image && thumb(ev.image)}
               </div>
             </div>
@@ -607,7 +808,7 @@ function DayEventsList({ events, compact, onPostClick, setLightbox }) {
             <div key={i} className={cls('romeo')} onClick={onClick}>
               <span className="day-event-icon">💬</span>
               <div className="day-event-body">
-                <span className="day-event-author">Ромео</span>
+                <span className="day-event-author">{romeo}</span>
                 <span className="day-event-quote">«{ev.text}»</span>
                 {ev.image && thumb(ev.image)}
               </div>
@@ -619,8 +820,8 @@ function DayEventsList({ events, compact, onPostClick, setLightbox }) {
             <div key={i} className={cls('romeo')} onClick={onClick}>
               <span className="day-event-icon">💬</span>
               <div className="day-event-body">
-                <span className="day-event-author">Ромео</span>
-                <span className="day-event-meta"> написал {pl(ev.count, ['пост','поста','постов'])}</span>
+                <span className="day-event-author">{romeo}</span>
+                <span className="day-event-meta"> {_t('day_romeo_write_verb')} {plPosts(ev.count, lang)}</span>
                 {ev.image && thumb(ev.image)}
               </div>
             </div>
@@ -764,7 +965,7 @@ function ActivityChart({ posts, favorites, ignored, onFav, onIgnore, onUnignore,
       <div className="chart-wrap">
         <div className="section-head" style={{marginBottom:8,flexWrap:'wrap',gap:8}}>
           <span className="section-title">{t('chart_activity')}</span>
-          {lang==='ru' && <span className="section-count">{pl(data.length, ['день','дня','дней'])}</span>}
+          <span className="section-count">{plDays(data.length, lang)}</span>
           <div style={{display:'flex',gap:4,marginLeft:'auto'}}>
             {Object.keys(PERIOD_DAYS).map(k => (
               <button key={k} onClick={()=>setPeriod(k)}
@@ -810,7 +1011,7 @@ function ActivityChart({ posts, favorites, ignored, onFav, onIgnore, onUnignore,
             })}
           </div>
         </div>
-        {lang==='ru' && <div style={{fontSize:11,color:'var(--dim)',textAlign:'center',padding:'4px 0 6px'}}>← листай для старых дней · нажми = детали</div>}
+        <div style={{fontSize:11,color:'var(--dim)',textAlign:'center',padding:'4px 0 6px'}}>{t('mobile_scroll_hint')}</div>
 
         {/* Selected day posts */}
         {selected && (() => {
@@ -822,13 +1023,13 @@ function ActivityChart({ posts, favorites, ignored, onFav, onIgnore, onUnignore,
           return (
             <div style={{marginTop:8}}>
               <div style={{fontSize:11,fontWeight:700,color:'var(--dim2)',textTransform:'uppercase',letterSpacing:'.1em',marginBottom:6}}>
-                📅 {selected.date}{lang==='ru' && ` — ${pl(selected.posts.length, ['пост','поста','постов'])}`}
+                📅 {selected.date} — {plPosts(selected.posts.length, lang)}
               </div>
-              {lang==='ru' && events.length > 0 && <div style={{marginBottom:10}}><DayEventsList events={events} setLightbox={setLightbox} onPostClick={onPostClick}/></div>}
+              {events.length > 0 && <div style={{marginBottom:10}}><DayEventsList events={events} setLightbox={setLightbox} onPostClick={onPostClick} lang={lang}/></div>}
               {dayPosts.length === 0
-                ? (lang==='ru' ? <div className="empty-state">Нет постов по фильтрам</div> : null)
+                ? <div className="empty-state">{t('empty_no_posts_day')}</div>
                 : dayPosts.map(p => (
-                  <PostCard key={p.id||p.url} p={p}
+                  <PostCard key={p.id||p.url} p={p} lang={lang}
                     favorites={favorites||new Set()} ignored={ignored||new Set()}
                     onFav={onFav||(() =>{})} onIgnore={onIgnore||(() =>{})} onUnignore={onUnignore||(() =>{})}
                     setLightbox={setLightbox||(() =>{})}/>
@@ -856,7 +1057,7 @@ function ActivityChart({ posts, favorites, ignored, onFav, onIgnore, onUnignore,
     <div className="chart-wrap">
       <div className="section-head" style={{marginBottom:8,gap:10}}>
         <span className="section-title">{t('chart_activity')}</span>
-        {lang==='ru' && <span className="section-count">{period==='all' ? `весь марафон · ${pl(data.length, ['день','дня','дней'])}` : `последние ${pl(data.length, ['день','дня','дней'])}`}</span>}
+        <span className="section-count">{period==='all' ? `${t('chart_whole_marathon')} · ${plDays(data.length, lang)}` : `${t('chart_last_period')} ${plDays(data.length, lang)}`}</span>
         <div style={{display:'flex',gap:4,marginLeft:'auto'}}>
           {Object.keys(PERIOD_DAYS).map(k => (
             <button key={k} onClick={()=>setPeriod(k)}
@@ -890,7 +1091,7 @@ function ActivityChart({ posts, favorites, ignored, onFav, onIgnore, onUnignore,
       </svg>
 
       {/* HOVER TOOLTIP */}
-      {lang==='ru' && tip && !selected && (() => {
+      {tip && !selected && (() => {
         const m = dayMeta.get(tip.date) || { events: [], topAuthors: [], romeoCount: 0 }
         const topAuthors = m.topAuthors
         const romeoCount = m.romeoCount
@@ -932,13 +1133,13 @@ function ActivityChart({ posts, favorites, ignored, onFav, onIgnore, onUnignore,
               overflowY:'auto',
             }}>
             <div style={{fontWeight:700,color:'var(--white)',fontSize:12,marginBottom:4}}>📅 {tip.date}</div>
-            {lang==='ru' && <div style={{fontSize:11,color:'var(--dim)',marginBottom:8}}>
-              {pl(tip.count, ['пост','поста','постов'])}
-              {romeoCount ? ` · Ромео: ${romeoCount}` : ''}
-            </div>}
-            {lang==='ru' && topAuthors.length > 0 && (
+            <div style={{fontSize:11,color:'var(--dim)',marginBottom:8}}>
+              {plPosts(tip.count, lang)}
+              {romeoCount ? ` · ${t('day_romeo')}: ${romeoCount}` : ''}
+            </div>
+            {topAuthors.length > 0 && (
               <div style={{marginBottom:8}}>
-                <div style={{fontSize:9,color:'var(--dim)',textTransform:'uppercase',letterSpacing:'.08em',marginBottom:4}}>авторитетные авторы</div>
+                <div style={{fontSize:9,color:'var(--dim)',textTransform:'uppercase',letterSpacing:'.08em',marginBottom:4}}>{t('ac_auth_label')}</div>
                 {topAuthors.map(a => (
                   <div key={a.name} style={{fontSize:11,color:'var(--dim2)',display:'flex',justifyContent:'space-between',gap:8,lineHeight:1.6}}>
                     <span style={{color:'var(--text)'}}>{a.name}</span>
@@ -959,7 +1160,7 @@ function ActivityChart({ posts, favorites, ignored, onFav, onIgnore, onUnignore,
               </div>
             )}
             <div style={{borderTop:'1px solid var(--border)',paddingTop:6,marginTop:2}}>
-              <DayEventsList events={m.events} compact
+              <DayEventsList events={m.events} compact lang={lang}
                 setLightbox={(src)=>{ setLightbox?.(src); setTip(null); tipLocked.current = false }}
                 onPostClick={(p)=>{ setTip(null); tipLocked.current = false; onPostClick?.(p) }}/>
             </div>
@@ -978,14 +1179,14 @@ function ActivityChart({ posts, favorites, ignored, onFav, onIgnore, onUnignore,
         return (
           <div style={{marginTop:12}}>
             <div style={{fontSize:11,fontWeight:700,color:'var(--dim2)',textTransform:'uppercase',letterSpacing:'.1em',marginBottom:8}}>
-              📅 {selected.date}{lang==='ru' && ` — ${pl(selected.posts.length, ['пост','поста','постов'])}`}
+              📅 {selected.date} — {plPosts(selected.posts.length, lang)}
             </div>
-            {lang==='ru' && events.length > 0 && <div style={{marginBottom:12}}><DayEventsList events={events} setLightbox={setLightbox}/></div>}
+            {events.length > 0 && <div style={{marginBottom:12}}><DayEventsList events={events} setLightbox={setLightbox} lang={lang}/></div>}
             <div style={{marginTop:4}}>
               {dayPosts.length === 0
-                ? (lang==='ru' ? <div className="empty-state">Нет постов по текущим фильтрам</div> : null)
+                ? <div className="empty-state">{t('empty_no_posts_topic')}</div>
                 : dayPosts.map((p,i) => (
-                  <PostCard key={p.id||p.url} p={p}
+                  <PostCard key={p.id||p.url} p={p} lang={lang}
                     favorites={favorites||new Set()} ignored={ignored||new Set()}
                     onFav={onFav||(() =>{})} onIgnore={onIgnore||(() =>{})} onUnignore={onUnignore||(() =>{})}
                     setLightbox={setLightbox||(() =>{})}/>
@@ -1007,51 +1208,55 @@ const avatarError = e => { e.target.onerror = null; e.target.src = DEFAULT_AVATA
 
 function FilterBar({ sortBy, setSortBy, search, setSearch, showSearch, setShowSearch,
                      romeoOnly, setRomeoOnly, minLikes, setMinLikes,
-                     minRating, setMinRating, count, showSort=true }) {
+                     minRating, setMinRating, count, showSort=true, t, lang }) {
+  const tr = t || (k => k)
+  const isRu = lang === 'ru' || !lang
   const hasFilters = romeoOnly || minLikes !== 15 || minRating !== 0 || search
   return (
     <div className="filter-bar">
       {showSort && (
         <select className="feed-select" value={sortBy} onChange={e=>setSortBy(e.target.value)}>
-          <option value="date_asc">Старые сначала</option>
-          <option value="date_desc">Новые сначала</option>
-          <option value="likes">По лайкам</option>
+          <option value="date_asc">{tr('sort_date_asc')}</option>
+          <option value="date_desc">{tr('sort_date_desc')}</option>
+          <option value="likes">{tr('sort_likes')}</option>
         </select>
       )}
-      <button className={`filter-pill ${romeoOnly?'on':'off'}`} onClick={()=>setRomeoOnly(s=>!s)}
-        title="Показывать только посты Romeopro" style={{display:'flex',alignItems:'center',gap:5}}>
-        <img src={ROMEO_AVATAR} alt="" style={{width:15,height:15,borderRadius:'50%',objectFit:'cover'}}
-          onError={e=>e.target.style.display='none'} />
-        Ромео
-      </button>
-      <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'nowrap'}}>
-        <div style={{display:'flex',alignItems:'center',gap:4}}>
-          <label style={{fontSize:11,color:'var(--dim)',whiteSpace:'nowrap'}} title="Минимум лайков на посте">👍 мин.</label>
-          <input className="filter-num" type="number" min="0" value={minLikes}
-            onChange={e=>setMinLikes(+e.target.value||0)} onFocus={e=>e.target.select()} title="Минимум лайков на посте"/>
+      {isRu && <>
+        <button className={`filter-pill ${romeoOnly?'on':'off'}`} onClick={()=>setRomeoOnly(s=>!s)}
+          title={tr('filter_romeo_title')} style={{display:'flex',alignItems:'center',gap:5}}>
+          <img src={ROMEO_AVATAR} alt="" style={{width:15,height:15,borderRadius:'50%',objectFit:'cover'}}
+            onError={e=>e.target.style.display='none'} />
+          {tr('day_romeo')}
+        </button>
+        <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'nowrap'}}>
+          <div style={{display:'flex',alignItems:'center',gap:4}}>
+            <label style={{fontSize:11,color:'var(--dim)',whiteSpace:'nowrap'}} title={tr('filter_min_likes')}>👍 мин.</label>
+            <input className="filter-num" type="number" min="0" value={minLikes}
+              onChange={e=>setMinLikes(+e.target.value||0)} onFocus={e=>e.target.select()} title={tr('filter_min_likes')}/>
+          </div>
+          <div style={{display:'flex',alignItems:'center',gap:4}}>
+            <label style={{fontSize:11,color:'var(--dim)',whiteSpace:'nowrap',display:'flex',alignItems:'center',gap:3}} title={tr('filter_min_rep')}>
+              <img src="https://www.gipsyteam.ru/public/style_images/master/reputation_pos.png" alt="rep"
+                referrerPolicy="no-referrer" style={{width:12,height:12,objectFit:'contain'}} onError={e=>{e.target.style.display='none'}}/>
+              {tr('filter_rep_label')}
+            </label>
+            <input className="filter-num" type="number" min="0" step="100" value={minRating}
+              onChange={e=>setMinRating(+e.target.value||0)} onFocus={e=>e.target.select()} title={tr('filter_min_rep')}/>
+          </div>
         </div>
-        <div style={{display:'flex',alignItems:'center',gap:4}}>
-          <label style={{fontSize:11,color:'var(--dim)',whiteSpace:'nowrap',display:'flex',alignItems:'center',gap:3}} title="Минимальная репутация автора">
-            <img src="https://www.gipsyteam.ru/public/style_images/master/reputation_pos.png" alt="rep"
-              referrerPolicy="no-referrer" style={{width:12,height:12,objectFit:'contain'}} onError={e=>{e.target.style.display='none'}}/>
-            репа
-          </label>
-          <input className="filter-num" type="number" min="0" step="100" value={minRating}
-            onChange={e=>setMinRating(+e.target.value||0)} onFocus={e=>e.target.select()} title="Минимальная репутация автора"/>
-        </div>
-      </div>
+      </>}
       <button className={`filter-pill ${showSearch?'on':'off'}`}
-        onClick={()=>setShowSearch(s=>!s)} title="Поиск по тексту постов">🔍</button>
+        onClick={()=>setShowSearch(s=>!s)} title={tr('filter_search_title')}>🔍</button>
       {showSearch && (
-        <input className="feed-search" style={{minWidth:140}} placeholder="Поиск…"
+        <input className="feed-search" style={{minWidth:140}} placeholder={tr('filter_search_placeholder')}
           value={search} onChange={e=>setSearch(e.target.value)} autoFocus/>
       )}
-      {hasFilters && (
-        <button className="filter-pill off" title="Сбросить все фильтры" onClick={()=>{
+      {isRu && hasFilters && (
+        <button className="filter-pill off" title={tr('filter_reset')} onClick={()=>{
           setRomeoOnly(false); setMinLikes(3); setMinRating(0); setSearch(''); setShowSearch(false);
         }}>✕</button>
       )}
-      <span className="filter-active-count">{pl(count, ['пост','поста','постов'])}</span>
+      <span className="filter-active-count">{plPosts(count, lang || 'ru')}</span>
     </div>
   )
 }
@@ -1064,7 +1269,7 @@ function CollapsibleQuote({ author, date, body }) {
       <div style={{fontSize:10,color:'var(--dim)',fontWeight:600,marginBottom:open?4:0,letterSpacing:'.04em',display:'flex',alignItems:'center',gap:6,cursor:'pointer'}}
         onClick={()=>setOpen(o=>!o)}>
         <span>↩ {author}{date ? ' · ' + date : ''}</span>
-        <span style={{color:'var(--dim)',fontSize:9,opacity:.6}}>{open ? '▲' : '▼ показать'}</span>
+        <span style={{color:'var(--dim)',fontSize:9,opacity:.6}}>{open ? '▲' : `▼ ${_t('filter_show')}`}</span>
       </div>
       {open && (
         <div style={{color:'var(--text-quote)',fontSize:12,lineHeight:1.6,marginTop:4}}>
@@ -1072,7 +1277,7 @@ function CollapsibleQuote({ author, date, body }) {
             ? body.replace(/\n{2,}/g,'\n').split('\n').filter(p=>/[^\s\u00a0]/.test(p)).map((p,j,arr)=>(
                 <span key={j} style={{display:'block',marginBottom:j<arr.length-1?4:0}}>{p}</span>
               ))
-            : <span style={{fontStyle:'italic',color:'var(--dim)'}}>↩ изображение или медиа</span>
+            : <span style={{fontStyle:'italic',color:'var(--dim)'}}>↩ {_t('media_fallback')}</span>
           }
         </div>
       )}
@@ -1146,7 +1351,7 @@ function renderPostText(text, collapseQuotes=false) {
               ? part.body.replace(/\n{2,}/g,'\n').split('\n').filter(p=>/[^\s\u00a0]/.test(p)).map((p,j,arr)=>(
                   <span key={j} style={{display:'block',marginBottom:j<arr.length-1?4:0}}>{p}</span>
                 ))
-              : <span style={{fontStyle:'italic',color:'var(--dim)'}}>↩ изображение или медиа</span>
+              : <span style={{fontStyle:'italic',color:'var(--dim)'}}>↩ {_t('media_fallback')}</span>
             }
           </div>
         </div>
@@ -1179,7 +1384,7 @@ const S_TAG = {fontSize:9,color:'var(--dim)',background:'var(--bg3)',borderRadiu
 const S_MONO = {fontFamily:"'Roboto Mono',monospace",fontWeight:700}
 const menuHover = e => e.currentTarget.style.background = 'var(--bg3)'
 const menuLeave = e => e.currentTarget.style.background = ''
-const PostCard = memo(function PostCard({ p, favorites, ignored, onFav, onIgnore, onUnignore, setLightbox, noClamp=false, tags=null }) {
+const PostCard = memo(function PostCard({ p, favorites, ignored, onFav, onIgnore, onUnignore, setLightbox, noClamp=false, tags=null, lang=_lang }) {
   const [exp, setExp]     = useState(false)
   const [menu, setMenu]   = useState(false)
   const [revealIgnored, setRevealIgnored] = useState(false)
@@ -1193,13 +1398,13 @@ const PostCard = memo(function PostCard({ p, favorites, ignored, onFav, onIgnore
     return (
       <div className="post-card" style={{opacity:.55,cursor:'pointer',padding:'10px 14px',display:'flex',alignItems:'center',gap:10,fontSize:12,color:'var(--dim2)'}}
         onClick={()=>setRevealIgnored(true)}
-        title="Нажмите, чтобы развернуть">
+        title={_t('pc_ignored_click_expand')}>
         <span style={{fontSize:16}}>🚫</span>
         <span style={S_FLEX1}>
-          Пост от <b>{p.author}</b> (в игноре) · +{p.likes||0} 👍 · нажмите, чтобы посмотреть
+          {_t('pc_ignored_prefix')} <b>{p.author}</b> · +{p.likes||0} 👍 · {_t('pc_ignored_body')}
         </span>
         {onUnignore && (
-          <button className="btn-sm" onClick={e=>{e.stopPropagation();onUnignore(p.author)}}>Вернуть</button>
+          <button className="btn-sm" onClick={e=>{e.stopPropagation();onUnignore(p.author)}}>{_t('pc_unignore')}</button>
         )}
       </div>
     )
@@ -1215,7 +1420,8 @@ const PostCard = memo(function PostCard({ p, favorites, ignored, onFav, onIgnore
   }, [menu])
   const likes  = p.likes || 0
   const initial = (p.author||'?')[0].toUpperCase()
-  const isLong  = !noClamp && (p.text?.replace(/\[QUOTE\][\s\S]*?\[\/QUOTE\]/gi, '').length || 0) > 720
+  const displayText = (lang !== 'ru' && p.translations?.[lang]) || p.text
+  const isLong  = !noClamp && (displayText?.replace(/\[QUOTE\][\s\S]*?\[\/QUOTE\]/gi, '').length || 0) > 720
   const [shouldClamp, setShouldClamp] = useState(isLong)
   useLayoutEffect(() => {
     if (!isLong || exp) { setShouldClamp(false); return }
@@ -1235,7 +1441,7 @@ const PostCard = memo(function PostCard({ p, favorites, ignored, onFav, onIgnore
       setShouldClamp(false)
       setOverflows(false)
     }
-  }, [isLong, exp, p.text])
+  }, [isLong, exp, displayText])
 
   // URL профиля на GT (по нику)
   const profileUrl = `https://forum.gipsyteam.ru/index.php?showuser=${encodeURIComponent(p.author)}`
@@ -1263,21 +1469,21 @@ const PostCard = memo(function PostCard({ p, favorites, ignored, onFav, onIgnore
                 style={S_MENU_ITEM}
                 onMouseEnter={menuHover}
                 onMouseLeave={menuLeave}>
-                📝 Блог
+                📝 {_t('profile_blog')}
               </a>
             )}
             <a href={profileUrl} target="_blank" rel="noreferrer"
               style={{display:'flex',alignItems:'center',gap:8,padding:'8px 14px',color:'var(--dim2)',fontSize:12,textDecoration:'none'}}
               onMouseEnter={e=>e.currentTarget.style.background='var(--bg3)'}
               onMouseLeave={e=>e.currentTarget.style.background=''}>
-              👤 Профиль
+              👤 {_t('profile_profile')}
             </a>
             <a href={`https://forum.gipsyteam.ru/index.php?act=Msg&CODE=4&MID=${encodeURIComponent(p.author)}`}
               target="_blank" rel="noreferrer"
               style={{display:'flex',alignItems:'center',gap:8,padding:'8px 14px',color:'var(--dim2)',fontSize:12,textDecoration:'none'}}
               onMouseEnter={e=>e.currentTarget.style.background='var(--bg3)'}
               onMouseLeave={e=>e.currentTarget.style.background=''}>
-              ✉️ Личное сообщение
+              ✉️ {_t('profile_pm')}
             </a>
           </div>
         )}
@@ -1287,7 +1493,7 @@ const PostCard = memo(function PostCard({ p, favorites, ignored, onFav, onIgnore
             {p.author}
           </div>
           <div className="pc-author-meta">
-            {p.msgCount && <span>{fmtInt(p.msgCount)} {plural(p.msgCount, ['пост','поста','постов'])}</span>}
+            {p.msgCount && <span>{lang==='ru' ? `${fmtInt(p.msgCount)} ${plural(p.msgCount, ['пост','поста','постов'])}` : `${fmtInt(p.msgCount)} ${_t('posts_word')}`}</span>}
             {p.regData  && <span>· {p.regData}</span>}
             {p.rating != null && (
               <><span>·</span><a href={ratingUrl} target="_blank" rel="noreferrer"
@@ -1306,11 +1512,11 @@ const PostCard = memo(function PostCard({ p, favorites, ignored, onFav, onIgnore
         </div>
         <div className="pc-date" title={fmtDateTimeLang(p.timestamp, _lang)}>{timeAgo(p.timestamp) || fmtDateTimeLang(p.timestamp, _lang)}</div>
         <div className="pc-actions">
-          <button className={`pc-action ${isFav?'on':''}`} onClick={()=>onFav(p.author)} title={isFav?'Убрать автора из избранного':'Добавить автора в избранное'}>⭐</button>
-          <button className="pc-action" onClick={()=>onIgnore(p.author)} title="Игнорировать">🚫</button>
+          <button className={`pc-action ${isFav?'on':''}`} onClick={()=>onFav(p.author)} title={isFav?_t('pc_fav_remove'):_t('pc_fav_add')}>⭐</button>
+          <button className="pc-action" onClick={()=>onIgnore(p.author)} title={_t('pc_ignore')}>🚫</button>
         </div>
       </div>
-      <div ref={bodyRef} className={`pc-body ${!exp && shouldClamp ? 'clamped' : ''}`}>{renderPostText(p.text)}</div>
+      <div ref={bodyRef} className={`pc-body ${!exp && shouldClamp ? 'clamped' : ''}`}>{renderPostText(displayText)}</div>
       {p.images?.length>0 && (
         <div className="pc-images">
           {p.images.map((src,j)=>(
@@ -1335,7 +1541,7 @@ const PostCard = memo(function PostCard({ p, favorites, ignored, onFav, onIgnore
           return (
             <a href={p.url} target="_blank" rel="noreferrer" className="pc-broken-link"
               onClick={e=>e.stopPropagation()}>
-              ⚠ медиа не отобразилось — открыть на форуме →
+              ⚠ {_t('pc_media_fail')} →
             </a>
           )
         }
@@ -1343,23 +1549,23 @@ const PostCard = memo(function PostCard({ p, favorites, ignored, onFav, onIgnore
       })()}
       <div className="pc-foot">
         <span className={`pc-likes ${likes>0?'pos':likes<0?'neg':'zero'}`}>{likes>0?'👍 +':likes<0?'👎 ':''}{likes}</span>
-        {p.brAfter && <span className="pc-br">БР: {fmtNum(p.brAfter)}</span>}
+        {p.brAfter && <span className="pc-br">{_t('day_br_label')}: {fmtNum(p.brAfter)}</span>}
         {((shouldClamp && overflows) || (isLong && exp)) && (
           <button onClick={()=>setExp(s=>!s)} style={S_EXPAND}>
             <span style={S_ARROW}>{exp?'▲':'▼'}</span>
-            {exp ? 'свернуть' : 'читать'}
+            {exp ? _t('pc_collapse') : _t('pc_expand')}
           </button>
         )}
         {tags && tags.length > 0 && (
           <span style={S_TAGS_WRAP}>
-            {tags.map(t=>(
-              <span key={t.id} style={S_TAG}>
-                {t.icon} {t.label}
+            {tags.map(tag=>(
+              <span key={tag.id} style={S_TAG}>
+                {tag.icon} {tag.label}
               </span>
             ))}
           </span>
         )}
-        {p.url&&<a className="pc-link" href={p.url} target="_blank" rel="noreferrer">→ {FORUM_WORD[_lang] || 'форум'}</a>}
+        {p.url&&<a className="pc-link" href={p.url} target="_blank" rel="noreferrer">→ {FORUM_WORD[_lang] || 'forum'}</a>}
       </div>
     </div>
   )
@@ -1388,8 +1594,9 @@ function TempoValue({ target, title }) {
 }
 
 // ─── AUTHORS PANEL ────────────────────────────────────────────────────────────
-function AuthorsPanel({ authors, favorites, ignored, onFav, onIgnore, onUnignore, setLightbox }) {
+function AuthorsPanel({ authors, favorites, ignored, onFav, onIgnore, onUnignore, setLightbox, t }) {
   const [expanded, setExpanded] = useState(null)
+  const tr = t || _t
   return (
     <div>
       {authors.map(a => {
@@ -1405,12 +1612,12 @@ function AuthorsPanel({ authors, favorites, ignored, onFav, onIgnore, onUnignore
                   : a.name[0]?.toUpperCase()}
               </div>
               <div style={S_FLEX1}>
-                <div style={{fontWeight:700,color:'var(--white)',fontSize:13}}>{a.name} {isFav && <span title="В избранном">⭐</span>}</div>
+                <div style={{fontWeight:700,color:'var(--white)',fontSize:13}}>{a.name} {isFav && <span title={tr('author_fav_label')}>⭐</span>}</div>
                 <div style={{fontSize:11,color:'var(--dim)',fontFamily:"'Roboto Mono',monospace"}}>
-                  {pl(a.count, ['пост','поста','постов'])} · <span style={{color:'var(--green)'}}>+{a.likes}</span> 👍
+                  {plPosts(a.count, _lang)} · <span style={{color:'var(--green)'}}>+{a.likes}</span> 👍
                 </div>
               </div>
-              <button className="pc-action" onClick={e=>{e.stopPropagation();onFav?.(a.name)}} title="В избранное">⭐</button>
+              <button className="pc-action" onClick={e=>{e.stopPropagation();onFav?.(a.name)}} title={tr('author_fav_add')}>⭐</button>
               <span style={{fontSize:11,color:'var(--dim)',opacity:.7}}>{open ? '▲' : '▼'}</span>
             </div>
             {open && (
@@ -1418,7 +1625,7 @@ function AuthorsPanel({ authors, favorites, ignored, onFav, onIgnore, onUnignore
                 {a.posts.slice(0, 20).map(p => (
                   <PostCard key={p.id||p.url} p={p}
                     favorites={favorites} ignored={ignored} onFav={onFav}
-                    onIgnore={onIgnore} onUnignore={onUnignore} setLightbox={setLightbox}/>
+                    onIgnore={onIgnore} onUnignore={onUnignore} setLightbox={setLightbox} lang={_lang}/>
                 ))}
               </div>
             )}
@@ -1449,9 +1656,9 @@ function Paginator({ page, totalPages, onPage, perPage, onPerPage, total, lang }
         : <button key={p} className={`page-btn ${p===page?'active':''}`} onClick={()=>onPage(p)}>{p}</button>
       )}
       <button className="page-btn" disabled={page===totalPages} onClick={()=>onPage(page+1)}>›</button>
-      {!isMob && <span className="page-info">{(page-1)*perPage+1}–{Math.min(page*perPage,total)}{lang==='ru'?` из ${total}`:` / ${total}`}</span>}
+      {!isMob && <span className="page-info">{(page-1)*perPage+1}–{Math.min(page*perPage,total)} {lang==='ru'?'из':'/'} {total}</span>}
       <select className="perpage-select" value={perPage} onChange={e=>{onPerPage(+e.target.value);onPage(1)}}>
-        {[10,20,50,100].map(n=><option key={n} value={n}>{lang==='ru'?`${n} на стр.`:`${n} / page`}</option>)}
+        {[10,20,50,100].map(n=><option key={n} value={n}>{n} {lang==='ru'?'на стр.':lang==='es'?'/ pág.':'/ page'}</option>)}
       </select>
     </div>
   )
@@ -1538,13 +1745,13 @@ function SidebarTopList({ posts, setLightbox }) {
               {renderPostText(p.text, true)}
               {!stripQuotes(p.text) && p.text?.includes('[QUOTE]') && (
                 <div style={{fontSize:11,color:'var(--dim)',fontStyle:'italic',marginTop:6}}>
-                  ↩ {p.text.match(/\[QUOTE\]([^|\n]*)/)?.[1]?.trim() ? `ответ на ${p.text.match(/\[QUOTE\]([^|\n]*)/)[1].trim()}` : 'цитата'} — полный текст на форуме ↗
+                  ↩ {p.text.match(/\[QUOTE\]([^|\n]*)/)?.[1]?.trim() ? `${_t('quote_answer_to')} ${p.text.match(/\[QUOTE\]([^|\n]*)/)[1].trim()}` : _t('quote_generic')} — {_t('quote_full_on_forum')} ↗
                 </div>
               )}
             </div>
             <div style={{marginTop:8,paddingTop:8,borderTop:'1px solid var(--border)'}}>
               <a href={p.url} target="_blank" rel="noreferrer"
-                style={{fontSize:11,color:'var(--red2)'}}>→ открыть на форуме</a>
+                style={{fontSize:11,color:'var(--red2)'}}>→ {_t('open_on_forum')}</a>
             </div>
           </div>
         )
@@ -1557,7 +1764,7 @@ function SidebarTopList({ posts, setLightbox }) {
         const quoteAuthor = hasQuote ? (p.text.match(/\[QUOTE\]([^|\n]*)/)?.[1]?.trim() || '') : ''
         const quoteBody = hasQuote ? extractQuoteBody(p.text) : ''
         const isShortQuote = hasQuote && quoteBody.length <= 150
-        const preview = clean || ((!hasQuote && p.images?.[0]) ? '📷 изображение' : '')
+        const preview = clean || ((!hasQuote && p.images?.[0]) ? `📷 ${_t('image_caption')}` : '')
         const initial = (p.author||'?')[0].toUpperCase()
         // Don't show images in sidebar for posts with quotes (image may be from the quote)
         const showImage = !hasQuote && p.images?.[0]
@@ -1594,7 +1801,7 @@ function SidebarTopList({ posts, setLightbox }) {
                 </div>
               ) : isQuoteOnly ? (
                 <div style={{fontSize:11,color:'var(--dim)',lineHeight:1.5,fontStyle:'italic'}}>
-                  ↩ {quoteAuthor ? `ответ на ${quoteAuthor}` : 'цитата'} — <span style={{color:'var(--red2)',fontStyle:'normal',textDecoration:'underline'}}>открыть на форуме</span>
+                  ↩ {quoteAuthor ? `${_t('quote_answer_to')} ${quoteAuthor}` : _t('quote_generic')} — <span style={{color:'var(--red2)',fontStyle:'normal',textDecoration:'underline'}}>{_t('open_on_forum')}</span>
                 </div>
               ) : (
                 <div style={{fontSize:11,color:'var(--text)',overflow:'hidden',lineHeight:1.5,
@@ -1831,7 +2038,6 @@ export default function App() {
       profit,
     }
   }, [meta, chartPeriod])
-  const periodLabel = chartPeriod === 'week' ? 'неделю' : chartPeriod === 'month' ? 'месяц' : null
 
   // Favorited authors bypass like/rating filters entirely.
   // Ignored authors are hidden unless post has >=30 likes (then PostCard shows a placeholder).
@@ -1894,20 +2100,20 @@ export default function App() {
 
   // ── КЛАССИФИКАЦИЯ ПО ТЕМАМ ──────────────────────────────────────────────
   const TAG_RULES = [
-    { id:'staking',    icon:'💰', label:'Стейкинг',          re:/стейкинг|стейк|бекинг|бек\b|доли\b|доля\b|продаж.*дол|конюшн|инвестор|инвестиц|кэф.*дол/i },
-    { id:'debt',       icon:'🔴', label:'Долги',             re:/долг|должен|кредит|занял|отдаст|должник/i },
-    { id:'money',      icon:'💵', label:'Деньги/Банкролл',   re:/банкролл|\bбр\b|депозит|вывод|кэшаут|cashout|10\s*млн|миллион|проигрыш|выигрыш|прибыль|убыт/i },
-    { id:'strategy',   icon:'📊', label:'Стратегия',         re:/стратег|рои\b|roi\b|abi\b|аби\b|скилл|brm|эдж|солвер|ренж|рейнж|префлоп|постфлоп|\bev\b|рейк|ракебек|загрузк/i },
-    { id:'variance',   icon:'🎲', label:'Дисперсия',         re:/дисперси|даунстрик|апстрик|свинг|вариан/i },
-    { id:'psychology', icon:'🧠', label:'Психология',        re:/психолог|тилт\b|tilt\b|эмоц|дисциплин|мышлени|менталь|мотивац|выгоран|депресс|стресс/i },
-    { id:'mtt',        icon:'🏆', label:'МТТ/Турниры',       re:/мтт|турнир|mystery|мистери|баунти|фризаут|сателлит/i },
-    { id:'rooms',      icon:'🏷', label:'Румы/Софт',         re:/\bgg\b|pokerstars|\bps\b|старз|покерок|покерки|king|кинг|coin|coinpoker|ipoker|partypoker|winamax|888poker/i },
-    { id:'content',    icon:'📺', label:'Стримы/Контент',    re:/стрим|твич|twitch|ютуб|youtube|подкаст|видео|контент|блог|донат/i },
-    { id:'chess',      icon:'♟',  label:'Шахматы/Гнат',      re:/шахмат|гнат\b|gnat\b|фишер.*шахмат|карлсен/i },
-    { id:'life',       icon:'🏠', label:'Жизнь/Офтоп',       re:/жизн|семь[яи]|жен[аеыщ]|муж\b|дет[яиейс]|ребен|здоров|работ[аеу]|карьер|образован|универ|учеб/i },
-    { id:'live',       icon:'🎰', label:'Лайв/Кеш',          re:/офлайн|оффлайн|кеш\s*гейм|cash.*game|живая.*игр|живой.*покер|казино|вегас|серия\b/i },
-    { id:'critique',   icon:'⚡', label:'Критика/Скепсис',    re:/хайп|развод|скам|скептич|не\s*верю|обман|фейк|пиар\b|нерельно|мечт|утопи/i },
-    { id:'goal',       icon:'🎯', label:'Цель/Прогноз',       re:/успеет|не\s*успеет|дойдёт|дойдет|не\s*дойд|прогноз|шансы|ставк.*на/i },
+    { id:'staking',    icon:'💰', label:t('tc_staking'),    re:/стейкинг|стейк|бекинг|бек\b|доли\b|доля\b|продаж.*дол|конюшн|инвестор|инвестиц|кэф.*дол/i },
+    { id:'debt',       icon:'🔴', label:t('tc_debt'),       re:/долг|должен|кредит|занял|отдаст|должник/i },
+    { id:'money',      icon:'💵', label:t('tc_money'),      re:/банкролл|\bбр\b|депозит|вывод|кэшаут|cashout|10\s*млн|миллион|проигрыш|выигрыш|прибыль|убыт/i },
+    { id:'strategy',   icon:'📊', label:t('tc_strategy'),   re:/стратег|рои\b|roi\b|abi\b|аби\b|скилл|brm|эдж|солвер|ренж|рейнж|префлоп|постфлоп|\bev\b|рейк|ракебек|загрузк/i },
+    { id:'variance',   icon:'🎲', label:t('tc_variance'),   re:/дисперси|даунстрик|апстрик|свинг|вариан/i },
+    { id:'psychology', icon:'🧠', label:t('tc_psychology'), re:/психолог|тилт\b|tilt\b|эмоц|дисциплин|мышлени|менталь|мотивац|выгоран|депресс|стресс/i },
+    { id:'mtt',        icon:'🏆', label:t('tc_mtt'),        re:/мтт|турнир|mystery|мистери|баунти|фризаут|сателлит/i },
+    { id:'rooms',      icon:'🏷', label:t('tc_rooms'),      re:/\bgg\b|pokerstars|\bps\b|старз|покерок|покерки|king|кинг|coin|coinpoker|ipoker|partypoker|winamax|888poker/i },
+    { id:'content',    icon:'📺', label:t('tc_content'),    re:/стрим|твич|twitch|ютуб|youtube|подкаст|видео|контент|блог|донат/i },
+    { id:'chess',      icon:'♟',  label:t('tc_chess'),      re:/шахмат|гнат\b|gnat\b|фишер.*шахмат|карлсен/i },
+    { id:'life',       icon:'🏠', label:t('tc_life'),       re:/жизн|семь[яи]|жен[аеыщ]|муж\b|дет[яиейс]|ребен|здоров|работ[аеу]|карьер|образован|универ|учеб/i },
+    { id:'live',       icon:'🎰', label:t('tc_live'),       re:/офлайн|оффлайн|кеш\s*гейм|cash.*game|живая.*игр|живой.*покер|казино|вегас|серия\b/i },
+    { id:'critique',   icon:'⚡', label:t('tc_critique'),   re:/хайп|развод|скам|скептич|не\s*верю|обман|фейк|пиар\b|нерельно|мечт|утопи/i },
+    { id:'goal',       icon:'🎯', label:t('tc_goal'),       re:/успеет|не\s*успеет|дойдёт|дойдет|не\s*дойд|прогноз|шансы|ставк.*на/i },
   ]
 
   const detectTags = (text) => {
@@ -2155,9 +2361,9 @@ export default function App() {
       {/* MOBILE BOTTOM NAV */}
       <nav className="mobile-nav">
         {[
-          ['feed',     '🏠', 'Лента'],
-          ['topics',   '📂', 'Темы'],
-          ['settings', '⚙️', 'Настройки'],
+          ['feed',     '🏠', t('tab_feed')],
+          ['topics',   '📂', t('tab_topics')],
+          ['settings', '⚙️', t('tab_settings')],
         ].map(([id, icon, label]) => (
           <button key={id} className={`mobile-nav-btn ${activeTab===id?'active':''}`} onClick={()=>switchTab(id)}>
             <span>{icon}</span>
@@ -2247,18 +2453,28 @@ export default function App() {
             }
           }
         }
+        const isLosing = periodProfit != null && periodProfit < 0 && periodMTT > 0
         const mttNeeded = (periodProfit > 0 && periodMTT)
           ? Math.ceil(remaining * periodMTT / periodProfit)
           : null
-        const dollarPerMTT = (periodProfit > 0 && periodMTT)
+        const mttToBust = isLosing
+          ? Math.ceil(stats.br * periodMTT / Math.abs(periodProfit))
+          : null
+        const dollarPerMTT = (periodMTT && periodProfit != null && periodProfit !== 0)
           ? periodProfit / periodMTT
           : null
-        const tempoLabel = chartPeriod === 'week'  ? t('tempo_week')
-                         : chartPeriod === 'month' ? t('tempo_month')
-                         : t('tempo_now')
-        const tempoTitle = chartPeriod === 'all'
-          ? 'Сколько МТТ нужно сыграть до $10M при среднем $/МТТ за весь марафон'
-          : `Темп оценён по профиту и МТТ за выбранный период на графике (${chartPeriod==='week'?'7':'30'} дней)`
+        const tempoLabel = isLosing
+          ? (chartPeriod === 'week' ? t('tempo_week_neg')
+           : chartPeriod === 'month' ? t('tempo_month_neg')
+           : t('tempo_now_neg'))
+          : (chartPeriod === 'week' ? t('tempo_week')
+           : chartPeriod === 'month' ? t('tempo_month')
+           : t('tempo_now'))
+        const tempoTitle = isLosing
+          ? t('losing_warning')
+          : (chartPeriod === 'all'
+            ? t('tempo_tooltip_all')
+            : t(chartPeriod==='week' ? 'tempo_tooltip_period_week' : 'tempo_tooltip_period_month'))
         return (
           <div className="marathon-progress">
             <div className="marathon-progress-inner">
@@ -2275,17 +2491,17 @@ export default function App() {
                   <span className="mps-label">{t('left')}</span>
                   <span className="mps-value">{fmtInt(remaining)}$</span>
                 </div>
-                {mttNeeded && <>
+                {(mttNeeded || mttToBust) && <>
                   <div className="mps-divider"/>
                   <div className="mps-item">
                     <span className="mps-label">{tempoLabel}</span>
                     <span className="mps-value-row">
-                      <TempoValue target={mttNeeded} title={tempoTitle}/>
+                      <TempoValue target={mttNeeded || mttToBust} title={tempoTitle}/>
                       {dollarPerMTT != null && (
-                        <span className="mps-rate-inline" title="Текущий $/МТТ за выбранный период">
+                        <span className="mps-rate-inline" title={isLosing ? t('losing_warning') : t('dollar_per_mtt_title')}>
                           {(() => {
                             const r = Math.round(dollarPerMTT * 2) / 2
-                            return (Number.isInteger(r) ? r : r.toFixed(1)) + '$/МТТ'
+                            return (Number.isInteger(r) ? r : r.toFixed(1)) + `$/${t('sr_mtt_short')}`
                           })()}
                         </span>
                       )}
@@ -2311,11 +2527,11 @@ export default function App() {
                     alt="Romeopro" referrerPolicy="no-referrer" onError={avatarError}/>
                 </div>
                 <div style={{flex:1, minWidth:0, overflow:'hidden'}}>
-                  <div className="hero-name">Romeopro <span className="hero-badge">Автор</span></div>
+                  <div className="hero-name">Romeopro <span className="hero-badge">{t('hero_badge')}</span></div>
                   <div className="hero-desc">
                     From Hero to Zero · <a href="https://forum.gipsyteam.ru/index.php?viewtopic=181676"
                       target="_blank" rel="noreferrer" style={{color:'var(--dim2)'}}>GipsyTeam</a>
-                    {stats.lastTs && <span> · последний пост: {fmtDateTimeLang(stats.lastTs, lang)}</span>}
+                    {stats.lastTs && <span> · {t('last_post')}: {fmtDateTimeLang(stats.lastTs, lang)}</span>}
                   </div>
                 </div>
               </div>
@@ -2372,12 +2588,12 @@ export default function App() {
             {/* ТЕМЫ */}
             {activeTab==='topics' && (() => {
               const MAIN_TABS = [
-                { id:'marathon',   icon:'📈', label:'Марафон',     desc:'Все посты Ромео' },
-                { id:'discussion', icon:'💬', label:'Про Ромео',   desc:'Обсуждение и реакции на Ромео' },
-                { id:'debate',     icon:'🔥', label:'Длинные посты', desc:'Серьёзный контент (300+ символов, 20+ лайков)' },
-                { id:'highlikes',  icon:'⭐', label:'Хайлайты',    desc:'Самые залайканные посты форума' },
-                { id:'authors',    icon:'👥', label:'Авторы',      desc:'Топ-контрибьюторы треда' },
-                { id:'tags',       icon:'🏷', label:'По темам',    desc:'Все посты по тематикам' },
+                { id:'marathon',   icon:'📈', label:t('topic_marathon'),   desc:t('topic_marathon_desc') },
+                { id:'discussion', icon:'💬', label:t('topic_discussion'), desc:t('topic_discussion_desc') },
+                { id:'debate',     icon:'🔥', label:t('topic_debate'),     desc:t('topic_debate_desc') },
+                { id:'highlikes',  icon:'⭐', label:t('topic_highlikes'),  desc:t('topic_highlikes_desc') },
+                { id:'authors',    icon:'👥', label:t('topic_authors'),    desc:t('topic_authors_desc') },
+                { id:'tags',       icon:'🏷', label:t('topic_tags'),       desc:t('topic_tags_desc') },
               ]
               const { paged, totalPages: tpg, all } = currentTopicPosts
               const isTagMode = topicTab === 'tags'
@@ -2391,21 +2607,21 @@ export default function App() {
                   romeoOnly={false} setRomeoOnly={()=>{}}
                   minLikes={minLikes} setMinLikes={setMinLikes}
                   minRating={minRating} setMinRating={setMinRating}
-                  count={all.length} showSort={true}
+                  count={all.length} showSort={true} t={t} lang={lang}
                 />
                 {/* Основные разделы */}
                 <div className="topic-tabs">
-                  {MAIN_TABS.map(t => (
-                    <div key={t.id}
-                      className={`topic-tab ${topicTab===t.id?'active':''}`}
-                      onClick={()=>{ setTopicTab(t.id); setTopicPage(1); setTopicTag(t.id==='tags' ? TAG_RULES[0].id : null) }}>
-                      {t.icon} {t.label}
+                  {MAIN_TABS.map(mt => (
+                    <div key={mt.id}
+                      className={`topic-tab ${topicTab===mt.id?'active':''}`}
+                      onClick={()=>{ setTopicTab(mt.id); setTopicPage(1); setTopicTag(mt.id==='tags' ? TAG_RULES[0].id : null) }}>
+                      {mt.icon} {mt.label}
                       <span className="tc">{
-                        t.id === 'tags'
+                        mt.id === 'tags'
                           ? Object.values(classifiedPosts.byTag).reduce((s,a)=>s+a.length, 0)
-                          : t.id === 'authors'
+                          : mt.id === 'authors'
                             ? (classifiedPosts.authorStats?.length || 0)
-                            : (classifiedPosts[t.id]?.length || 0)
+                            : (classifiedPosts[mt.id]?.length || 0)
                       }</span>
                     </div>
                   ))}
@@ -2437,23 +2653,23 @@ export default function App() {
                 {/* Описание */}
                 <div style={{fontSize:12,color:'var(--dim)',marginBottom:10}}>
                   {isTagMode
-                    ? (activeTagRule ? `${activeTagRule.icon} ${activeTagRule.label}` : 'Выберите тему')
+                    ? (activeTagRule ? `${activeTagRule.icon} ${activeTagRule.label}` : t('topics_select_topic'))
                     : isAuthorsMode
-                      ? `Топ-контрибьюторы (${classifiedPosts.authorStats?.length||0})`
-                      : MAIN_TABS.find(t=>t.id===topicTab)?.desc
-                  }{!isAuthorsMode && ` · ${pl(all.length, ['пост','поста','постов'])}`}
+                      ? `${t('topics_top_contributors')} (${classifiedPosts.authorStats?.length||0})`
+                      : MAIN_TABS.find(mt=>mt.id===topicTab)?.desc
+                  }{!isAuthorsMode && ` · ${plPosts(all.length, lang)}`}
                 </div>
 
                 {/* Авторы-режим */}
                 {isAuthorsMode
                   ? ((classifiedPosts.authorStats?.length||0)===0
-                      ? <div className="empty-state">Пока нет данных</div>
+                      ? <div className="empty-state">{t('topics_no_data')}</div>
                       : <AuthorsPanel authors={classifiedPosts.authorStats}
                           favorites={favorites} ignored={ignored}
                           onFav={toggleFav} onIgnore={addIgnore} onUnignore={removeIgnore}
-                          setLightbox={setLightbox}/>)
+                          setLightbox={setLightbox} t={t}/>)
                   : all.length===0
-                  ? <div className="empty-state">{isTagMode && !topicTag ? 'Выберите тему выше' : 'Постов не найдено'}</div>
+                  ? <div className="empty-state">{isTagMode && !topicTag ? t('topics_select_topic_above') : t('topics_no_posts')}</div>
                   : <>
                     <Paginator page={topicPage} totalPages={tpg} onPage={goTopicPage}
                       perPage={TOPIC_PER_PAGE} onPerPage={()=>{}} total={all.length}/>
@@ -2462,7 +2678,7 @@ export default function App() {
                         favorites={favorites} ignored={ignored} onFav={toggleFav}
                         onIgnore={addIgnore} onUnignore={removeIgnore} setLightbox={setLightbox}
                         noClamp={topicTab==='marathon'}
-                        tags={p._tags && isTagMode ? p._tags.filter(t=>t!==topicTag).map(t=>TAG_RULES.find(r=>r.id===t)).filter(Boolean) : null}/>
+                        tags={p._tags && isTagMode ? p._tags.filter(tid=>tid!==topicTag).map(tid=>TAG_RULES.find(r=>r.id===tid)).filter(Boolean) : null} t={t} lang={lang}/>
                     ))}
                     <Paginator page={topicPage} totalPages={tpg} onPage={goTopicPage}
                       perPage={TOPIC_PER_PAGE} onPerPage={()=>{}} total={all.length}/>
@@ -2476,7 +2692,7 @@ export default function App() {
               {/* Mobile-only stats strip */}
               <div className="mobile-stats">
                 {[
-                  ['БР',
+                  [t('sr_br'),
                     <AnimatedValue key="br-anim" target={brVal} path={brPath} duration={brDuration}
                       format={fmtExact}
                       render={(v)=>{
@@ -2488,18 +2704,18 @@ export default function App() {
                     ''],
                   (() => {
                     const pv = periodStats?.profit ?? stats.profit
-                    return ['Профит' + (periodStats?.profit != null ? '*' : ''),
+                    return [t('sr_profit') + (periodStats?.profit != null ? '*' : ''),
                       fmtBR(pv), !pv?'':pv>=0?'green':'red']
                   })(),
-                  ['День', `#${stats.day||meta?.day||'—'}`, 'gold'],
-                  ['МТТ', fmtInt(meta?.totalTournaments ?? 3565), ''],
+                  [t('sr_day'), `#${stats.day||meta?.day||'—'}`, 'gold'],
+                  [t('sr_mtt_short'), fmtInt(meta?.totalTournaments ?? 3565), ''],
                   (periodStats?.avgMTT ?? stats.avgMTT) != null && [
-                    'МТТ / сессия' + (periodStats?.avgMTT != null ? '*' : ''),
+                    t('sr_avg') + (periodStats?.avgMTT != null ? '*' : ''),
                     fmtInt(periodStats?.avgMTT ?? stats.avgMTT),
                     '',
                   ],
                   (periodStats?.winRate ?? stats.winRate) != null && [
-                    'Плюсовых сессий' + (periodStats?.winRate != null ? '*' : ''),
+                    t('sr_winrate') + (periodStats?.winRate != null ? '*' : ''),
                     `${Math.round((periodStats?.winRate ?? stats.winRate)*100)}%`,
                     '',
                   ],
@@ -2510,29 +2726,29 @@ export default function App() {
                   </div>
                 ))}
               </div>
-              {lang==='ru' && periodStats && (
-                <div className="mobile-stats-note">* с учётом фильтра на графике ({periodLabel})</div>
+              {periodStats && (
+                <div className="mobile-stats-note">{t('stats_note_filter')} ({t(chartPeriod==='week'?'period_week':'period_month')})</div>
               )}
               <MarathonChart posts={posts} meta={meta} startBR={stats.startBR} setLightbox={setLightbox}
                 period={chartPeriod} setPeriod={setChartPeriod} lang={lang} t={t}/>
-              <ActivityChart posts={posts}
+              {lang==='ru' && <ActivityChart posts={posts}
                 favorites={favorites} ignored={ignored} onFav={toggleFav}
                 onIgnore={addIgnore} onUnignore={removeIgnore} setLightbox={setLightbox}
                 sortBy={sortBy} setSortBy={setSortBy}
                 minLikes={minLikes} setMinLikes={setMinLikes}
                 minRating={minRating} setMinRating={setMinRating}
-                search={search} onPostClick={goToPost} lang={lang} t={t}/>
+                search={search} onPostClick={goToPost} lang={lang} t={t}/>}
               {/* Mobile-only top posts */}
               {lang==='ru' && hotPosts.length > 0 && (() => {
                 const now = Date.now() / 1000
                 const cutoffs = { day: now-86400, week: now-604800, month: now-2592000, all: 0 }
-                const labels = { day:'День', week:'Неделя', month:'Месяц', all:'Все' }
+                const labels = { day:t('filter_day'), week:t('filter_week'), month:t('filter_month'), all:t('filter_all_short') }
                 const filtered = hotPosts.filter(p => (p.timestamp||0) >= cutoffs[sidebarTopPeriod])
                 const topList = (filtered.length ? filtered : hotPosts).slice(0,7)
                 return (
                   <div className="mobile-top-posts">
                     <div className="mobile-top-header">
-                      <span>🔥 Топ</span>
+                      <span>{t('mobile_top_label')}</span>
                       <div className="mobile-top-periods">
                         {Object.keys(cutoffs).map(k => (
                           <button key={k} onClick={()=>setSidebarTopPeriod(k)}
@@ -2548,7 +2764,7 @@ export default function App() {
                           <span className="mobile-top-rank">{i+1}</span>
                           <div className="mobile-top-body">
                             <span className="mobile-top-author">{p.author}</span>
-                            <span className="mobile-top-text">{stripQuoteTags(p.text)?.substring(0,120) || `→ ${FORUM_WORD[_lang] || 'форум'}`}</span>
+                            <span className="mobile-top-text">{stripQuoteTags(p.text)?.substring(0,120) || `→ ${FORUM_WORD[lang] || 'forum'}`}</span>
                           </div>
                           <span className="mobile-top-likes">+{p.likes}</span>
                         </a>
@@ -2557,22 +2773,22 @@ export default function App() {
                   </div>
                 )
               })()}
-              {lang==='ru' && <FilterBar
+              <FilterBar
                 sortBy={sortBy} setSortBy={setSortBy}
                 search={search} setSearch={setSearch}
                 showSearch={showSearch} setShowSearch={setShowSearch}
                 romeoOnly={romeoOnly} setRomeoOnly={setRomeoOnly}
                 minLikes={minLikes} setMinLikes={setMinLikes}
                 minRating={minRating} setMinRating={setMinRating}
-                count={feedPosts.length} showSort={true}
-              />}
-              {lang==='ru' && newPostIds.length > 0 && activeTab === 'feed' && (
+                count={feedPosts.length} showSort={true} t={t} lang={lang}
+              />
+              {newPostIds.length > 0 && activeTab === 'feed' && (
                 <button className="new-posts-bubble" onClick={goToNewPosts}>
-                  {newPostIds.length} {plural(newPostIds.length, ['новый пост','новых поста','новых постов'])}!
+                  {newPostIds.length} {lang==='ru' ? plural(newPostIds.length, ['новый пост','новых поста','новых постов']) : (newPostIds.length === 1 ? t('new_posts_badge_singular') : t('new_posts_badge_many'))}!
                 </button>
               )}
               {feedPosts.length===0
-                ? (lang==='ru' ? <div className="empty-state">Постов нет — смягчите фильтры или запустите скрапер</div> : null)
+                ? <div className="empty-state">{t('empty_no_posts_filters')}</div>
                 : <>
                   <Paginator page={page} totalPages={totalPages} onPage={goPage}
                     perPage={perPage} onPerPage={setPerPage} total={feedPosts.length} lang={lang} />
@@ -2581,7 +2797,7 @@ export default function App() {
                       onMouseEnter={()=>{ if(i===pagedPosts.length-1) saveReadPos('feed',p.id) }}>
                       <PostCard p={p}
                         favorites={favorites} ignored={ignored} onFav={toggleFav}
-                        onIgnore={addIgnore} onUnignore={removeIgnore} setLightbox={setLightbox}/>
+                        onIgnore={addIgnore} onUnignore={removeIgnore} setLightbox={setLightbox} t={t} lang={lang}/>
                     </div>
                   ))}
                   <Paginator page={page} totalPages={totalPages} onPage={goPage}
@@ -2591,11 +2807,11 @@ export default function App() {
             </>}
 
             {/* НАСТРОЙКИ */}
-            {lang==='ru' && activeTab==='settings' && (
+            {activeTab==='settings' && (
               <div className="sblock">
-                <div className="sblock-title">🚫 Игнорируемые авторы</div>
+                <div className="sblock-title">🚫 {t('settings_ignored_authors')}</div>
                 {ignored.size===0
-                  ? <div className="ignore-empty">Список пуст — нажмите 🚫 на любом посте чтобы скрыть автора</div>
+                  ? <div className="ignore-empty">{t('settings_ignored_empty')}</div>
                   : <div className="ignore-list">
                       {[...ignored].map(n=>(
                         <div key={n} className="ignore-item">
@@ -2606,10 +2822,10 @@ export default function App() {
                     </div>
                 }
                 <div className="ignore-add">
-                  <input className="ignore-input" placeholder="Добавить автора вручную…"
+                  <input className="ignore-input" placeholder={t('settings_add_author')}
                     value={ignoreInput} onChange={e=>setIgnoreInput(e.target.value)}
                     onKeyDown={e=>e.key==='Enter'&&addIgnore(ignoreInput)}/>
-                  <button className="btn-sm" onClick={()=>addIgnore(ignoreInput)}>Добавить</button>
+                  <button className="btn-sm" onClick={()=>addIgnore(ignoreInput)}>{t('settings_add_btn')}</button>
                 </div>
               </div>
             )}
@@ -2627,22 +2843,22 @@ export default function App() {
                       const pv = periodStats?.profit ?? stats.profit
                       return [t('sr_profit') + (periodStats?.profit != null ? '*' : ''),
                         <span key="pr" className={`srow-val ${!pv?'':pv>=0?'green':'red'}`}
-                          title={lang==='ru' && periodStats?.profit != null ? `За ${periodLabel}` : undefined}>{fmtBR(pv)}</span>]
+                          title={periodStats?.profit != null ? `${t('for_period')} ${t(chartPeriod==='week'?'period_week':'period_month').toLowerCase()}` : undefined}>{fmtBR(pv)}</span>]
                     })(),
                     [t('sr_day'), <span key="d" className="srow-val gold">#{stats.day||meta?.day||'—'}</span>],
                     [t('sr_tourneys'), <span key="mtt" className="srow-val">{fmtInt(meta?.totalTournaments ?? 3565)}</span>],
                     (periodStats?.avgMTT ?? stats.avgMTT) != null && [
                       t('sr_avg') + (periodStats?.avgMTT != null ? '*' : ''),
-                      <span key="avg" className="srow-val" title={lang!=='ru' ? undefined : (periodStats?.avgMTT != null ? `За ${periodLabel}` : 'Среднее число турниров за сессию')}>
+                      <span key="avg" className="srow-val" title={periodStats?.avgMTT != null ? `${t('for_period')} ${t(chartPeriod==='week'?'period_week':'period_month').toLowerCase()}` : undefined}>
                         {fmtInt(periodStats?.avgMTT ?? stats.avgMTT)}
                       </span>,
                     ],
                     (periodStats?.winRate ?? stats.winRate) != null && [
                       t('sr_winrate') + (periodStats?.winRate != null ? '*' : ''),
                       <span key="wr" className="srow-val"
-                        title={lang!=='ru' ? undefined : (periodStats
-                          ? `${periodStats.positiveSessions} из ${periodStats.sessionsCount} за ${periodLabel}`
-                          : `${Math.round(stats.winRate*stats.sessionsCount)} из ${stats.sessionsCount}`)}>
+                        title={periodStats
+                          ? `${periodStats.positiveSessions} / ${periodStats.sessionsCount}`
+                          : `${Math.round(stats.winRate*stats.sessionsCount)} / ${stats.sessionsCount}`}>
                         {Math.round((periodStats?.winRate ?? stats.winRate)*100)}%
                       </span>,
                     ],
@@ -2651,23 +2867,23 @@ export default function App() {
                   ].filter(Boolean).map(([k,v])=>(
                     <div key={k} className="srow"><span className="srow-key">{k}</span>{v}</div>
                   ))}
-                  {lang==='ru' && periodStats && (
-                    <div className="srow-note">* с учётом фильтра на графике ({periodLabel})</div>
+                  {periodStats && (
+                    <div className="srow-note">{t('stats_note_filter')} ({t(chartPeriod==='week'?'period_week':'period_month')})</div>
                   )}
                 </div>
               </div>
 
               {lang==='ru' && hotPosts.length>0 && (() => {
-                const [sideTopPeriod, setSideTopPeriod] = [sidebarTopPeriod, setSidebarTopPeriod]
+                const sideTopPeriod = sidebarTopPeriod
                 const now = Date.now() / 1000
                 const cutoffs = { day: now-86400, week: now-604800, month: now-2592000, all: 0 }
-                const labels = { day:'День', week:'Неделя', month:'Месяц', all:'Всегда' }
+                const labels = { day:t('filter_day'), week:t('filter_week'), month:t('filter_month'), all:t('filter_always') }
                 const filtered = hotPosts.filter(p => (p.timestamp||0) >= cutoffs[sideTopPeriod])
                 const topList = (filtered.length ? filtered : hotPosts).slice(0,10)
                 return (
                   <div className="sblock">
                     <div className="sblock-title" style={{display:'flex',flexDirection:'column',alignItems:'center',gap:8,padding:'10px 14px'}}>
-                      <span>🔥 Больше всего плюсиков</span>
+                      <span>{t('top_likes_header')}</span>
                       <div style={{display:'flex',gap:4}}>
                         {Object.keys(cutoffs).map(k => (
                           <button key={k} onClick={()=>setSidebarTopPeriod(k)}
@@ -2684,7 +2900,7 @@ export default function App() {
 
               {ignored.size>0 && (
                 <div className="sblock">
-                  <div className="sblock-title">🚫 Игнор ({ignored.size})</div>
+                  <div className="sblock-title">🚫 {t('settings_ignore_short')} ({ignored.size})</div>
                   <div className="sblock-body" style={{display:'flex',flexWrap:'wrap',gap:5}}>
                     {[...ignored].map(n=>(
                       <span key={n} style={{background:'var(--bg3)',border:'1px solid var(--border)',borderRadius:12,padding:'2px 8px',fontSize:11,display:'flex',gap:4,alignItems:'center'}}>
@@ -2697,10 +2913,10 @@ export default function App() {
               )}
 
               <div className="sblock">
-                <div className="sblock-title">🔗 Ссылки</div>
+                <div className="sblock-title">🔗 {t('settings_links')}</div>
                 <div className="sblock-body" style={{display:'flex',flexDirection:'column',gap:8}}>
-                  <a href="https://forum.gipsyteam.ru/index.php?viewtopic=181676" target="_blank" rel="noreferrer" style={{fontSize:12}}>→ Тема на GipsyTeam</a>
-                  <a href="https://github.com/loremcdmx/romeoprotracker" target="_blank" rel="noreferrer" style={{fontSize:12}}>→ Исходный код</a>
+                  <a href="https://forum.gipsyteam.ru/index.php?viewtopic=181676" target="_blank" rel="noreferrer" style={{fontSize:12}}>→ {t('settings_forum_thread')}</a>
+                  <a href="https://github.com/loremcdmx/romeoprotracker" target="_blank" rel="noreferrer" style={{fontSize:12}}>→ {t('settings_source')}</a>
                 </div>
               </div>
             </div>
@@ -2730,9 +2946,7 @@ export default function App() {
               <div style={{fontSize:10,color:'var(--dim2)'}}>
                 {t('footer_updated')}: 13.04.2026
               </div>
-              {lang==='ru' && (() => {
-                // lastScrapeRun: heartbeat from scraper, bumped every run (even no-op).
-                // Fallback to lastUpdated (bumped only on real changes) for old data.
+              {(() => {
                 const scrapeTs = meta?.lastScrapeRun
                   ? Date.parse(meta.lastScrapeRun)
                   : meta?.lastUpdated ? Date.parse(meta.lastUpdated) : 0
@@ -2740,13 +2954,15 @@ export default function App() {
                   ? Math.max(...posts.map(p => (p.timestamp || 0) * 1000))
                   : 0
                 if (!scrapeTs && !newestPostTs) return null
+                const localeMap = { ru: 'ru-RU', en: 'en-US', es: 'es-ES' }
+                const loc = localeMap[lang] || 'en-US'
                 const fmt = (ts) => {
                   const d = new Date(ts)
                   const sameDay = d.toDateString() === new Date().toDateString()
-                  const time = d.toLocaleTimeString('ru-RU', { hour:'2-digit', minute:'2-digit' })
+                  const time = d.toLocaleTimeString(loc, { hour:'2-digit', minute:'2-digit' })
                   return sameDay
-                    ? `сегодня в ${time}`
-                    : `${d.toLocaleDateString('ru-RU',{day:'2-digit',month:'2-digit'})} в ${time}`
+                    ? `${t('footer_today_at')} ${time}`
+                    : `${d.toLocaleDateString(loc,{day:'2-digit',month:'2-digit'})} ${t('footer_at')} ${time}`
                 }
                 const mins = Math.round((Date.now() - scrapeTs) / 60000)
                 const fresh = mins < 20
@@ -2755,14 +2971,14 @@ export default function App() {
                 return (
                   <>
                     <div style={{fontSize:10,color,marginTop:3,fontFamily:"'Roboto Mono',monospace"}}
-                      title={`Последний прогон скрапера: ${new Date(scrapeTs).toLocaleString('ru-RU')}`}>
+                      title={new Date(scrapeTs).toLocaleString(loc)}>
                       <span style={{display:'inline-block',width:6,height:6,borderRadius:'50%',background:color,marginRight:5,verticalAlign:'middle'}}/>
-                      скрапер бегал: {fmt(scrapeTs)}
+                      {t('footer_scraper_ran')}: {fmt(scrapeTs)}
                     </div>
                     {newestPostTs > 0 && (
                       <div style={{fontSize:10,color:'var(--dim)',marginTop:2,fontFamily:"'Roboto Mono',monospace",paddingLeft:11}}
-                        title={`Timestamp самого свежего поста на форуме: ${new Date(newestPostTs).toLocaleString('ru-RU')}`}>
-                        самый свежий пост: {fmt(newestPostTs)}
+                        title={new Date(newestPostTs).toLocaleString(loc)}>
+                        {t('footer_freshest_post')}: {fmt(newestPostTs)}
                       </div>
                     )}
                   </>

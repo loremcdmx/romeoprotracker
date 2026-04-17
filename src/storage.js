@@ -47,6 +47,7 @@ function expandPosts(compact) {
       brBefore: p.bb ?? null,
       sessionResult: p.sr ?? null,
       rooms: p.rm || null,
+      translations: (p.te || p.ts) ? { en: p.te || null, es: p.ts || null } : null,
     }
     return o
   })

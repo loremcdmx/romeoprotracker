@@ -7,8 +7,11 @@
  *   "normal"    — scan last 5 pages: add new posts + update likes on recent posts (default, every 30 min)
  *   "full"      — scan ALL pages: update likes on every post (every 6 hours)
  *   "reextract" — re-extract BR data from ALL Romeo posts with images (clears brHistory, reprocesses everything)
+ *   "translate" — fill en/es translations on all Romeo posts that are missing them (backfill)
  *
  * Also: if Romeo posted images → sends to Claude API (vision) to extract BR data.
+ * Also: Romeo posts get machine-translated to en/es (Haiku) on normal runs
+ * (up to 10 per run); use translate mode to clear the backlog in one go.
  */
 
 import { readFile, writeFile } from 'fs/promises'
@@ -316,18 +319,169 @@ async function extractBrFromImages(post, lastBrHistory) {
   }
 }
 
+// ─── TRANSLATION (Romeo posts → en/es) ─────────────────────────────────────
+//
+// Post payload keeps source Russian text + machine translations under
+// post.translations = { en, es, srcLen, srcHead }. srcLen/srcHead act as a
+// cheap signature: if the author edits the post, the scraper detects
+// mismatch and re-translates. We only translate Romeo's posts because en/es
+// feeds are already filtered to him.
+
+const TRANSLATE_MIN_LEN = 20   // skip empty/icon-only posts
+const TRANSLATE_MODEL   = 'claude-haiku-4-5-20251001'
+
+function textSignature(text) {
+  const t = text || ''
+  return { srcLen: t.length, srcHead: t.slice(0, 80) }
+}
+
+function needsTranslation(post) {
+  if (!post.text || post.text.trim().length < TRANSLATE_MIN_LEN) return false
+  const tr = post.translations
+  if (!tr || !tr.en || !tr.es) return true
+  const sig = textSignature(post.text)
+  return tr.srcLen !== sig.srcLen || tr.srcHead !== sig.srcHead
+}
+
+async function translateText(text, targetLang) {
+  const apiKey = process.env.ANTHROPIC_API_KEY
+  if (!apiKey) return null
+  const langName = targetLang === 'en' ? 'English' : 'Spanish'
+  const prompt = `Translate the following Russian forum post to ${langName}.
+
+Rules:
+- Preserve all [QUOTE]author|date\\n ... [/QUOTE] markers exactly — only translate prose INSIDE the quote body, keep author names and dates untouched.
+- Preserve [VIDEO] markers, URLs, numbers (including currencies like $, k, M), poker room names (GG, PS/PokerStars, King, Coin, Lux), and technical abbreviations (BR, MTT, ROI, ITM, ABI).
+- Keep the same paragraph breaks and line breaks.
+- Output ONLY the translated text. No preface, no explanation, no markdown fences.
+
+Russian text:
+${text}`
+
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: TRANSLATE_MODEL,
+      max_tokens: 4096,
+      messages: [{ role: 'user', content: prompt }],
+    }),
+  })
+  if (!res.ok) {
+    const err = await res.text()
+    console.log(`  ⚠ translate ${targetLang} HTTP ${res.status}: ${err.substring(0, 200)}`)
+    return null
+  }
+  const data = await res.json()
+  const out = data.content?.[0]?.text?.trim()
+  return out || null
+}
+
+async function translatePost(post) {
+  if (!needsTranslation(post)) return false
+  const [en, es] = await Promise.all([
+    translateText(post.text, 'en'),
+    translateText(post.text, 'es'),
+  ])
+  if (!en && !es) return false
+  const sig = textSignature(post.text)
+  post.translations = {
+    ...sig,
+    en: en || post.translations?.en || null,
+    es: es || post.translations?.es || null,
+  }
+  return true
+}
+
+// ─── COMPACT WRITER ─────────────────────────────────────────────────────────
+//
+// Keep the compact schema in sync with src/storage.js expandPosts().
+// Added: te (translation en), ts (translation es).
+
+async function writeCompactPosts(merged) {
+  const avatarMap = new Map()
+  merged.forEach(p => {
+    if (p.avatar && !avatarMap.has(p.avatar)) avatarMap.set(p.avatar, avatarMap.size)
+  })
+  const compactPosts = merged.map(p => {
+    const o = {
+      i: p.id,
+      a: p.author,
+      t: p.timestamp,
+      l: p.likes || 0,
+    }
+    if (p.text) o.x = p.text
+    if (p.avatar) o.v = avatarMap.get(p.avatar)
+    if (p.rating)      o.r = p.rating
+    if (p.msgCount)    o.m = p.msgCount
+    if (p.regData)     o.g = p.regData
+    if (p.date)        o.d = p.date
+    if (p.images?.length) o.p = p.images
+    if (p.videos?.length) o.vd = p.videos
+    if (p.brAfter != null) o.ba = p.brAfter
+    if (p.brBefore != null) o.bb = p.brBefore
+    if (p.sessionResult != null) o.sr = p.sessionResult
+    if (p.rooms) o.rm = p.rooms
+    if (p.translations?.en) o.te = p.translations.en
+    if (p.translations?.es) o.ts = p.translations.es
+    return o
+  })
+  const avatarList = [...avatarMap.keys()]
+  const compactData = { avatars: avatarList, posts: compactPosts }
+  await writeFile('data/posts.min.json', JSON.stringify(compactData))
+}
+
 // ─── MAIN ────────────────────────────────────────────────────────────────────
 
 async function main() {
-  const isFullScan = MODE === 'full'
+  const isFullScan  = MODE === 'full'
   const isReextract = MODE === 'reextract'
-  console.log(`🕷 RomeoPro Scraper [${isReextract ? 'REEXTRACT' : isFullScan ? 'FULL SCAN' : 'normal'}]`)
+  const isTranslate = MODE === 'translate'
+  console.log(`🕷 RomeoPro Scraper [${isReextract ? 'REEXTRACT' : isTranslate ? 'TRANSLATE' : isFullScan ? 'FULL SCAN' : 'normal'}]`)
 
   // Load existing data
   const posts = JSON.parse(await readFile('data/posts.json', 'utf-8'))
   const meta = JSON.parse(await readFile('data/meta.json', 'utf-8'))
   const knownIds = new Set(posts.map(p => p.id))
   console.log(`📊 Existing: ${posts.length} posts, ${meta.brHistory.length} BR entries`)
+
+  // Translate-only mode: fill missing en/es translations on Romeo posts, then commit.
+  if (isTranslate) {
+    const queue = posts.filter(p => ROMEO_RE.test(p.author) && needsTranslation(p))
+    console.log(`🌐 ${queue.length} Romeo posts need translation`)
+    let done = 0
+    for (const p of queue) {
+      const ok = await translatePost(p)
+      if (ok) {
+        done++
+        console.log(`  ✅ ${p.id} translated (${done}/${queue.length})`)
+      } else {
+        console.log(`  ⚠ ${p.id} skipped`)
+      }
+      await sleep(DELAY_MS)
+    }
+    if (done === 0) {
+      console.log('✅ Nothing translated')
+      return
+    }
+    await writeFile('data/posts.json', JSON.stringify(posts, null, 2))
+    await writeCompactPosts(posts)
+    execSync('git config user.name "RomeoPro Scraper"')
+    execSync('git config user.email "scraper@romeoprotracker.vercel.app"')
+    execSync('git add data/posts.json data/posts.min.json')
+    try {
+      execSync(`git commit -m "scraper: translate ${done} Romeo posts to en/es"`)
+      execSync('git push')
+      console.log(`✅ Pushed: translate ${done} posts`)
+    } catch {
+      console.log('ℹ Nothing to commit')
+    }
+    return
+  }
 
   // Reextract mode: clear brHistory and re-process all Romeo posts with images
   if (isReextract) {
@@ -534,6 +688,26 @@ async function main() {
     }
   }
 
+  // Translate new/edited Romeo posts to en/es (lazy catch-up included).
+  // allRomeoCandidates = new Romeo posts + any existing Romeo post whose text
+  // changed or never got translated. We cap per-run so the Action stays fast;
+  // the `translate` mode exists for bulk backfill.
+  let translated = 0
+  if (process.env.ANTHROPIC_API_KEY) {
+    const mergedForTr = [...posts, ...newPosts]
+    const trQueue = mergedForTr
+      .filter(p => ROMEO_RE.test(p.author) && needsTranslation(p))
+      .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))
+      .slice(0, 10)
+    if (trQueue.length > 0) {
+      console.log(`🌐 Translating ${trQueue.length} Romeo post(s)...`)
+      for (const p of trQueue) {
+        if (await translatePost(p)) translated++
+      }
+      if (translated > 0) console.log(`  ✅ ${translated} translated`)
+    }
+  }
+
   // Always sort brHistory chronologically and recompute the brBefore/sessionResult chain
   // This fixes any out-of-order entries from retries or prior bugs
   {
@@ -588,7 +762,7 @@ async function main() {
 
   // Check if anything changed
   const hasRetries = retryPosts.length > 0 && metaUpdated
-  const hasRealChanges = newPosts.length > 0 || likesUpdated > 0 || metaUpdated
+  const hasRealChanges = newPosts.length > 0 || likesUpdated > 0 || metaUpdated || translated > 0
   const hasChanges = hasRealChanges || heartbeatDue
   if (!hasChanges) {
     console.log('✅ No changes')
@@ -605,6 +779,7 @@ async function main() {
   if (likesUpdated > 0) parts.push(`likes: ${likesUpdated} updated`)
   if (hasRetries) parts.push(`retried ${retryPosts.length} BR`)
   if (metaUpdated) parts.push(`BR → $${meta.bankroll}`)
+  if (translated > 0) parts.push(`translated ${translated}`)
   if (parts.length === 0) parts.push('heartbeat')
   const msg = `scraper: ${parts.join(', ')} (total ${merged.length})`
 
@@ -619,35 +794,7 @@ async function main() {
   await writeFile('data/posts.json', JSON.stringify(merged, null, 2))
   await writeFile('data/meta.json', JSON.stringify(meta, null, 2))
 
-  // Write compact posts for frontend (strip nulls, dedupe avatars, truncate text)
-  const avatarMap = new Map()
-  merged.forEach(p => {
-    if (p.avatar && !avatarMap.has(p.avatar)) avatarMap.set(p.avatar, avatarMap.size)
-  })
-  const compactPosts = merged.map(p => {
-    const o = {
-      i: p.id,
-      a: p.author,
-      t: p.timestamp,
-      l: p.likes || 0,
-    }
-    if (p.text) o.x = p.text
-    if (p.avatar) o.v = avatarMap.get(p.avatar)
-    if (p.rating)      o.r = p.rating
-    if (p.msgCount)    o.m = p.msgCount
-    if (p.regData)     o.g = p.regData
-    if (p.date)        o.d = p.date
-    if (p.images?.length) o.p = p.images
-    if (p.videos?.length) o.vd = p.videos
-    if (p.brAfter != null) o.ba = p.brAfter
-    if (p.brBefore != null) o.bb = p.brBefore
-    if (p.sessionResult != null) o.sr = p.sessionResult
-    if (p.rooms) o.rm = p.rooms
-    return o
-  })
-  const avatarList = [...avatarMap.keys()]
-  const compactData = { avatars: avatarList, posts: compactPosts }
-  await writeFile('data/posts.min.json', JSON.stringify(compactData))
+  await writeCompactPosts(merged)
 
   execSync('git add data/posts.json data/meta.json data/posts.min.json')
 
