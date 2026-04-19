@@ -4,6 +4,14 @@ function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max)
 }
 
+function isPointInsideRect(point, rect, edge = 0) {
+  if (!point || !rect) return false
+  return point.x >= rect.left - edge
+    && point.x <= rect.right + edge
+    && point.y >= rect.top - edge
+    && point.y <= rect.bottom + edge
+}
+
 export function getZoomedViewportMetrics() {
   const zoom = parseFloat(document.getElementById('root')?.style.zoom) || 1
   return {
@@ -87,4 +95,36 @@ export function computeFixedPopupLayout({
     maxHeight,
     transformOrigin: `${openLeft ? 'right' : 'left'} ${anchorCenterY <= vh / 2 ? 'top' : 'bottom'}`,
   }
+}
+
+export function findHoverListIndexAtPoint({
+  items,
+  point,
+  popupRect = null,
+  edge = 0,
+}) {
+  if (!Array.isArray(items) || !items.length || !point) return null
+
+  for (const item of items) {
+    if (!item?.rect || item.index == null) continue
+
+    if (isPointInsideRect(point, item.rect, edge)) {
+      return item.index
+    }
+
+    if (!popupRect) continue
+
+    const corridorRect = {
+      left: Math.min(item.rect.left, popupRect.left),
+      right: Math.max(item.rect.right, popupRect.right),
+      top: item.rect.top,
+      bottom: item.rect.bottom,
+    }
+
+    if (isPointInsideRect(point, corridorRect, edge)) {
+      return item.index
+    }
+  }
+
+  return null
 }

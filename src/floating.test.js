@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import {
   computeFixedPopupLayout,
+  findHoverListIndexAtPoint,
   getZoomedViewportMetrics,
   normalizeViewportRect,
 } from './floating.js'
@@ -108,5 +109,44 @@ describe('floating helpers', () => {
 
   it('returns null when no anchor rect is available', () => {
     expect(computeFixedPopupLayout({ anchorRect: null })).toBeNull()
+  })
+
+  it('finds a hovered item directly under the pointer', () => {
+    const index = findHoverListIndexAtPoint({
+      items: [
+        { index: 0, rect: { left: 100, right: 200, top: 100, bottom: 140 } },
+        { index: 1, rect: { left: 100, right: 200, top: 140, bottom: 180 } },
+      ],
+      point: { x: 150, y: 160 },
+    })
+
+    expect(index).toBe(1)
+  })
+
+  it('keeps matching rows through the popup corridor on the left side', () => {
+    const index = findHoverListIndexAtPoint({
+      items: [
+        { index: 0, rect: { left: 980, right: 1280, top: 100, bottom: 148 } },
+        { index: 1, rect: { left: 980, right: 1280, top: 148, bottom: 196 } },
+      ],
+      popupRect: { left: 620, right: 960, top: 80, bottom: 260 },
+      point: { x: 800, y: 170 },
+      edge: 6,
+    })
+
+    expect(index).toBe(1)
+  })
+
+  it('returns null when the pointer is outside both rows and popup corridor', () => {
+    const index = findHoverListIndexAtPoint({
+      items: [
+        { index: 0, rect: { left: 980, right: 1280, top: 100, bottom: 148 } },
+      ],
+      popupRect: { left: 620, right: 960, top: 80, bottom: 260 },
+      point: { x: 580, y: 220 },
+      edge: 6,
+    })
+
+    expect(index).toBeNull()
   })
 })

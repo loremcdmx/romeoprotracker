@@ -7,7 +7,7 @@ import {
   warsawDayKey, fmtDateTimeLang,
 } from './utils.js'
 import { createTranslator, DEFAULT_LANG, FORUM_WORD, fmtDateShortLang } from './i18n.js'
-import { computeFixedPopupLayout } from './floating.js'
+import { computeFixedPopupLayout, findHoverListIndexAtPoint } from './floating.js'
 import { useIsMobile } from './hooks/useIsMobile.js'
 import { useExclusiveHoverPopup } from './hooks/useExclusiveHoverPopup.js'
 import { usePersistentState } from './hooks/usePersistentState.js'
@@ -1424,12 +1424,13 @@ function Paginator({ page, totalPages, onPage, perPage, onPerPage, total, lang }
 }
 
 // ─── SIDEBAR TOP LIST ─────────────────────────────────────────────────────────
-function SidebarTopList({ posts, setLightbox }) {
+export function SidebarTopList({ posts, setLightbox }) {
   const [hovered, setHovered] = useState(null)
   const [anchor, setAnchor] = useState(null)
   const [popupStyle, setPopupStyle] = useState(null)
   const hideTimerRef = useRef(null)
   const popupRef = useRef(null)
+  const itemRefs = useRef(new Map())
   const closePopup = useCallback(() => {
     clearTimeout(hideTimerRef.current)
     setHovered(null)
@@ -1443,6 +1444,58 @@ function SidebarTopList({ posts, setLightbox }) {
   }
   const cancelHide = () => clearTimeout(hideTimerRef.current)
   useEffect(() => () => clearTimeout(hideTimerRef.current), [])
+
+  const setAnchorFromNode = useCallback((node) => {
+    if (!node) return
+    const rect = node.getBoundingClientRect()
+    setAnchor({
+      left: rect.left,
+      right: rect.right,
+      top: rect.top,
+      bottom: rect.bottom,
+      width: rect.width,
+      height: rect.height,
+    })
+  }, [])
+
+  const openItem = useCallback((index, node) => {
+    if (index == null) return
+    const nextNode = node ?? itemRefs.current.get(index)
+    if (!nextNode) return
+    cancelHide()
+    announceHoverPopupOpen()
+    setHovered(index)
+    setAnchorFromNode(nextNode)
+  }, [announceHoverPopupOpen, setAnchorFromNode])
+
+  const syncHoverFromPoint = useCallback((clientX, clientY) => {
+    const items = []
+    itemRefs.current.forEach((node, index) => {
+      if (!node) return
+      const rect = node.getBoundingClientRect()
+      items.push({
+        index,
+        rect: {
+          left: rect.left,
+          right: rect.right,
+          top: rect.top,
+          bottom: rect.bottom,
+        },
+      })
+    })
+
+    const nextIndex = findHoverListIndexAtPoint({
+      items,
+      point: { x: clientX, y: clientY },
+      popupRect: popupRef.current
+        ? popupRef.current.getBoundingClientRect()
+        : null,
+      edge: 6,
+    })
+
+    if (nextIndex === null || nextIndex === hovered) return
+    openItem(nextIndex)
+  }, [hovered, openItem])
 
   useLayoutEffect(() => {
     if (hovered === null || !anchor || !popupRef.current) {
@@ -1478,13 +1531,20 @@ function SidebarTopList({ posts, setLightbox }) {
 
   return (
     <div style={{padding:'6px 14px'}}
-      onMouseLeave={scheduleHide}>
+      onMouseLeave={scheduleHide}
+      onMouseMove={e => syncHoverFromPoint(e.clientX, e.clientY)}>
 
       {hovered !== null && anchor && (() => {
         const p = posts[hovered]
         if (!p) return null
         return (
-          <div ref={popupRef} className="sidebar-popup" onMouseEnter={cancelHide} onMouseLeave={scheduleHide} style={{
+          <div ref={popupRef} data-testid="sidebar-top-popup" className="sidebar-popup"
+            onMouseEnter={cancelHide}
+            onMouseMove={e => {
+              cancelHide()
+              syncHoverFromPoint(e.clientX, e.clientY)
+            }}
+            onMouseLeave={scheduleHide} style={{
             position:'fixed',
             left: popupStyle?.left ?? 0,
             top: popupStyle?.top ?? 0,
@@ -1537,23 +1597,15 @@ function SidebarTopList({ posts, setLightbox }) {
         const showImage = !hasQuote && p.images?.[0]
         return (
           <div key={i}
+            ref={node => {
+              if (node) itemRefs.current.set(i, node)
+              else itemRefs.current.delete(i)
+            }}
+            data-testid={`sidebar-top-item-${i}`}
             style={{display:'flex',gap:10,padding:'9px 0',borderBottom:'1px solid var(--border)',
               alignItems:'flex-start',cursor:'pointer'}}
             onClick={()=>p.url&&window.open(p.url,'_blank')}
-            onMouseEnter={e=>{
-              cancelHide()
-              announceHoverPopupOpen()
-              setHovered(i)
-              const r = e.currentTarget.getBoundingClientRect()
-              setAnchor({
-                left: r.left,
-                right: r.right,
-                top: r.top,
-                bottom: r.bottom,
-                width: r.width,
-                height: r.height,
-              })
-            }}>
+            onMouseEnter={e => openItem(i, e.currentTarget)}>
             <span style={{color:'var(--gold)',fontWeight:700,fontSize:11,minWidth:16,flexShrink:0,paddingTop:10}}>{i+1}</span>
             <div style={{width:28,height:28,borderRadius:'50%',background:'var(--red)',flexShrink:0,
               overflow:'hidden',display:'flex',alignItems:'center',justifyContent:'center',
