@@ -1,79 +1,178 @@
-// storage.js — fetch compact data with localStorage caching
-const REPO = 'loremcdmx/romeoprotracker'
-// raw.githubusercontent.com is the source of truth: it reflects the latest
-// main commit within seconds of a push. We used to go through jsDelivr for
-// brotli+edge speed, but its Fastly cache held @main for up to 12h even
-// after purge calls (s-maxage=43200), so users saw stale data 10h behind.
-const BASE = `https://raw.githubusercontent.com/${REPO}/main/data`
-const CACHE_KEY = 'rpt_cache_v5'
-const CACHE_TTL = 60 * 1000 // 1 min — don't refetch within this window
+const DEFAULT_REPO = 'loremcdmx/romeoprotracker'
+const CACHE_KEY = 'rpt_cache_v6'
+const CACHE_TTL = 60 * 1000
+
+function trimTrailingSlash(value) {
+  return value.replace(/\/+$/, '')
+}
+
+function getSameOriginBase() {
+  if (typeof window === 'undefined') return null
+  try {
+    return trimTrailingSlash(new URL(`${import.meta.env.BASE_URL}data/`, window.location.origin).toString())
+  } catch {
+    return null
+  }
+}
+
+export function getDataBases() {
+  const bases = []
+  const envBase = import.meta.env.VITE_DATA_BASE_URL
+  const envRepo = import.meta.env.VITE_DATA_REPO || DEFAULT_REPO
+  const sameOriginBase = getSameOriginBase()
+  const rawBase = `https://raw.githubusercontent.com/${envRepo}/main/data`
+
+  if (envBase) bases.push(trimTrailingSlash(envBase))
+  if (sameOriginBase) bases.push(sameOriginBase)
+  bases.push(trimTrailingSlash(rawBase))
+
+  return [...new Set(bases.filter(Boolean))]
+}
+
+function withCacheBust(url) {
+  const separator = url.includes('?') ? '&' : '?'
+  return `${url}${separator}t=${Date.now()}`
+}
 
 function getCache() {
   try {
     const raw = localStorage.getItem(CACHE_KEY)
     if (!raw) return null
-    const c = JSON.parse(raw)
-    if (Date.now() - c.ts < CACHE_TTL) return c
-    return null // expired
-  } catch { return null }
+    const cache = JSON.parse(raw)
+    if (Date.now() - cache.ts < CACHE_TTL) return cache
+    return { ...cache, stale: true }
+  } catch {
+    return null
+  }
 }
 
-function setCache(posts, meta) {
+function setCache(payload) {
   try {
-    localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now(), posts, meta }))
-  } catch { /* quota exceeded — ignore */ }
+    localStorage.setItem(CACHE_KEY, JSON.stringify({
+      ts: Date.now(),
+      compact: payload.compact ?? null,
+      posts: payload.posts ?? null,
+      meta: payload.meta ?? {},
+      source: payload.source ?? null,
+    }))
+  } catch {
+    // Ignore storage quota/access issues.
+  }
 }
 
-// Expand compact format back to full post objects
-function expandPosts(compact) {
-  const { avatars, posts } = compact
-  const FORUM_BASE = 'https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p='
-  return posts.map(p => {
-    const o = {
-      id: p.i,
-      author: p.a,
-      timestamp: p.t,
-      likes: p.l || 0,
-      text: p.x || '',
-      date: p.d || '',
-      url: FORUM_BASE + p.i,
-      avatar: p.v != null ? avatars[p.v] : null,
-      rating: p.r || 0,
-      msgCount: p.m || null,
-      regData: p.g || null,
-      images: p.p || [],
-      videos: p.vd || [],
-      brAfter: p.ba ?? null,
-      brBefore: p.bb ?? null,
-      sessionResult: p.sr ?? null,
-      rooms: p.rm || null,
-      translations: (p.te || p.ts) ? { en: p.te || null, es: p.ts || null } : null,
-    }
-    return o
-  })
+function getPayloadUpdatedAt(payload) {
+  const value = payload?.meta?.lastUpdated
+  if (!value) return 0
+  const timestamp = Date.parse(value)
+  return Number.isFinite(timestamp) ? timestamp : 0
+}
+
+function selectFreshestPayload(current, candidate) {
+  if (!candidate) return current
+  if (!current) return candidate
+
+  const currentTs = getPayloadUpdatedAt(current)
+  const candidateTs = getPayloadUpdatedAt(candidate)
+
+  if (candidateTs > currentTs) return candidate
+  if (candidateTs < currentTs) return current
+  return current
+}
+
+export function expandPosts(compact) {
+  const avatars = compact?.avatars || []
+  const posts = compact?.posts || []
+  const forumBase = 'https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p='
+
+  return posts.map((post) => ({
+    id: post.i,
+    author: post.a,
+    timestamp: post.t,
+    likes: post.l || 0,
+    text: post.x || '',
+    date: post.d || '',
+    url: forumBase + post.i,
+    avatar: post.v != null ? avatars[post.v] : null,
+    rating: post.r || 0,
+    msgCount: post.m || null,
+    regData: post.g || null,
+    images: post.p || [],
+    videos: post.vd || [],
+    brAfter: post.ba ?? null,
+    brBefore: post.bb ?? null,
+    sessionResult: post.sr ?? null,
+    rooms: post.rm || null,
+    translations: (post.te || post.ts) ? { en: post.te || null, es: post.ts || null } : null,
+  }))
+}
+
+function inflateCachedPayload(cache) {
+  const posts = cache.compact ? expandPosts(cache.compact) : (cache.posts || [])
+  return { posts, meta: cache.meta || {}, source: cache.source || null, stale: Boolean(cache.stale) }
+}
+
+async function fetchJson(url) {
+  const response = await fetch(withCacheBust(url), { cache: 'no-store' })
+  if (!response.ok) {
+    throw new Error(`${response.status} ${response.statusText} for ${url}`)
+  }
+  return response.json()
+}
+
+async function fetchFromBase(base) {
+  let compact = null
+  let posts = null
+
+  const [metaResult, compactResult] = await Promise.allSettled([
+    fetchJson(`${base}/meta.json`),
+    fetchJson(`${base}/posts.min.json`),
+  ])
+
+  if (metaResult.status !== 'fulfilled') {
+    throw metaResult.reason
+  }
+
+  const meta = metaResult.value
+
+  if (compactResult.status === 'fulfilled') {
+    compact = compactResult.value
+  } else {
+    posts = await fetchJson(`${base}/posts.json`)
+  }
+
+  return { compact, posts, meta, source: base }
 }
 
 export async function fetchPublicData() {
-  // Return cache if fresh
   const cached = getCache()
-  if (cached) return { posts: cached.posts, meta: cached.meta }
+  const cachedPayload = cached ? inflateCachedPayload(cached) : null
 
-  const [postsRes, metaRes] = await Promise.all([
-    fetch(`${BASE}/posts.min.json?t=${Date.now()}`),
-    fetch(`${BASE}/meta.json?t=${Date.now()}`),
-  ])
+  if (cachedPayload && !cachedPayload.stale) return cachedPayload
 
-  let posts
-  if (postsRes.ok) {
-    const compact = await postsRes.json()
-    posts = expandPosts(compact)
-  } else {
-    // Fallback to full posts.json
-    const fullRes = await fetch(`${BASE}/posts.json?t=${Date.now()}`)
-    posts = fullRes.ok ? await fullRes.json() : []
+  let lastError = null
+  let freshestNetworkPayload = null
+
+  const results = await Promise.allSettled(
+    getDataBases().map((base) => fetchFromBase(base))
+  )
+
+  for (const result of results) {
+    if (result.status === 'fulfilled') {
+      freshestNetworkPayload = selectFreshestPayload(freshestNetworkPayload, result.value)
+      continue
+    }
+
+    lastError = result.reason
   }
 
-  const meta = metaRes.ok ? await metaRes.json() : {}
-  setCache(posts, meta)
-  return { posts, meta }
+  const freshestPayload = selectFreshestPayload(freshestNetworkPayload, cachedPayload)
+
+  if (freshestNetworkPayload && freshestPayload === freshestNetworkPayload) {
+    setCache(freshestNetworkPayload)
+    return inflateCachedPayload(freshestNetworkPayload)
+  }
+
+  if (cachedPayload) return cachedPayload
+
+  throw lastError || new Error('Failed to load tracker data from every configured source')
 }

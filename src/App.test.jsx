@@ -1,145 +1,172 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import App from './App.jsx'
+import { translate } from './i18n.js'
+import { fetchPublicData } from './storage.js'
 
-// Mock fetch for data loading
 vi.mock('./storage.js', () => ({
-  fetchPublicData: vi.fn(() => Promise.resolve({
+  fetchPublicData: vi.fn(),
+}))
+
+vi.mock('@vercel/analytics/react', () => ({ Analytics: () => null }))
+
+function makeMockData(overrides = {}) {
+  return {
     posts: [
       {
-        id: '1', author: 'Romeopro', text: 'День #5 марафона. После сессии: 11000',
-        likes: 42, timestamp: 1712500000, date: '07.04.26',
-        avatar: null, rating: 5000, msgCount: 100, regData: '2020',
-        brAfter: 11000, images: [], url: 'https://forum.gipsyteam.ru/test1',
+        id: '1',
+        author: 'Romeopro',
+        text: 'Day #5 marathon. After session: 11000',
+        likes: 42,
+        timestamp: 1712500000,
+        date: '07.04.26',
+        avatar: null,
+        rating: 5000,
+        msgCount: 100,
+        regData: '2020',
+        brAfter: 11000,
+        images: [],
+        url: 'https://forum.gipsyteam.ru/test1',
       },
       {
-        id: '2', author: 'TestUser', text: 'Интересный пост о покере',
-        likes: 10, timestamp: 1712400000, date: '06.04.26',
-        avatar: null, rating: 1000, msgCount: 50, regData: '2021',
-        brAfter: null, images: [], url: 'https://forum.gipsyteam.ru/test2',
+        id: '2',
+        author: 'TestUser',
+        text: 'Interesting post about poker and Romeo.',
+        likes: 10,
+        timestamp: 1712400000,
+        date: '06.04.26',
+        avatar: null,
+        rating: 1000,
+        msgCount: 50,
+        regData: '2021',
+        brAfter: null,
+        images: [],
+        url: 'https://forum.gipsyteam.ru/test2',
       },
       {
-        id: '3', author: 'Romeopro', text: '[QUOTE]somebody\ncited text[/QUOTE]Мой ответ',
-        likes: 100, timestamp: 1712300000, date: '05.04.26',
-        avatar: null, rating: 5000, msgCount: 100, regData: '2020',
-        brAfter: 10500, images: ['https://example.com/img.jpg'], url: 'https://forum.gipsyteam.ru/test3',
+        id: '3',
+        author: 'Romeopro',
+        text: '[QUOTE]somebody\ncited text[/QUOTE]My answer',
+        likes: 100,
+        timestamp: 1712300000,
+        date: '05.04.26',
+        avatar: null,
+        rating: 5000,
+        msgCount: 100,
+        regData: '2020',
+        brAfter: 10500,
+        images: ['https://example.com/img.jpg'],
+        url: 'https://forum.gipsyteam.ru/test3',
       },
     ],
     meta: {
       startBankroll: 10000,
       totalTournaments: 3565,
       brHistory: [
-        { brAfter: 10500, date: '05.04', timestamp: 1712300000, sessionResult: 500, text: 'День #3' },
-        { brAfter: 11000, date: '07.04', timestamp: 1712500000, sessionResult: 500, text: 'День #5' },
+        { brAfter: 10500, date: '05.04', timestamp: 1712300000, sessionResult: 500, text: 'Day #3' },
+        { brAfter: 11000, date: '07.04', timestamp: 1712500000, sessionResult: 500, text: 'Day #5' },
       ],
+      lastUpdated: '2026-04-19T02:00:00.000Z',
     },
-  })),
-}))
-
-// Suppress Vercel Analytics in tests
-vi.mock('@vercel/analytics/react', () => ({ Analytics: () => null }))
+    ...overrides,
+  }
+}
 
 describe('App', () => {
   beforeEach(() => {
     localStorage.clear()
+    fetchPublicData.mockReset()
+    fetchPublicData.mockResolvedValue(makeMockData())
     Object.defineProperty(window, 'innerWidth', { value: 1280, writable: true })
   })
 
   it('renders loading state then content', async () => {
     render(<App />)
-    const elements = await screen.findAllByText('Romeopro')
-    expect(elements.length).toBeGreaterThan(0)
+    expect(await screen.findByText(translate('ru', 'hs_br'))).toBeInTheDocument()
   })
 
   it('renders hero stats', async () => {
     render(<App />)
-    expect(await screen.findByText('Банкролл')).toBeInTheDocument()
-    // "Профит" appears in hero and sidebar
-    expect(screen.getAllByText('Профит').length).toBeGreaterThanOrEqual(1)
-    expect(screen.getAllByText('День марафона').length).toBeGreaterThanOrEqual(1)
-    expect(screen.getAllByText('Сыграно МТТ').length).toBeGreaterThanOrEqual(1)
+    expect(await screen.findByText(translate('ru', 'hs_br'))).toBeInTheDocument()
+    expect(screen.getAllByText(translate('ru', 'hs_profit')).length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText(translate('ru', 'hs_day')).length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText(translate('ru', 'hs_tourneys')).length).toBeGreaterThanOrEqual(1)
   })
 
   it('renders marathon chart', async () => {
     render(<App />)
-    expect(await screen.findByText(/График марафона/)).toBeInTheDocument()
+    expect(await screen.findByText(new RegExp(translate('ru', 'chart_marathon').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))).toBeInTheDocument()
   })
 
   it('renders post cards in feed', async () => {
     render(<App />)
     const elements = await screen.findAllByText('Romeopro')
-    // Hero + post cards + sidebar
     expect(elements.length).toBeGreaterThan(1)
   })
 
   it('renders topbar with tabs', async () => {
     render(<App />)
     await screen.findAllByText('Romeopro')
-    // Both topbar and mobile nav have tabs
-    expect(screen.getAllByText('Лента').length).toBeGreaterThanOrEqual(1)
-    expect(screen.getAllByText('Темы').length).toBeGreaterThanOrEqual(1)
-    expect(screen.getAllByText('Настройки').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText(translate('ru', 'tab_feed')).length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText(translate('ru', 'tab_topics')).length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText(translate('ru', 'tab_settings')).length).toBeGreaterThanOrEqual(1)
   })
 
   it('switches to topics tab', async () => {
     render(<App />)
     await screen.findAllByText('Romeopro')
-    const tabs = screen.getAllByText('Темы')
-    fireEvent.click(tabs[0])
-    expect(screen.getByText(/Марафон/)).toBeInTheDocument()
-    expect(screen.getByText(/Про Ромео/)).toBeInTheDocument()
-    expect(screen.getByText(/Хайлайты/)).toBeInTheDocument()
-    expect(screen.getByText(/По темам/)).toBeInTheDocument()
+    fireEvent.click(screen.getAllByText(translate('ru', 'tab_topics'))[0])
+    expect(screen.getByText(new RegExp(translate('ru', 'topic_marathon')))).toBeInTheDocument()
+    expect(screen.getByText(new RegExp(translate('ru', 'topic_discussion')))).toBeInTheDocument()
+    expect(screen.getByText(new RegExp(translate('ru', 'topic_highlikes')))).toBeInTheDocument()
+    expect(screen.getByText(new RegExp(translate('ru', 'topic_tags')))).toBeInTheDocument()
   })
 
   it('switches to settings tab and shows ignore list', async () => {
     render(<App />)
     await screen.findAllByText('Romeopro')
-    const tabs = screen.getAllByText('Настройки')
-    fireEvent.click(tabs[0])
-    expect(screen.getByText(/Игнорируемые авторы/)).toBeInTheDocument()
+    fireEvent.click(screen.getAllByText(translate('ru', 'tab_settings'))[0])
+    expect(screen.getByText(new RegExp(translate('ru', 'settings_ignored_authors')))).toBeInTheDocument()
   })
 
   it('toggles theme', async () => {
     render(<App />)
     await screen.findAllByText('Romeopro')
-    const themeBtn = screen.getByTitle(/тема/i)
+    const themeBtn = screen.getByTitle(new RegExp(translate('ru', 'theme_light'), 'i'))
     fireEvent.click(themeBtn)
     expect(document.documentElement.classList.contains('light')).toBe(true)
-    fireEvent.click(themeBtn)
+    fireEvent.click(screen.getByTitle(new RegExp(translate('ru', 'theme_dark'), 'i')))
     expect(document.documentElement.classList.contains('light')).toBe(false)
   })
 
   it('renders sidebar with stats', async () => {
     render(<App />)
-    expect(await screen.findByText('📊 Статистика')).toBeInTheDocument()
+    expect(await screen.findByText(new RegExp(translate('ru', 'stats')))).toBeInTheDocument()
   })
 
   it('renders sidebar top posts section', async () => {
     render(<App />)
-    expect(await screen.findByText(/Больше всего плюсиков/)).toBeInTheDocument()
+    expect(await screen.findByText(new RegExp(translate('ru', 'top_likes_header')))).toBeInTheDocument()
   })
 
   it('renders footer with version and changelog', async () => {
     render(<App />)
     await screen.findAllByText('Romeopro')
-    // Current app version is rendered in the footer (keep in sync with package.json)
-    expect(screen.getAllByText('v1.7').length).toBeGreaterThanOrEqual(1)
-    expect(screen.getByText('Changelog')).toBeInTheDocument()
+    expect(screen.getAllByText('v1.8').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getByText(translate('ru', 'footer_changelog'))).toBeInTheDocument()
   })
 
   it('renders pagination', async () => {
     render(<App />)
     await screen.findAllByText('Romeopro')
-    const pageInfos = screen.getAllByText(/из/)
+    const pageInfos = screen.getAllByText(new RegExp(translate('ru', 'page_of')))
     expect(pageInfos.length).toBeGreaterThan(0)
   })
 
   it('renders filter bar with romeo filter', async () => {
     render(<App />)
     await screen.findAllByText('Romeopro')
-    const romeoButtons = screen.getAllByText('Ромео')
-    expect(romeoButtons.length).toBeGreaterThan(0)
+    expect(screen.getAllByText(translate('ru', 'day_romeo')).length).toBeGreaterThan(0)
   })
 
   it('renders progress bar', async () => {
@@ -150,7 +177,53 @@ describe('App', () => {
 
   it('renders links section in sidebar', async () => {
     render(<App />)
-    expect(await screen.findByText('🔗 Ссылки')).toBeInTheDocument()
-    expect(screen.getByText('→ Тема на GipsyTeam')).toBeInTheDocument()
+    await screen.findAllByText('Romeopro')
+    expect(screen.getByRole('link', { name: new RegExp(translate('ru', 'settings_forum_thread')) })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: new RegExp(translate('ru', 'settings_source')) })).toBeInTheDocument()
+  })
+
+  it('renders retry state and recovers after refresh', async () => {
+    fetchPublicData.mockReset()
+    fetchPublicData
+      .mockRejectedValueOnce(new Error('offline'))
+      .mockResolvedValueOnce(makeMockData())
+
+    render(<App />)
+
+    expect(await screen.findByText(translate('ru', 'load_failed_title'))).toBeInTheDocument()
+    fireEvent.click(screen.getByText(translate('ru', 'retry')))
+    expect((await screen.findAllByText('Romeopro')).length).toBeGreaterThan(0)
+  })
+
+  it('switches language and persists it', async () => {
+    render(<App />)
+    await screen.findAllByText('Romeopro')
+
+    fireEvent.click(screen.getByRole('button', { name: 'EN' }))
+
+    await waitFor(() => {
+      expect(screen.getAllByText(translate('en', 'tab_feed')).length).toBeGreaterThanOrEqual(1)
+      expect(localStorage.getItem('rpt_lang')).toBe('en')
+    })
+
+    expect(screen.getByText(translate('en', 'hs_br'))).toBeInTheDocument()
+  })
+
+  it('applies and resets feed filters', async () => {
+    render(<App />)
+    expect((await screen.findAllByText('TestUser')).length).toBeGreaterThan(0)
+
+    const minLikesInput = screen
+      .getAllByTitle(translate('ru', 'filter_min_likes'))
+      .find((node) => node.tagName === 'INPUT')
+    fireEvent.change(minLikesInput, { target: { value: '50' } })
+
+    await waitFor(() => {
+      expect(screen.queryAllByText('TestUser')).toHaveLength(0)
+    })
+
+    fireEvent.click(screen.getByTitle(translate('ru', 'filter_reset')))
+
+    expect((await screen.findAllByText('TestUser')).length).toBeGreaterThan(0)
   })
 })

@@ -12,15 +12,35 @@ export function plural(n, forms) {
 // Shorthand: returns "N слово" with the correctly declined word
 export const pl = (n, forms) => `${n} ${plural(n, forms)}`
 
-export function timeAgo(timestamp) {
+export function timeAgo(timestamp, lang = 'ru') {
   if (!timestamp) return null
-  const sec  = Math.floor((Date.now() / 1000) - timestamp)
-  if (sec < 60)   return 'только что'
-  if (sec < 3600) return pl(Math.floor(sec/60),    ['минуту','минуты','минут']) + ' назад'
-  if (sec < 86400) return pl(Math.floor(sec/3600), ['час','часа','часов']) + ' назад'
-  if (sec < 2592000) return pl(Math.floor(sec/86400), ['день','дня','дней']) + ' назад'
-  if (sec < 31536000) return pl(Math.floor(sec/2592000), ['месяц','месяца','месяцев']) + ' назад'
-  return pl(Math.floor(sec/31536000), ['год','года','лет']) + ' назад'
+  const sec = Math.floor((Date.now() / 1000) - timestamp)
+  const valueOf = (size) => Math.floor(sec / size)
+
+  if (lang === 'en') {
+    if (sec < 60) return 'just now'
+    if (sec < 3600) return `${valueOf(60)} minute${valueOf(60) === 1 ? '' : 's'} ago`
+    if (sec < 86400) return `${valueOf(3600)} hour${valueOf(3600) === 1 ? '' : 's'} ago`
+    if (sec < 2592000) return `${valueOf(86400)} day${valueOf(86400) === 1 ? '' : 's'} ago`
+    if (sec < 31536000) return `${valueOf(2592000)} month${valueOf(2592000) === 1 ? '' : 's'} ago`
+    return `${valueOf(31536000)} year${valueOf(31536000) === 1 ? '' : 's'} ago`
+  }
+
+  if (lang === 'es') {
+    if (sec < 60) return 'ahora mismo'
+    if (sec < 3600) return `hace ${valueOf(60)} minuto${valueOf(60) === 1 ? '' : 's'}`
+    if (sec < 86400) return `hace ${valueOf(3600)} hora${valueOf(3600) === 1 ? '' : 's'}`
+    if (sec < 2592000) return `hace ${valueOf(86400)} día${valueOf(86400) === 1 ? '' : 's'}`
+    if (sec < 31536000) return `hace ${valueOf(2592000)} mes${valueOf(2592000) === 1 ? '' : 'es'}`
+    return `hace ${valueOf(31536000)} año${valueOf(31536000) === 1 ? '' : 's'}`
+  }
+
+  if (sec < 60) return 'только что'
+  if (sec < 3600) return pl(valueOf(60), ['минуту','минуты','минут']) + ' назад'
+  if (sec < 86400) return pl(valueOf(3600), ['час','часа','часов']) + ' назад'
+  if (sec < 2592000) return pl(valueOf(86400), ['день','дня','дней']) + ' назад'
+  if (sec < 31536000) return pl(valueOf(2592000), ['месяц','месяца','месяцев']) + ' назад'
+  return pl(valueOf(31536000), ['год','года','лет']) + ' назад'
 }
 
 export const fmtBR = n => {
@@ -153,6 +173,36 @@ export const extractQuoteBody = t => {
 }
 
 export const fkAbs = v => v >= 1000 ? `${(v/1000).toFixed(1)}k$` : `${Math.round(v)}$`
+
+export function dedupBrHistory(hist) {
+  if (!hist?.length) return hist
+  const sorted = [...hist].sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0))
+  const out = []
+
+  for (const entry of sorted) {
+    const prev = out[out.length - 1]
+    const sameByBrBefore = prev
+      && entry.brBefore != null
+      && prev.brBefore != null
+      && entry.brBefore === prev.brBefore
+      && prev.brBefore !== prev.brAfter
+
+    if (sameByBrBefore) {
+      out[out.length - 1] = {
+        ...entry,
+        brBefore: prev.brBefore ?? entry.brBefore,
+        sessionResult: (entry.brAfter || 0) - (prev.brBefore ?? entry.brBefore ?? 0),
+        tournaments: Math.max(prev.tournaments || 0, entry.tournaments || 0),
+        _mergedFrom: [...(prev._mergedFrom || [prev.id]).filter(Boolean), entry.id].filter(Boolean),
+      }
+      continue
+    }
+
+    out.push(entry)
+  }
+
+  return out
+}
 
 // ─── MONOTONE CUBIC BEZIER (no overshoot/humps) ─────────────────────────────
 // Fritsch–Carlson monotone interpolation: tangents are clamped so the curve

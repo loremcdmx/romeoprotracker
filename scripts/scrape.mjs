@@ -3,11 +3,15 @@
  * GipsyTeam forum scraper for RomeoPro Tracker.
  * Runs in GitHub Actions on a cron schedule.
  *
- * Modes (set via SCRAPE_MODE env var):
+ * Modes (set via SCRAPE_MODE env var or --mode):
  *   "normal"    — scan last 5 pages: add new posts + update likes on recent posts (default, every 30 min)
  *   "full"      — scan ALL pages: update likes on every post (every 6 hours)
  *   "reextract" — re-extract BR data from ALL Romeo posts with images (clears brHistory, reprocesses everything)
  *   "translate" — fill en/es translations on all Romeo posts that are missing them (backfill)
+ *
+ * Safety flags:
+ *   --dry-run / SCRAPE_DRY_RUN=1 — fetch + parse, but do not write files or run git
+ *   --no-push / SCRAPE_NO_PUSH=1 — write local files, but skip git pull / commit / push
  *
  * Also: if Romeo posted images → sends to Claude API (vision) to extract BR data.
  * Also: Romeo posts get machine-translated to en/es (Haiku) on normal runs
@@ -17,13 +21,58 @@
 import { readFile, writeFile } from 'fs/promises'
 import { execSync } from 'child_process'
 import * as cheerio from 'cheerio'
+import { needsTranslation, translatePost } from './lib/translation.mjs'
+import { parseScrapeOptions } from './lib/scrape-options.mjs'
 
 const FORUM_URL = 'https://forum.gipsyteam.ru/index.php?viewtopic=181676'
 const ROMEO_RE  = /romeopro/i
 const DELAY_MS  = 500        // polite delay between page fetches
-const MODE      = process.env.SCRAPE_MODE || 'normal'
+const { mode: MODE, dryRun: DRY_RUN, noPush: NO_PUSH } = parseScrapeOptions(process.argv.slice(2), process.env)
 
 // ─── UTILS ───────────────────────────────────────────────────────────────────
+
+async function writeJson(path, value) {
+  await writeFile(path, JSON.stringify(value, null, 2))
+}
+
+async function persistScrapeOutputs({
+  posts,
+  meta = null,
+  writeCompact = true,
+  gitFiles = [],
+  commitMessage,
+}) {
+  const filesLabel = gitFiles.length ? gitFiles.join(', ') : 'data files'
+
+  if (DRY_RUN) {
+    console.log(`🧪 Dry run: would write ${filesLabel}${commitMessage ? ` and publish "${commitMessage}"` : ''}`)
+    return
+  }
+
+  if (!NO_PUSH) {
+    execSync('git config user.name "RomeoPro Scraper"')
+    execSync('git config user.email "scraper@romeoprotracker.vercel.app"')
+    try { execSync('git pull --rebase origin main') } catch {}
+  }
+
+  await writeJson('data/posts.json', posts)
+  if (meta) await writeJson('data/meta.json', meta)
+  if (writeCompact) await writeCompactPosts(posts)
+
+  if (NO_PUSH) {
+    console.log(`📝 Local-only mode: updated ${filesLabel}, skipped git pull / commit / push`)
+    return
+  }
+
+  execSync(`git add ${gitFiles.join(' ')}`)
+  try {
+    execSync(`git commit -m "${commitMessage}"`)
+    execSync('git push')
+    console.log(`✅ Pushed: ${commitMessage}`)
+  } catch (e) {
+    console.log('ℹ Nothing to commit or push failed:', e.message)
+  }
+}
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)) }
 
@@ -319,84 +368,6 @@ async function extractBrFromImages(post, lastBrHistory) {
   }
 }
 
-// ─── TRANSLATION (Romeo posts → en/es) ─────────────────────────────────────
-//
-// Post payload keeps source Russian text + machine translations under
-// post.translations = { en, es, srcLen, srcHead }. srcLen/srcHead act as a
-// cheap signature: if the author edits the post, the scraper detects
-// mismatch and re-translates. We only translate Romeo's posts because en/es
-// feeds are already filtered to him.
-
-const TRANSLATE_MIN_LEN = 20   // skip empty/icon-only posts
-const TRANSLATE_MODEL   = 'claude-haiku-4-5-20251001'
-
-function textSignature(text) {
-  const t = text || ''
-  return { srcLen: t.length, srcHead: t.slice(0, 80) }
-}
-
-function needsTranslation(post) {
-  if (!post.text || post.text.trim().length < TRANSLATE_MIN_LEN) return false
-  const tr = post.translations
-  if (!tr || !tr.en || !tr.es) return true
-  const sig = textSignature(post.text)
-  return tr.srcLen !== sig.srcLen || tr.srcHead !== sig.srcHead
-}
-
-async function translateText(text, targetLang) {
-  const apiKey = process.env.ANTHROPIC_API_KEY
-  if (!apiKey) return null
-  const langName = targetLang === 'en' ? 'English' : 'Spanish'
-  const prompt = `Translate the following Russian forum post to ${langName}.
-
-Rules:
-- Preserve all [QUOTE]author|date\\n ... [/QUOTE] markers exactly — only translate prose INSIDE the quote body, keep author names and dates untouched.
-- Preserve [VIDEO] markers, URLs, numbers (including currencies like $, k, M), poker room names (GG, PS/PokerStars, King, Coin, Lux), and technical abbreviations (BR, MTT, ROI, ITM, ABI).
-- Keep the same paragraph breaks and line breaks.
-- Output ONLY the translated text. No preface, no explanation, no markdown fences.
-
-Russian text:
-${text}`
-
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-      'content-type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: TRANSLATE_MODEL,
-      max_tokens: 4096,
-      messages: [{ role: 'user', content: prompt }],
-    }),
-  })
-  if (!res.ok) {
-    const err = await res.text()
-    console.log(`  ⚠ translate ${targetLang} HTTP ${res.status}: ${err.substring(0, 200)}`)
-    return null
-  }
-  const data = await res.json()
-  const out = data.content?.[0]?.text?.trim()
-  return out || null
-}
-
-async function translatePost(post) {
-  if (!needsTranslation(post)) return false
-  const [en, es] = await Promise.all([
-    translateText(post.text, 'en'),
-    translateText(post.text, 'es'),
-  ])
-  if (!en && !es) return false
-  const sig = textSignature(post.text)
-  post.translations = {
-    ...sig,
-    en: en || post.translations?.en || null,
-    es: es || post.translations?.es || null,
-  }
-  return true
-}
-
 // ─── COMPACT WRITER ─────────────────────────────────────────────────────────
 //
 // Keep the compact schema in sync with src/storage.js expandPosts().
@@ -442,6 +413,11 @@ async function main() {
   const isReextract = MODE === 'reextract'
   const isTranslate = MODE === 'translate'
   console.log(`🕷 RomeoPro Scraper [${isReextract ? 'REEXTRACT' : isTranslate ? 'TRANSLATE' : isFullScan ? 'FULL SCAN' : 'normal'}]`)
+  if (DRY_RUN) {
+    console.log('🧪 Execution mode: dry-run (no file writes, no git)')
+  } else if (NO_PUSH) {
+    console.log('📝 Execution mode: local-only (write files, skip git pull / commit / push)')
+  }
 
   // Load existing data
   const posts = JSON.parse(await readFile('data/posts.json', 'utf-8'))
@@ -468,18 +444,12 @@ async function main() {
       console.log('✅ Nothing translated')
       return
     }
-    await writeFile('data/posts.json', JSON.stringify(posts, null, 2))
-    await writeCompactPosts(posts)
-    execSync('git config user.name "RomeoPro Scraper"')
-    execSync('git config user.email "scraper@romeoprotracker.vercel.app"')
-    execSync('git add data/posts.json data/posts.min.json')
-    try {
-      execSync(`git commit -m "scraper: translate ${done} Romeo posts to en/es"`)
-      execSync('git push')
-      console.log(`✅ Pushed: translate ${done} posts`)
-    } catch {
-      console.log('ℹ Nothing to commit')
-    }
+    await persistScrapeOutputs({
+      posts,
+      writeCompact: true,
+      gitFiles: ['data/posts.json', 'data/posts.min.json'],
+      commitMessage: `scraper: translate ${done} Romeo posts to en/es`,
+    })
     return
   }
 
@@ -541,20 +511,14 @@ async function main() {
       console.log(`  ✅ BR: $${brData.brBefore} → $${brData.brAfter} (${brData.sessionResult >= 0 ? '+' : ''}${brData.sessionResult})`)
     }
 
-    await writeFile('data/posts.json', JSON.stringify(posts, null, 2))
-    await writeFile('data/meta.json', JSON.stringify(meta, null, 2))
-
     const msg = `scraper: reextract ${meta.brHistory.length} BR entries, BR → $${meta.bankroll} (total ${posts.length})`
-    execSync('git config user.name "RomeoPro Scraper"')
-    execSync('git config user.email "scraper@romeoprotracker.vercel.app"')
-    execSync('git add data/posts.json data/meta.json')
-    try {
-      execSync(`git commit -m "${msg}"`)
-      execSync('git push')
-      console.log(`✅ Pushed: ${msg}`)
-    } catch (e) {
-      console.log('ℹ Nothing to commit or push failed')
-    }
+    await persistScrapeOutputs({
+      posts,
+      meta,
+      writeCompact: true,
+      gitFiles: ['data/posts.json', 'data/meta.json', 'data/posts.min.json'],
+      commitMessage: msg,
+    })
     return
   }
 
@@ -783,28 +747,13 @@ async function main() {
   if (parts.length === 0) parts.push('heartbeat')
   const msg = `scraper: ${parts.join(', ')} (total ${merged.length})`
 
-  // Git commit & push
-  execSync('git config user.name "RomeoPro Scraper"')
-  execSync('git config user.email "scraper@romeoprotracker.vercel.app"')
-
-  // Pull remote changes BEFORE writing data files to avoid merge conflicts
-  try { execSync('git pull --rebase origin main') } catch {}
-
-  // Write full data
-  await writeFile('data/posts.json', JSON.stringify(merged, null, 2))
-  await writeFile('data/meta.json', JSON.stringify(meta, null, 2))
-
-  await writeCompactPosts(merged)
-
-  execSync('git add data/posts.json data/meta.json data/posts.min.json')
-
-  try {
-    execSync(`git commit -m "${msg}"`)
-    execSync('git push')
-    console.log(`✅ Pushed: ${msg}`)
-  } catch (e) {
-    console.log('ℹ Nothing to commit or push failed:', e.message)
-  }
+  await persistScrapeOutputs({
+    posts: merged,
+    meta,
+    writeCompact: true,
+    gitFiles: ['data/posts.json', 'data/meta.json', 'data/posts.min.json'],
+    commitMessage: msg,
+  })
 }
 
 main().catch(e => {

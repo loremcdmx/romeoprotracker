@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import {
   timeAgo, fmtBR, fmtNum, fmtInt, fmtExact, extractDay, extractBR,
   fk, fkAbs, ROMEO_RE, autoCloseQuotes, stripQuoteTags, extractQuoteBody,
-  makeBezierPath, makeBezierArea,
+  makeBezierPath, makeBezierArea, dedupBrHistory,
 } from './utils.js'
 
 // ─── timeAgo ─────────────────────────────────────────────────────────────────
@@ -43,6 +43,18 @@ describe('timeAgo', () => {
 
   it('returns years', () => {
     expect(timeAgo(now() - 86400 * 400)).toBe('1 год назад')
+  })
+
+  it('supports English output', () => {
+    expect(timeAgo(now() - 30, 'en')).toBe('just now')
+    expect(timeAgo(now() - 120, 'en')).toBe('2 minutes ago')
+    expect(timeAgo(now() - 3600, 'en')).toBe('1 hour ago')
+  })
+
+  it('supports Spanish output', () => {
+    expect(timeAgo(now() - 30, 'es')).toBe('ahora mismo')
+    expect(timeAgo(now() - 120, 'es')).toBe('hace 2 minutos')
+    expect(timeAgo(now() - 3600, 'es')).toBe('hace 1 hora')
   })
 })
 
@@ -188,6 +200,61 @@ describe('fkAbs', () => {
   it('formats thousands', () => {
     expect(fkAbs(1500)).toBe('1.5k$')
     expect(fkAbs(10000)).toBe('10.0k$')
+  })
+})
+
+// ─── dedupBrHistory ──────────────────────────────────────────────────────────
+describe('dedupBrHistory', () => {
+  it('merges reposted session updates with the same starting bankroll', () => {
+    const result = dedupBrHistory([
+      { id: 'a', timestamp: 100, brBefore: 1000, brAfter: 1100, tournaments: 10 },
+      { id: 'b', timestamp: 200, brBefore: 1000, brAfter: 1200, tournaments: 15 },
+    ])
+
+    expect(result).toHaveLength(1)
+    expect(result[0]).toMatchObject({
+      id: 'b',
+      brBefore: 1000,
+      brAfter: 1200,
+      sessionResult: 200,
+      tournaments: 15,
+      _mergedFrom: ['a', 'b'],
+    })
+  })
+
+  it('does not merge legitimate zero-result sessions', () => {
+    const result = dedupBrHistory([
+      { id: 'a', timestamp: 100, brBefore: 1000, brAfter: 1000, tournaments: 10 },
+      { id: 'b', timestamp: 200, brBefore: 1000, brAfter: 1100, tournaments: 12 },
+    ])
+
+    expect(result).toHaveLength(2)
+  })
+
+  it('sorts chronologically before deciding whether to merge', () => {
+    const result = dedupBrHistory([
+      { id: 'b', timestamp: 200, brBefore: 1000, brAfter: 1200, tournaments: 15 },
+      { id: 'a', timestamp: 100, brBefore: 1000, brAfter: 1100, tournaments: 10 },
+    ])
+
+    expect(result).toHaveLength(1)
+    expect(result[0]).toMatchObject({
+      id: 'b',
+      brBefore: 1000,
+      brAfter: 1200,
+      sessionResult: 200,
+      tournaments: 15,
+      _mergedFrom: ['a', 'b'],
+    })
+  })
+
+  it('keeps entries separate when brBefore is missing', () => {
+    const result = dedupBrHistory([
+      { id: 'a', timestamp: 100, brAfter: 1100, tournaments: 10 },
+      { id: 'b', timestamp: 200, brAfter: 1200, tournaments: 15 },
+    ])
+
+    expect(result).toHaveLength(2)
   })
 })
 

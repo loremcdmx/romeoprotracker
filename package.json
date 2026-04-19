@@ -1,15 +1,27 @@
 {
   "name": "romeoprotracker",
   "private": true,
-  "version": "1.7.0",
+  "version": "1.8.0",
   "type": "module",
+  "engines": {
+    "node": ">=20.19.0"
+  },
   "scripts": {
+    "sync:data": "node scripts/sync-static-data.mjs",
+    "predev": "npm run sync:data",
+    "prebuild": "npm run sync:data",
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "check": "npm run build && npm run test",
     "scrape": "node scripts/scrape.mjs",
-    "scrape:full": "SCRAPE_MODE=full node scripts/scrape.mjs",
-    "scrape:reextract": "SCRAPE_MODE=reextract node scripts/scrape.mjs"
+    "scrape:dry-run": "node scripts/scrape.mjs --dry-run",
+    "scrape:no-push": "node scripts/scrape.mjs --no-push",
+    "scrape:full": "node scripts/scrape.mjs --mode=full",
+    "scrape:reextract": "node scripts/scrape.mjs --mode=reextract",
+    "scrape:translate": "node scripts/scrape.mjs --mode=translate"
   },
   "dependencies": {
     "@vercel/analytics": "^2.0.1",
@@ -19,10 +31,10 @@
   "devDependencies": {
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
-    "@vitejs/plugin-react": "^4.2.1",
+    "@vitejs/plugin-react": "^6.0.1",
     "cheerio": "^1.2.0",
     "jsdom": "^29.0.2",
-    "vite": "^5.0.8",
-    "vitest": "^4.1.3"
+    "vite": "^8.0.8",
+    "vitest": "^4.1.4"
   }
 }

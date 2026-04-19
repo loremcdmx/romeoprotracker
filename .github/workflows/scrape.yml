@@ -2,39 +2,58 @@ name: Scrape Forum
 
 on:
   schedule:
-    - cron: '*/5 * * * *'    # every 5 min — new posts + recent likes (fast with early exit)
-    - cron: '0 */12 * * *'   # every 12 hours — full scan, all likes
+    - cron: '*/5 * * * *'
+    - cron: '0 */12 * * *'
   workflow_dispatch:
     inputs:
       mode:
-        description: 'Scrape mode'
+        description: Scrape mode
         required: false
-        default: 'normal'
+        default: normal
         type: choice
         options:
           - normal
           - full
           - reextract
+          - translate
 
 permissions:
   contents: write
 
+concurrency:
+  group: scrape-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   scrape:
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    timeout-minutes: 25
+
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+          cache: npm
 
       - name: Install dependencies
-        run: npm install --no-package-lock cheerio
+        run: npm ci
+
+      - name: Resolve scrape mode
+        shell: bash
+        run: |
+          mode="${{ inputs.mode || 'normal' }}"
+          if [[ "${{ github.event_name }}" == "schedule" && "${{ github.event.schedule }}" == "0 */12 * * *" ]]; then
+            mode="full"
+          fi
+          echo "SCRAPE_MODE=$mode" >> "$GITHUB_ENV"
 
       - name: Run scraper
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          SCRAPE_MODE: ${{ github.event.schedule == '0 */12 * * *' && 'full' || inputs.mode || 'normal' }}
           TZ: Europe/Warsaw
         run: node scripts/scrape.mjs

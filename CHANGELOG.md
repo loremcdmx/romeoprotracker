@@ -1,5 +1,36 @@
 # Changelog
 
+## Unreleased
+
+## 1.8.0 — 2026-04-19
+
+### New features
+- hover popups are positioned next to the hovered element again instead of being pinned to the top edge of the screen
+- hover popups now coordinate with each other so opening one closes the others instead of showing stray duplicates
+- replaced the `Сыграно МТТ` icon with a neutral spade icon
+
+### Architecture
+- extracted UI translations into `src/i18n.js`
+- extracted persistent state and public-data loading into dedicated hooks
+- moved scraper translation logic into `scripts/lib/translation.mjs`
+
+### Reliability
+- client now compares `meta.lastUpdated` across all configured public data sources and keeps the freshest payload
+- stale client cache is preferred over older network data instead of being overwritten blindly
+- local `predev` / `prebuild` sync copies tracked JSON data into `public/data`
+- fixed conditional hook order in chart components so retry / empty-state transitions do not blow up React renders
+
+### Tooling
+- added `npm test`, `npm test:watch`, and `npm run check`
+- added CI workflow for build + tests
+- hardened scraper workflow with `npm ci`, concurrency control, timeouts, and manual `translate` mode
+
+### Tests
+- added storage loader coverage for source freshness, cache fallback, and compact/full JSON fallback
+- expanded utility coverage for locale-aware relative time and bankroll history deduplication
+- added dedicated tests for `i18n`, persistent state, hover-popup coordination, poll-based post loading, and scraper translation helpers
+- added App-level coverage for retry, language switching, and filter flows
+
 ## 1.4.0 — 2026-04-09
 
 ### New features

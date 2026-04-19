@@ -1,47 +1,49 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-
-## Project Overview
-
-RomeoPro Tracker — a poker marathon tracker for [RomeoPro's thread](https://forum.gipsyteam.ru/index.php?viewtopic=181676) on GipsyTeam forum. Tracks bankroll progress from $10k to $10M across poker rooms (GG, PS, King, Coin).
-
-**Live site:** romeoprotracker.vercel.app
+This repository hosts the RomeoPro Tracker frontend and the scraper that produces its public JSON dataset.
 
 ## Commands
 
-- `npm run dev` — start Vite dev server
-- `npm run build` — production build to `dist/`
-- `npm run preview` — preview production build
-
-No linter, formatter, or test suite is configured.
+- `npm run dev` — start the local Vite dev server
+- `npm run build` — build production assets
+- `npm run preview` — preview the production build
+- `npm run test` — run Vitest once
+- `npm run check` — production build plus tests
+- `npm run scrape` — normal scraper pass
+- `npm run scrape:dry-run` — network + parse validation without writing files or touching git
+- `npm run scrape:no-push` — update local scraper outputs without git pull / commit / push
+- `npm run scrape:full` — full thread scan
+- `npm run scrape:reextract` — rebuild bankroll history from screenshots
+- `npm run scrape:translate` — backfill missing en/es translations
 
 ## Architecture
 
-Single-page React app (~2500 lines in one file `src/App.jsx`) with no router. Everything — components, CSS, helpers, chart logic — lives in App.jsx.
+Frontend:
 
-### Key files
+- `src/App.jsx` — main screen assembly and view-level logic
+- `src/hooks/usePostsData.js` — polling, refresh, unseen-post tracking
+- `src/hooks/usePersistentState.js` — `localStorage` persistence helper
+- `src/storage.js` — multi-source public data loader and cache
+- `src/i18n.js` — translation dictionary and locale-aware helpers
+- `src/utils.js` — formatting, chart math, and common parsing helpers
 
-- **`src/App.jsx`** — entire UI: topbar, hero stats, marathon chart (custom SVG), activity chart (Recharts), post feed, top posts. All CSS is a template literal injected via `<style>`.
-- **`src/storage.js`** — fetches compact `posts.min.json` and `meta.json` from `raw.githubusercontent.com` (main branch, repo hardcoded as `loremcdmx/romeoprotracker`). Has a 1-min localStorage cache.
-- **`scripts/scrape.mjs`** — scraper run by GitHub Actions (`.github/workflows/scrape.yml`) every ~5 min. Parses forum HTML with cheerio, extracts BR from Romeo's screenshots via Claude Vision, commits `data/*.json` back to main.
-- **`src/main.jsx`** — React entry point, nothing special.
+Scraper:
 
-### Data flow
+- `scripts/scrape.mjs` — forum scrape orchestration, data merge, git commit/push
+- scraper also supports `--dry-run` and `--no-push` for safe local verification
+- `scripts/lib/translation.mjs` — translation signature and Anthropic translation client
+- `scripts/sync-static-data.mjs` — copies tracked JSON data into `public/data` for local builds
 
-1. Data lives in `data/posts.json`, `data/posts.min.json`, and `data/meta.json` in this repo (committed to `main` branch by the scraper).
-2. The frontend fetches `posts.min.json` + `meta.json` from raw.githubusercontent.com at runtime (no backend).
-3. New posts are scraped server-side by `scripts/scrape.mjs` running in GitHub Actions.
+## Data Flow
 
-### Charts
+1. The scraper updates `data/posts.json`, `data/posts.min.json`, and `data/meta.json`.
+2. Local dev/build runs sync those files into `public/data`.
+3. The client loads data from configured public sources and picks the freshest payload by `meta.lastUpdated`.
+4. Client cache is short-lived and falls back to stale cached data only when every network source fails or is older.
 
-- **Marathon chart** — hand-built SVG with custom bezier path generation (`makeBezierPath`, `makeBezierArea`), tooltips, and animations. Not a library.
-- **Activity chart** — uses Recharts (`AreaChart`).
+## Deployment Notes
 
-## Deployment
-
-Vercel, auto-deploys from `main` branch. Push/merge to `main` triggers deploy. The `@vercel/analytics` package is included.
-
-## Language
-
-UI text and comments are in Russian. Variable names and code are in English.
+- The production app is a static Vercel deployment.
+- Scraper automation is defined in `.github/workflows/scrape.yml`.
+- CI checks are defined in `.github/workflows/ci.yml`.
+- Feature work should happen on non-`main` branches; scraper automation is intended to run on `main`.

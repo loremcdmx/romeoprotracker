@@ -1,270 +1,23 @@
 import { useState, useEffect, useLayoutEffect, useMemo, useRef, useCallback, memo } from 'react'
-import { fetchPublicData } from './storage.js'
 import { Analytics } from '@vercel/analytics/react'
 import {
   timeAgo, fmtBR, fmtNum, fmtInt, fmtExact, fmtDateShort, extractDay, extractBR,
   fk, fkAbs, ROMEO_RE, autoCloseQuotes, stripQuoteTags, extractQuoteBody,
   makeBezierPath, makeBezierArea, pl, plural,
-  warsawParts, warsawDayKey, fmtDateTimeLang,
+  warsawDayKey, fmtDateTimeLang,
 } from './utils.js'
+import { createTranslator, DEFAULT_LANG, FORUM_WORD, fmtDateShortLang } from './i18n.js'
+import { computeFixedPopupLayout } from './floating.js'
 import { useIsMobile } from './hooks/useIsMobile.js'
+import { useExclusiveHoverPopup } from './hooks/useExclusiveHoverPopup.js'
+import { usePersistentState } from './hooks/usePersistentState.js'
+import { usePostsData } from './hooks/usePostsData.js'
 import AnimatedValue, { useTweenValue } from './components/AnimatedValue.jsx'
 
+let _lang = DEFAULT_LANG
+let _translate = createTranslator(DEFAULT_LANG)
+const _t = (key) => _translate(key)
 
-// ─── i18n ────────────────────────────────────────────────────────────────────
-let _lang = 'ru'
-const _t = (k) => (LANG_DICT[_lang] && LANG_DICT[_lang][k]) || LANG_DICT.ru[k] || k
-const FORUM_WORD = { ru: 'форум', en: 'forum', es: 'foro' }
-
-const MONTHS_SHORT_BY_LANG = {
-  ru: ['янв','фев','мар','апр','мая','июн','июл','авг','сен','окт','ноя','дек'],
-  en: ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],
-  es: ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'],
-}
-function fmtDateShortLang(ts, lang) {
-  const p = warsawParts(ts)
-  if (!p) return '—'
-  return p.day + ' ' + (MONTHS_SHORT_BY_LANG[lang] || MONTHS_SHORT_BY_LANG.ru)[p.month - 1]
-}
-
-const LANG_DICT = {
-  ru: {
-    marathon_sub: 'марафон $10k → $10M',
-    tab_feed: 'Лента', tab_topics: 'Темы', tab_settings: 'Настройки',
-    theme_light: 'Светлая тема', theme_dark: 'Тёмная тема',
-    loading: 'Загружаем данные марафона…',
-    progress_to: 'Прогресс к $10M', left: 'Осталось',
-    tempo_week: 'МТТ темпом недели', tempo_month: 'МТТ темпом месяца', tempo_now: 'МТТ текущим темпом',
-    tempo_week_neg: '😢 МТТ до нуля · неделя', tempo_month_neg: '😢 МТТ до нуля · месяц', tempo_now_neg: '😢 МТТ до нуля · сейчас',
-    losing_warning: 'Тяжеловато будет, если играть в минус',
-    hs_br: 'Банкролл', hs_profit: 'Профит', hs_day: 'День марафона', hs_tourneys: 'Сыграно МТТ',
-    hs_start: 'старт', hs_since: 'с 10 марта 2026', hs_all_marathon: 'всего за марафон',
-    stats: 'Статистика',
-    sr_br: 'БР', sr_profit: 'Профит', sr_day: 'День', sr_tourneys: 'Сыграно МТТ', sr_mtt_short: 'МТТ',
-    sr_avg: 'МТТ / сессия', sr_winrate: 'Плюсовых сессий', sr_posts: 'Постов', sr_top: 'Топ лайков',
-    footer_made: 'made by', footer_updated: 'обновлено', footer_changelog: 'Changelog',
-    lang_title: 'Язык',
-    chart_marathon: '📈 График марафона', chart_activity: 'Активность постов',
-    period_week: 'Неделя', period_month: 'Месяц', period_all: 'Всё время', period_all_marathon: 'Весь марафон',
-    tip_br: 'БР', tip_mtt_since: '🃏 сыграно МТТ с последнего отчёта', close: 'закрыть',
-    hero_badge: 'Автор', last_post: 'последний пост',
-    topic_marathon: 'Марафон', topic_marathon_desc: 'Все посты Ромео',
-    topic_discussion: 'Про Ромео', topic_discussion_desc: 'Обсуждение и реакции на Ромео',
-    topic_debate: 'Длинные посты', topic_debate_desc: 'Серьёзный контент (300+ символов, 20+ лайков)',
-    topic_highlikes: 'Хайлайты', topic_highlikes_desc: 'Самые залайканные посты форума',
-    topic_authors: 'Авторы', topic_authors_desc: 'Топ-контрибьюторы треда',
-    topic_tags: 'По темам', topic_tags_desc: 'Все посты по тематикам',
-    topics_select_topic: 'Выберите тему', topics_select_topic_above: 'Выберите тему выше',
-    topics_no_posts: 'Постов не найдено', topics_no_data: 'Пока нет данных',
-    topics_top_contributors: 'Топ-контрибьюторы',
-    sort_date_asc: 'Старые сначала', sort_date_desc: 'Новые сначала', sort_likes: 'По лайкам',
-    filter_romeo_title: 'Показывать только посты Romeopro', filter_min_likes: 'Минимум лайков на посте',
-    filter_min_rep: 'Минимальная репутация автора', filter_rep_label: 'репа',
-    filter_search_title: 'Поиск по тексту постов', filter_search_placeholder: 'Поиск…',
-    filter_reset: 'Сбросить все фильтры', filter_show: 'показать',
-    pc_ignored_body: 'в игноре · нажмите, чтобы посмотреть', pc_ignored_click_expand: 'Нажмите, чтобы развернуть',
-    pc_ignored_prefix: 'Пост от', pc_unignore: 'Вернуть',
-    pc_fav_add: 'Добавить автора в избранное', pc_fav_remove: 'Убрать автора из избранного',
-    pc_ignore: 'Игнорировать',
-    pc_media_fail: 'медиа не отобразилось — открыть на форуме',
-    pc_expand: 'читать', pc_collapse: 'свернуть',
-    author_fav_label: 'В избранном', author_fav_add: 'В избранное',
-    profile_blog: 'Блог', profile_profile: 'Профиль', profile_pm: 'Личное сообщение',
-    quote_answer_to: 'ответ на', quote_generic: 'цитата',
-    quote_full_on_forum: 'полный текст на форуме', open_on_forum: 'открыть на форуме',
-    image_caption: 'изображение', media_fallback: 'изображение или медиа',
-    tc_staking: 'Стейкинг', tc_debt: 'Долги', tc_money: 'Деньги/Банкролл', tc_strategy: 'Стратегия',
-    tc_variance: 'Дисперсия', tc_psychology: 'Психология', tc_mtt: 'МТТ/Турниры', tc_rooms: 'Румы/Софт',
-    tc_content: 'Стримы/Контент', tc_chess: 'Шахматы/Гнат', tc_life: 'Жизнь/Офтоп', tc_live: 'Лайв/Кеш',
-    tc_critique: 'Критика/Скепсис', tc_goal: 'Цель/Прогноз',
-    settings_ignored_authors: 'Игнорируемые авторы',
-    settings_ignored_empty: 'Список пуст — нажмите 🚫 на любом посте чтобы скрыть автора',
-    settings_add_author: 'Добавить автора вручную…', settings_add_btn: 'Добавить',
-    settings_ignore_short: 'Игнор', settings_links: 'Ссылки',
-    settings_forum_thread: 'Тема на GipsyTeam', settings_source: 'Исходный код',
-    footer_today_at: 'сегодня в', footer_at: 'в',
-    footer_scraper_ran: 'скрапер бегал', footer_freshest_post: 'самый свежий пост',
-    stats_note_filter: '* с учётом фильтра на графике', for_period: 'За',
-    top_likes_header: '🔥 Больше всего плюсиков', mobile_top_label: '🔥 Топ',
-    mobile_scroll_hint: '← листай для старых дней · нажми = детали',
-    tempo_tooltip_all: 'Сколько МТТ нужно сыграть до $10M при среднем $/МТТ за весь марафон',
-    tempo_tooltip_period_week: 'Темп оценён по профиту и МТТ за выбранный период на графике (7 дней)',
-    tempo_tooltip_period_month: 'Темп оценён по профиту и МТТ за выбранный период на графике (30 дней)',
-    dollar_per_mtt_title: 'Текущий $/МТТ за выбранный период',
-    day_session_by_romeo: 'Ромео отчитался о сессии', day_wrote_by_romeo: 'Ромео написал',
-    day_romeo_reports: 'отчитался о сессии', day_romeo_wrote: 'написал',
-    day_br_label: 'БР', day_romeo: 'Ромео',
-    filter_day: 'День', filter_week: 'Неделя', filter_month: 'Месяц', filter_all_short: 'Все', filter_always: 'Всегда',
-    empty_no_posts_filters: 'Постов нет — смягчите фильтры или запустите скрапер',
-    empty_no_posts_topic: 'Нет постов по текущим фильтрам',
-    empty_no_posts_day: 'Нет постов по фильтрам',
-    new_posts_badge_singular: 'новый пост', new_posts_badge_few: 'новых поста', new_posts_badge_many: 'новых постов',
-    posts_word: 'постов', post_count_suffix: 'постов',
-    page_of: 'из', per_page: 'на стр.',
-    empty_data_scraper: 'Данных пока нет — запустите скрапер',
-    ac_auth_label: 'авторитетные авторы',
-    chart_last_period: 'последние', chart_whole_marathon: 'весь марафон',
-    day_reports_session: 'отчитался о сессии', day_romeo_write_verb: 'написал',
-  },
-  en: {
-    marathon_sub: '$10k → $10M marathon',
-    tab_feed: 'Feed', tab_topics: 'Topics', tab_settings: 'Settings',
-    theme_light: 'Light theme', theme_dark: 'Dark theme',
-    loading: 'Loading marathon data…',
-    progress_to: 'Progress to $10M', left: 'Left',
-    tempo_week: 'MTTs at week pace', tempo_month: 'MTTs at month pace', tempo_now: 'MTTs at current pace',
-    tempo_week_neg: '😢 MTTs to zero · week', tempo_month_neg: '😢 MTTs to zero · month', tempo_now_neg: '😢 MTTs to zero · now',
-    losing_warning: 'Tough going if you play at a loss',
-    hs_br: 'Bankroll', hs_profit: 'Profit', hs_day: 'Marathon day', hs_tourneys: 'MTTs played',
-    hs_start: 'start', hs_since: 'since Mar 10, 2026', hs_all_marathon: 'whole marathon',
-    stats: 'Statistics',
-    sr_br: 'BR', sr_profit: 'Profit', sr_day: 'Day', sr_tourneys: 'MTTs played', sr_mtt_short: 'MTTs',
-    sr_avg: 'MTTs / session', sr_winrate: 'Winning sessions', sr_posts: 'Posts', sr_top: 'Top likes',
-    footer_made: 'made by', footer_updated: 'updated', footer_changelog: 'Changelog',
-    lang_title: 'Language',
-    chart_marathon: '📈 Marathon chart', chart_activity: 'Post activity',
-    period_week: 'Week', period_month: 'Month', period_all: 'All time', period_all_marathon: 'Whole marathon',
-    tip_br: 'BR', tip_mtt_since: '🃏 MTTs played since last report', close: 'close',
-    hero_badge: 'Author', last_post: 'last post',
-    topic_marathon: 'Marathon', topic_marathon_desc: 'All Romeo posts',
-    topic_discussion: 'About Romeo', topic_discussion_desc: 'Discussion and reactions to Romeo',
-    topic_debate: 'Long posts', topic_debate_desc: 'Serious content (300+ chars, 20+ likes)',
-    topic_highlikes: 'Highlights', topic_highlikes_desc: 'Most-liked forum posts',
-    topic_authors: 'Authors', topic_authors_desc: 'Top thread contributors',
-    topic_tags: 'By tag', topic_tags_desc: 'All posts by topic',
-    topics_select_topic: 'Select a topic', topics_select_topic_above: 'Select a topic above',
-    topics_no_posts: 'No posts found', topics_no_data: 'No data yet',
-    topics_top_contributors: 'Top contributors',
-    sort_date_asc: 'Oldest first', sort_date_desc: 'Newest first', sort_likes: 'By likes',
-    filter_romeo_title: 'Show only Romeopro posts', filter_min_likes: 'Minimum likes per post',
-    filter_min_rep: 'Minimum author rating', filter_rep_label: 'rep',
-    filter_search_title: 'Search post text', filter_search_placeholder: 'Search…',
-    filter_reset: 'Reset all filters', filter_show: 'show',
-    pc_ignored_body: 'ignored · click to view', pc_ignored_click_expand: 'Click to expand',
-    pc_ignored_prefix: 'Post by', pc_unignore: 'Restore',
-    pc_fav_add: 'Favorite this author', pc_fav_remove: 'Unfavorite this author',
-    pc_ignore: 'Ignore',
-    pc_media_fail: 'media failed — open on forum',
-    pc_expand: 'read', pc_collapse: 'collapse',
-    author_fav_label: 'Favorited', author_fav_add: 'Favorite',
-    profile_blog: 'Blog', profile_profile: 'Profile', profile_pm: 'Private message',
-    quote_answer_to: 'reply to', quote_generic: 'quote',
-    quote_full_on_forum: 'full text on forum', open_on_forum: 'open on forum',
-    image_caption: 'image', media_fallback: 'image or media',
-    tc_staking: 'Staking', tc_debt: 'Debts', tc_money: 'Money/Bankroll', tc_strategy: 'Strategy',
-    tc_variance: 'Variance', tc_psychology: 'Psychology', tc_mtt: 'MTTs/Tournaments', tc_rooms: 'Rooms/Sites',
-    tc_content: 'Streams/Content', tc_chess: 'Chess/Gnat', tc_life: 'Life/Offtopic', tc_live: 'Live/Cash',
-    tc_critique: 'Critique/Skepticism', tc_goal: 'Goal/Forecast',
-    settings_ignored_authors: 'Ignored authors',
-    settings_ignored_empty: 'Empty — click 🚫 on any post to hide the author',
-    settings_add_author: 'Add author manually…', settings_add_btn: 'Add',
-    settings_ignore_short: 'Ignored', settings_links: 'Links',
-    settings_forum_thread: 'GipsyTeam thread', settings_source: 'Source code',
-    footer_today_at: 'today at', footer_at: 'at',
-    footer_scraper_ran: 'scraper ran', footer_freshest_post: 'freshest post',
-    stats_note_filter: '* adjusted for chart filter', for_period: 'For',
-    top_likes_header: '🔥 Most upvoted', mobile_top_label: '🔥 Top',
-    mobile_scroll_hint: '← swipe for older days · tap = details',
-    tempo_tooltip_all: 'How many MTTs to reach $10M at average $/MTT over the whole marathon',
-    tempo_tooltip_period_week: 'Pace estimated from profit and MTTs over the selected chart period (7 days)',
-    tempo_tooltip_period_month: 'Pace estimated from profit and MTTs over the selected chart period (30 days)',
-    dollar_per_mtt_title: 'Current $/MTT for the selected period',
-    day_session_by_romeo: 'Romeo reported a session', day_wrote_by_romeo: 'Romeo wrote',
-    day_romeo_reports: 'reported a session', day_romeo_wrote: 'wrote',
-    day_br_label: 'BR', day_romeo: 'Romeo',
-    filter_day: 'Day', filter_week: 'Week', filter_month: 'Month', filter_all_short: 'All', filter_always: 'Always',
-    empty_no_posts_filters: 'No posts — loosen filters or run the scraper',
-    empty_no_posts_topic: 'No posts for current filters',
-    empty_no_posts_day: 'No posts match filters',
-    new_posts_badge_singular: 'new post', new_posts_badge_few: 'new posts', new_posts_badge_many: 'new posts',
-    posts_word: 'posts', post_count_suffix: 'posts',
-    page_of: 'of', per_page: '/ page',
-    empty_data_scraper: 'No data yet — run the scraper',
-    ac_auth_label: 'top-rated authors',
-    chart_last_period: 'last', chart_whole_marathon: 'whole marathon',
-    day_reports_session: 'reported a session', day_romeo_write_verb: 'wrote',
-  },
-  es: {
-    marathon_sub: 'maratón $10k → $10M',
-    tab_feed: 'Feed', tab_topics: 'Temas', tab_settings: 'Ajustes',
-    theme_light: 'Tema claro', theme_dark: 'Tema oscuro',
-    loading: 'Cargando datos del maratón…',
-    progress_to: 'Progreso hacia $10M', left: 'Falta',
-    tempo_week: 'MTT al ritmo semanal', tempo_month: 'MTT al ritmo mensual', tempo_now: 'MTT al ritmo actual',
-    tempo_week_neg: '😢 MTT a cero · semana', tempo_month_neg: '😢 MTT a cero · mes', tempo_now_neg: '😢 MTT a cero · ahora',
-    losing_warning: 'Va a costar si juegas en pérdidas',
-    hs_br: 'Bankroll', hs_profit: 'Ganancia', hs_day: 'Día del maratón', hs_tourneys: 'MTT jugados',
-    hs_start: 'inicio', hs_since: 'desde el 10 de marzo 2026', hs_all_marathon: 'todo el maratón',
-    stats: 'Estadísticas',
-    sr_br: 'BR', sr_profit: 'Ganancia', sr_day: 'Día', sr_tourneys: 'MTT jugados', sr_mtt_short: 'MTT',
-    sr_avg: 'MTT / sesión', sr_winrate: 'Sesiones ganadoras', sr_posts: 'Posts', sr_top: 'Top likes',
-    footer_made: 'hecho por', footer_updated: 'actualizado', footer_changelog: 'Changelog',
-    lang_title: 'Idioma',
-    chart_marathon: '📈 Gráfico del maratón', chart_activity: 'Actividad de posts',
-    period_week: 'Semana', period_month: 'Mes', period_all: 'Todo', period_all_marathon: 'Todo el maratón',
-    tip_br: 'BR', tip_mtt_since: '🃏 MTT jugados desde el último reporte', close: 'cerrar',
-    hero_badge: 'Autor', last_post: 'último post',
-    topic_marathon: 'Maratón', topic_marathon_desc: 'Todos los posts de Romeo',
-    topic_discussion: 'Sobre Romeo', topic_discussion_desc: 'Debate y reacciones a Romeo',
-    topic_debate: 'Posts largos', topic_debate_desc: 'Contenido serio (300+ caracteres, 20+ likes)',
-    topic_highlikes: 'Destacados', topic_highlikes_desc: 'Posts más votados del foro',
-    topic_authors: 'Autores', topic_authors_desc: 'Principales contribuyentes',
-    topic_tags: 'Por tema', topic_tags_desc: 'Todos los posts por tema',
-    topics_select_topic: 'Selecciona un tema', topics_select_topic_above: 'Selecciona un tema arriba',
-    topics_no_posts: 'No hay posts', topics_no_data: 'Aún sin datos',
-    topics_top_contributors: 'Principales contribuyentes',
-    sort_date_asc: 'Antiguos primero', sort_date_desc: 'Nuevos primero', sort_likes: 'Por likes',
-    filter_romeo_title: 'Mostrar solo posts de Romeopro', filter_min_likes: 'Mínimo de likes por post',
-    filter_min_rep: 'Mínima reputación del autor', filter_rep_label: 'rep',
-    filter_search_title: 'Buscar en posts', filter_search_placeholder: 'Buscar…',
-    filter_reset: 'Restablecer filtros', filter_show: 'mostrar',
-    pc_ignored_body: 'ignorado · clic para ver', pc_ignored_click_expand: 'Clic para expandir',
-    pc_ignored_prefix: 'Post de', pc_unignore: 'Restaurar',
-    pc_fav_add: 'Añadir autor a favoritos', pc_fav_remove: 'Quitar autor de favoritos',
-    pc_ignore: 'Ignorar',
-    pc_media_fail: 'media no cargó — abrir en foro',
-    pc_expand: 'leer', pc_collapse: 'contraer',
-    author_fav_label: 'En favoritos', author_fav_add: 'A favoritos',
-    profile_blog: 'Blog', profile_profile: 'Perfil', profile_pm: 'Mensaje privado',
-    quote_answer_to: 'respuesta a', quote_generic: 'cita',
-    quote_full_on_forum: 'texto completo en foro', open_on_forum: 'abrir en foro',
-    image_caption: 'imagen', media_fallback: 'imagen o media',
-    tc_staking: 'Staking', tc_debt: 'Deudas', tc_money: 'Dinero/Bankroll', tc_strategy: 'Estrategia',
-    tc_variance: 'Varianza', tc_psychology: 'Psicología', tc_mtt: 'MTT/Torneos', tc_rooms: 'Salas/Sitios',
-    tc_content: 'Streams/Contenido', tc_chess: 'Ajedrez/Gnat', tc_life: 'Vida/Offtopic', tc_live: 'Live/Cash',
-    tc_critique: 'Crítica/Escepticismo', tc_goal: 'Meta/Pronóstico',
-    settings_ignored_authors: 'Autores ignorados',
-    settings_ignored_empty: 'Vacío — clic 🚫 en cualquier post para ocultar al autor',
-    settings_add_author: 'Añadir autor manualmente…', settings_add_btn: 'Añadir',
-    settings_ignore_short: 'Ignorados', settings_links: 'Enlaces',
-    settings_forum_thread: 'Hilo en GipsyTeam', settings_source: 'Código fuente',
-    footer_today_at: 'hoy a las', footer_at: 'a las',
-    footer_scraper_ran: 'scraper corrió', footer_freshest_post: 'post más reciente',
-    stats_note_filter: '* ajustado al filtro del gráfico', for_period: 'Para',
-    top_likes_header: '🔥 Más votados', mobile_top_label: '🔥 Top',
-    mobile_scroll_hint: '← desliza para días anteriores · toca = detalles',
-    tempo_tooltip_all: 'Cuántos MTT para llegar a $10M al $/MTT promedio del maratón',
-    tempo_tooltip_period_week: 'Ritmo estimado por profit y MTT en el período seleccionado (7 días)',
-    tempo_tooltip_period_month: 'Ritmo estimado por profit y MTT en el período seleccionado (30 días)',
-    dollar_per_mtt_title: '$/MTT actual del período seleccionado',
-    day_session_by_romeo: 'Romeo reportó una sesión', day_wrote_by_romeo: 'Romeo escribió',
-    day_romeo_reports: 'reportó una sesión', day_romeo_wrote: 'escribió',
-    day_br_label: 'BR', day_romeo: 'Romeo',
-    filter_day: 'Día', filter_week: 'Semana', filter_month: 'Mes', filter_all_short: 'Todos', filter_always: 'Siempre',
-    empty_no_posts_filters: 'Sin posts — afloja los filtros o corre el scraper',
-    empty_no_posts_topic: 'Sin posts para los filtros actuales',
-    empty_no_posts_day: 'Sin posts para los filtros',
-    new_posts_badge_singular: 'nuevo post', new_posts_badge_few: 'nuevos posts', new_posts_badge_many: 'nuevos posts',
-    posts_word: 'posts', post_count_suffix: 'posts',
-    page_of: 'de', per_page: '/ pág.',
-    empty_data_scraper: 'Aún sin datos — ejecuta el scraper',
-    ac_auth_label: 'autores destacados',
-    chart_last_period: 'últimos', chart_whole_marathon: 'todo el maratón',
-    day_reports_session: 'reportó una sesión', day_romeo_write_verb: 'escribió',
-  },
-}
-
-// Locale-aware plural helpers
 function plPosts(n, lang) {
   if (lang === 'ru') return pl(n, ['пост','поста','постов'])
   return `${n} post${n === 1 ? '' : 's'}`
@@ -281,47 +34,6 @@ function plSessions(n, lang) {
 }
 
 // ─── HELPERS (imported from utils.js) ────────────────────────────────────────
-
-// Dedup brHistory: consecutive entries with same totalTournaments are the same session
-// reported at two states (interim + final). Keep only the final, merge session window.
-function dedupBrHistory(hist) {
-  if (!hist?.length) return hist
-  const sorted = [...hist].sort((a,b)=>(a.timestamp||0)-(b.timestamp||0))
-  const out = []
-  for (const h of sorted) {
-    const prev = out[out.length-1]
-    // Merge when the current entry is a re-post/"upd" of the previous one:
-    // both entries claim the same starting bankroll. In a normal chain
-    // h.brBefore should equal prev.brAfter (previous session's end), so a
-    // match against prev.brBefore means the current entry is replaying the
-    // same session from the same starting point — i.e. Romeo posting an
-    // "upd" for the day (e.g. "Day 12 upd: минкешнул…"). The later entry
-    // wins. Skip the merge when prev had a zero-result session (brAfter ==
-    // brBefore), where the next session legitimately starts at the same BR.
-    //
-    // totalTournaments-based matching was removed: Claude vision
-    // occasionally reads the same tt for two different days when the
-    // screenshot was taken before playing any new games, producing false
-    // merges of adjacent real sessions.
-    const sameByBrBefore = prev
-      && h.brBefore != null
-      && prev.brBefore != null
-      && h.brBefore === prev.brBefore
-      && prev.brBefore !== prev.brAfter
-    if (sameByBrBefore) {
-      out[out.length-1] = {
-        ...h,
-        brBefore: prev.brBefore ?? h.brBefore,
-        sessionResult: (h.brAfter||0) - (prev.brBefore ?? h.brBefore ?? 0),
-        tournaments: Math.max(prev.tournaments||0, h.tournaments||0),
-        _mergedFrom: [...(prev._mergedFrom||[prev.id]).filter(Boolean), h.id].filter(Boolean),
-      }
-    } else {
-      out.push(h)
-    }
-  }
-  return out
-}
 
 // ─── SPARKLINE ────────────────────────────────────────────────────────────────
 function Sparkline({ values, width = 64, height = 24, color = '#4caf50' }) {
@@ -364,6 +76,7 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
   const pathRef = useRef(null)
   const chartRef = useRef(null)
   const isMobile = useIsMobile()
+  const { announceOpen: announceHoverPopupOpen } = useExclusiveHoverPopup(() => setTip(null))
 
   // Close tooltip on click outside chart
   useEffect(() => {
@@ -413,13 +126,6 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
   useEffect(() => {
     if (pathRef.current) setPathLen(pathRef.current.getTotalLength())
   }, [points.length])
-
-  if (!points.length) return (
-    <div className="marathon-chart">
-      <div className="section-head"><span className="section-title">{t('chart_marathon')}</span></div>
-      <div className="empty-state">{t('empty_data_scraper')}</div>
-    </div>
-  )
 
   const W=700, H=240, pL=52, pR=20, pT=14, pB=44
   const dataMin = Math.min(...points.map(p=>p.br), startBR)
@@ -504,11 +210,19 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
       let nearest=0, minD=Infinity
       coords.forEach((c,i) => { const d=Math.abs(c.x-tx); if(d<minD){minD=d;nearest=i} })
       const p = points[nearest]
+      announceHoverPopupOpen()
       setTip({ p, profit:p.br-p.brPrev, x:coords[nearest].x, y:coords[nearest].y, screenY: sy })
     }, 300)
   }
   const handleTouchEnd = () => { clearTimeout(longPressTimer.current) }
   const handleTouchMove = () => { clearTimeout(longPressTimer.current) }
+
+  if (!points.length) return (
+    <div className="marathon-chart">
+      <div className="section-head"><span className="section-title">{t('chart_marathon')}</span></div>
+      <div className="empty-state">{t('empty_data_scraper')}</div>
+    </div>
+  )
 
   return (
     <div className="marathon-chart" ref={chartRef} onClick={tip?()=>setTip(null):undefined}>
@@ -615,7 +329,10 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
           return (
             <g key={i}>
               {!isMobile && <circle cx={cx} cy={cy} r={isLast?14:10} fill="transparent"
-                onMouseEnter={()=>setTip({p,profit,x:cx,y:cy})}/>}
+                onMouseEnter={()=>{
+                  announceHoverPopupOpen()
+                  setTip({p,profit,x:cx,y:cy})
+                }}/>}
               {showDot && <circle cx={cx} cy={cy} r={isHovered?(isLast?8:6):(isLast?6:4)}
                 className={isLast?'mc-dot mc-dot-last':'mc-dot'}
                 fill={profit>=0?'#4caf50':'#e53935'}
@@ -890,22 +607,35 @@ function smartSortPosts(ps) {
 function ActivityChart({ posts, favorites, ignored, onFav, onIgnore, onUnignore, setLightbox,
                          sortBy, setSortBy, minLikes, setMinLikes, minRating, setMinRating, search, onPostClick, lang, t }) {
   const [tip,      setTip]      = useState(null)
+  const [tipStyle, setTipStyle] = useState(null)
   const [selected, setSelected] = useState(null)
   const [period,   setPeriod]   = useState('month')
   const isMobile = useIsMobile()
   const tipHideTimer = useRef(null)
   const tipShowTimer = useRef(null)
   const tipLocked    = useRef(false)
+  const tipRef       = useRef(null)
+  const closeTip = useCallback(() => {
+    clearTimeout(tipHideTimer.current)
+    clearTimeout(tipShowTimer.current)
+    setTip(null)
+    setTipStyle(null)
+    tipLocked.current = false
+  }, [])
+  const { announceOpen: announceHoverPopupOpen } = useExclusiveHoverPopup(closeTip)
   const scheduleTipHide = () => {
     clearTimeout(tipHideTimer.current)
-    tipHideTimer.current = setTimeout(() => { setTip(null); tipLocked.current = false }, 200)
+    tipHideTimer.current = setTimeout(closeTip, 200)
   }
   const cancelTipHide = () => clearTimeout(tipHideTimer.current)
   const requestTip = (t) => {
     if (tipLocked.current) return
     cancelTipHide()
     clearTimeout(tipShowTimer.current)
-    tipShowTimer.current = setTimeout(() => setTip(t), 90)
+    tipShowTimer.current = setTimeout(() => {
+      announceHoverPopupOpen()
+      setTip(t)
+    }, 90)
   }
   useEffect(() => () => {
     clearTimeout(tipHideTimer.current)
@@ -946,6 +676,36 @@ function ActivityChart({ posts, favorites, ignored, onFav, onIgnore, onUnignore,
     return meta
   }, [data, posts])
 
+  useLayoutEffect(() => {
+    if (!tip || selected || !tip.anchorRect || !tipRef.current) {
+      setTipStyle(null)
+      return
+    }
+
+    const nextStyle = computeFixedPopupLayout({
+      anchorRect: tip.anchorRect,
+      panelRect: tipRef.current.getBoundingClientRect(),
+      preferredWidth: 380,
+      minWidth: 280,
+      gap: 12,
+      edge: 8,
+      vertical: 'center',
+    })
+    setTipStyle(nextStyle)
+  }, [tip, selected])
+
+  useEffect(() => {
+    if (!tip || selected) return undefined
+
+    const closeOnViewportChange = () => closeTip()
+    window.addEventListener('resize', closeOnViewportChange)
+    window.addEventListener('scroll', closeOnViewportChange, true)
+    return () => {
+      window.removeEventListener('resize', closeOnViewportChange)
+      window.removeEventListener('scroll', closeOnViewportChange, true)
+    }
+  }, [tip, selected, closeTip])
+
   const scrollRef = useRef(null)
   useEffect(() => {
     if (isMobile && scrollRef.current) {
@@ -953,6 +713,7 @@ function ActivityChart({ posts, favorites, ignored, onFav, onIgnore, onUnignore,
     }
   }, [isMobile, data.length])
 
+  const svgRef = useRef(null)
   if (!data.length) return null
   const max = Math.max(...data.map(d=>d[1].count), 1)
 
@@ -1052,7 +813,6 @@ function ActivityChart({ posts, favorites, ignored, onFav, onIgnore, onUnignore,
   const lastShown = [...labelSet].filter(i => i < data.length - 1).at(-1) ?? -Infinity
   if (data.length - 1 - lastShown >= step * 0.6) labelSet.add(data.length - 1)
 
-  const svgRef = useRef(null)
   return (
     <div className="chart-wrap">
       <div className="section-head" style={{marginBottom:8,gap:10}}>
@@ -1080,8 +840,27 @@ function ActivityChart({ posts, favorites, ignored, onFav, onIgnore, onUnignore,
           const isSelected = selected?.date === date
           return (
             <g key={date} className="activity-bar" style={{cursor:'pointer'}}
-              onMouseEnter={()=>requestTip({date,count,posts:dp,x:x+bw/2})}
-              onClick={()=>setSelected(selected?.date===date ? null : {date,posts:dp})}>
+              onMouseEnter={(e)=>{
+                const rect = e.currentTarget.getBoundingClientRect()
+                requestTip({
+                  date,
+                  count,
+                  posts: dp,
+                  x: x + bw / 2,
+                  anchorRect: {
+                    left: rect.left,
+                    right: rect.right,
+                    top: rect.top,
+                    bottom: rect.bottom,
+                    width: rect.width,
+                    height: rect.height,
+                  },
+                })
+              }}
+              onClick={()=>{
+                closeTip()
+                setSelected(selected?.date===date ? null : {date,posts:dp})
+              }}>
               <rect x={x} y={H-bh} width={bw} height={bh} rx={2}
                 className={isSelected ? 'activity-bar-rect active' : 'activity-bar-rect'}/>
               {labelSet.has(i) && <text x={x+bw/2} y={H+16} className="chart-label">{date.slice(5)}</text>}
@@ -1095,42 +874,22 @@ function ActivityChart({ posts, favorites, ignored, onFav, onIgnore, onUnignore,
         const m = dayMeta.get(tip.date) || { events: [], topAuthors: [], romeoCount: 0 }
         const topAuthors = m.topAuthors
         const romeoCount = m.romeoCount
-        const svgRect = svgRef.current?.getBoundingClientRect()
-        if (!svgRect) return null
-        // Normalize everything to pre-zoom CSS px. GBCR returns post-zoom visual
-        // coords; CSS values (top/left/width/maxHeight) on descendants of a
-        // zoomed ancestor are interpreted pre-zoom then scaled by the browser.
-        // window.innerWidth/Height are the physical viewport, so dividing by
-        // zoom gives the logical viewport in the same coord system as CSS values.
-        const zoom = parseFloat(document.getElementById('root')?.style.zoom) || 1
-        const vw = window.innerWidth / zoom
-        const vh = window.innerHeight / zoom
-        const sRect = { left: svgRect.left/zoom, right: svgRect.right/zoom, top: svgRect.top/zoom, bottom: svgRect.bottom/zoom, width: svgRect.width/zoom }
-        const TOOLTIP_W = 380
-        const MIN_W = 280
-        const EDGE = 8
-        const GAP = 12
-        // Anchor on the hovered bar (≈ mouse position), pick the side with
-        // more room next to it, and vertically center on the chart band.
-        const barScreenX = sRect.left + (tip.x / W) * sRect.width
-        const spaceRight = vw - barScreenX - GAP - EDGE
-        const spaceLeft  = barScreenX - GAP - EDGE
-        const useRight = spaceRight >= spaceLeft
-        const avail = useRight ? spaceRight : spaceLeft
-        const widthPx = Math.max(MIN_W, Math.min(TOOLTIP_W, avail))
-        const leftPx = useRight ? barScreenX + GAP : barScreenX - GAP - widthPx
-        // Vertical: always pin to the top of the viewport so the popup has
-        // the full page height to grow into and never gets clipped at bottom.
-        const vStyle = { top: EDGE, maxHeight: vh - EDGE * 2 }
         return (
-          <div className="chart-tooltip"
+          <div ref={tipRef} className="chart-tooltip"
             onMouseEnter={()=>{ cancelTipHide(); tipLocked.current = true }}
             onMouseLeave={()=>{ tipLocked.current = false; scheduleTipHide() }}
             style={{
-              position:'fixed', left:leftPx, ...vStyle,
+              position:'fixed',
+              left: tipStyle?.left ?? 0,
+              top: tipStyle?.top ?? 0,
               pointerEvents:'auto',
-              width:widthPx, maxWidth:`calc(100vw - ${EDGE*2}px)`, minWidth:280,
+              width: tipStyle?.width ?? 380,
+              maxHeight: tipStyle?.maxHeight ?? 'calc(100vh - 16px)',
+              maxWidth:'calc(100vw - 16px)',
+              minWidth:280,
               overflowY:'auto',
+              visibility: tipStyle ? 'visible' : 'hidden',
+              transformOrigin: tipStyle?.transformOrigin ?? 'left top',
             }}>
             <div style={{fontWeight:700,color:'var(--white)',fontSize:12,marginBottom:4}}>📅 {tip.date}</div>
             <div style={{fontSize:11,color:'var(--dim)',marginBottom:8}}>
@@ -1161,8 +920,8 @@ function ActivityChart({ posts, favorites, ignored, onFav, onIgnore, onUnignore,
             )}
             <div style={{borderTop:'1px solid var(--border)',paddingTop:6,marginTop:2}}>
               <DayEventsList events={m.events} compact lang={lang}
-                setLightbox={(src)=>{ setLightbox?.(src); setTip(null); tipLocked.current = false }}
-                onPostClick={(p)=>{ setTip(null); tipLocked.current = false; onPostClick?.(p) }}/>
+                setLightbox={(src)=>{ setLightbox?.(src); closeTip() }}
+                onPostClick={(p)=>{ closeTip(); onPostClick?.(p) }}/>
             </div>
           </div>
         )
@@ -1211,7 +970,7 @@ function FilterBar({ sortBy, setSortBy, search, setSearch, showSearch, setShowSe
                      minRating, setMinRating, count, showSort=true, t, lang }) {
   const tr = t || (k => k)
   const isRu = lang === 'ru' || !lang
-  const hasFilters = romeoOnly || minLikes !== 15 || minRating !== 0 || search
+  const hasFilters = romeoOnly || minLikes !== 3 || minRating !== 0 || search
   return (
     <div className="filter-bar">
       {showSort && (
@@ -1510,7 +1269,7 @@ const PostCard = memo(function PostCard({ p, favorites, ignored, onFav, onIgnore
             )}
           </div>
         </div>
-        <div className="pc-date" title={fmtDateTimeLang(p.timestamp, _lang)}>{timeAgo(p.timestamp) || fmtDateTimeLang(p.timestamp, _lang)}</div>
+            <div className="pc-date" title={fmtDateTimeLang(p.timestamp, _lang)}>{timeAgo(p.timestamp, _lang) || fmtDateTimeLang(p.timestamp, _lang)}</div>
         <div className="pc-actions">
           <button className={`pc-action ${isFav?'on':''}`} onClick={()=>onFav(p.author)} title={isFav?_t('pc_fav_remove'):_t('pc_fav_add')}>⭐</button>
           <button className="pc-action" onClick={()=>onIgnore(p.author)} title={_t('pc_ignore')}>🚫</button>
@@ -1668,13 +1427,52 @@ function Paginator({ page, totalPages, onPage, perPage, onPerPage, total, lang }
 function SidebarTopList({ posts, setLightbox }) {
   const [hovered, setHovered] = useState(null)
   const [anchor, setAnchor] = useState(null)
+  const [popupStyle, setPopupStyle] = useState(null)
   const hideTimerRef = useRef(null)
+  const popupRef = useRef(null)
+  const closePopup = useCallback(() => {
+    clearTimeout(hideTimerRef.current)
+    setHovered(null)
+    setAnchor(null)
+    setPopupStyle(null)
+  }, [])
+  const { announceOpen: announceHoverPopupOpen } = useExclusiveHoverPopup(closePopup)
   const scheduleHide = () => {
     clearTimeout(hideTimerRef.current)
-    hideTimerRef.current = setTimeout(() => setHovered(null), 180)
+    hideTimerRef.current = setTimeout(closePopup, 180)
   }
   const cancelHide = () => clearTimeout(hideTimerRef.current)
   useEffect(() => () => clearTimeout(hideTimerRef.current), [])
+
+  useLayoutEffect(() => {
+    if (hovered === null || !anchor || !popupRef.current) {
+      setPopupStyle(null)
+      return
+    }
+
+    const nextStyle = computeFixedPopupLayout({
+      anchorRect: anchor,
+      panelRect: popupRef.current.getBoundingClientRect(),
+      preferredWidth: 340,
+      minWidth: 260,
+      gap: 6,
+      edge: 8,
+      vertical: 'smart',
+    })
+    setPopupStyle(nextStyle)
+  }, [hovered, anchor])
+
+  useEffect(() => {
+    if (hovered === null) return undefined
+
+    const closeOnViewportChange = () => closePopup()
+    window.addEventListener('resize', closeOnViewportChange)
+    window.addEventListener('scroll', closeOnViewportChange, true)
+    return () => {
+      window.removeEventListener('resize', closeOnViewportChange)
+      window.removeEventListener('scroll', closeOnViewportChange, true)
+    }
+  }, [hovered, closePopup])
 
   const stripQuotes = stripQuoteTags
 
@@ -1685,51 +1483,20 @@ function SidebarTopList({ posts, setLightbox }) {
       {hovered !== null && anchor && (() => {
         const p = posts[hovered]
         if (!p) return null
-        const POPUP_W = 340
-        const GAP = 6
-        const EDGE = 8
-        // Normalize anchor (GBCR, visual post-zoom) to pre-zoom CSS px so math
-        // matches the viewport values and CSS values we emit.
-        const zoom = parseFloat(document.getElementById('root')?.style.zoom) || 1
-        const vw = window.innerWidth / zoom
-        const vh = window.innerHeight / zoom
-        const a = { left: anchor.left/zoom, right: anchor.right/zoom, top: anchor.top/zoom, bottom: anchor.bottom/zoom }
-        // Horizontal: open on the opposite side of the row's midpoint. Use
-        // anchorX + translateX to bypass any box-model math for left-open.
-        const itemMid = (a.left + a.right) / 2
-        const openLeft = itemMid > vw / 2
-        const anchorX = openLeft ? a.left - GAP : a.right + GAP
-        const popupTransform = openLeft ? 'translateX(-100%)' : 'none'
-        // Vertical: always use `top` + `maxHeight`. Align popup top with row top
-        // when there's enough room below; otherwise pin to viewport EDGE and
-        // clamp maxHeight so the popup sits inside the viewport fully.
-        const itemMidY = (a.top + a.bottom) / 2
-        const rowInLowerHalf = itemMidY > vh / 2
-        let vPos, maxH
-        if (!rowInLowerHalf) {
-          // Row in upper half: anchor popup top a bit above the row top.
-          const top = Math.max(EDGE, a.top - 4)
-          vPos = { top }
-          maxH = vh - top - EDGE
-        } else {
-          // Row in lower half: pin popup to viewport top so it grows upward
-          // visually while staying fully on-screen. Bottom edge stops near row.
-          vPos = { top: EDGE }
-          maxH = Math.max(120, (a.bottom + 4) - EDGE)
-          // Clamp so we never exceed the viewport.
-          maxH = Math.min(maxH, vh - EDGE * 2)
-        }
         return (
-          <div className="sidebar-popup" onMouseEnter={cancelHide} onMouseLeave={scheduleHide} style={{
+          <div ref={popupRef} className="sidebar-popup" onMouseEnter={cancelHide} onMouseLeave={scheduleHide} style={{
             position:'fixed',
-            left: anchorX, transform: popupTransform,
-            ...vPos,
-            width:POPUP_W, background:'var(--bg-popup)', border:'1px solid var(--border-popup)', borderRight:'3px solid var(--red)',
+            left: popupStyle?.left ?? 0,
+            top: popupStyle?.top ?? 0,
+            width: popupStyle?.width ?? 340,
+            background:'var(--bg-popup)', border:'1px solid var(--border-popup)', borderRight:'3px solid var(--red)',
             borderRadius:8, padding:14, zIndex:9999,
             boxShadow:'var(--shadow-popup)',
             pointerEvents:'auto',
-            maxHeight: maxH,
+            maxHeight: popupStyle?.maxHeight ?? 'calc(100vh - 16px)',
             display:'flex', flexDirection:'column',
+            visibility: popupStyle ? 'visible' : 'hidden',
+            transformOrigin: popupStyle?.transformOrigin ?? 'left top',
           }}>
             <div style={{fontWeight:700,color:'var(--white)',fontSize:13,marginBottom:4}}>{p.author}</div>
             <div style={{fontSize:11,color:'var(--dim)',marginBottom:8,fontFamily:"'Roboto Mono',monospace"}}>
@@ -1775,9 +1542,17 @@ function SidebarTopList({ posts, setLightbox }) {
             onClick={()=>p.url&&window.open(p.url,'_blank')}
             onMouseEnter={e=>{
               cancelHide()
+              announceHoverPopupOpen()
               setHovered(i)
               const r = e.currentTarget.getBoundingClientRect()
-              setAnchor({left:r.left, right:r.right, top:r.top, bottom:r.bottom})
+              setAnchor({
+                left: r.left,
+                right: r.right,
+                top: r.top,
+                bottom: r.bottom,
+                width: r.width,
+                height: r.height,
+              })
             }}>
             <span style={{color:'var(--gold)',fontWeight:700,fontSize:11,minWidth:16,flexShrink:0,paddingTop:10}}>{i+1}</span>
             <div style={{width:28,height:28,borderRadius:'50%',background:'var(--red)',flexShrink:0,
@@ -1822,113 +1597,63 @@ function SidebarTopList({ posts, setLightbox }) {
 
 // ─── APP ─────────────────────────────────────────────────────────────────────
 export default function App() {
-  const [posts, setPosts]   = useState([])
-  const [meta,  setMeta]    = useState(null)
-  const [loading, setLoading] = useState(true)
+  const { posts, meta, loading, error, newPostIds, refresh, clearNewPosts } = usePostsData()
   const [activeTab, setActiveTab] = useState('feed')
   const [lightbox,  setLightbox]  = useState(null)
-  const [theme, setTheme] = useState(() => { try { return localStorage.getItem('rpt_theme') || 'dark' } catch { return 'dark' } })
-  const [lang, setLang] = useState(() => { try { return localStorage.getItem('rpt_lang') || 'ru' } catch { return 'ru' } })
-  const t = (k) => (LANG_DICT[lang] && LANG_DICT[lang][k]) || LANG_DICT.ru[k] || k
-  const [sortBy,  setSortByRaw]  = useState(() => { try { return localStorage.getItem('rpt_sortby') || 'date_asc' } catch { return 'date_asc' } })
+  const [theme, setTheme] = usePersistentState('rpt_theme', 'dark', {
+    serialize: String,
+    deserialize: (raw) => raw || 'dark',
+  })
+  const [lang, setLang] = usePersistentState('rpt_lang', DEFAULT_LANG, {
+    serialize: String,
+    deserialize: (raw) => raw || DEFAULT_LANG,
+  })
+  const t = createTranslator(lang)
+  const appVersionLabel = `v${String(__APP_VERSION__).replace(/\.0$/, '')}`
+  const [sortBy, setSortBy] = usePersistentState('rpt_sortby', 'date_asc', {
+    serialize: String,
+    deserialize: (raw) => raw || 'date_asc',
+  })
   const [search,  setSearch]  = useState('')
   const [showSearch, setShowSearch] = useState(false)
   const [romeoOnly, setRomeoOnly] = useState(false)
   const [page,    setPage]    = useState(1)
   const [perPage, setPerPage] = useState(20)
-  const [minLikes,  setMinLikesRaw]  = useState(() => { try { return parseInt(localStorage.getItem('rpt_minlikes') ?? '3') } catch { return 3 } })
-  const [minRating, setMinRatingRaw] = useState(() => { try { return parseInt(localStorage.getItem('rpt_minrating') ?? '0') } catch { return 0 } })
-
-  const setSortBy   = v => { setSortByRaw(v);   try { localStorage.setItem('rpt_sortby', v) }   catch {} }
-  const setMinLikes  = v => { setMinLikesRaw(v);  try { localStorage.setItem('rpt_minlikes', v) }  catch {} }
-  const setMinRating = v => { setMinRatingRaw(v); try { localStorage.setItem('rpt_minrating', v) } catch {} }
+  const [minLikes, setMinLikes] = usePersistentState('rpt_minlikes', 3, {
+    serialize: (value) => String(value),
+    deserialize: (raw) => {
+      const parsed = parseInt(raw ?? '3', 10)
+      return Number.isFinite(parsed) ? parsed : 3
+    },
+  })
+  const [minRating, setMinRating] = usePersistentState('rpt_minrating', 0, {
+    serialize: (value) => String(value),
+    deserialize: (raw) => {
+      const parsed = parseInt(raw ?? '0', 10)
+      return Number.isFinite(parsed) ? parsed : 0
+    },
+  })
 
   // Позиция чтения — запоминаем последний прочитанный пост на каждой вкладке
-  const [readPos, setReadPos] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('rpt_readpos')||'{}') } catch { return {} }
-  })
-
-  const [ignored, setIgnored] = useState(() => {
-    try { return new Set(JSON.parse(localStorage.getItem('rpt_ignored')||'[]')) } catch { return new Set() }
+  const [readPos, setReadPos] = usePersistentState('rpt_readpos', {})
+  const [ignored, setIgnored] = usePersistentState('rpt_ignored', new Set(), {
+    serialize: (value) => JSON.stringify([...value]),
+    deserialize: (raw) => new Set(JSON.parse(raw || '[]')),
   })
   // favorites = per-author (Set of author names). Favorited authors' posts bypass like/rating filters.
-  const [favorites, setFavorites] = useState(() => {
-    try { return new Set(JSON.parse(localStorage.getItem('rpt_fav_authors')||'[]')) } catch { return new Set() }
+  const [favorites, setFavorites] = usePersistentState('rpt_fav_authors', new Set(), {
+    serialize: (value) => JSON.stringify([...value]),
+    deserialize: (raw) => new Set(JSON.parse(raw || '[]')),
   })
   const [ignoreInput, setIgnoreInput] = useState('')
-
-  const knownIdsRef = useRef(null)
-  const [newPostIds, setNewPostIds] = useState([])
-
-  useEffect(() => {
-    const enrichPosts = (posts, meta) => {
-      // Merge same-session duplicate brHistory entries before anything else touches it.
-      if (meta?.brHistory?.length) meta.brHistory = dedupBrHistory(meta.brHistory)
-      const brHistory = meta?.brHistory
-      if (brHistory?.length) {
-        const brById = new Map(brHistory.filter(h=>h.id).map(h=>[h.id, h]))
-        const brByTs = [...brHistory].sort((a,b)=>(a.timestamp||0)-(b.timestamp||0))
-        posts?.forEach(p => {
-          if (!ROMEO_RE.test(p.author) || p.brAfter) return
-          const byId = brById.get(p.id)
-          if (byId) { p.brAfter = byId.brAfter; return }
-          if (!p.timestamp) return
-          let best = null, bestDiff = Infinity
-          for (const h of brByTs) {
-            const diff = Math.abs((h.timestamp||0) - p.timestamp)
-            if (diff < bestDiff) { bestDiff = diff; best = h }
-          }
-          if (best && bestDiff < 7200) p.brAfter = best.brAfter
-        })
-      }
-    }
-
-    const loadData = () =>
-      fetchPublicData()
-        .then(({posts, meta}) => {
-          enrichPosts(posts, meta)
-          // Detect new posts after initial load
-          if (knownIdsRef.current) {
-            const fresh = (posts||[]).filter(p => !knownIdsRef.current.has(p.id))
-            if (fresh.length > 0) setNewPostIds(fresh.map(p => p.id))
-          } else {
-            knownIdsRef.current = new Set((posts||[]).map(p => p.id))
-          }
-          setPosts(posts||[]); setMeta(meta||{})
-        })
-        .catch(() => {})
-
-    loadData().finally(() => setLoading(false))
-    // Poll every 2 min, but only while tab is visible; refetch immediately on focus.
-    let interval = null
-    const start = () => {
-      if (interval) return
-      interval = setInterval(loadData, 2 * 60 * 1000)
-    }
-    const stop = () => {
-      if (!interval) return
-      clearInterval(interval); interval = null
-    }
-    const onVisibility = () => {
-      if (document.hidden) { stop() }
-      else { loadData(); start() }
-    }
-    start()
-    document.addEventListener('visibilitychange', onVisibility)
-    return () => {
-      stop()
-      document.removeEventListener('visibilitychange', onVisibility)
-    }
-  }, [])
 
   // Apply theme class to root
   useEffect(() => {
     document.documentElement.classList.toggle('light', theme === 'light')
-    try { localStorage.setItem('rpt_theme', theme) } catch {}
   }, [theme])
-  useEffect(() => { try { localStorage.setItem('rpt_lang', lang) } catch {} }, [lang])
   _lang = lang
-  useEffect(() => { if (lang!=='ru' && activeTab!=='feed') setActiveTab('feed') }, [lang, activeTab])
+  _translate = t
+  useEffect(() => { if (lang !== DEFAULT_LANG && activeTab !== 'feed') setActiveTab('feed') }, [lang, activeTab])
 
   // Auto-fit to screen: scale root so 1500px design fits user's desktop viewport.
   // Clamped so big monitors don't over-inflate and small ones don't shrink past readable.
@@ -2010,12 +1735,10 @@ export default function App() {
   const [sidebarTopPeriod, setSidebarTopPeriod] = useState('all')
 
   // Period for marathon chart & tempo estimates — lifted up so progress bar can react.
-  const [chartPeriod, setChartPeriodRaw] = useState(() => {
-    try { return localStorage.getItem('rpt_chart_period') || 'all' } catch { return 'all' }
+  const [chartPeriod, setChartPeriod] = usePersistentState('rpt_chart_period', 'all', {
+    serialize: String,
+    deserialize: (raw) => raw || 'all',
   })
-  const setChartPeriod = (p) => {
-    setChartPeriodRaw(p); try { localStorage.setItem('rpt_chart_period', p) } catch {}
-  }
 
   // Session stats recomputed against the chart-period filter so МТТ/сессия
   // and % плюсовых react when the user toggles week/month/all.
@@ -2185,8 +1908,10 @@ export default function App() {
   const [topicTab, setTopicTab] = useState('marathon')
   const [topicPage, setTopicPage] = useState(1)
   const [topicTag, setTopicTag] = useState(null)
-  const [topicSortByRaw, setTopicSortByRaw] = useState(() => { try { return localStorage.getItem('rpt_topic_sortby') || 'date_desc' } catch { return 'date_desc' } })
-  const setTopicSortBy = v => { setTopicSortByRaw(v); try { localStorage.setItem('rpt_topic_sortby', v) } catch {} }
+  const [topicSortByRaw, setTopicSortBy] = usePersistentState('rpt_topic_sortby', 'date_desc', {
+    serialize: String,
+    deserialize: (raw) => raw || 'date_desc',
+  })
   const TOPIC_PER_PAGE = 20
 
   const currentTopicPosts = useMemo(() => {
@@ -2223,9 +1948,7 @@ export default function App() {
   // Сохраняем позицию чтения
   const saveReadPos = (tab, postId) => {
     setReadPos(prev => {
-      const next = {...prev, [tab]: postId}
-      localStorage.setItem('rpt_readpos', JSON.stringify(next))
-      return next
+      return { ...prev, [tab]: postId }
     })
   }
 
@@ -2261,8 +1984,7 @@ export default function App() {
       const targetPage = Math.floor(firstNewIdx / perPage) + 1
       setPage(targetPage)
       // Mark as seen
-      knownIdsRef.current = new Set(posts.map(p => p.id))
-      setNewPostIds([])
+      clearNewPosts(posts)
       // Scroll to the post after page renders
       const postId = feedPosts[firstNewIdx].id
       requestAnimationFrame(() => {
@@ -2271,10 +1993,9 @@ export default function App() {
       })
     } else {
       // New posts might be filtered out — just dismiss
-      knownIdsRef.current = new Set(posts.map(p => p.id))
-      setNewPostIds([])
+      clearNewPosts(posts)
     }
-  }, [newPostIds, feedPosts, perPage, posts])
+  }, [clearNewPosts, newPostIds, feedPosts, perPage, posts])
 
   // При смене вкладки сбрасываем на страницу с последним прочитанным постом
   const switchTab = (tab) => {
@@ -2288,39 +2009,39 @@ export default function App() {
     setFavorites(prev => {
       const next = new Set(prev)
       next.has(author) ? next.delete(author) : next.add(author)
-      localStorage.setItem('rpt_fav_authors', JSON.stringify([...next]))
       return next
     })
-  }, [])
+  }, [setFavorites])
 
   const addIgnore = useCallback(name => {
     if (!name?.trim()) return
     setIgnored(prev => {
       const next = new Set(prev)
       next.add(name.trim())
-      localStorage.setItem('rpt_ignored', JSON.stringify([...next]))
       return next
     })
     setIgnoreInput('')
-  }, [])
+  }, [setIgnored])
 
   const removeIgnore = useCallback(name => {
     setIgnored(prev => {
       const next = new Set(prev)
       next.delete(name)
-      localStorage.setItem('rpt_ignored', JSON.stringify([...next]))
       return next
     })
-  }, [])
+  }, [setIgnored])
 
   // ── ANIMATED COUNTER ─────────────────────────────────────────────────────
   const brVal  = stats?.br || meta?.bankroll || 0
   // Remember the last BR the user saw on their previous visit, so the animation
   // starts from that value (not from marathon start) and highlights only what
   // changed since then. Captured once on mount; persisted after each animation.
-  const [lastSeenBR] = useState(() => {
-    try { const v = parseFloat(localStorage.getItem('rpt_last_seen_br')); return Number.isFinite(v) ? v : null }
-    catch { return null }
+  const [lastSeenBR, setLastSeenBR] = usePersistentState('rpt_last_seen_br', null, {
+    serialize: (value) => (value == null ? '' : String(value)),
+    deserialize: (raw) => {
+      const value = parseFloat(raw)
+      return Number.isFinite(value) ? value : null
+    },
   })
   // Real BR trajectory for the hero counter, sliced to "since last visit".
   // If we have no prior seen value, we replay the full marathon from start.
@@ -2351,10 +2072,10 @@ export default function App() {
   useEffect(() => {
     if (!brVal) return
     const t = setTimeout(() => {
-      try { localStorage.setItem('rpt_last_seen_br', String(brVal)) } catch {}
+      setLastSeenBR(brVal)
     }, brDuration + 250)
     return () => clearTimeout(t)
-  }, [brVal, brDuration])
+  }, [brVal, brDuration, setLastSeenBR])
 
   return (
     <>
@@ -2514,7 +2235,15 @@ export default function App() {
         )
       })()}
 
-      {loading
+      {error && !loading
+        ? (
+        <div className="loading" style={{display:'flex',flexDirection:'column',gap:12,alignItems:'center',textAlign:'center'}}>
+          <div style={{fontWeight:700,color:'var(--white)'}}>{t('load_failed_title')}</div>
+          <div style={{maxWidth:420,color:'var(--dim2)',lineHeight:1.6}}>{t('load_failed_body')}</div>
+          <button className="btn-sm" onClick={() => refresh().catch(() => {})}>{t('retry')}</button>
+        </div>
+        )
+        : loading
         ? <div className="loading">{t('loading')}</div>
         : (
         <div className={`page ${activeTab==='settings'?'wide':''}`}>
@@ -2936,7 +2665,7 @@ export default function App() {
               <div style={{fontSize:11,color:'var(--dim)',fontFamily:"'Roboto Mono',monospace",marginBottom:4}}>
                 <span style={{color:'var(--dim2)',fontWeight:600}}>RomeoPro Marathon</span>
                 {' '}
-                <span style={{color:'var(--dim)'}}>v1.7</span>
+                  <span style={{color:'var(--dim)'}}>{appVersionLabel}</span>
               </div>
               <div style={{fontSize:10,color:'var(--dim)',marginBottom:4}}>
                 {t('footer_made')}{' '}
@@ -2944,7 +2673,7 @@ export default function App() {
                   style={{color:'var(--dim2)',textDecoration:'none'}}>LoremCDMX</a>
               </div>
               <div style={{fontSize:10,color:'var(--dim2)'}}>
-                {t('footer_updated')}: 13.04.2026
+                {t('footer_updated')}: 19.04.2026
               </div>
               {(() => {
                 const scrapeTs = meta?.lastScrapeRun
@@ -2992,6 +2721,7 @@ export default function App() {
                 {t('footer_changelog')}
               </div>
               {[
+                ['19.04', 'v1.8', 'Попапы снова открываются рядом с нужным местом, не прилипают к верху и не дублируются при хаотичном наведении. У «Сыграно МТТ» теперь нейтральная иконка'],
                 ['13.04', 'v1.7', 'Попапы активности и топ-постов больше не вылезают за границы экрана в любых положениях. Под капотом готовится переключатель языков'],
                 ['13.04', 'v1.6', 'В активности — карточки дней с картинками, клик уносит к посту в ленте. Окошко топ-постов прилипает ближе и не дрожит. Длинные посты не режутся, если скрыта пара строк'],
                 ['11.04', 'v1.5', 'Фильтры графика по неделе и месяцу. Избранное и игнор по авторам. В темах — интересные моменты и самые активные. Страница подгоняется под ширину окна'],
