@@ -605,7 +605,7 @@ function smartSortPosts(ps) {
 }
 
 function ActivityChart({ posts, favorites, ignored, onFav, onIgnore, onUnignore, setLightbox,
-                         sortBy, setSortBy, minLikes, setMinLikes, minRating, setMinRating, search, onPostClick, lang, t }) {
+                         minLikes, minRating, search, onPostClick, lang, t }) {
   const [tip,      setTip]      = useState(null)
   const [tipStyle, setTipStyle] = useState(null)
   const [selected, setSelected] = useState(null)
@@ -1353,7 +1353,7 @@ function TempoValue({ target, title }) {
 }
 
 // ─── AUTHORS PANEL ────────────────────────────────────────────────────────────
-function AuthorsPanel({ authors, favorites, ignored, onFav, onIgnore, onUnignore, setLightbox, t }) {
+function AuthorsPanel({ authors, favorites, onFav, onIgnore, setLightbox, t }) {
   const [expanded, setExpanded] = useState(null)
   const tr = t || _t
   return (
@@ -1383,8 +1383,8 @@ function AuthorsPanel({ authors, favorites, ignored, onFav, onIgnore, onUnignore
               <div style={{borderTop:'1px solid var(--border)',padding:'8px 10px'}}>
                 {a.posts.slice(0, 20).map(p => (
                   <PostCard key={p.id||p.url} p={p}
-                    favorites={favorites} ignored={ignored} onFav={onFav}
-                    onIgnore={onIgnore} onUnignore={onUnignore} setLightbox={setLightbox} lang={_lang}/>
+                    favorites={favorites} onFav={onFav}
+                    onIgnore={onIgnore} setLightbox={setLightbox} lang={_lang}/>
                 ))}
               </div>
             )}
@@ -1814,16 +1814,23 @@ export default function App() {
     }
   }, [meta, chartPeriod])
 
-  // Favorited authors bypass like/rating filters entirely.
-  // Ignored authors are hidden unless post has >=30 likes (then PostCard shows a placeholder).
-  const IGNORED_THRESHOLD = 30
   const passesLikeRating = (p) => {
     if (favorites.has(p.author)) return true
     if (minLikes  && (p.likes||0)  < minLikes)  return false
     if (minRating && (p.rating||0) < minRating) return false
     return true
   }
-  const passesIgnored = (p) => !ignored.has(p.author) || (p.likes||0) >= IGNORED_THRESHOLD
+  const passesIgnored = (p) => !ignored.has(p.author)
+  const passesFeedFilters = (p) => {
+    const isRomeoPost = ROMEO_RE.test(p.author)
+
+    if (lang !== 'ru') return isRomeoPost
+    if (ignored.has(p.author)) return false
+    if (romeoOnly && !isRomeoPost) return false
+    if (favorites.has(p.author)) return true
+    if (search && !p.text?.toLowerCase().includes(search.toLowerCase())) return false
+    return passesLikeRating(p)
+  }
 
   // hotPosts — для сайдбара "Больше всего плюсиков"
   const hotPosts = useMemo(() =>
@@ -1836,17 +1843,14 @@ export default function App() {
 
   const feedPosts = useMemo(() =>
     posts
-      .filter(passesIgnored)
-      .filter(p => lang!=='ru' ? ROMEO_RE.test(p.author) : (!romeoOnly || ROMEO_RE.test(p.author)))
-      .filter(p => !search || p.text?.toLowerCase().includes(search.toLowerCase()))
-      .filter(p => lang!=='ru' || passesLikeRating(p))
+      .filter(passesFeedFilters)
       .sort((a,b) => {
         if (sortBy==='date_desc') return (b.timestamp||0)-(a.timestamp||0)
         if (sortBy==='date_asc')  return (a.timestamp||0)-(b.timestamp||0)
         if (sortBy==='likes')     return (b.likes||0)-(a.likes||0)
         return 0
       }),
-  [posts, ignored, favorites, search, sortBy, romeoOnly, minLikes, minRating, lang])
+  [posts, favorites, ignored, lang, minLikes, minRating, romeoOnly, search, sortBy])
 
   // При смене фильтров — умный сброс страницы
   // Если были в конце — остаёмся в конце, если в начале — в начале
@@ -2446,8 +2450,8 @@ export default function App() {
                   ? ((classifiedPosts.authorStats?.length||0)===0
                       ? <div className="empty-state">{t('topics_no_data')}</div>
                       : <AuthorsPanel authors={classifiedPosts.authorStats}
-                          favorites={favorites} ignored={ignored}
-                          onFav={toggleFav} onIgnore={addIgnore} onUnignore={removeIgnore}
+                          favorites={favorites}
+                          onFav={toggleFav} onIgnore={addIgnore}
                           setLightbox={setLightbox} t={t}/>)
                   : all.length===0
                   ? <div className="empty-state">{isTagMode && !topicTag ? t('topics_select_topic_above') : t('topics_no_posts')}</div>
@@ -2456,10 +2460,10 @@ export default function App() {
                       perPage={TOPIC_PER_PAGE} onPerPage={()=>{}} total={all.length}/>
                     {paged.map(p=>(
                       <PostCard key={p.id||p.url} p={p}
-                        favorites={favorites} ignored={ignored} onFav={toggleFav}
-                        onIgnore={addIgnore} onUnignore={removeIgnore} setLightbox={setLightbox}
+                        favorites={favorites} onFav={toggleFav}
+                        onIgnore={addIgnore} setLightbox={setLightbox}
                         noClamp={topicTab==='marathon'}
-                        tags={p._tags && isTagMode ? p._tags.filter(tid=>tid!==topicTag).map(tid=>TAG_RULES.find(r=>r.id===tid)).filter(Boolean) : null} t={t} lang={lang}/>
+                        tags={p._tags && isTagMode ? p._tags.filter(tid=>tid!==topicTag).map(tid=>TAG_RULES.find(r=>r.id===tid)).filter(Boolean) : null} lang={lang}/>
                     ))}
                     <Paginator page={topicPage} totalPages={tpg} onPage={goTopicPage}
                       perPage={TOPIC_PER_PAGE} onPerPage={()=>{}} total={all.length}/>
@@ -2515,9 +2519,8 @@ export default function App() {
               {lang==='ru' && <ActivityChart posts={posts}
                 favorites={favorites} ignored={ignored} onFav={toggleFav}
                 onIgnore={addIgnore} onUnignore={removeIgnore} setLightbox={setLightbox}
-                sortBy={sortBy} setSortBy={setSortBy}
-                minLikes={minLikes} setMinLikes={setMinLikes}
-                minRating={minRating} setMinRating={setMinRating}
+                minLikes={minLikes}
+                minRating={minRating}
                 search={search} onPostClick={goToPost} lang={lang} t={t}/>}
               {/* Mobile-only top posts */}
               {lang==='ru' && hotPosts.length > 0 && (() => {
@@ -2577,8 +2580,8 @@ export default function App() {
                     <div key={p.id||p.url} id={`post-${p.id}`}
                       onMouseEnter={()=>{ if(i===pagedPosts.length-1) saveReadPos('feed',p.id) }}>
                       <PostCard p={p}
-                        favorites={favorites} ignored={ignored} onFav={toggleFav}
-                        onIgnore={addIgnore} onUnignore={removeIgnore} setLightbox={setLightbox} t={t} lang={lang}/>
+                        favorites={favorites} onFav={toggleFav}
+                        onIgnore={addIgnore} setLightbox={setLightbox} lang={lang}/>
                     </div>
                   ))}
                   <Paginator page={page} totalPages={totalPages} onPage={goPage}

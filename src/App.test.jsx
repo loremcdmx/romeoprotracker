@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import App from './App.jsx'
 import { translate } from './i18n.js'
 import { fetchPublicData } from './storage.js'
@@ -70,6 +70,12 @@ function makeMockData(overrides = {}) {
     },
     ...overrides,
   }
+}
+
+function findPostCardByAuthor(author) {
+  return [...document.querySelectorAll('.post-card')].find((card) =>
+    card.querySelector('.pc-author')?.textContent === author,
+  ) ?? null
 }
 
 describe('App', () => {
@@ -225,5 +231,70 @@ describe('App', () => {
     fireEvent.click(screen.getByTitle(translate('ru', 'filter_reset')))
 
     expect((await screen.findAllByText('TestUser')).length).toBeGreaterThan(0)
+  })
+
+  it('keeps favorited authors visible regardless of active feed filters', async () => {
+    render(<App />)
+    await screen.findAllByText('Romeopro')
+
+    const testUserCard = findPostCardByAuthor('TestUser')
+    fireEvent.click(within(testUserCard).getByTitle(translate('ru', 'pc_fav_add')))
+
+    fireEvent.change(
+      screen
+        .getAllByTitle(translate('ru', 'filter_min_likes'))
+        .find((node) => node.tagName === 'INPUT'),
+      { target: { value: '50' } },
+    )
+    fireEvent.click(screen.getByTitle(translate('ru', 'filter_search_title')))
+    fireEvent.change(screen.getByPlaceholderText(translate('ru', 'filter_search_placeholder')), {
+      target: { value: 'no chance to match this query' },
+    })
+
+    await waitFor(() => {
+      const authors = [...document.querySelectorAll('.post-card .pc-author')].map((node) => node.textContent)
+      expect(authors).toContain('TestUser')
+      expect(findPostCardByAuthor('TestUser')).not.toBeNull()
+    })
+  })
+
+  it('keeps romeoOnly strict even for favorited authors', async () => {
+    render(<App />)
+    await screen.findAllByText('Romeopro')
+
+    const testUserCard = findPostCardByAuthor('TestUser')
+    fireEvent.click(within(testUserCard).getByTitle(translate('ru', 'pc_fav_add')))
+    fireEvent.click(screen.getByTitle(translate('ru', 'filter_romeo_title')))
+
+    await waitFor(() => {
+      const authors = [...document.querySelectorAll('.post-card .pc-author')].map((node) => node.textContent)
+      expect(authors).not.toContain('TestUser')
+      expect(authors.every((author) => author === 'Romeopro')).toBe(true)
+    })
+  })
+
+  it('hides ignored authors even when they are favorited and match active filters', async () => {
+    render(<App />)
+    await screen.findAllByText('Romeopro')
+
+    const findTestUserCard = () => findPostCardByAuthor('TestUser')
+
+    fireEvent.click(within(findTestUserCard()).getByTitle(translate('ru', 'pc_fav_add')))
+    fireEvent.click(screen.getByTitle(translate('ru', 'filter_search_title')))
+    fireEvent.change(screen.getByPlaceholderText(translate('ru', 'filter_search_placeholder')), {
+      target: { value: 'Interesting post about poker and Romeo.' },
+    })
+
+    await waitFor(() => {
+      expect(findTestUserCard()).not.toBeNull()
+    })
+
+    fireEvent.click(within(findTestUserCard()).getByTitle(translate('ru', 'pc_ignore')))
+
+    await waitFor(() => {
+      const authors = [...document.querySelectorAll('.post-card .pc-author')].map((node) => node.textContent)
+      expect(authors).not.toContain('TestUser')
+      expect(findTestUserCard()).toBeNull()
+    })
   })
 })
