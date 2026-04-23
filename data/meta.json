@@ -4,7 +4,7 @@
   "targetBankroll": 10000000,
   "day": 1,
   "status": "active",
-  "lastUpdated": "2026-04-23T03:39:35.450Z",
+  "lastUpdated": "2026-04-23T03:40:07.521Z",
   "totalPosts": 4697,
   "scrapedPages": 0,
   "chronicle": [],
@@ -904,7 +904,7 @@
     },
     {
       "id": "8218827",
-      "date": "21 апреля, 06:44",
+      "date": "21 апреля, 04:44",
       "timestamp": 1776739458,
       "brBefore": 28346,
       "brAfter": 30593,
@@ -985,5 +985,5 @@
     }
   ],
   "totalTournaments": 8046,
-  "lastScrapeRun": "2026-04-23T03:39:35.453Z"
+  "lastScrapeRun": "2026-04-23T03:40:07.525Z"
 }
