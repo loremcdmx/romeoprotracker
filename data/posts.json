@@ -90092,7 +90092,7 @@
     "date": "23 апреля, 12:04",
     "timestamp": 1776938687,
     "text": "[QUOTE]СынДикея|СынДикея @ 23.04.26\n[/QUOTE] СынДикея, как у папы дела?",
-    "likes": 27,
+    "likes": 28,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -90510,7 +90510,7 @@
     "date": "23 апреля, 18:12",
     "timestamp": 1776960735,
     "text": "[QUOTE]АллЫн|АллЫн @ 23.04.26\nКупил по фану дольку на хр 525,может он хайроллеры дисциплинированно играет и занесёт уже первое место)[/QUOTE]Если с кэфом 2, то норм вложение, если меньше, то я бы не советовал",
-    "likes": 69,
+    "likes": 75,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -90582,7 +90582,7 @@
     "date": "24 апреля, 04:21",
     "timestamp": 1776997283,
     "text": "Dazed-Confused, впип 50 с кефом 2",
-    "likes": 1,
+    "likes": 3,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -90625,5 +90625,61 @@
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8220735"
+  },
+  {
+    "id": "8220801",
+    "author": "tBEotM",
+    "avatar": "/img/imguser.png",
+    "rating": 974,
+    "msgCount": 177,
+    "regData": "1 год на сайте",
+    "date": "24 апреля, 12:06",
+    "timestamp": 1777025192,
+    "text": "Осваиваю новые инструменты и решил потестить на этом блоге, может кому-то тоже будет интересно.\n\n \n\n782 уникальных пользователя вместе с моим постом отметились в данной теме.\n\n \n\nПод спойлером главные спамеры )\n\n \n\n    \n\nТС  даже в 10 не входит. )",
+    "likes": 6,
+    "images": [
+      "https://static-forum.gipsyteam.ru/monthly_04_2026/post-191201-17770251341383.png"
+    ],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8220801"
+  },
+  {
+    "id": "8220807",
+    "author": "Romeopro",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/2/6/6/26670.jpg",
+    "rating": 25544,
+    "msgCount": 4109,
+    "regData": "16 лет на сайте",
+    "date": "24 апреля, 12:20",
+    "timestamp": 1777026001,
+    "text": "Day 36:",
+    "likes": 12,
+    "images": [
+      "https://static-forum.gipsyteam.ru/monthly_04_2026/post-6195-177702599451cf_thumb.webp"
+    ],
+    "videos": [],
+    "brBefore": 29282,
+    "brAfter": 27888,
+    "sessionResult": -1394,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8220807",
+    "rooms": {
+      "before": {
+        "gg": 27845,
+        "ps": 1188,
+        "king": 232,
+        "coin": 17,
+        "lux": 0
+      },
+      "after": {
+        "gg": 26451,
+        "ps": 1188,
+        "king": 232,
+        "coin": 17,
+        "lux": 0
+      }
+    }
   }
 ]
