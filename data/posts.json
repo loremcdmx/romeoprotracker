@@ -90856,7 +90856,7 @@
     "date": "25 апреля, 01:51",
     "timestamp": 1777074686,
     "text": "[QUOTE]din'Alt|din'Alt @ 25.04.26\nGG ещё не предложили ТС амбасадорский контракт?\n\nНеплохое было бы подспорье.🤔[/QUOTE]А должны предложить? Что бы что? Подсветить всем, что вот человек всю жизнь занимался покером и остался с многомиллионными долгами? Гениальный маркетинг...",
-    "likes": 22,
+    "likes": 23,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -90874,7 +90874,7 @@
     "date": "25 апреля, 06:40",
     "timestamp": 1777092031,
     "text": "[QUOTE]Bairon|Bairon @ 24.04.26\nможно стать твоим другом?)[/QUOTE]можно. с самым \"новым\" другом в моем пуле мы познакомились 30 лет назад, с остальными порядка 38 лет. в принципе я планирую прожить еще минимум лет 40. так что время есть",
-    "likes": 2,
+    "likes": 3,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -90989,5 +90989,41 @@
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8221343"
+  },
+  {
+    "id": "8221363",
+    "author": "Romeopro",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/2/6/6/26670.jpg",
+    "rating": 25544,
+    "msgCount": 4110,
+    "regData": "16 лет на сайте",
+    "date": "25 апреля, 11:58",
+    "timestamp": 1777111105,
+    "text": "Day 37:",
+    "likes": 1,
+    "images": [
+      "https://static-forum.gipsyteam.ru/monthly_04_2026/post-6195-17771111021a62_thumb.webp"
+    ],
+    "videos": [],
+    "brBefore": 27888,
+    "brAfter": 28172,
+    "sessionResult": 284,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8221363",
+    "rooms": {
+      "before": {
+        "gg": 26451,
+        "ps": 1188,
+        "king": 232,
+        "coin": 17,
+        "lux": 0
+      },
+      "after": {
+        "gg": 26735,
+        "ps": 1188,
+        "king": 232,
+        "coin": 17,
+        "lux": 0
+      }
+    }
   }
 ]
