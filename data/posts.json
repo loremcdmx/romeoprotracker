@@ -91638,7 +91638,7 @@
     "date": "26 апреля, 16:29",
     "timestamp": 1777213756,
     "text": "АллЫн,",
-    "likes": 12,
+    "likes": 13,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_04_2026/post-86853-17772137497a0c_thumb.webp"
     ],
@@ -91993,5 +91993,23 @@
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8222112"
+  },
+  {
+    "id": "8222167",
+    "author": "gurgen064",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/1/6/1/3/161368.jpg",
+    "rating": 1407,
+    "msgCount": 2298,
+    "regData": "13 лет на сайте",
+    "date": "26 апреля, 22:11",
+    "timestamp": 1777234280,
+    "text": "Недотянули 60 страниц с трактором",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8222167"
   }
 ]
