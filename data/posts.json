@@ -92058,7 +92058,7 @@
     "date": "27 апреля, 02:47",
     "timestamp": 1777250831,
     "text": "Day 39:",
-    "likes": 57,
+    "likes": 60,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_04_2026/post-6195-1777250820eec3_thumb.webp"
     ],
@@ -92166,7 +92166,7 @@
     "date": "27 апреля, 11:19",
     "timestamp": 1777281571,
     "text": "progmoh, тем более на люксоне вообще чет не пошло",
-    "likes": 22,
+    "likes": 24,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -92220,7 +92220,7 @@
     "date": "27 апреля, 15:04",
     "timestamp": 1777295080,
     "text": "Igorke34, 20 на ПК, 4 с мобилки",
-    "likes": 4,
+    "likes": 5,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -92299,5 +92299,43 @@
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8222645"
+  },
+  {
+    "id": "8222694",
+    "author": "Svoboda07",
+    "avatar": "/img/imguser.png",
+    "rating": null,
+    "msgCount": 9,
+    "regData": "19 дней на сайте",
+    "date": "27 апреля, 22:59",
+    "timestamp": 1777323572,
+    "text": "ТС 2-е место занес, юаневый турик по 388, около 8000 долларов должно быть, мои поздравления)",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8222694"
+  },
+  {
+    "id": "8222695",
+    "author": "AMDemon",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/2/8/6/28632.jpg",
+    "rating": 5266,
+    "msgCount": 2021,
+    "regData": "14 лет на сайте",
+    "date": "27 апреля, 22:59",
+    "timestamp": 1777323591,
+    "text": "[QUOTE]SAYKOD|SAYKOD @ 27.04.26\nВ МТТ главный скил- что-бы не случилось, сколько бы не было проёбано, непоколебимо верить, что это диспа и дистанция вернёт!!![/QUOTE]Наш Роман верит! Настойчиво верит!",
+    "likes": 3,
+    "images": [
+      "https://static-forum.gipsyteam.ru/monthly_04_2026/post-15559-1777323682e8c_thumb.webp"
+    ],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8222695"
   }
 ]
