@@ -91638,7 +91638,7 @@
     "date": "26 апреля, 16:29",
     "timestamp": 1777213756,
     "text": "АллЫн,",
-    "likes": 19,
+    "likes": 21,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_04_2026/post-86853-17772137497a0c_thumb.webp"
     ],
@@ -91676,7 +91676,7 @@
     "date": "26 апреля, 16:47",
     "timestamp": 1777214820,
     "text": "[QUOTE]LTV|LTV @ 26.04.26\nбр 48к начинаем грузить касари))))(если продадим ахаха)[/QUOTE]10 000 нет? я не шарю за гг просто",
-    "likes": 2,
+    "likes": 3,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -91694,7 +91694,7 @@
     "date": "26 апреля, 16:50",
     "timestamp": 1777215016,
     "text": "Ну а как вы думали эти долги можно сделать? Неужто соблюдая БРМ под 150-200 БИ? Деньги на БИ есть? Грузим!",
-    "likes": 3,
+    "likes": 4,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -92004,7 +92004,7 @@
     "date": "26 апреля, 22:11",
     "timestamp": 1777234280,
     "text": "Недотянули 60 страниц с трактором",
-    "likes": 3,
+    "likes": 5,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -92022,7 +92022,7 @@
     "date": "26 апреля, 23:07",
     "timestamp": 1777237669,
     "text": "M45PL, стало так интересно, что аж клиент помойки скачал). Тс отрегался от 10ки. Что это, если не победа здарового смысла)(или дольки не купили)))",
-    "likes": 1,
+    "likes": 2,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -92047,5 +92047,41 @@
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8222207"
+  },
+  {
+    "id": "8222238",
+    "author": "Romeopro",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/2/6/6/26670.jpg",
+    "rating": 25694,
+    "msgCount": 4112,
+    "regData": "16 лет на сайте",
+    "date": "27 апреля, 02:47",
+    "timestamp": 1777250831,
+    "text": "Day 39:",
+    "likes": 2,
+    "images": [
+      "https://static-forum.gipsyteam.ru/monthly_04_2026/post-6195-1777250820eec3_thumb.webp"
+    ],
+    "videos": [],
+    "brBefore": 47815,
+    "brAfter": 45727,
+    "sessionResult": -2088,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8222238",
+    "rooms": {
+      "before": {
+        "gg": 46378,
+        "ps": 1188,
+        "king": 232,
+        "coin": 17,
+        "lux": 0
+      },
+      "after": {
+        "gg": 44290,
+        "ps": 1188,
+        "king": 232,
+        "coin": 17,
+        "lux": 0
+      }
+    }
   }
 ]
