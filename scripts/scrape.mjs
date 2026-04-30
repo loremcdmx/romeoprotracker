@@ -76,6 +76,24 @@ async function persistScrapeOutputs({
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)) }
 
+function extractMarathonDay(text) {
+  const match = text?.match(/(?:[Дд]ень|[Dd]ay)\s*#?\s*(\d+)/i)
+  return match ? parseInt(match[1], 10) : null
+}
+
+function computeMarathonDay(posts, brHistory) {
+  const romeoPosts = posts
+    .filter(p => ROMEO_RE.test(p.author || ''))
+    .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))
+
+  for (const post of romeoPosts) {
+    const day = extractMarathonDay(post.text)
+    if (day) return day
+  }
+
+  return brHistory?.length || null
+}
+
 function htmlToText($el, $) {
   let html = $.html($el)
   html = html.replace(/<br\s*\/?>/gi, '\n')
@@ -707,6 +725,11 @@ async function main() {
     }
     if (lastTotalTournaments != null && meta.totalTournaments !== lastTotalTournaments) {
       meta.totalTournaments = lastTotalTournaments
+      metaFixed = true
+    }
+    const computedDay = computeMarathonDay([...allPostsMap.values()], meta.brHistory)
+    if (computedDay && meta.day !== computedDay) {
+      meta.day = computedDay
       metaFixed = true
     }
     if (metaFixed) {
