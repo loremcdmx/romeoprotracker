@@ -150,8 +150,10 @@ describe('App', () => {
     expect(await screen.findByText(new RegExp(translate('ru', 'stats')))).toBeInTheDocument()
   })
 
-  it('renders sidebar top posts section', async () => {
+  it('renders forum stats with authors and top posts section', async () => {
     render(<App />)
+    expect(await screen.findByText(new RegExp(translate('ru', 'forum_stats')))).toBeInTheDocument()
+    expect(screen.getByText(translate('ru', 'sr_authors'))).toBeInTheDocument()
     expect(await screen.findByText(new RegExp(translate('ru', 'top_likes_header')))).toBeInTheDocument()
   })
 

@@ -1841,6 +1841,15 @@ export default function App() {
       .sort((a,b) => (b.likes||0) - (a.likes||0))
   , [posts, ignored, favorites, minLikes, minRating])
 
+  const forumAuthorCount = useMemo(() => {
+    const authors = new Set()
+    posts.forEach((p) => {
+      const author = (p.author || '').trim()
+      if (author) authors.add(author.toLowerCase())
+    })
+    return authors.size
+  }, [posts])
+
   const feedPosts = useMemo(() =>
     posts
       .filter(passesFeedFilters)
@@ -2646,8 +2655,6 @@ export default function App() {
                         {Math.round((periodStats?.winRate ?? stats.winRate)*100)}%
                       </span>,
                     ],
-                    [t('sr_posts'), <span key="p" className="srow-val">{fmtInt(posts.length)}</span>],
-                    [t('sr_top'), <span key="l" className="srow-val">{hotPosts[0]?`+${hotPosts[0].likes}`:'—'}</span>],
                   ].filter(Boolean).map(([k,v])=>(
                     <div key={k} className="srow"><span className="srow-key">{k}</span>{v}</div>
                   ))}
@@ -2657,30 +2664,43 @@ export default function App() {
                 </div>
               </div>
 
-              {lang==='ru' && hotPosts.length>0 && (() => {
-                const sideTopPeriod = sidebarTopPeriod
-                const now = Date.now() / 1000
-                const cutoffs = { day: now-86400, week: now-604800, month: now-2592000, all: 0 }
-                const labels = { day:t('filter_day'), week:t('filter_week'), month:t('filter_month'), all:t('filter_always') }
-                const filtered = hotPosts.filter(p => (p.timestamp||0) >= cutoffs[sideTopPeriod])
-                const topList = (filtered.length ? filtered : hotPosts).slice(0,10)
-                return (
-                  <div className="sblock">
-                    <div className="sblock-title" style={{display:'flex',flexDirection:'column',alignItems:'center',gap:8,padding:'10px 14px'}}>
-                      <span>{t('top_likes_header')}</span>
-                      <div style={{display:'flex',gap:4}}>
-                        {Object.keys(cutoffs).map(k => (
-                          <button key={k} onClick={()=>setSidebarTopPeriod(k)}
-                            style={{background:sideTopPeriod===k?'var(--red)':'var(--bg3)',border:'1px solid '+(sideTopPeriod===k?'var(--red)':'var(--border2)'),borderRadius:4,color:sideTopPeriod===k?'#fff':'var(--dim2)',fontSize:10,padding:'3px 7px',cursor:'pointer',fontFamily:'inherit',fontWeight:600}}>
-                            {labels[k]}
-                          </button>
-                        ))}
+              <div className="sblock">
+                <div className="sblock-title">🧵 {t('forum_stats')}</div>
+                <div className="sblock-body">
+                  {[
+                    [t('sr_posts'), <span key="p" className="srow-val">{fmtInt(posts.length)}</span>],
+                    [t('sr_authors'), <span key="a" className="srow-val">{fmtInt(forumAuthorCount)}</span>],
+                    [t('sr_top'), <span key="l" className="srow-val">{hotPosts[0]?`+${hotPosts[0].likes}`:'—'}</span>],
+                  ].map(([k,v])=>(
+                    <div key={k} className="srow"><span className="srow-key">{k}</span>{v}</div>
+                  ))}
+                </div>
+
+                {lang==='ru' && hotPosts.length>0 && (() => {
+                  const sideTopPeriod = sidebarTopPeriod
+                  const now = Date.now() / 1000
+                  const cutoffs = { day: now-86400, week: now-604800, month: now-2592000, all: 0 }
+                  const labels = { day:t('filter_day'), week:t('filter_week'), month:t('filter_month'), all:t('filter_always') }
+                  const filtered = hotPosts.filter(p => (p.timestamp||0) >= cutoffs[sideTopPeriod])
+                  const topList = (filtered.length ? filtered : hotPosts).slice(0,10)
+                  return (
+                    <>
+                      <div className="forum-top-head">
+                        <span>{t('top_likes_header')}</span>
+                        <div className="forum-top-periods">
+                          {Object.keys(cutoffs).map(k => (
+                            <button key={k} onClick={()=>setSidebarTopPeriod(k)}
+                              style={{background:sideTopPeriod===k?'var(--red)':'var(--bg3)',border:'1px solid '+(sideTopPeriod===k?'var(--red)':'var(--border2)'),borderRadius:4,color:sideTopPeriod===k?'#fff':'var(--dim2)',fontSize:10,padding:'3px 7px',cursor:'pointer',fontFamily:'inherit',fontWeight:600}}>
+                              {labels[k]}
+                            </button>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                    <SidebarTopList posts={topList} setLightbox={setLightbox}/>
-                  </div>
-                )
-              })()}
+                      <SidebarTopList posts={topList} setLightbox={setLightbox}/>
+                    </>
+                  )
+                })()}
+              </div>
 
               {ignored.size>0 && (
                 <div className="sblock">

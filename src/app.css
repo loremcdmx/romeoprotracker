@@ -140,6 +140,8 @@ a{color:var(--red2);text-decoration:none}
 .srow-val{font-weight:600;font-family:'Roboto Mono',monospace;color:var(--white)}
 .srow-val.green{color:#66bb6a}.srow-val.gold{color:var(--gold)}.srow-val.red{color:var(--red2)}
 .srow-note{font-size:9px;color:var(--dim);font-style:italic;padding:6px 0 0;border-top:1px dashed var(--border);margin-top:4px;line-height:1.3}
+.forum-top-head{display:flex;flex-direction:column;align-items:center;gap:8px;padding:10px 14px;border-top:1px solid var(--border);border-bottom:1px solid var(--border);background:var(--bg3);font-size:10px;font-weight:700;color:var(--dim);text-transform:uppercase;letter-spacing:.1em}
+.forum-top-periods{display:flex;gap:4px;text-transform:none;letter-spacing:0}
 .mobile-stats-note{display:none}
 
 /* SETTINGS */
