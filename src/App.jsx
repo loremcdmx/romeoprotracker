@@ -2196,7 +2196,7 @@ export default function App() {
       {!loading && stats?.br && (() => {
         const target = 10_000_000
         const start  = stats.startBR || 10000
-        const raw = (stats.br - start) / (target - start) * 100
+        const raw = stats.br / target * 100
         const pct = Math.max(0, Math.min(100, raw))
         const remaining = Math.max(0, target - stats.br)
 
