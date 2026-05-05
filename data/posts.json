@@ -97026,7 +97026,7 @@
     "date": "4 мая, 21:46",
     "timestamp": 1777923984,
     "text": "Eskander07, нет просто в гуггле вбил, я удивлен что ты не смог этого сделать, решил лишь тебе помочь.",
-    "likes": -1,
+    "likes": 0,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -97232,7 +97232,7 @@
     "date": "5 мая, 05:09",
     "timestamp": 1777950565,
     "text": "Day 45:",
-    "likes": 18,
+    "likes": 19,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_05_2026/post-6195-177795055730f3_thumb.webp"
     ],
@@ -97257,5 +97257,41 @@
         "lux": 0
       }
     }
+  },
+  {
+    "id": "8226571",
+    "author": "babangida88",
+    "avatar": "/img/imguser.png",
+    "rating": -79,
+    "msgCount": 13,
+    "regData": "1 месяц на сайте",
+    "date": "5 мая, 05:44",
+    "timestamp": 1777952642,
+    "text": "[QUOTE]Eskander07|Eskander07 @ 04.05.26\nдо сих пор не понимаю, почему именно \"From Hero to Zero\"[/QUOTE]ВСЕ ПРОЕБАЛ КАК САНЯ ЕМЕЛЬЯНЕНКО\n\nБЫЛ В РЕСПЕКТУХЕ ТЕПЕРЬ КРОЮТ ХУЯМИ",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8226571"
+  },
+  {
+    "id": "8226572",
+    "author": "nukanuka",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/7/2/2/72255.jpg",
+    "rating": 2662,
+    "msgCount": 508,
+    "regData": "12 лет на сайте",
+    "date": "5 мая, 05:46",
+    "timestamp": 1777952763,
+    "text": "[QUOTE]Ansomon|Ansomon @ 04.05.26\nбрал там где был 1.1-1.2. Но видел турики на которых был кэф даже 1.55))[/QUOTE][QUOTE]АллЫн|АллЫн @ 04.05.26\nЯ на 525 за 1,77 брал😬[/QUOTE]вот и китайские лудоманы стали в теме появляться",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8226572"
   }
 ]
