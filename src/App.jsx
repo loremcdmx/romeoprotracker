@@ -125,7 +125,7 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
 
   useEffect(() => {
     if (pathRef.current) setPathLen(pathRef.current.getTotalLength())
-  }, [points.length])
+  }, [points.length, isMobile])
 
   const W = isMobile ? 520 : 700
   const H = isMobile ? 400 : 240
@@ -135,9 +135,27 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
   const pB = isMobile ? 62 : 44
   const dataMin = Math.min(...points.map(p=>p.br), startBR)
   const dataMax = Math.max(...points.map(p=>p.br), startBR)
-  const minV = Math.max(0, Math.floor(dataMin * 0.7 / 1000) * 1000)
-  const maxV = dataMax * 1.05
-  const yOf  = v => pT + (1-(v-minV)/(maxV-minV)) * (H-pT-pB)
+  const useLogY = isMobile && dataMin > 0 && dataMax / Math.max(dataMin, 1) >= 8
+  const logTickCandidates = [
+    1000, 2000, 5000,
+    10000, 20000, 50000,
+    100000, 200000, 500000,
+    1000000, 2000000, 5000000, 10000000,
+  ]
+  const lowerLogTicks = logTickCandidates.filter(v => v <= dataMin * 0.9)
+  const logMinV = Math.max(1, lowerLogTicks[lowerLogTicks.length - 1] || 1000)
+  const logMaxV = logTickCandidates.find(v => v >= dataMax * 1.08) ?? dataMax * 1.12
+  const minV = useLogY ? logMinV : Math.max(0, Math.floor(dataMin * 0.7 / 1000) * 1000)
+  const maxV = useLogY ? logMaxV : dataMax * 1.05
+  const logMin = Math.log10(minV)
+  const logMax = Math.log10(maxV)
+  const yOf = v => {
+    if (useLogY) {
+      const safeV = Math.max(v, minV)
+      return pT + (1-(Math.log10(safeV)-logMin)/(logMax-logMin || 1)) * (H-pT-pB)
+    }
+    return pT + (1-(v-minV)/(maxV-minV)) * (H-pT-pB)
+  }
 
   // Two arrays: cumMTT (absolute totals, used for display labels) and cumMTTX
   // (normalized + anti-overlap, used for X-axis positioning). Mixing them caused
@@ -172,8 +190,12 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
   const coords = points.map((p,i) => ({ x:xOf(i), y:yOf(p.br) }))
   const linePath = makeBezierPath(coords)
   const areaPath = makeBezierArea(coords, H - pB)
-  // Y ticks: ~4 evenly spaced round values
+  // Y ticks: linear on desktop / compact ranges, logarithmic on wide mobile ranges.
   const yTicks = (() => {
+    if (useLogY) {
+      const ticks = logTickCandidates.filter(v => v > minV && v < maxV)
+      return ticks.map(v => ({ v, y: yOf(v) }))
+    }
     const candidates = [1000,2000,5000,10000,20000,50000]
     const range = maxV - minV
     const step = candidates.find(s => { const n = Math.floor(range / s); return n >= 3 && n <= 7 }) || 2000
@@ -235,7 +257,7 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
             </button>
           ))}
         </div>
-        <span className="section-count">{plSessions(points.length, lang)}</span>
+        <span className="section-count">{plSessions(points.length, lang)}{useLogY ? ' · log Y' : ''}</span>
       </div>
       <svg className="mc-svg" viewBox={`0 0 ${W} ${H+pB}`}
         onMouseLeave={(e)=>{
