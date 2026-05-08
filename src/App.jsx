@@ -180,24 +180,6 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
     return ticks
   })()
 
-  // ── Mobile: show only significant points (big swings), hide flat stretches ──
-  const mobileVisible = useMemo(() => {
-    const vis = new Set([0, points.length-1]) // always show first & last
-    const brRange = maxV/1.03 - minV/0.97 // un-padded range
-    const threshold = brRange * 0.03 // 3% of range = significant move
-    for (let i = 1; i < points.length - 1; i++) {
-      const delta = Math.abs(points[i].br - points[i].brPrev)
-      if (delta >= threshold) { vis.add(i); vis.add(i-1) } // show swing + its predecessor for context
-    }
-    // Ensure no gap longer than 5 points (keep at least one representative dot)
-    let lastVis = 0
-    for (let i = 1; i < points.length; i++) {
-      if (vis.has(i)) { lastVis = i; continue }
-      if (i - lastVis >= 5) { vis.add(i); lastVis = i }
-    }
-    return vis
-  }, [points, minV, maxV])
-
   // ── Mobile: long-press (300ms) to show tooltip ──
   const longPressTimer = useRef(null)
   const handleTouchStart = e => {
@@ -322,10 +304,12 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
           }
           return points.map((p,i) => ({ p, i, showL: finalLabels.has(i) }))
         })().map(({ p, i, showL }) => {
-          const showDot = !isMobile || mobileVisible.has(i)
           const isLast = i===points.length-1
           const cx=coords[i].x, cy=coords[i].y, profit=p.br-p.brPrev
           const isHovered = tip?.p === p
+          const dotR = isMobile
+            ? (isHovered ? (isLast ? 7 : 5) : (isLast ? 5 : 2.8))
+            : (isHovered ? (isLast ? 8 : 6) : (isLast ? 6 : 4))
           return (
             <g key={i}>
               {!isMobile && <circle cx={cx} cy={cy} r={isLast?14:10} fill="transparent"
@@ -333,10 +317,10 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
                   announceHoverPopupOpen()
                   setTip({p,profit,x:cx,y:cy})
                 }}/>}
-              {showDot && <circle cx={cx} cy={cy} r={isHovered?(isLast?8:6):(isLast?6:4)}
+              <circle cx={cx} cy={cy} r={dotR}
                 className={isLast?'mc-dot mc-dot-last':'mc-dot'}
                 fill={profit>=0?'#4caf50':'#e53935'}
-                style={{transition:'r .12s', ...(isLast?{color:profit>=0?'#4caf50':'#e53935'}:{})}}/>}
+                style={{transition:'r .12s', ...(isLast?{color:profit>=0?'#4caf50':'#e53935'}:{})}}/>
               {showL && (() => {
                 const lx = Math.min(Math.max(cx,pL),W-pR)
                 return (
@@ -2144,20 +2128,6 @@ export default function App() {
 
   return (
     <>
-      {/* MOBILE BOTTOM NAV */}
-      <nav className="mobile-nav">
-        {[
-          ['feed',     '🏠', t('tab_feed')],
-          ['topics',   '📂', t('tab_topics')],
-          ['settings', '⚙️', t('tab_settings')],
-        ].map(([id, icon, label]) => (
-          <button key={id} className={`mobile-nav-btn ${activeTab===id?'active':''}`} onClick={()=>switchTab(id)}>
-            <span>{icon}</span>
-            <span>{label}</span>
-          </button>
-        ))}
-      </nav>
-
       {lightbox && (
         <div className="lightbox" onClick={()=>setLightbox(null)}>
           <img src={lightbox} alt=""/>
