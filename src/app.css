@@ -507,7 +507,7 @@ html{scroll-behavior:smooth}
   .chart-wrap{margin:10px 12px 0;border-radius:12px;overflow:hidden;padding:10px 8px}
   .mc-svg{overflow:hidden;display:block;max-width:100%}
   .mc-ylabel{font-size:11px}
-  .marathon-chart{overflow:hidden;padding:12px;margin:10px 12px 0;border-radius:14px}
+  .marathon-chart{overflow:hidden;padding:14px 8px 16px;margin:10px 8px 0;border-radius:14px}
   .section-title{font-size:14px}
   .section-count{font-size:12px}
 

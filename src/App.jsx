@@ -127,7 +127,12 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
     if (pathRef.current) setPathLen(pathRef.current.getTotalLength())
   }, [points.length])
 
-  const W=700, H=240, pL=52, pR=20, pT=14, pB=44
+  const W = isMobile ? 520 : 700
+  const H = isMobile ? 400 : 240
+  const pL = isMobile ? 48 : 52
+  const pR = isMobile ? 16 : 20
+  const pT = isMobile ? 18 : 14
+  const pB = isMobile ? 62 : 44
   const dataMin = Math.min(...points.map(p=>p.br), startBR)
   const dataMax = Math.max(...points.map(p=>p.br), startBR)
   const minV = Math.max(0, Math.floor(dataMin * 0.7 / 1000) * 1000)
@@ -260,7 +265,7 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
         ))}
         <line x1={pL} y1={yOf(startBR)} x2={W-pR} y2={yOf(startBR)} className="mc-zero"/>
         <path d={areaPath} fill="url(#mcGrad)"/>
-        <path ref={pathRef} d={linePath} fill="none" stroke="#ff6b6b" strokeWidth="2.5"
+        <path ref={pathRef} d={linePath} fill="none" stroke="#ff6b6b" strokeWidth={isMobile ? 3.2 : 2.5}
           strokeLinecap="round" strokeLinejoin="round" filter="url(#mcGlow)"
           style={pathLen!=null ? {
             strokeDasharray: pathLen,
@@ -308,7 +313,7 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
           const cx=coords[i].x, cy=coords[i].y, profit=p.br-p.brPrev
           const isHovered = tip?.p === p
           const dotR = isMobile
-            ? (isHovered ? (isLast ? 7 : 5) : (isLast ? 5 : 2.8))
+            ? (isHovered ? (isLast ? 8 : 6) : (isLast ? 6 : 3.6))
             : (isHovered ? (isLast ? 8 : 6) : (isLast ? 6 : 4))
           return (
             <g key={i}>
