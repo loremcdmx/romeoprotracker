@@ -131,6 +131,40 @@ describe('App', () => {
     expect([...labels].some(label => label.getAttribute('text-anchor') === 'end')).toBe(true)
   })
 
+  it('uses milestone and big-session labels on the marathon X axis', async () => {
+    const base = makeMockData()
+    const brs = [18000, 31000, 48000, 76000, 101000, 122000, 121000, 124000]
+    const brHistory = brs.map((brAfter, i) => {
+      const brPrev = i === 0 ? 10000 : brs[i - 1]
+      return {
+        brAfter,
+        brPrev,
+        date: `D${i + 1}`,
+        timestamp: 1712300000 + i * 86400,
+        sessionResult: brAfter - brPrev,
+        totalTournaments: (i + 1) * 1000,
+        tournaments: 1000,
+        text: `Session ${i + 1}`,
+      }
+    })
+    fetchPublicData.mockResolvedValue(makeMockData({
+      meta: {
+        ...base.meta,
+        brHistory,
+        totalTournaments: 8000,
+      },
+    }))
+
+    render(<App />)
+    expect(await screen.findByText(new RegExp(translate('ru', 'chart_marathon').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))).toBeInTheDocument()
+
+    const labels = [...document.querySelectorAll('.mc-xaxis-label-main')].map(label => label.textContent)
+    expect(labels).toContain('$100k')
+    expect(labels.some(label => label?.startsWith('+'))).toBe(true)
+    expect(document.querySelector('.mc-x-tick.milestone')).toBeInTheDocument()
+    expect(document.querySelector('.mc-x-tick.win')).toBeInTheDocument()
+  })
+
   it('condenses dense same-sign marathon markers and uses rebuilt axes', async () => {
     const base = makeMockData()
     const brHistory = Array.from({ length:80 }, (_, i) => ({
