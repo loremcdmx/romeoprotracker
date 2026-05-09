@@ -254,7 +254,7 @@ describe('App', () => {
   it('renders footer with version and changelog', async () => {
     render(<App />)
     await screen.findAllByText('Romeopro')
-    expect(screen.getAllByText('v1.8').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText('v1.9').length).toBeGreaterThanOrEqual(1)
     expect(screen.getByText(translate('ru', 'footer_changelog'))).toBeInTheDocument()
   })
 

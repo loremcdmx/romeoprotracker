@@ -2,6 +2,30 @@
 
 ## Unreleased
 
+## 1.9.0 — 2026-05-09
+
+### New features
+- added fresh Romeo marathon data from the latest forum posts
+- forum stats are now separated from bankroll stats and include unique authors in the thread
+- progress to `$10M` has its own cleaner progress widget based on bankroll progress
+- favicon now uses Romeo's forum avatar
+
+### Chart
+- rebuilt marathon chart typography and axis labels for a cleaner dark-mode look
+- X-axis labels now mark meaningful events instead of random spacing: bankroll milestones, large wins/losses, start, peak, and latest point
+- mobile marathon chart is larger, uses the real bankroll scale, and avoids horizontal scroll
+- dense plus/minus streaks are grouped into readable session points without hiding the real session breakdown
+- grouped-point tooltip now shows the individual sessions inside the combined point
+- reduced marker halos and kept edge labels inside the chart bounds
+
+### Mobile
+- removed the lower feed/topics/settings bar from the mobile layout for now
+- tuned the chart proportions so the graph has more vertical room and less diagonal compression
+
+### Reliability
+- added coverage for event-based chart labels, grouped session tooltips, activity edge labels, and forum stats
+- verified the scraper update path and production deployment after the chart changes
+
 ## 1.8.0 — 2026-04-19
 
 ### New features
