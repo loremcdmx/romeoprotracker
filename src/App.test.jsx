@@ -114,18 +114,13 @@ describe('App', () => {
     render(<App />)
     await screen.findAllByText('Romeopro')
     expect(screen.getAllByText(translate('ru', 'tab_feed')).length).toBeGreaterThanOrEqual(1)
-    expect(screen.getAllByText(translate('ru', 'tab_topics')).length).toBeGreaterThanOrEqual(1)
     expect(screen.getAllByText(translate('ru', 'tab_settings')).length).toBeGreaterThanOrEqual(1)
   })
 
-  it('switches to topics tab', async () => {
+  it('does not render the topics section tab', async () => {
     render(<App />)
     await screen.findAllByText('Romeopro')
-    fireEvent.click(screen.getAllByText(translate('ru', 'tab_topics'))[0])
-    expect(screen.getByText(new RegExp(translate('ru', 'topic_marathon')))).toBeInTheDocument()
-    expect(screen.getByText(new RegExp(translate('ru', 'topic_discussion')))).toBeInTheDocument()
-    expect(screen.getByText(new RegExp(translate('ru', 'topic_highlikes')))).toBeInTheDocument()
-    expect(screen.getByText(new RegExp(translate('ru', 'topic_tags')))).toBeInTheDocument()
+    expect(document.querySelectorAll('.topbar-tab')).toHaveLength(2)
   })
 
   it('switches to settings tab and shows ignore list', async () => {

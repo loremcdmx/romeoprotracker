@@ -333,11 +333,11 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
                     <line x1={lx} y1={cy + (isLast?6:4) + 3} x2={lx} y2={H+pB-32}
                       stroke="var(--border2)" strokeWidth="1" strokeDasharray="1 3" opacity="0.55"/>
                     <text x={lx} y={H+pB-22} textAnchor="middle" fontFamily="'Roboto Mono',monospace"
-                      fontSize="11" fontWeight="600" fill="var(--dim)">
+                      fontSize="11" fontWeight="700" fill="var(--axis-x)">
                       {cumMTT[i] ? fmtInt(cumMTT[i]) : '—'}
                     </text>
                     <text x={lx} y={H+pB-8} textAnchor="middle" fontFamily="'Roboto Mono',monospace"
-                      fontSize="8" fill="var(--dim)">
+                      fontSize="8" fontWeight="600" fill="var(--axis-x-muted)">
                       {fmtDateShortLang(p.timestamp, lang)}
                     </text>
                   </g>
@@ -1875,121 +1875,6 @@ export default function App() {
   const totalPages = Math.max(1, Math.ceil(feedPosts.length / perPage))
   const pagedPosts = feedPosts.slice((page-1)*perPage, page*perPage)
 
-  // ── КЛАССИФИКАЦИЯ ПО ТЕМАМ ──────────────────────────────────────────────
-  const TAG_RULES = [
-    { id:'staking',    icon:'💰', label:t('tc_staking'),    re:/стейкинг|стейк|бекинг|бек\b|доли\b|доля\b|продаж.*дол|конюшн|инвестор|инвестиц|кэф.*дол/i },
-    { id:'debt',       icon:'🔴', label:t('tc_debt'),       re:/долг|должен|кредит|занял|отдаст|должник/i },
-    { id:'money',      icon:'💵', label:t('tc_money'),      re:/банкролл|\bбр\b|депозит|вывод|кэшаут|cashout|10\s*млн|миллион|проигрыш|выигрыш|прибыль|убыт/i },
-    { id:'strategy',   icon:'📊', label:t('tc_strategy'),   re:/стратег|рои\b|roi\b|abi\b|аби\b|скилл|brm|эдж|солвер|ренж|рейнж|префлоп|постфлоп|\bev\b|рейк|ракебек|загрузк/i },
-    { id:'variance',   icon:'🎲', label:t('tc_variance'),   re:/дисперси|даунстрик|апстрик|свинг|вариан/i },
-    { id:'psychology', icon:'🧠', label:t('tc_psychology'), re:/психолог|тилт\b|tilt\b|эмоц|дисциплин|мышлени|менталь|мотивац|выгоран|депресс|стресс/i },
-    { id:'mtt',        icon:'🏆', label:t('tc_mtt'),        re:/мтт|турнир|mystery|мистери|баунти|фризаут|сателлит/i },
-    { id:'rooms',      icon:'🏷', label:t('tc_rooms'),      re:/\bgg\b|pokerstars|\bps\b|старз|покерок|покерки|king|кинг|coin|coinpoker|ipoker|partypoker|winamax|888poker/i },
-    { id:'content',    icon:'📺', label:t('tc_content'),    re:/стрим|твич|twitch|ютуб|youtube|подкаст|видео|контент|блог|донат/i },
-    { id:'chess',      icon:'♟',  label:t('tc_chess'),      re:/шахмат|гнат\b|gnat\b|фишер.*шахмат|карлсен/i },
-    { id:'life',       icon:'🏠', label:t('tc_life'),       re:/жизн|семь[яи]|жен[аеыщ]|муж\b|дет[яиейс]|ребен|здоров|работ[аеу]|карьер|образован|универ|учеб/i },
-    { id:'live',       icon:'🎰', label:t('tc_live'),       re:/офлайн|оффлайн|кеш\s*гейм|cash.*game|живая.*игр|живой.*покер|казино|вегас|серия\b/i },
-    { id:'critique',   icon:'⚡', label:t('tc_critique'),   re:/хайп|развод|скам|скептич|не\s*верю|обман|фейк|пиар\b|нерельно|мечт|утопи/i },
-    { id:'goal',       icon:'🎯', label:t('tc_goal'),       re:/успеет|не\s*успеет|дойдёт|дойдет|не\s*дойд|прогноз|шансы|ставк.*на/i },
-  ]
-
-  const detectTags = (text) => {
-    const tags = []
-    TAG_RULES.forEach(r => { if (r.re.test(text)) tags.push(r.id) })
-    return tags
-  }
-
-  const classifiedPosts = useMemo(() => {
-    const empty = { marathon:[], discussion:[], debate:[], highlikes:[], byTag:{}, authorStats:[] }
-    if (!posts.length) return empty
-    const result = { marathon:[], discussion:[], debate:[], highlikes:[], byTag:{}, authorStats:[] }
-    TAG_RULES.forEach(r => { result.byTag[r.id] = [] })
-    const byAuthor = new Map() // author -> { count, likes, posts:[] }
-
-    posts.forEach(p => {
-      if (!passesIgnored(p)) return
-      if (!passesLikeRating(p)) return
-      if (search && !p.text?.toLowerCase().includes(search.toLowerCase())) return
-      const text = p.text || ''
-      const likes = p.likes || 0
-      const tags = detectTags(text)
-      const tagged = { ...p, _tags: tags }
-
-      if (ROMEO_RE.test(p.author)) {
-        result.marathon.push(tagged)
-      } else {
-        // Про Ромео — обсуждения с упоминанием
-        if (ROMEO_RE.test(text) && (text.length > 80 || likes >= 5)) {
-          result.discussion.push(tagged)
-        }
-        // Дебаты — длинный качественный контент
-        if (text.length > 300 && likes >= 20) {
-          result.debate.push(tagged)
-        }
-        // Хайлайты — посты с ≥10 лайков от не-Ромео (короткие вайбы тоже ок)
-        if (likes >= 10) {
-          result.highlikes.push(tagged)
-        }
-        // Статистика авторов
-        const a = byAuthor.get(p.author) || { count:0, likes:0, posts:[] }
-        a.count++; a.likes += likes; a.posts.push(tagged)
-        byAuthor.set(p.author, a)
-      }
-
-      // Теги — пост может попасть в несколько тегов
-      tags.forEach(tag => {
-        if (result.byTag[tag]) result.byTag[tag].push(tagged)
-      })
-    })
-
-    result.marathon.sort((a,b) => (b.timestamp||0)-(a.timestamp||0))
-    result.discussion.sort((a,b) => (b.timestamp||0)-(a.timestamp||0))
-    result.debate.sort((a,b) => (b.likes||0)-(a.likes||0))
-    result.highlikes.sort((a,b) => (b.likes||0)-(a.likes||0))
-    TAG_RULES.forEach(r => {
-      result.byTag[r.id].sort((a,b) => (b.likes||0)-(a.likes||0))
-    })
-
-    // Топ-авторы (≥3 постов или ≥10 суммарных лайков), сортировка по суммарным лайкам
-    result.authorStats = [...byAuthor.entries()]
-      .map(([name, v]) => ({ name, count:v.count, likes:v.likes, posts:v.posts.sort((a,b)=>(b.likes||0)-(a.likes||0)) }))
-      .filter(a => a.count >= 3 || a.likes >= 10)
-      .sort((a,b) => b.likes - a.likes)
-
-    return result
-  }, [posts, ignored, favorites, minLikes, minRating, search])
-
-  const [topicTab, setTopicTab] = useState('marathon')
-  const [topicPage, setTopicPage] = useState(1)
-  const [topicTag, setTopicTag] = useState(null)
-  const [topicSortByRaw, setTopicSortBy] = usePersistentState('rpt_topic_sortby', 'date_desc', {
-    serialize: String,
-    deserialize: (raw) => raw || 'date_desc',
-  })
-  const TOPIC_PER_PAGE = 20
-
-  const currentTopicPosts = useMemo(() => {
-    let all
-    if (topicTab === 'tags' && topicTag) {
-      all = [...(classifiedPosts.byTag[topicTag] || [])]
-    } else {
-      all = [...(classifiedPosts[topicTab] || [])]
-    }
-    if (topicSortByRaw === 'date_asc')  all.sort((a,b) => (a.timestamp||0) - (b.timestamp||0))
-    else if (topicSortByRaw === 'likes') all.sort((a,b) => (b.likes||0) - (a.likes||0))
-    else all.sort((a,b) => (b.timestamp||0) - (a.timestamp||0))
-    return {
-      all,
-      paged: all.slice((topicPage-1)*TOPIC_PER_PAGE, topicPage*TOPIC_PER_PAGE),
-      totalPages: Math.max(1, Math.ceil(all.length / TOPIC_PER_PAGE))
-    }
-  }, [classifiedPosts, topicTab, topicTag, topicPage, topicSortByRaw])
-
-  const goTopicPage = p => {
-    setTopicPage(p)
-    window.scrollTo({ top: 0, behavior: 'smooth' })
-  }
-
   const goPage = p => {
     setPage(p)
     const filterBar = document.querySelector('.filter-bar')
@@ -2055,7 +1940,6 @@ export default function App() {
   const switchTab = (tab) => {
     setActiveTab(tab)
     setPage(1)
-    setTopicPage(1)
   }
 
   const toggleFav = useCallback(author => {
@@ -2154,7 +2038,7 @@ export default function App() {
             </div>
           </div>
           <div className="topbar-tabs">
-            {(lang==='ru' ? [['feed',t('tab_feed')],['topics',t('tab_topics')],['settings',t('tab_settings')]] : [['feed',t('tab_feed')]]).map(([id,label])=>(
+            {(lang==='ru' ? [['feed',t('tab_feed')],['settings',t('tab_settings')]] : [['feed',t('tab_feed')]]).map(([id,label])=>(
               <div key={id} className={`topbar-tab ${activeTab===id?'active':''}`} onClick={()=>switchTab(id)}>{label}</div>
             ))}
           </div>
@@ -2243,7 +2127,7 @@ export default function App() {
                 <div className="marathon-progress-label">
                   <span>{t('progress_to')}</span><b>{pct.toFixed(2)}%</b>
                 </div>
-                <div className="marathon-progress-track">
+                <div className="marathon-progress-track" role="meter" aria-valuemin="0" aria-valuemax="100" aria-valuenow={Number(pct.toFixed(2))} aria-label={`${t('progress_to')}: ${pct.toFixed(2)}%`}>
                   <div className="marathon-progress-fill" style={{width:`${pct}%`}}/>
                 </div>
               </div>
@@ -2353,108 +2237,6 @@ export default function App() {
                 </div>
               </div>
             </div>
-
-            {/* ТЕМЫ */}
-            {activeTab==='topics' && (() => {
-              const MAIN_TABS = [
-                { id:'marathon',   icon:'📈', label:t('topic_marathon'),   desc:t('topic_marathon_desc') },
-                { id:'discussion', icon:'💬', label:t('topic_discussion'), desc:t('topic_discussion_desc') },
-                { id:'debate',     icon:'🔥', label:t('topic_debate'),     desc:t('topic_debate_desc') },
-                { id:'highlikes',  icon:'⭐', label:t('topic_highlikes'),  desc:t('topic_highlikes_desc') },
-                { id:'authors',    icon:'👥', label:t('topic_authors'),    desc:t('topic_authors_desc') },
-                { id:'tags',       icon:'🏷', label:t('topic_tags'),       desc:t('topic_tags_desc') },
-              ]
-              const { paged, totalPages: tpg, all } = currentTopicPosts
-              const isTagMode = topicTab === 'tags'
-              const isAuthorsMode = topicTab === 'authors'
-              const activeTagRule = isTagMode && topicTag ? TAG_RULES.find(r=>r.id===topicTag) : null
-              return <>
-                <FilterBar
-                  sortBy={topicSortByRaw} setSortBy={setTopicSortBy}
-                  search={search} setSearch={setSearch}
-                  showSearch={showSearch} setShowSearch={setShowSearch}
-                  romeoOnly={false} setRomeoOnly={()=>{}}
-                  minLikes={minLikes} setMinLikes={setMinLikes}
-                  minRating={minRating} setMinRating={setMinRating}
-                  count={all.length} showSort={true} t={t} lang={lang}
-                />
-                {/* Основные разделы */}
-                <div className="topic-tabs">
-                  {MAIN_TABS.map(mt => (
-                    <div key={mt.id}
-                      className={`topic-tab ${topicTab===mt.id?'active':''}`}
-                      onClick={()=>{ setTopicTab(mt.id); setTopicPage(1); setTopicTag(mt.id==='tags' ? TAG_RULES[0].id : null) }}>
-                      {mt.icon} {mt.label}
-                      <span className="tc">{
-                        mt.id === 'tags'
-                          ? Object.values(classifiedPosts.byTag).reduce((s,a)=>s+a.length, 0)
-                          : mt.id === 'authors'
-                            ? (classifiedPosts.authorStats?.length || 0)
-                            : (classifiedPosts[mt.id]?.length || 0)
-                      }</span>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Теги — сетка тем */}
-                {isTagMode && (
-                  <div style={{display:'flex',gap:6,flexWrap:'wrap',margin:'8px 0',padding:'2px 0'}}>
-                    {TAG_RULES.map(r => {
-                      const count = classifiedPosts.byTag[r.id]?.length || 0
-                      if (!count) return null
-                      const active = topicTag === r.id
-                      return (
-                        <button key={r.id} onClick={()=>{ setTopicTag(r.id); setTopicPage(1) }}
-                          style={{
-                            background: active ? 'var(--red)' : 'var(--bg3)',
-                            border: '1px solid ' + (active ? 'var(--red)' : 'var(--border)'),
-                            borderRadius:20, color: active ? '#fff' : 'var(--dim2)',
-                            fontSize:11, padding:'5px 12px', cursor:'pointer', fontFamily:'inherit',
-                            transition:'all .15s', whiteSpace:'nowrap', flexShrink:0,
-                          }}>
-                          {r.icon} {r.label} <span style={{opacity:.6,fontSize:10}}>{count}</span>
-                        </button>
-                      )
-                    })}
-                  </div>
-                )}
-
-                {/* Описание */}
-                <div style={{fontSize:12,color:'var(--dim)',marginBottom:10}}>
-                  {isTagMode
-                    ? (activeTagRule ? `${activeTagRule.icon} ${activeTagRule.label}` : t('topics_select_topic'))
-                    : isAuthorsMode
-                      ? `${t('topics_top_contributors')} (${classifiedPosts.authorStats?.length||0})`
-                      : MAIN_TABS.find(mt=>mt.id===topicTab)?.desc
-                  }{!isAuthorsMode && ` · ${plPosts(all.length, lang)}`}
-                </div>
-
-                {/* Авторы-режим */}
-                {isAuthorsMode
-                  ? ((classifiedPosts.authorStats?.length||0)===0
-                      ? <div className="empty-state">{t('topics_no_data')}</div>
-                      : <AuthorsPanel authors={classifiedPosts.authorStats}
-                          favorites={favorites}
-                          onFav={toggleFav} onIgnore={addIgnore}
-                          setLightbox={setLightbox} t={t}/>)
-                  : all.length===0
-                  ? <div className="empty-state">{isTagMode && !topicTag ? t('topics_select_topic_above') : t('topics_no_posts')}</div>
-                  : <>
-                    <Paginator page={topicPage} totalPages={tpg} onPage={goTopicPage}
-                      perPage={TOPIC_PER_PAGE} onPerPage={()=>{}} total={all.length}/>
-                    {paged.map(p=>(
-                      <PostCard key={p.id||p.url} p={p}
-                        favorites={favorites} onFav={toggleFav}
-                        onIgnore={addIgnore} setLightbox={setLightbox}
-                        noClamp={topicTab==='marathon'}
-                        tags={p._tags && isTagMode ? p._tags.filter(tid=>tid!==topicTag).map(tid=>TAG_RULES.find(r=>r.id===tid)).filter(Boolean) : null} lang={lang}/>
-                    ))}
-                    <Paginator page={topicPage} totalPages={tpg} onPage={goTopicPage}
-                      perPage={TOPIC_PER_PAGE} onPerPage={()=>{}} total={all.length}/>
-                  </>
-                }
-              </>
-            })()}
 
             {/* ЛЕНТА */}
             {activeTab==='feed' && <>
@@ -2606,13 +2388,6 @@ export default function App() {
                 <div className="sblock-title">📊 {t('stats')}</div>
                 <div className="sblock-body">
                   {[
-                    [t('sr_br'), <span key="br" className={`srow-val ${stats.br?'green':''}`}>{fmtExact(stats.br||meta?.bankroll)}</span>],
-                    (() => {
-                      const pv = periodStats?.profit ?? stats.profit
-                      return [t('sr_profit') + (periodStats?.profit != null ? '*' : ''),
-                        <span key="pr" className={`srow-val ${!pv?'':pv>=0?'green':'red'}`}
-                          title={periodStats?.profit != null ? `${t('for_period')} ${t(chartPeriod==='week'?'period_week':'period_month').toLowerCase()}` : undefined}>{fmtBR(pv)}</span>]
-                    })(),
                     [t('sr_day'), <span key="d" className="srow-val gold">#{stats.day||meta?.day||'—'}</span>],
                     [t('sr_tourneys'), <span key="mtt" className="srow-val">{fmtInt(meta?.totalTournaments ?? 3565)}</span>],
                     (periodStats?.avgMTT ?? stats.avgMTT) != null && [

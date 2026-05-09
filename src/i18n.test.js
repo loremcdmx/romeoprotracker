@@ -19,7 +19,7 @@ describe('i18n helpers', () => {
 
   it('creates language-specific translators', () => {
     const es = createTranslator('es')
-    expect(es('tab_topics')).toBe('Temas')
+    expect(es('tab_settings')).toBe('Ajustes')
     expect(FORUM_WORD.es).toBe('foro')
   })
 
