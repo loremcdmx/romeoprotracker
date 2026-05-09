@@ -91,7 +91,7 @@ a{color:var(--red2);text-decoration:none}
 /* ACTIVITY CHART */
 .chart-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:16px;position:relative}
 .chart-svg{width:100%;overflow:visible}
-.chart-label{font-size:9px;fill:var(--axis-y-muted);text-anchor:middle;font-family:'Roboto Mono',monospace;font-weight:700}
+.chart-label{font-size:9px;fill:var(--axis-y-muted);font-family:'Roboto Mono',monospace;font-weight:700}
 
 /* GLOBAL FILTER BAR */
 .filter-bar{display:flex;gap:8px;align-items:center;flex-wrap:wrap;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:10px 14px;margin-bottom:14px}

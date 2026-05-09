@@ -947,6 +947,9 @@ function ActivityChart({ posts, favorites, ignored, onFav, onIgnore, onUnignore,
           const x  = i * (bw + pad)
           const bh = Math.max(3, (count / max) * H)
           const isSelected = selected?.date === date
+          const labelX = x + bw / 2
+          const labelEdge = 40
+          const labelAnchor = labelX < labelEdge ? 'start' : labelX > W - labelEdge ? 'end' : 'middle'
           return (
             <g key={date} className="activity-bar" style={{cursor:'pointer'}}
               onMouseEnter={(e)=>{
@@ -972,7 +975,14 @@ function ActivityChart({ posts, favorites, ignored, onFav, onIgnore, onUnignore,
               }}>
               <rect x={x} y={H-bh} width={bw} height={bh} rx={2}
                 className={isSelected ? 'activity-bar-rect active' : 'activity-bar-rect'}/>
-              {labelSet.has(i) && <text x={x+bw/2} y={H+16} className="chart-label">{date.slice(5)}</text>}
+              {labelSet.has(i) && (
+                <text x={labelX} y={H+16}
+                  textAnchor={labelAnchor}
+                  style={{textAnchor:labelAnchor}}
+                  className="chart-label">
+                  {date.slice(5)}
+                </text>
+              )}
             </g>
           )
         })}

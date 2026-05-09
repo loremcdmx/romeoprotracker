@@ -104,6 +104,33 @@ describe('App', () => {
     expect(await screen.findByText(new RegExp(translate('ru', 'chart_marathon').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))).toBeInTheDocument()
   })
 
+  it('anchors activity chart edge labels inside the SVG bounds', async () => {
+    const day = 86400
+    const posts = Array.from({ length:61 }, (_, i) => ({
+      id: `activity-${i}`,
+      author: i % 5 === 0 ? 'Romeopro' : `User${i}`,
+      text: `Activity post ${i}`,
+      likes: i % 10,
+      timestamp: 1710028800 + i * day,
+      date: `D${i}`,
+      rating: 1000,
+      msgCount: i,
+      regData: '2024',
+      brAfter: null,
+      images: [],
+      url: `https://forum.gipsyteam.ru/activity-${i}`,
+    }))
+    fetchPublicData.mockResolvedValue(makeMockData({ posts }))
+    render(<App />)
+    expect(await screen.findByText(new RegExp(translate('ru', 'chart_activity')))).toBeInTheDocument()
+    fireEvent.click(screen.getAllByText(translate('ru', 'period_all_marathon'))[0])
+
+    const labels = document.querySelectorAll('.chart-label')
+    expect(labels.length).toBeGreaterThan(1)
+    expect([...labels].some(label => label.getAttribute('text-anchor') === 'start')).toBe(true)
+    expect([...labels].some(label => label.getAttribute('text-anchor') === 'end')).toBe(true)
+  })
+
   it('condenses dense same-sign marathon markers and uses rebuilt axes', async () => {
     const base = makeMockData()
     const brHistory = Array.from({ length:80 }, (_, i) => ({
