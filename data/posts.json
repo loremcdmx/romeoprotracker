@@ -100542,7 +100542,7 @@
     "date": "8 мая, 20:24",
     "timestamp": 1778264659,
     "text": "",
-    "likes": 15,
+    "likes": 16,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_05_2026/post-6259-1778264656a1d4.png"
     ],
@@ -100562,7 +100562,7 @@
     "date": "8 мая, 20:59",
     "timestamp": 1778266796,
     "text": "",
-    "likes": 10,
+    "likes": 14,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_05_2026/post-6259-1778264656a1d4.png"
     ],
@@ -100600,7 +100600,7 @@
     "date": "8 мая, 21:05",
     "timestamp": 1778267141,
     "text": "Понятно что тут МТТшники собрались, но 2 раза повторить достаточно... не совсем уж тупые...",
-    "likes": 28,
+    "likes": 33,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -100618,7 +100618,7 @@
     "date": "8 мая, 21:18",
     "timestamp": 1778267935,
     "text": "",
-    "likes": 16,
+    "likes": 18,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_05_2026/post-6259-17782679327a9c.png"
     ],
@@ -100638,7 +100638,7 @@
     "date": "8 мая, 21:19",
     "timestamp": 1778267961,
     "text": "Аватар козы сюда",
-    "likes": 9,
+    "likes": 10,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_05_2026/post-36350-1778267956484a_thumb.webp"
     ],
@@ -100923,7 +100923,7 @@
     "date": "9 мая, 01:51",
     "timestamp": 1778284272,
     "text": "",
-    "likes": 7,
+    "likes": 10,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_05_2026/post-187091-1778284266cdfc.png"
     ],
@@ -100943,7 +100943,7 @@
     "date": "9 мая, 01:52",
     "timestamp": 1778284362,
     "text": "[QUOTE]Igorke34|Igorke34 @ 09.05.26\nпро какой спот идет речь?[/QUOTE]Спот с писей Ники Владич?\n\nСтраниц 100 назад была, у Лео спроси, он точнее знает",
-    "likes": 1,
+    "likes": 2,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -101015,7 +101015,7 @@
     "date": "9 мая, 04:22",
     "timestamp": 1778293348,
     "text": "Day 49:\n\n    \n\n \n\n39:",
-    "likes": 27,
+    "likes": 61,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_05_2026/post-6195-1778293267401f_thumb.webp",
       "https://static-forum.gipsyteam.ru/monthly_05_2026/post-6195-177829334189d7.png"
@@ -101047,5 +101047,59 @@
       "en": "Day 49:\n\n    \n\n \n\n39:",
       "es": "Día 49:\n\n    \n\n \n\n39:"
     }
+  },
+  {
+    "id": "8228916",
+    "author": "Kazimir17",
+    "avatar": "/img/imguser.png",
+    "rating": 4686,
+    "msgCount": 3234,
+    "regData": "15 лет на сайте",
+    "date": "9 мая, 07:24",
+    "timestamp": 1778304242,
+    "text": "Результаты - просто ох...еть и не встать )))))",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8228916"
+  },
+  {
+    "id": "8228917",
+    "author": "flash11123",
+    "avatar": "/img/imguser.png",
+    "rating": 54,
+    "msgCount": 97,
+    "regData": "8 лет на сайте",
+    "date": "9 мая, 07:25",
+    "timestamp": 1778304309,
+    "text": "[QUOTE]Kazimir17|Kazimir17 @ 09.05.26\nРезультаты - просто ох...еть и не встать )))))[/QUOTE]Может все забыли как он месяц не мог ничего выиграть на аби 20-30, вот начали правильно сдавать.",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8228917"
+  },
+  {
+    "id": "8228918",
+    "author": "PPL",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/1/5/9/7/159711.jpg",
+    "rating": 3413,
+    "msgCount": 1118,
+    "regData": "16 лет на сайте",
+    "date": "9 мая, 07:41",
+    "timestamp": 1778305295,
+    "text": "flash11123, это был ресерч поляны и настройка хоткейсов.",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8228918"
   }
 ]
