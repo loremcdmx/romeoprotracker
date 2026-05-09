@@ -133,6 +133,13 @@ describe('App', () => {
     expect(document.querySelectorAll('.mc-ylabel-bg')).toHaveLength(0)
     expect(document.querySelectorAll('.mc-xaxis-label-main').length).toBeGreaterThan(0)
     expect(document.querySelectorAll('.mc-yaxis-label').length).toBeGreaterThan(0)
+
+    const groupedRing = document.querySelector('.mc-dot-grouped-ring')
+    const hoverTarget = groupedRing?.parentElement?.querySelector('circle[fill="transparent"]')
+    expect(hoverTarget).toBeTruthy()
+    fireEvent.mouseEnter(hoverTarget)
+    expect(document.querySelector('.mc-session-breakdown')).toBeInTheDocument()
+    expect(document.querySelectorAll('.mc-session-row').length).toBeGreaterThan(1)
   })
 
   it('renders post cards in feed', async () => {

@@ -79,7 +79,7 @@ a{color:var(--red2);text-decoration:none}
 .mc-line-shadow{stroke:rgba(229,57,53,.18);stroke-linecap:round;stroke-linejoin:round;filter:blur(1px)}
 .mc-dot{stroke:#111;stroke-width:2.2;cursor:pointer;transition:r .1s;filter:drop-shadow(0 1px 3px rgba(0,0,0,.65))}
 .mc-dot-grouped{stroke-width:2.4}
-.mc-dot-grouped-ring{fill:none;stroke-width:1.2;opacity:.28;pointer-events:none}
+.mc-dot-grouped-ring{fill:none;stroke-width:1;opacity:.22;pointer-events:none}
 .mc-guide{stroke:var(--chart-grid-strong);stroke-width:1;stroke-dasharray:1 5;opacity:.48}
 .mc-x-tickmark{stroke:var(--chart-grid-strong);stroke-width:1.1;stroke-linecap:round;opacity:.72}
 .mc-xaxis-label-main{font-family:'Roboto Mono',monospace;font-size:11px;font-weight:800;fill:var(--axis-x);font-variant-numeric:tabular-nums;letter-spacing:0;text-shadow:0 1px 8px rgba(0,0,0,.55)}
@@ -429,6 +429,22 @@ html{scroll-behavior:smooth}
   box-shadow:0 2px 8px rgba(0,0,0,.4);
 }
 .light .mc-pill{background:rgba(255,255,255,0.92);border-color:rgba(0,0,0,0.12);box-shadow:0 2px 8px rgba(0,0,0,.1)}
+.mc-session-breakdown{
+  display:flex;flex-direction:column;gap:3px;
+  margin:3px 0 8px;padding:7px 0;
+  border-top:1px solid rgba(255,255,255,.08);
+  border-bottom:1px solid rgba(255,255,255,.06);
+}
+.mc-session-row{
+  display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:9px;align-items:baseline;
+  font-family:'Roboto Mono',monospace;font-size:10px;line-height:1.35;
+}
+.mc-session-date{color:var(--dim2);min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mc-session-profit{font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}
+.mc-session-profit.pos{color:#66bb6a}
+.mc-session-profit.neg{color:#ff5252}
+.mc-session-mtt{color:var(--dim);font-variant-numeric:tabular-nums;white-space:nowrap}
+.light .mc-session-breakdown{border-top-color:rgba(0,0,0,.10);border-bottom-color:rgba(0,0,0,.08)}
 
 /* ─── THEME TOGGLE ──────────────────────────────────────────────────────── */
 .theme-toggle{background:none;border:1px solid var(--border);border-radius:20px;cursor:pointer;color:var(--dim);font-size:13px;padding:3px 8px;transition:all .2s;line-height:1}

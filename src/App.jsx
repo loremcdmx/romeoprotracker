@@ -198,9 +198,26 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
   const xLabelEdgePad = isMobile ? 6 : 8
   const signOfProfit = v => v > 0 ? 1 : v < 0 ? -1 : 0
   const profitSignAt = i => signOfProfit(points[i]?.br - points[i]?.brPrev)
+  const mttDeltaAt = i => {
+    const p = points[i]
+    if (!p) return null
+    if (p.tournaments) return p.tournaments
+    const prevTotal = i > 0 ? points[i - 1]?.totalTournaments : null
+    if (p.totalTournaments && prevTotal) return Math.max(0, p.totalTournaments - prevTotal)
+    return null
+  }
   const markerGroups = (() => {
     if (!points.length) return []
-    if (points.length === 1) return [{ start:0, end:0 }]
+    if (points.length === 1) return [{
+      start:0,
+      end:0,
+      p:points[0],
+      x:coords[0].x,
+      y:coords[0].y,
+      profit:points[0].br - points[0].brPrev,
+      count:1,
+      sessions:[{ p:points[0], profit:points[0].br - points[0].brPrev, tournaments:mttDeltaAt(0) }],
+    }]
 
     const groups = []
     const minMarkerGap = isMobile ? 24 : 18
@@ -241,6 +258,10 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
         y: coords[g.end].y,
         profit: points[g.end].br - (points[g.start]?.brPrev ?? points[g.end].brPrev),
         count: g.end - g.start + 1,
+        sessions: points.slice(g.start, g.end + 1).map((p, offset) => {
+          const idx = g.start + offset
+          return { p, profit:p.br - p.brPrev, tournaments:mttDeltaAt(idx) }
+        }),
       }))
   })()
 
@@ -258,7 +279,7 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
       if (!nearest) return
       const p = nearest.p
       announceHoverPopupOpen()
-      setTip({ p, profit:nearest.profit, x:nearest.x, y:nearest.y, screenY: sy, groupCount:nearest.count })
+      setTip({ p, profit:nearest.profit, x:nearest.x, y:nearest.y, screenY: sy, groupCount:nearest.count, sessions:nearest.sessions })
     }, 300)
   }
   const handleTouchEnd = () => { clearTimeout(longPressTimer.current) }
@@ -363,11 +384,13 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
           const sorted = [...labelSet].sort((a,b) => coords[a].x - coords[b].x)
           const finalLabels = new Set()
           let prevX = -Infinity
-          const minLabelGap = isMobile ? 72 : 62
+          const minLabelGap = isMobile ? 78 : 68
+          const lastLabelGap = isMobile ? 104 : 92
           for (const idx of sorted) {
-            if (coords[idx].x - prevX >= minLabelGap || idx === points.length - 1) {
+            const gap = coords[idx].x - prevX
+            if (gap >= minLabelGap || idx === points.length - 1) {
               // For the last point, remove previous if too close
-              if (idx === points.length - 1 && coords[idx].x - prevX < minLabelGap) {
+              if (idx === points.length - 1 && gap < lastLabelGap) {
                 for (const prev of [...finalLabels].reverse()) {
                   if (prev !== 0) { finalLabels.delete(prev); break }
                 }
@@ -377,7 +400,7 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
             }
           }
           return markerGroups.map(m => ({ ...m, i:m.end, showL: finalLabels.has(m.end) }))
-        })().map(({ p, i, x, y, profit, count, showL }) => {
+        })().map(({ p, i, x, y, profit, count, sessions, showL }) => {
           const isLast = i===points.length-1
           const cx=x, cy=y
           const isHovered = tip?.p === p
@@ -385,14 +408,16 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
           const dotR = isMobile
             ? (isHovered ? (isLast ? 8 : 6) : (isLast ? 6 : isGrouped ? 4.5 : 3.4))
             : (isHovered ? (isLast ? 8 : 6) : (isLast ? 6 : isGrouped ? 4.6 : 3.8))
+          const openTip = () => {
+            announceHoverPopupOpen()
+            setTip({p,profit,x:cx,y:cy,groupCount:count,sessions})
+          }
           return (
-            <g key={i}>
+            <g key={i} onMouseEnter={!isMobile ? openTip : undefined}
+              onClick={!isMobile ? e => { e.stopPropagation(); openTip() } : undefined}>
               {!isMobile && <circle cx={cx} cy={cy} r={isLast?14:10} fill="transparent"
-                onMouseEnter={()=>{
-                  announceHoverPopupOpen()
-                  setTip({p,profit,x:cx,y:cy,groupCount:count})
-                }}/>}
-              {isGrouped && <circle cx={cx} cy={cy} r={dotR + 4.2}
+                />}
+              {isGrouped && <circle cx={cx} cy={cy} r={dotR + 2.6}
                 className="mc-dot-grouped-ring"
                 stroke={profit>=0?'#4caf50':'#e53935'}/>}
               <circle cx={cx} cy={cy} r={dotR}
@@ -466,8 +491,19 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
               </div>
             )}
             {tip.groupCount > 1 && (
-              <div style={{fontSize:10,color:'var(--dim)',marginBottom:roomDeltas.length?8:4}}>
+              <div style={{fontSize:10,color:'var(--dim)',marginBottom:6}}>
                 {lang === 'ru' ? 'точка объединяет' : lang === 'es' ? 'punto agrupado' : 'merged point'}: <b style={{color:'var(--dim2)'}}>{plSessions(tip.groupCount, lang)}</b>
+              </div>
+            )}
+            {tip.groupCount > 1 && tip.sessions?.length > 0 && (
+              <div className="mc-session-breakdown">
+                {tip.sessions.map((s, idx) => (
+                  <div key={`${s.p.timestamp || idx}-${idx}`} className="mc-session-row">
+                    <span className="mc-session-date">{fmtDateShortLang(s.p.timestamp, lang)}</span>
+                    <span className={s.profit >= 0 ? 'mc-session-profit pos' : 'mc-session-profit neg'}>{fk(s.profit)}</span>
+                    <span className="mc-session-mtt">{s.tournaments ? `${fmtInt(s.tournaments)} MTT` : '—'}</span>
+                  </div>
+                ))}
               </div>
             )}
             {roomDeltas.length>0 && (
