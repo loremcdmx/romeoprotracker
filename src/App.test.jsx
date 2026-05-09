@@ -104,6 +104,37 @@ describe('App', () => {
     expect(await screen.findByText(new RegExp(translate('ru', 'chart_marathon').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))).toBeInTheDocument()
   })
 
+  it('condenses dense same-sign marathon markers and uses rebuilt axes', async () => {
+    const base = makeMockData()
+    const brHistory = Array.from({ length:80 }, (_, i) => ({
+      brAfter: 10000 + (i + 1) * 900,
+      brPrev: 10000 + i * 900,
+      date: `D${i + 1}`,
+      timestamp: 1712300000 + i * 3600,
+      sessionResult: 900,
+      totalTournaments: (i + 1) * 100,
+      tournaments: 100,
+      text: `Session ${i + 1}`,
+    }))
+    fetchPublicData.mockResolvedValue(makeMockData({
+      meta: {
+        ...base.meta,
+        brHistory,
+        totalTournaments: 8000,
+      },
+    }))
+
+    render(<App />)
+
+    expect(await screen.findByText(new RegExp(translate('ru', 'chart_marathon').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))).toBeInTheDocument()
+    expect(document.querySelectorAll('.mc-dot').length).toBeLessThan(brHistory.length)
+    expect(document.querySelectorAll('.mc-dot-grouped-ring').length).toBeGreaterThan(0)
+    expect(document.querySelectorAll('.mc-xlabel-bg')).toHaveLength(0)
+    expect(document.querySelectorAll('.mc-ylabel-bg')).toHaveLength(0)
+    expect(document.querySelectorAll('.mc-xaxis-label-main').length).toBeGreaterThan(0)
+    expect(document.querySelectorAll('.mc-yaxis-label').length).toBeGreaterThan(0)
+  })
+
   it('renders post cards in feed', async () => {
     render(<App />)
     const elements = await screen.findAllByText('Romeopro')
