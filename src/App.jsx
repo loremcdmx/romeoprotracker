@@ -129,15 +129,16 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
 
   const W = isMobile ? 520 : 700
   const H = isMobile ? (period === 'all' ? 520 : 420) : 240
-  const pL = isMobile ? 48 : 52
-  const pR = isMobile ? 16 : 20
+  const pL = isMobile ? 60 : 58
+  const pR = isMobile ? 18 : 22
   const pT = isMobile ? 18 : 14
   const pB = isMobile ? 62 : 44
+  const plotBottom = H - pB
   const dataMin = Math.min(...points.map(p=>p.br), startBR)
   const dataMax = Math.max(...points.map(p=>p.br), startBR)
   const minV = Math.max(0, Math.floor(dataMin * 0.7 / 1000) * 1000)
   const maxV = dataMax * 1.05
-  const yOf = v => pT + (1-(v-minV)/(maxV-minV)) * (H-pT-pB)
+  const yOf = v => pT + (1-(v-minV)/(maxV-minV)) * (plotBottom-pT)
 
   // Two arrays: cumMTT (absolute totals, used for display labels) and cumMTTX
   // (normalized + anti-overlap, used for X-axis positioning). Mixing them caused
@@ -171,7 +172,14 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
   })()
   const coords = points.map((p,i) => ({ x:xOf(i), y:yOf(p.br) }))
   const linePath = makeBezierPath(coords)
-  const areaPath = makeBezierArea(coords, H - pB)
+  const areaPath = makeBezierArea(coords, plotBottom)
+  const fmtMoneyTick = v => {
+    if (v >= 1000) {
+      const k = v / 1000
+      return `$${Number.isInteger(k) ? k : k.toFixed(1)}k`
+    }
+    return `$${v}`
+  }
   // Y ticks: true linear scale.
   const yTicks = (() => {
     const candidates = [1000,2000,5000,10000,20000,50000]
@@ -215,22 +223,10 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
     <div className="marathon-chart" ref={chartRef} onClick={tip?()=>setTip(null):undefined}>
       <div className="section-head" style={{marginBottom:6,display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
         <span className="section-title">{t('chart_marathon')}</span>
-        <div style={{display:'flex',gap:4,marginLeft:'auto'}}>
+        <div className="mc-periods">
           {[['week',t('period_week')],['month',t('period_month')],['all',t('period_all')]].map(([k,label])=>(
             <button key={k} onClick={()=>setPeriodPersist(k)}
-              style={{
-                background: period===k?'var(--red)':'var(--bg3)',
-                border:'1px solid '+(period===k?'var(--red)':'var(--border2)'),
-                borderRadius:4,
-                color: period===k?'#fff':'var(--dim2)',
-                fontSize:10,
-                padding:'3px 8px',
-                cursor:'pointer',
-                fontFamily:'inherit',
-                fontWeight:600,
-                textTransform:'uppercase',
-                letterSpacing:'.04em',
-              }}>
+              className={`mc-period ${period===k?'active':''}`}>
               {label}
             </button>
           ))}
@@ -248,24 +244,40 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
         style={{touchAction:'pan-y',WebkitUserSelect:'none',userSelect:'none',WebkitTouchCallout:'none'}}>
         <defs>
           <linearGradient id="mcGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%"   stopColor="#ff6b6b" stopOpacity=".45"/>
-            <stop offset="70%"  stopColor="#ff6b6b" stopOpacity=".08"/>
+            <stop offset="0%"   stopColor="#ff6b6b" stopOpacity=".34"/>
+            <stop offset="58%"  stopColor="#ff6b6b" stopOpacity=".08"/>
             <stop offset="100%" stopColor="#ff6b6b" stopOpacity="0"/>
           </linearGradient>
+          <linearGradient id="mcLineGrad" x1={pL} y1="0" x2={W-pR} y2="0" gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stopColor="#ff6b6b"/>
+            <stop offset="60%" stopColor="#ff8a65"/>
+            <stop offset="100%" stopColor="#ffd166"/>
+          </linearGradient>
+          <radialGradient id="mcPlotGlow" cx="86%" cy="18%" r="72%">
+            <stop offset="0%" stopColor="#ffb300" stopOpacity=".12"/>
+            <stop offset="55%" stopColor="#e53935" stopOpacity=".035"/>
+            <stop offset="100%" stopColor="#e53935" stopOpacity="0"/>
+          </radialGradient>
           <filter id="mcGlow" x="-20%" y="-20%" width="140%" height="140%">
             <feGaussianBlur stdDeviation="2" result="blur"/>
             <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
           </filter>
         </defs>
+        <rect x={pL} y={pT} width={W-pL-pR} height={plotBottom-pT} rx="10" className="mc-plot-bg"/>
+        <rect x={pL} y={pT} width={W-pL-pR} height={plotBottom-pT} rx="10" fill="url(#mcPlotGlow)" className="mc-plot-glow"/>
         {yTicks.map(({v,y},i) => (
           <g key={i}>
             <line x1={pL} y1={y} x2={W-pR} y2={y} className="mc-grid"/>
-            <text x={pL-5} y={y+3} className="mc-ylabel">{v >= 1000 ? `$${v/1000%1===0?(v/1000)+'k':(v/1000).toFixed(1)+'k'}` : `$${v}`}</text>
+            <rect x={8} y={y-10} width={pL-18} height="20" rx="6" className="mc-ylabel-bg"/>
+            <text x={pL-15} y={y+3.5} className="mc-ylabel">{fmtMoneyTick(v)}</text>
           </g>
         ))}
         <line x1={pL} y1={yOf(startBR)} x2={W-pR} y2={yOf(startBR)} className="mc-zero"/>
+        <line x1={pL} y1={plotBottom} x2={W-pR} y2={plotBottom} className="mc-axis-line"/>
+        <line x1={pL} y1={pT} x2={pL} y2={plotBottom} className="mc-axis-line mc-axis-line-y"/>
         <path d={areaPath} fill="url(#mcGrad)"/>
-        <path ref={pathRef} d={linePath} fill="none" stroke="#ff6b6b" strokeWidth={isMobile ? 3.2 : 2.5}
+        <path d={linePath} fill="none" className="mc-line-shadow" strokeWidth={isMobile ? 7 : 5}/>
+        <path ref={pathRef} d={linePath} fill="none" stroke="url(#mcLineGrad)" strokeWidth={isMobile ? 3.2 : 2.7}
           strokeLinecap="round" strokeLinejoin="round" filter="url(#mcGlow)"
           style={pathLen!=null ? {
             strokeDasharray: pathLen,
@@ -279,7 +291,7 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
           const labelSet = new Set([0, points.length - 1])
           const totalW = coords.length > 1 ? coords[coords.length-1].x - coords[0].x : 0
           if (totalW > 0) {
-            const nLabels = Math.min(8, points.length)
+            const nLabels = Math.min(isMobile ? 6 : 8, points.length)
             const step = totalW / (nLabels - 1)
             for (let s = 1; s < nLabels - 1; s++) {
               const targetX = coords[0].x + s * step
@@ -295,10 +307,11 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
           const sorted = [...labelSet].sort((a,b) => a - b)
           const finalLabels = new Set()
           let prevX = -Infinity
+          const minLabelGap = isMobile ? 72 : 62
           for (const idx of sorted) {
-            if (coords[idx].x - prevX >= 55 || idx === points.length - 1) {
+            if (coords[idx].x - prevX >= minLabelGap || idx === points.length - 1) {
               // For the last point, remove previous if too close
-              if (idx === points.length - 1 && coords[idx].x - prevX < 55) {
+              if (idx === points.length - 1 && coords[idx].x - prevX < minLabelGap) {
                 for (const prev of [...finalLabels].reverse()) {
                   if (prev !== 0) { finalLabels.delete(prev); break }
                 }
@@ -328,16 +341,19 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
                 style={{transition:'r .12s', ...(isLast?{color:profit>=0?'#4caf50':'#e53935'}:{})}}/>
               {showL && (() => {
                 const lx = Math.min(Math.max(cx,pL),W-pR)
+                const labelW = isMobile ? 62 : 66
+                const labelH = 34
+                const labelY = H + pB - labelH - 6
+                const labelX = Math.min(Math.max(lx - labelW / 2, 4), W - labelW - 4)
+                const tx = labelX + labelW / 2
                 return (
-                  <g>
-                    <line x1={lx} y1={cy + (isLast?6:4) + 3} x2={lx} y2={H+pB-32}
-                      stroke="var(--border2)" strokeWidth="1" strokeDasharray="1 3" opacity="0.55"/>
-                    <text x={lx} y={H+pB-22} textAnchor="middle" fontFamily="'Roboto Mono',monospace"
-                      fontSize="11" fontWeight="700" fill="var(--axis-x)">
+                  <g className={`mc-x-tick ${isLast?'last':''}`}>
+                    <line x1={lx} y1={cy + (isLast?6:4) + 3} x2={lx} y2={labelY - 5} className="mc-guide"/>
+                    <rect x={labelX} y={labelY} width={labelW} height={labelH} rx="8" className="mc-xlabel-bg"/>
+                    <text x={tx} y={labelY+14} textAnchor="middle" className="mc-xlabel-main">
                       {cumMTT[i] ? fmtInt(cumMTT[i]) : '—'}
                     </text>
-                    <text x={lx} y={H+pB-8} textAnchor="middle" fontFamily="'Roboto Mono',monospace"
-                      fontSize="8" fontWeight="600" fill="var(--axis-x-muted)">
+                    <text x={tx} y={labelY+27} textAnchor="middle" className="mc-xlabel-sub">
                       {fmtDateShortLang(p.timestamp, lang)}
                     </text>
                   </g>
