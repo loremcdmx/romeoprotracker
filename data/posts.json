@@ -101015,7 +101015,7 @@
     "date": "9 мая, 04:22",
     "timestamp": 1778293348,
     "text": "Day 49:\n\n    \n\n \n\n39:",
-    "likes": 189,
+    "likes": 191,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_05_2026/post-6195-1778293267401f_thumb.webp",
       "https://static-forum.gipsyteam.ru/monthly_05_2026/post-6195-177829334189d7.png"
@@ -101404,7 +101404,7 @@
     "date": "9 мая, 18:04",
     "timestamp": 1778342660,
     "text": "Положение в лидербордах:",
-    "likes": 22,
+    "likes": 23,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_05_2026/post-134495-17783425579841_thumb.webp",
       "https://static-forum.gipsyteam.ru/monthly_05_2026/post-134495-17783425989dbf_thumb.webp",
@@ -101540,7 +101540,7 @@
     "date": "10 мая, 04:09",
     "timestamp": 1778378981,
     "text": "Day 50:",
-    "likes": 13,
+    "likes": 18,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_05_2026/post-6195-17783789719ce9_thumb.webp"
     ],
@@ -101583,5 +101583,41 @@
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8229454"
+  },
+  {
+    "id": "8229457",
+    "author": "Skyalen",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/1/4/5/1/145118.jpg",
+    "rating": 3156,
+    "msgCount": 983,
+    "regData": "7 лет на сайте",
+    "date": "10 мая, 06:07",
+    "timestamp": 1778386028,
+    "text": "[QUOTE]JohnScarnie|JohnScarnie @ 10.05.26\npokerpain, не укладывается у меня, зачем Роман подключает омаху, это же невозможно вывести в +, только с ебнутым кефом, полудить на 55$?, не думаю, что ему это интересно[/QUOTE]В омахе всегда приятные составы в мтт. Это тебе не зумПЛ200)",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8229457"
+  },
+  {
+    "id": "8229468",
+    "author": "Anabiaz777",
+    "avatar": "/img/imguser.png",
+    "rating": 138,
+    "msgCount": 133,
+    "regData": "12 лет на сайте",
+    "date": "10 мая, 06:52",
+    "timestamp": 1778388731,
+    "text": "В этой теме можно обсуждать заслуженно ли проиграл Чэмаев?",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8229468"
   }
 ]
