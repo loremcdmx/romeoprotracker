@@ -131,9 +131,9 @@ describe('App', () => {
     expect([...labels].some(label => label.getAttribute('text-anchor') === 'end')).toBe(true)
   })
 
-  it('uses milestone and big-session labels on the marathon X axis', async () => {
+  it('uses semantic event labels on the marathon X axis', async () => {
     const base = makeMockData()
-    const brs = [18000, 31000, 48000, 76000, 101000, 122000, 121000, 124000]
+    const brs = [18000, 31000, 48000, 76000, 101000, 122000, 112000, 119000]
     const brHistory = brs.map((brAfter, i) => {
       const brPrev = i === 0 ? 10000 : brs[i - 1]
       return {
@@ -159,10 +159,18 @@ describe('App', () => {
     expect(await screen.findByText(new RegExp(translate('ru', 'chart_marathon').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))).toBeInTheDocument()
 
     const labels = [...document.querySelectorAll('.mc-xaxis-label-main')].map(label => label.textContent)
-    expect(labels).toContain('$100k')
-    expect(labels.some(label => label?.startsWith('+'))).toBe(true)
+    const allAxisText = [...document.querySelectorAll('.mc-xaxis-label-main, .mc-xaxis-label-sub')]
+      .map(label => label.textContent)
+      .join(' ')
+    expect(allAxisText).toContain('$100k')
+    expect(labels.some(label => label?.includes('БЕСТ'))).toBe(true)
+    expect(labels.some(label => label?.includes('ВОРСТ'))).toBe(true)
+    expect(labels.some(label => label?.includes('ПИК'))).toBe(true)
     expect(document.querySelector('.mc-x-tick.milestone')).toBeInTheDocument()
-    expect(document.querySelector('.mc-x-tick.win')).toBeInTheDocument()
+    expect(document.querySelector('.mc-x-tick.best')).toBeInTheDocument()
+    expect(document.querySelector('.mc-x-tick.worst')).toBeInTheDocument()
+    expect(document.querySelector('.mc-profit-band.pos')).toBeInTheDocument()
+    expect(document.querySelector('.mc-profit-band.neg')).toBeInTheDocument()
   })
 
   it('condenses dense same-sign marathon markers and uses rebuilt axes', async () => {
@@ -190,6 +198,10 @@ describe('App', () => {
     expect(await screen.findByText(new RegExp(translate('ru', 'chart_marathon').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))).toBeInTheDocument()
     expect(document.querySelectorAll('.mc-dot').length).toBeLessThan(brHistory.length)
     expect(document.querySelectorAll('.mc-dot-grouped-ring').length).toBeGreaterThan(0)
+    const tailMarkers = [...document.querySelectorAll('g[data-start][data-end]')]
+      .filter(marker => Number(marker.dataset.start) >= brHistory.length - 5)
+    expect(tailMarkers).toHaveLength(5)
+    expect(tailMarkers.every(marker => marker.dataset.count === '1')).toBe(true)
     expect(document.querySelectorAll('.mc-xlabel-bg')).toHaveLength(0)
     expect(document.querySelectorAll('.mc-ylabel-bg')).toHaveLength(0)
     expect(document.querySelectorAll('.mc-xaxis-label-main').length).toBeGreaterThan(0)

@@ -196,8 +196,16 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
   const xMainLabelY = xAxisY + (isMobile ? 19 : 16)
   const xSubLabelY = xMainLabelY + (isMobile ? 13 : 11)
   const xLabelEdgePad = isMobile ? 6 : 8
+  const xLabelLanes = 3
+  const xLabelLaneGap = isMobile ? 24 : 22
+  const xLabelExtraBottom = (xLabelLanes - 1) * xLabelLaneGap
   const signOfProfit = v => v > 0 ? 1 : v < 0 ? -1 : 0
-  const profitSignAt = i => signOfProfit(points[i]?.br - points[i]?.brPrev)
+  const sessionProfitAt = i => {
+    const p = points[i]
+    if (!p) return 0
+    return p.sessionResult ?? (p.br - p.brPrev)
+  }
+  const profitSignAt = i => signOfProfit(sessionProfitAt(i))
   const mttDeltaAt = i => {
     const p = points[i]
     if (!p) return null
@@ -214,13 +222,14 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
       p:points[0],
       x:coords[0].x,
       y:coords[0].y,
-      profit:points[0].br - points[0].brPrev,
+      profit:sessionProfitAt(0),
       count:1,
-      sessions:[{ p:points[0], profit:points[0].br - points[0].brPrev, tournaments:mttDeltaAt(0) }],
+      sessions:[{ p:points[0], profit:sessionProfitAt(0), tournaments:mttDeltaAt(0) }],
     }]
 
     const groups = []
     const minMarkerGap = isMobile ? 24 : 18
+    const detailedTailStart = Math.max(0, points.length - 5)
     let start = 0
     let runSign = profitSignAt(0)
 
@@ -229,7 +238,7 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
       groups.push({ start, end })
     }
 
-    for (let i = 1; i < points.length; i++) {
+    for (let i = 1; i < detailedTailStart; i++) {
       const sign = profitSignAt(i) || runSign
       if (!runSign && sign) runSign = sign
 
@@ -247,7 +256,10 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
       }
     }
 
-    if (start < points.length) emit(points.length - 1)
+    if (start < detailedTailStart) emit(detailedTailStart - 1)
+    for (let i = detailedTailStart; i < points.length; i++) {
+      groups.push({ start:i, end:i })
+    }
 
     return groups
       .filter((g, idx, arr) => idx === 0 || g.end !== arr[idx - 1].end)
@@ -256,11 +268,13 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
         p: points[g.end],
         x: coords[g.end].x,
         y: coords[g.end].y,
-        profit: points[g.end].br - (points[g.start]?.brPrev ?? points[g.end].brPrev),
+        profit: points
+          .slice(g.start, g.end + 1)
+          .reduce((sum, p, offset) => sum + sessionProfitAt(g.start + offset), 0),
         count: g.end - g.start + 1,
         sessions: points.slice(g.start, g.end + 1).map((p, offset) => {
           const idx = g.start + offset
-          return { p, profit:p.br - p.brPrev, tournaments:mttDeltaAt(idx) }
+          return { p, profit:sessionProfitAt(idx), tournaments:mttDeltaAt(idx) }
         }),
       }))
   })()
@@ -268,23 +282,45 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
     if (!points.length) return []
 
     const byIndex = new Map()
+    const eventLabel = kind => {
+      if (lang === 'en') return ({ best:'BEST', worst:'WORST', peak:'PEAK' })[kind]
+      if (lang === 'es') return ({ best:'MEJOR', worst:'PEOR', peak:'PICO' })[kind]
+      return ({ best:'БЕСТ', worst:'ВОРСТ', peak:'ПИК' })[kind]
+    }
+    const labelNote = item => item.note || (
+      ['milestone','best','worst','peak'].includes(item.kind) ? item.main : null
+    )
+    const uniq = arr => [...new Set(arr.filter(Boolean))]
     const put = (i, item) => {
       if (i < 0 || i >= points.length || !coords[i]) return
       const prev = byIndex.get(i)
-      if (!prev || item.priority > prev.priority) {
-        byIndex.set(i, { ...item, i, x:coords[i].x, y:coords[i].y, p:points[i] })
+      const next = { ...item, notes:uniq(item.notes || []) }
+      if (!prev) {
+        byIndex.set(i, { ...next, i, x:coords[i].x, y:coords[i].y, p:points[i] })
+      } else {
+        const primary = next.priority > prev.priority ? next : prev
+        const secondary = next.priority > prev.priority ? prev : next
+        byIndex.set(i, {
+          ...primary,
+          i,
+          x:coords[i].x,
+          y:coords[i].y,
+          p:points[i],
+          kind:uniq([primary.kind, secondary.kind]).join(' '),
+          notes:uniq([...(primary.notes || []), labelNote(secondary), ...(secondary.notes || [])]),
+        })
       }
     }
 
     put(0, {
       kind:'start',
       main:cumMTT[0] ? fmtInt(cumMTT[0]) : 'старт',
-      priority:105,
+      priority:58,
     })
     put(points.length - 1, {
       kind:'last',
       main:cumMTT[points.length - 1] ? fmtInt(cumMTT[points.length - 1]) : 'сейчас',
-      priority:88,
+      priority:76,
     })
 
     const milestoneStep = 25000
@@ -297,72 +333,124 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
             kind:'milestone',
             main:`$${Math.round(mark / 1000)}k`,
             priority:mark >= 100000 ? 125 : 96 + mark / milestoneStep,
+            note:`$${Math.round(mark / 1000)}k`,
           })
           break
         }
       }
     }
 
-    const profits = points.map((p, i) => ({
-      i,
-      profit:p.sessionResult ?? (p.br - p.brPrev),
-      br:p.br,
-    }))
-    const bigWinFloor = Math.max(8000, dataMax * 0.08)
-    profits
-      .filter(p => p.profit >= bigWinFloor)
-      .sort((a,b) => b.profit - a.profit)
-      .slice(0, isMobile ? 2 : 3)
-      .forEach((p, order) => put(p.i, {
-        kind:'win',
-        main:fk(p.profit),
-        priority:82 - order,
-      }))
-
-    const bigLossFloor = Math.max(4000, dataMax * 0.035)
-    profits
-      .filter(p => p.profit <= -bigLossFloor)
-      .sort((a,b) => a.profit - b.profit)
-      .slice(0, isMobile ? 1 : 2)
-      .forEach((p, order) => put(p.i, {
-        kind:'loss',
-        main:fk(p.profit),
-        priority:62 - order,
-      }))
+    const dayStats = new Map()
+    points.forEach((p, i) => {
+      const key = warsawDayKey(p.timestamp) || `idx-${i}`
+      const prev = dayStats.get(key) || { profit:0, firstIdx:i, lastIdx:i }
+      prev.profit += sessionProfitAt(i)
+      prev.lastIdx = i
+      dayStats.set(key, prev)
+    })
+    const days = [...dayStats.values()]
+    const bestDay = days.reduce((best, day) => !best || day.profit > best.profit ? day : best, null)
+    const worstDay = days.reduce((worst, day) => !worst || day.profit < worst.profit ? day : worst, null)
+    if (bestDay?.profit > 0) {
+      put(bestDay.lastIdx, {
+        kind:'best',
+        main:`${eventLabel('best')} ${fk(bestDay.profit)}`,
+        priority:130,
+        note:`${eventLabel('best').toLowerCase()} ${fk(bestDay.profit)}`,
+      })
+    }
+    if (worstDay?.profit < 0) {
+      put(worstDay.lastIdx, {
+        kind:'worst',
+        main:`${eventLabel('worst')} ${fk(worstDay.profit)}`,
+        priority:126,
+        note:`${eventLabel('worst').toLowerCase()} ${fk(worstDay.profit)}`,
+      })
+    }
 
     let peakIdx = 0
     points.forEach((p, i) => { if (p.br > points[peakIdx].br) peakIdx = i })
     if (peakIdx !== points.length - 1) {
       put(peakIdx, {
         kind:'peak',
-        main:`$${Math.round(points[peakIdx].br / 1000)}k`,
-        priority:74,
+        main:`${eventLabel('peak')} $${Math.round(points[peakIdx].br / 1000)}k`,
+        priority:108,
+        note:`${eventLabel('peak').toLowerCase()} $${Math.round(points[peakIdx].br / 1000)}k`,
       })
     }
 
     const selected = []
-    const maxLabels = isMobile ? 6 : 8
+    const maxLabels = isMobile ? 7 : 9
     const minGap = isMobile ? 78 : 68
+    const gapFor = item => minGap + (String(item.main || '').length > 11 ? (isMobile ? 18 : 10) : 0)
     const candidates = [...byIndex.values()].sort((a,b) => b.priority - a.priority)
     for (const candidate of candidates) {
-      const conflict = selected.find(item => Math.abs(item.x - candidate.x) < minGap)
-      if (conflict) {
-        if (candidate.priority > conflict.priority) {
-          const idx = selected.indexOf(conflict)
-          selected.splice(idx, 1, candidate)
+      let placed = false
+      for (let lane = 0; lane < xLabelLanes; lane++) {
+        const laneConflict = selected.find(item =>
+          item.lane === lane && Math.abs(item.x - candidate.x) < Math.max(gapFor(item), gapFor(candidate))
+        )
+        if (!laneConflict) {
+          if (selected.length < maxLabels) selected.push({ ...candidate, lane })
+          placed = true
+          break
         }
-        continue
       }
-      if (selected.length < maxLabels) selected.push(candidate)
+      if (placed) continue
+
+      const conflicts = selected.filter(item =>
+        Math.abs(item.x - candidate.x) < Math.max(gapFor(item), gapFor(candidate))
+      )
+      const weakest = conflicts.sort((a,b) => a.priority - b.priority)[0]
+      if (weakest && candidate.priority > weakest.priority) {
+        const idx = selected.indexOf(weakest)
+        selected.splice(idx, 1, { ...candidate, lane:weakest.lane })
+      }
     }
 
     return selected
       .sort((a,b) => a.x - b.x)
       .map(item => ({
         ...item,
-        sub:fmtDateShortLang(item.p.timestamp, lang),
+        sub:uniq(item.notes || [])
+          .filter(note => note !== item.main)
+          .sort((a, b) => {
+            const rank = note => {
+              const lower = String(note).toLowerCase()
+              if (lower.includes('пик') || lower.includes('peak') || lower.includes('pico')) return 0
+              if (lower.includes('$100k')) return 1
+              if (lower.startsWith('$')) return 2
+              return 3
+            }
+            return rank(a) - rank(b)
+          })
+          .slice(0, 1)
+          .concat(fmtDateShortLang(item.p.timestamp, lang))
+          .join(' · '),
       }))
   })()
+
+  const sessionProfits = points.map((_, i) => sessionProfitAt(i))
+  const maxAbsSessionProfit = Math.max(1, ...sessionProfits.map(v => Math.abs(v)))
+  const profitBands = coords.slice(1).map((point, idx) => {
+    const i = idx + 1
+    const x1 = coords[i - 1].x
+    const x2 = point.x
+    const profit = sessionProfits[i]
+    return {
+      i,
+      x:x1,
+      width:Math.max(0, x2 - x1),
+      profit,
+      opacity:0.045 + Math.min(Math.abs(profit) / maxAbsSessionProfit, 1) * 0.13,
+    }
+  }).filter(band => band.width > 0.5)
+  const lineStops = coords.length
+    ? coords.map((point, i) => ({
+      offset:`${Math.max(0, Math.min(100, ((point.x - pL) / Math.max(W - pL - pR, 1)) * 100))}%`,
+      color:sessionProfits[i] >= 0 ? '#6fd17a' : '#ff6257',
+    }))
+    : []
 
   // ── Mobile: long-press (300ms) to show tooltip ──
   const longPressTimer = useRef(null)
@@ -405,7 +493,7 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
         </div>
         <span className="section-count">{plSessions(points.length, lang)}</span>
       </div>
-      <svg className="mc-svg" viewBox={`0 0 ${W} ${H+pB}`}
+      <svg className="mc-svg" viewBox={`0 0 ${W} ${H+pB+xLabelExtraBottom}`}
         onMouseLeave={(e)=>{
           // Don't close tooltip if mouse moved to the tooltip itself
           const related = e.relatedTarget
@@ -416,14 +504,24 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
         style={{touchAction:'pan-y',WebkitUserSelect:'none',userSelect:'none',WebkitTouchCallout:'none'}}>
         <defs>
           <linearGradient id="mcGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%"   stopColor="#ff6b6b" stopOpacity=".34"/>
-            <stop offset="58%"  stopColor="#ff6b6b" stopOpacity=".08"/>
-            <stop offset="100%" stopColor="#ff6b6b" stopOpacity="0"/>
+            <stop offset="0%"   stopColor="#ffffff" stopOpacity=".12"/>
+            <stop offset="58%"  stopColor="#ffffff" stopOpacity=".035"/>
+            <stop offset="100%" stopColor="#ffffff" stopOpacity="0"/>
+          </linearGradient>
+          <linearGradient id="mcBandPos" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#72d77b" stopOpacity=".75"/>
+            <stop offset="58%" stopColor="#72d77b" stopOpacity=".22"/>
+            <stop offset="100%" stopColor="#72d77b" stopOpacity="0"/>
+          </linearGradient>
+          <linearGradient id="mcBandNeg" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#ff6257" stopOpacity=".72"/>
+            <stop offset="58%" stopColor="#ff6257" stopOpacity=".20"/>
+            <stop offset="100%" stopColor="#ff6257" stopOpacity="0"/>
           </linearGradient>
           <linearGradient id="mcLineGrad" x1={pL} y1="0" x2={W-pR} y2="0" gradientUnits="userSpaceOnUse">
-            <stop offset="0%" stopColor="#ff6b6b"/>
-            <stop offset="60%" stopColor="#ff8a65"/>
-            <stop offset="100%" stopColor="#ffd166"/>
+            {lineStops.map((stop, i) => (
+              <stop key={`${stop.offset}-${i}`} offset={stop.offset} stopColor={stop.color}/>
+            ))}
           </linearGradient>
           <radialGradient id="mcPlotGlow" cx="86%" cy="18%" r="72%">
             <stop offset="0%" stopColor="#ffb300" stopOpacity=".12"/>
@@ -437,6 +535,13 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
         </defs>
         <rect x={pL} y={pT} width={W-pL-pR} height={plotBottom-pT} rx="10" className="mc-plot-bg"/>
         <rect x={pL} y={pT} width={W-pL-pR} height={plotBottom-pT} rx="10" fill="url(#mcPlotGlow)" className="mc-plot-glow"/>
+        {profitBands.map(band => (
+          <rect key={`profit-band-${band.i}`}
+            x={band.x} y={pT} width={band.width} height={plotBottom-pT}
+            className={`mc-profit-band ${band.profit >= 0 ? 'pos' : 'neg'}`}
+            fill={band.profit >= 0 ? 'url(#mcBandPos)' : 'url(#mcBandNeg)'}
+            opacity={band.opacity}/>
+        ))}
         {yTicks.map(({v,y},i) => (
           <g key={i} className="mc-y-tick">
             <line x1={pL} y1={y} x2={W-pR} y2={y} className="mc-grid"/>
@@ -472,7 +577,8 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
           }
           return (
             <g key={`marker-${start}-${end}`} onMouseEnter={!isMobile ? openTip : undefined}
-              onClick={!isMobile ? e => { e.stopPropagation(); openTip() } : undefined}>
+              onClick={!isMobile ? e => { e.stopPropagation(); openTip() } : undefined}
+              data-start={start} data-end={end} data-count={count}>
               {!isMobile && <circle cx={cx} cy={cy} r={isLast?14:10} fill="transparent"
                 />}
               {isGrouped && <circle cx={cx} cy={cy} r={dotR + 2.6}
@@ -485,11 +591,14 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
             </g>
           )
         })}
-        {xLabelItems.map(({ i, x, y, main, sub, kind }) => {
+        {xLabelItems.map(({ i, x, y, main, sub, kind, lane = 0 }) => {
           const isLast = i===points.length-1
           const lx = Math.min(Math.max(x,pL),W-pR)
           const tx = Math.min(Math.max(lx, pL + xLabelEdgePad), W - pR - xLabelEdgePad)
           const anchor = tx <= pL + xLabelEdgePad + 1 ? 'start' : tx >= W - pR - xLabelEdgePad - 1 ? 'end' : 'middle'
+          const laneOffset = lane * xLabelLaneGap
+          const mainY = xMainLabelY + laneOffset
+          const subY = xSubLabelY + laneOffset
           const currentLine = anchor === 'end'
             ? { x1: tx - 44, x2: tx }
             : anchor === 'start'
@@ -499,13 +608,13 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
             <g key={`xlabel-${kind}-${i}`} className={`mc-x-tick ${kind} ${isLast?'last':''}`}>
               <line x1={lx} y1={y + (isLast?6:4) + 3} x2={lx} y2={xAxisY - 9} className="mc-guide"/>
               <line x1={lx} y1={plotBottom} x2={lx} y2={xAxisY} className="mc-x-tickmark"/>
-              <text x={tx} y={xMainLabelY} textAnchor={anchor} className="mc-xaxis-label-main">
+              <text x={tx} y={mainY} textAnchor={anchor} className="mc-xaxis-label-main">
                 {main}
               </text>
-              <text x={tx} y={xSubLabelY} textAnchor={anchor} className="mc-xaxis-label-sub">
+              <text x={tx} y={subY} textAnchor={anchor} className="mc-xaxis-label-sub">
                 {sub}
               </text>
-              {(isLast || kind === 'milestone') && <line x1={currentLine.x1} y1={xSubLabelY + 6} x2={currentLine.x2} y2={xSubLabelY + 6} className="mc-x-current-line"/>}
+              {(isLast || kind.includes('milestone')) && <line x1={currentLine.x1} y1={subY + 6} x2={currentLine.x2} y2={subY + 6} className="mc-x-current-line"/>}
             </g>
           )
         })}

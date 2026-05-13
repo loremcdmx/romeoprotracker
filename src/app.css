@@ -70,13 +70,14 @@ a{color:var(--red2);text-decoration:none}
 .mc-period.active{background:linear-gradient(180deg,#ef5350,#d73c39);border-color:#ff6f61;color:#fff;box-shadow:0 0 0 1px rgba(255,255,255,.05),0 0 16px rgba(229,57,53,.18)}
 .mc-plot-bg{fill:var(--chart-panel);stroke:rgba(255,255,255,.035);stroke-width:1}
 .mc-plot-glow{pointer-events:none}
+.mc-profit-band{pointer-events:none;mix-blend-mode:screen}
 .mc-grid{stroke:var(--chart-grid);stroke-width:1}
 .mc-zero{stroke:var(--chart-grid-strong);stroke-width:1;stroke-dasharray:5 4}
 .mc-axis-line{stroke:var(--chart-grid-strong);stroke-width:1}
 .mc-axis-line-y{opacity:.55}
 .mc-y-tickmark{stroke:var(--chart-grid-strong);stroke-width:1;stroke-linecap:round;opacity:.72}
 .mc-yaxis-label{font-size:10px;fill:var(--axis-y);text-anchor:end;font-family:'Roboto Mono',monospace;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:0;opacity:.92}
-.mc-line-shadow{stroke:rgba(229,57,53,.18);stroke-linecap:round;stroke-linejoin:round;filter:blur(1px)}
+.mc-line-shadow{stroke:rgba(255,255,255,.16);stroke-linecap:round;stroke-linejoin:round;filter:blur(1px)}
 .mc-dot{stroke:#111;stroke-width:2.2;cursor:pointer;transition:r .1s;filter:drop-shadow(0 1px 3px rgba(0,0,0,.65))}
 .mc-dot-grouped{stroke-width:2.4}
 .mc-dot-grouped-ring{fill:none;stroke-width:1;opacity:.22;pointer-events:none}
@@ -87,8 +88,9 @@ a{color:var(--red2);text-decoration:none}
 .mc-x-tick.last .mc-xaxis-label-main{fill:var(--gold)}
 .mc-x-tick.last .mc-xaxis-label-sub{fill:#f3d88b}
 .mc-x-tick.milestone .mc-xaxis-label-main,.mc-x-tick.peak .mc-xaxis-label-main{fill:var(--gold)}
-.mc-x-tick.win .mc-xaxis-label-main{fill:#78d37e}
-.mc-x-tick.loss .mc-xaxis-label-main{fill:#ff7a70}
+.mc-x-tick.best .mc-xaxis-label-main{fill:#78d37e}
+.mc-x-tick.worst .mc-xaxis-label-main{fill:#ff7a70}
+.mc-x-tick.best .mc-xaxis-label-main,.mc-x-tick.worst .mc-xaxis-label-main,.mc-x-tick.peak .mc-xaxis-label-main{font-size:10px}
 .mc-x-current-line{stroke:var(--gold);stroke-width:1.4;stroke-linecap:round;opacity:.78}
 
 /* ACTIVITY CHART */
@@ -201,6 +203,7 @@ a{color:var(--red2);text-decoration:none}
 .light .mc-grid{stroke:var(--chart-grid)}
 .light .mc-zero{stroke:var(--chart-grid-strong)}
 .light .mc-dot{stroke:var(--bg2)}
+.light .mc-profit-band{mix-blend-mode:multiply}
 .light ::-webkit-scrollbar-track{background:var(--bg3)}
 .light ::-webkit-scrollbar-thumb{background:#b8b4ac}
 .light .filter-num,.light .feed-search,.light .feed-select{background:var(--bg3);color:var(--white)}
