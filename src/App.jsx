@@ -197,7 +197,7 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
   const xSubLabelY = xMainLabelY + (isMobile ? 13 : 11)
   const xLabelEdgePad = isMobile ? 6 : 8
   const xLabelLanes = 3
-  const xLabelLaneGap = isMobile ? 24 : 22
+  const xLabelLaneGap = isMobile ? 34 : 32
   const xLabelExtraBottom = (xLabelLanes - 1) * xLabelLaneGap
   const signOfProfit = v => v > 0 ? 1 : v < 0 ? -1 : 0
   const sessionProfitAt = i => {
@@ -358,19 +358,22 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
     put(points.length - 1, {
       kind:'last',
       main:cumMTT[points.length - 1] ? fmtInt(cumMTT[points.length - 1]) : 'сейчас',
-      priority:76,
+      priority:122,
     })
 
-    const milestoneStep = 25000
+    const milestoneStep = dataMax >= 125000 ? 50000 : 25000
+    const milestoneMarks = []
+    if (startBR < 25000 && dataMax >= 25000) milestoneMarks.push(25000)
     const firstMilestone = Math.ceil(Math.max(startBR + 1, milestoneStep) / milestoneStep) * milestoneStep
-    for (let mark = firstMilestone; mark <= dataMax; mark += milestoneStep) {
+    for (let mark = firstMilestone; mark <= dataMax; mark += milestoneStep) milestoneMarks.push(mark)
+    for (const mark of uniq(milestoneMarks).sort((a,b) => a - b)) {
       for (let i = 0; i < points.length; i++) {
         const prevBR = i === 0 ? startBR : points[i - 1].br
         if (prevBR < mark && points[i].br >= mark) {
           put(i, {
             kind:'milestone',
             main:`$${Math.round(mark / 1000)}k`,
-            priority:mark >= 100000 ? 125 : 96 + mark / milestoneStep,
+            priority:mark >= 100000 ? 112 : 92 + mark / milestoneStep,
             note:`$${Math.round(mark / 1000)}k`,
           })
           break
@@ -420,13 +423,19 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
     const selected = []
     const maxLabels = isMobile ? 7 : 9
     const minGap = isMobile ? 78 : 68
-    const gapFor = item => minGap + (String(item.main || '').length > 11 ? (isMobile ? 18 : 10) : 0)
+    const labelWidth = item => {
+      const notes = uniq(item.notes || [])
+      const mainWidth = String(item.main || '').length * (isMobile ? 7.4 : 7.1)
+      const noteWidth = notes.reduce((max, note) => Math.max(max, String(note || '').length * (isMobile ? 4.9 : 4.7)), 0)
+      return Math.min(isMobile ? 138 : 176, Math.max(48, mainWidth, noteWidth))
+    }
+    const gapFor = (a, b) => Math.max(minGap, (labelWidth(a) + labelWidth(b)) / 2 + (isMobile ? 18 : 22))
     const candidates = [...byIndex.values()].sort((a,b) => b.priority - a.priority)
     for (const candidate of candidates) {
       let placed = false
       for (let lane = 0; lane < xLabelLanes; lane++) {
         const laneConflict = selected.find(item =>
-          item.lane === lane && Math.abs(item.x - candidate.x) < Math.max(gapFor(item), gapFor(candidate))
+          item.lane === lane && Math.abs(item.x - candidate.x) < gapFor(item, candidate)
         )
         if (!laneConflict) {
           if (selected.length < maxLabels) selected.push({ ...candidate, lane })
@@ -437,7 +446,7 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
       if (placed) continue
 
       const conflicts = selected.filter(item =>
-        Math.abs(item.x - candidate.x) < Math.max(gapFor(item), gapFor(candidate))
+        Math.abs(item.x - candidate.x) < gapFor(item, candidate)
       )
       const weakest = conflicts.sort((a,b) => a.priority - b.priority)[0]
       if (weakest && candidate.priority > weakest.priority) {

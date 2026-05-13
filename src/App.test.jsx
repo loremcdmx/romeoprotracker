@@ -205,6 +205,44 @@ describe('App', () => {
     expect(allAxisText).toContain('2\u202F000 МТТ')
   })
 
+  it('thins milestone labels when event labels crowd the chart tail', async () => {
+    const base = makeMockData()
+    const brs = [18000, 31000, 48000, 76000, 101000, 126000, 176000, 156000, 153000]
+    const brHistory = brs.map((brAfter, i) => {
+      const brPrev = i === 0 ? 10000 : brs[i - 1]
+      return {
+        brAfter,
+        brPrev,
+        date: `D${i + 1}`,
+        timestamp: 1712300000 + i * 86400,
+        sessionResult: brAfter - brPrev,
+        totalTournaments: (i + 1) * 1000,
+        tournaments: 1000,
+        text: `Session ${i + 1}`,
+      }
+    })
+    fetchPublicData.mockResolvedValue(makeMockData({
+      meta: {
+        ...base.meta,
+        brHistory,
+        totalTournaments: 9000,
+      },
+    }))
+
+    render(<App />)
+    expect(await screen.findByText(new RegExp(translate('ru', 'chart_marathon').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))).toBeInTheDocument()
+
+    const allAxisText = [...document.querySelectorAll('.mc-xaxis-label-main, .mc-xaxis-label-sub')]
+      .map(label => label.textContent)
+      .join(' ')
+
+    expect(allAxisText).toContain('БЕСТ')
+    expect(allAxisText).toContain('ВОРСТ')
+    expect(allAxisText).toContain('$100k')
+    expect(allAxisText).not.toContain('$75k')
+    expect(allAxisText).not.toContain('$125k')
+  })
+
   it('condenses dense same-sign marathon markers and uses rebuilt axes', async () => {
     const base = makeMockData()
     const brHistory = Array.from({ length:80 }, (_, i) => ({
