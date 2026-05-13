@@ -173,6 +173,9 @@ describe('App', () => {
     expect(document.querySelector('.mc-x-tick.worst')).toBeInTheDocument()
     expect(document.querySelectorAll('.mc-profit-band')).toHaveLength(0)
     expect(document.querySelector('.mc-plot-glow')).toBeInTheDocument()
+    expect(document.querySelector('.mc-line-aura')).toBeInTheDocument()
+    expect(document.querySelector('.mc-line-highlight')).toBeInTheDocument()
+    expect(document.querySelectorAll('#mcLineGrad stop').length).toBeGreaterThan(brHistory.length)
   })
 
   it('labels filtered marathon start with baseline profit and tournaments', async () => {
@@ -286,6 +289,43 @@ describe('App', () => {
     fireEvent.mouseEnter(hoverTarget)
     expect(document.querySelector('.mc-session-breakdown')).toBeInTheDocument()
     expect(document.querySelectorAll('.mc-session-row').length).toBeGreaterThan(1)
+  })
+
+  it('tones down the crowded last marathon marker so adjacent points stay readable', async () => {
+    const base = makeMockData()
+    const brs = [20000, 50000, 100000, 175000, 156363, 153715]
+    const totals = [5000, 7000, 9000, 11000, 11740, 11799]
+    const brHistory = brs.map((brAfter, i) => {
+      const brPrev = i === 0 ? 10000 : brs[i - 1]
+      const totalTournaments = totals[i]
+      return {
+        brAfter,
+        brPrev,
+        date: `D${i + 1}`,
+        timestamp: 1712300000 + i * 86400,
+        sessionResult: brAfter - brPrev,
+        totalTournaments,
+        tournaments: i === 0 ? totalTournaments : totalTournaments - totals[i - 1],
+        text: `Session ${i + 1}`,
+      }
+    })
+    fetchPublicData.mockResolvedValue(makeMockData({
+      meta: {
+        ...base.meta,
+        brHistory,
+        totalTournaments: 11799,
+      },
+    }))
+
+    render(<App />)
+    expect(await screen.findByText(new RegExp(translate('ru', 'chart_marathon').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))).toBeInTheDocument()
+
+    const lastMarker = document.querySelector('g[data-end="5"]')
+    const lastDot = lastMarker?.querySelector('.mc-dot')
+    expect(lastDot).toBeInTheDocument()
+    expect(lastDot).toHaveClass('mc-dot-crowded')
+    expect(lastDot).not.toHaveClass('mc-dot-last')
+    expect(Number(lastDot.getAttribute('r'))).toBeLessThan(5)
   })
 
   it('renders post cards in feed', async () => {

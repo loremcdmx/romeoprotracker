@@ -76,10 +76,13 @@ a{color:var(--red2);text-decoration:none}
 .mc-axis-line-y{opacity:.55}
 .mc-y-tickmark{stroke:var(--chart-grid-strong);stroke-width:1;stroke-linecap:round;opacity:.72}
 .mc-yaxis-label{font-size:10px;fill:var(--axis-y);text-anchor:end;font-family:'Roboto Mono',monospace;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:0;opacity:.92}
-.mc-line-shadow{stroke:rgba(255,255,255,.16);stroke-linecap:round;stroke-linejoin:round;filter:blur(1px)}
-.mc-dot{stroke:#111;stroke-width:2.2;cursor:pointer;transition:r .1s;filter:drop-shadow(0 1px 3px rgba(0,0,0,.65))}
+.mc-line-aura{stroke-linecap:round;stroke-linejoin:round;filter:blur(2.4px);opacity:.32;pointer-events:none}
+.mc-line-main{stroke-linecap:round;stroke-linejoin:round}
+.mc-line-highlight{stroke:rgba(255,255,255,.18);stroke-linecap:round;stroke-linejoin:round;opacity:.42;mix-blend-mode:screen;pointer-events:none}
+.mc-dot{stroke:#0b0b0b;stroke-width:2.2;cursor:pointer;transition:r .1s;filter:drop-shadow(0 1px 2px rgba(0,0,0,.72))}
 .mc-dot-grouped{stroke-width:2.4}
 .mc-dot-grouped-ring{fill:none;stroke-width:1;opacity:.22;pointer-events:none}
+.mc-dot-crowded{stroke-width:2.5;filter:drop-shadow(0 1px 2px rgba(0,0,0,.86))}
 .mc-guide{stroke:var(--chart-grid-strong);stroke-width:1;stroke-dasharray:1 5;opacity:.48}
 .mc-x-tickmark{stroke:var(--chart-grid-strong);stroke-width:1.1;stroke-linecap:round;opacity:.72}
 .mc-xaxis-label-main{font-family:'Roboto Mono',monospace;font-size:11px;font-weight:800;fill:var(--axis-x);font-variant-numeric:tabular-nums;letter-spacing:0;text-shadow:0 1px 8px rgba(0,0,0,.55)}

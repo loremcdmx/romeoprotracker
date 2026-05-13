@@ -480,12 +480,49 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
   })()
 
   const sessionProfits = points.map((_, i) => sessionProfitAt(i))
-  const lineStops = coords.length
-    ? coords.map((point, i) => ({
-      offset:`${Math.max(0, Math.min(100, ((point.x - pL) / Math.max(W - pL - pR, 1)) * 100))}%`,
-      color:sessionProfits[i] >= 0 ? '#6fd17a' : '#ff6257',
-    }))
-    : []
+  const lineStops = (() => {
+    if (!coords.length) return []
+    const pctOfX = x => Math.max(0, Math.min(100, ((x - pL) / Math.max(W - pL - pR, 1)) * 100))
+    const colorFor = profit => profit >= 0 ? '#76d982' : '#ff665d'
+    const stops = []
+    const pushStop = (offset, color) => {
+      const clamped = Math.max(0, Math.min(100, offset))
+      const prev = stops[stops.length - 1]
+      if (prev && Math.abs(prev.offsetValue - clamped) < 0.01 && prev.color === color) return
+      stops.push({ offsetValue:clamped, offset:`${clamped}%`, color })
+    }
+    let prevColor = colorFor(sessionProfits[1] ?? sessionProfits[0] ?? 0)
+    pushStop(0, prevColor)
+
+    for (let i = 1; i < coords.length; i++) {
+      const startPct = pctOfX(coords[i - 1].x)
+      const endPct = pctOfX(coords[i].x)
+      const color = colorFor(sessionProfits[i])
+      if (color !== prevColor) {
+        const transition = Math.min(1.2, Math.max(0.28, Math.abs(endPct - startPct) * 0.22))
+        pushStop(startPct - transition, prevColor)
+        pushStop(startPct + transition, color)
+      } else {
+        pushStop(startPct, color)
+      }
+      pushStop(endPct, color)
+      prevColor = color
+    }
+
+    return stops
+  })()
+  const markerVisuals = markerGroups.map((marker, idx, arr) => {
+    const distances = [
+      arr[idx - 1] ? Math.hypot(marker.x - arr[idx - 1].x, marker.y - arr[idx - 1].y) : Infinity,
+      arr[idx + 1] ? Math.hypot(marker.x - arr[idx + 1].x, marker.y - arr[idx + 1].y) : Infinity,
+    ]
+    const nearestDistance = Math.min(...distances)
+    return {
+      ...marker,
+      nearestDistance,
+      isCrowded:nearestDistance < (isMobile ? 23 : 20),
+    }
+  })
 
   // ── Mobile: long-press (300ms) to show tooltip ──
   const longPressTimer = useRef(null)
@@ -571,8 +608,8 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
         <line x1={pL} y1={plotBottom} x2={W-pR} y2={plotBottom} className="mc-axis-line"/>
         <line x1={pL} y1={pT} x2={pL} y2={plotBottom} className="mc-axis-line mc-axis-line-y"/>
         <path d={areaPath} fill="url(#mcGrad)"/>
-        <path d={linePath} fill="none" className="mc-line-shadow" strokeWidth={isMobile ? 7 : 5}/>
-        <path ref={pathRef} d={linePath} fill="none" stroke="url(#mcLineGrad)" strokeWidth={isMobile ? 3.2 : 2.7}
+        <path d={linePath} fill="none" stroke="url(#mcLineGrad)" className="mc-line-aura" strokeWidth={isMobile ? 8.5 : 6.5}/>
+        <path ref={pathRef} d={linePath} fill="none" stroke="url(#mcLineGrad)" className="mc-line-main" strokeWidth={isMobile ? 3.1 : 2.6}
           strokeLinecap="round" strokeLinejoin="round" filter="url(#mcGlow)"
           style={pathLen!=null ? {
             strokeDasharray: pathLen,
@@ -580,15 +617,19 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
             animation: 'drawLine 1.4s cubic-bezier(.4,0,.2,1) forwards',
           } : {}}
         />
-        {markerGroups.map(({ p, start, end, x, y, profit, count, sessions }) => {
+        <path d={linePath} fill="none" className="mc-line-highlight" strokeWidth={isMobile ? 1.1 : .9}/>
+        {markerVisuals.map(({ p, start, end, x, y, profit, count, sessions, isCrowded }) => {
           const i=end
           const isLast = i===points.length-1
           const cx=x, cy=y
           const isHovered = tip?.p === p
           const isGrouped = count > 1
-          const dotR = isMobile
+          const baseDotR = isMobile
             ? (isHovered ? (isLast ? 8 : 6) : (isLast ? 6 : isGrouped ? 4.5 : 3.4))
             : (isHovered ? (isLast ? 8 : 6) : (isLast ? 6 : isGrouped ? 4.6 : 3.8))
+          const dotR = isCrowded
+            ? Math.min(baseDotR, isLast ? (isMobile ? 4.8 : 4.6) : (isMobile ? 3.4 : 3.5))
+            : baseDotR
           const openTip = () => {
             announceHoverPopupOpen()
             setTip({p,profit,x:cx,y:cy,groupCount:count,sessions})
@@ -603,7 +644,7 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
                 className="mc-dot-grouped-ring"
                 stroke={profit>=0?'#4caf50':'#e53935'}/>}
               <circle cx={cx} cy={cy} r={dotR}
-                className={`${isLast?'mc-dot mc-dot-last':'mc-dot'} ${isGrouped?'mc-dot-grouped':''}`}
+                className={`mc-dot ${isLast && !isCrowded ? 'mc-dot-last' : ''} ${isGrouped?'mc-dot-grouped':''} ${isCrowded?'mc-dot-crowded':''}`}
                 fill={profit>=0?'#4caf50':'#e53935'}
                 style={{transition:'r .12s', ...(isLast?{color:profit>=0?'#4caf50':'#e53935'}:{})}}/>
             </g>
