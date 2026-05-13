@@ -393,9 +393,8 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
     if (bestDay?.profit > 0) {
       put(bestDay.lastIdx, {
         kind:'best',
-        main:`${eventLabel('best')} ${fk(bestDay.profit)}`,
+        main:fk(bestDay.profit),
         priority:130,
-        note:`${eventLabel('best').toLowerCase()} ${fk(bestDay.profit)}`,
       })
     }
     if (worstDay?.profit < 0) {
@@ -653,8 +652,17 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
         {xLabelItems.map(({ i, x, y, main, sub, kind }) => {
           const isLast = i===points.length-1
           const lx = Math.min(Math.max(x,pL),W-pR)
-          const tx = Math.min(Math.max(lx, pL + xLabelEdgePad), W - pR - xLabelEdgePad)
-          const anchor = tx <= pL + xLabelEdgePad + 1 ? 'start' : tx >= W - pR - xLabelEdgePad - 1 ? 'end' : 'middle'
+          const mainWidth = String(main || '').length * (isMobile ? 7.4 : 7.1)
+          const subWidth = String(sub || '').length * (isMobile ? 4.9 : 4.7)
+          const textWidth = Math.min(isMobile ? 138 : 176, Math.max(48, mainWidth, subWidth))
+          const leftBound = pL + xLabelEdgePad
+          const rightBound = W - pR - xLabelEdgePad
+          const anchor = lx - textWidth / 2 < leftBound
+            ? 'start'
+            : lx + textWidth / 2 > rightBound
+              ? 'end'
+              : 'middle'
+          const tx = anchor === 'start' ? leftBound : anchor === 'end' ? rightBound : lx
           const mainY = xMainLabelY
           const subY = xSubLabelY
           const currentLine = anchor === 'end'

@@ -164,8 +164,10 @@ describe('App', () => {
     const allAxisText = [...document.querySelectorAll('.mc-xaxis-label-main, .mc-xaxis-label-sub')]
       .map(label => label.textContent)
       .join(' ')
+    const bestLabel = document.querySelector('.mc-x-tick.best .mc-xaxis-label-main')
     expect(allAxisText).toContain('$100k')
-    expect(labels.some(label => label?.includes('БЕСТ'))).toBe(true)
+    expect(bestLabel?.textContent).toMatch(/^\+/)
+    expect(labels.some(label => label?.includes('БЕСТ'))).toBe(false)
     expect(labels.some(label => label?.includes('ВОРСТ'))).toBe(true)
     expect(labels.some(label => label?.includes('ПИК'))).toBe(true)
     expect(document.querySelector('.mc-x-tick.milestone')).toBeInTheDocument()
@@ -241,7 +243,8 @@ describe('App', () => {
       .map(label => label.textContent)
       .join(' ')
 
-    expect(allAxisText).toContain('БЕСТ')
+    expect(document.querySelector('.mc-x-tick.best .mc-xaxis-label-main')?.textContent).toMatch(/^\+/)
+    expect(allAxisText).not.toContain('БЕСТ')
     expect(allAxisText).toContain('$100k')
     expect(allAxisText).not.toContain('$75k')
     expect(allAxisText).not.toContain('$125k')
