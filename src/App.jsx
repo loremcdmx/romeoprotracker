@@ -214,6 +214,33 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
     if (p.totalTournaments && prevTotal) return Math.max(0, p.totalTournaments - prevTotal)
     return null
   }
+  const isRangeView = period !== 'all' && points.length < allPoints.length
+  const rangeBaseline = (() => {
+    if (!isRangeView || !points.length) return null
+    const first = points[0]
+    const allIndex = allPoints.findIndex(p => p === first)
+    const prevPoint = allIndex > 0 ? allPoints[allIndex - 1] : null
+    const firstSessionMTT = first.tournaments
+      ?? (first.totalTournaments && prevPoint?.totalTournaments
+        ? Math.max(0, first.totalTournaments - prevPoint.totalTournaments)
+        : null)
+    const tournaments = prevPoint?.totalTournaments
+      ?? (first.totalTournaments != null && firstSessionMTT != null
+        ? Math.max(0, first.totalTournaments - firstSessionMTT)
+        : null)
+    const br = first.brPrev ?? prevPoint?.br ?? startBR
+    return {
+      br,
+      profit:br - startBR,
+      tournaments,
+    }
+  })()
+  const rangeStartText = (() => {
+    if (lang === 'en') return 'START'
+    if (lang === 'es') return 'INICIO'
+    return 'СТАРТ'
+  })()
+  const mttUnit = lang === 'ru' ? 'МТТ' : 'MTT'
   const markerGroups = (() => {
     if (!points.length) return []
     if (points.length === 1) return [{
@@ -288,7 +315,7 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
       return ({ best:'БЕСТ', worst:'ВОРСТ', peak:'ПИК' })[kind]
     }
     const labelNote = item => item.note || (
-      ['milestone','best','worst','peak'].includes(item.kind) ? item.main : null
+      ['milestone','best','worst','peak','range-start'].includes(item.kind) ? item.main : null
     )
     const uniq = arr => [...new Set(arr.filter(Boolean))]
     const put = (i, item) => {
@@ -312,11 +339,22 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
       }
     }
 
-    put(0, {
-      kind:'start',
-      main:cumMTT[0] ? fmtInt(cumMTT[0]) : 'старт',
-      priority:58,
-    })
+    if (rangeBaseline) {
+      put(0, {
+        kind:'range-start',
+        main:`${rangeStartText} ${fk(rangeBaseline.profit)}`,
+        priority:134,
+        notes:[
+          rangeBaseline.tournaments != null ? `${fmtInt(rangeBaseline.tournaments)} ${mttUnit}` : null,
+        ],
+      })
+    } else {
+      put(0, {
+        kind:'start',
+        main:cumMTT[0] ? fmtInt(cumMTT[0]) : 'старт',
+        priority:58,
+      })
+    }
     put(points.length - 1, {
       kind:'last',
       main:cumMTT[points.length - 1] ? fmtInt(cumMTT[points.length - 1]) : 'сейчас',
@@ -418,13 +456,14 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
             const rank = note => {
               const lower = String(note).toLowerCase()
               if (lower.includes('пик') || lower.includes('peak') || lower.includes('pico')) return 0
+              if (lower.includes('мтт') || lower.includes('mtt')) return 0
               if (lower.includes('$100k')) return 1
               if (lower.startsWith('$')) return 2
               return 3
             }
             return rank(a) - rank(b)
           })
-          .slice(0, 1)
+          .slice(0, item.kind.includes('range-start') ? 2 : 1)
           .concat(fmtDateShortLang(item.p.timestamp, lang))
           .join(' · '),
       }))

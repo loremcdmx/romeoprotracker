@@ -90,7 +90,9 @@ a{color:var(--red2);text-decoration:none}
 .mc-x-tick.milestone .mc-xaxis-label-main,.mc-x-tick.peak .mc-xaxis-label-main{fill:var(--gold)}
 .mc-x-tick.best .mc-xaxis-label-main{fill:#78d37e}
 .mc-x-tick.worst .mc-xaxis-label-main{fill:#ff7a70}
-.mc-x-tick.best .mc-xaxis-label-main,.mc-x-tick.worst .mc-xaxis-label-main,.mc-x-tick.peak .mc-xaxis-label-main{font-size:10px}
+.mc-x-tick.range-start .mc-xaxis-label-main{fill:#f2f2f2}
+.mc-x-tick.range-start .mc-xaxis-label-sub{fill:#cfcfcf}
+.mc-x-tick.best .mc-xaxis-label-main,.mc-x-tick.worst .mc-xaxis-label-main,.mc-x-tick.peak .mc-xaxis-label-main,.mc-x-tick.range-start .mc-xaxis-label-main{font-size:10px}
 .mc-x-current-line{stroke:var(--gold);stroke-width:1.4;stroke-linecap:round;opacity:.78}
 
 /* ACTIVITY CHART */

@@ -173,6 +173,38 @@ describe('App', () => {
     expect(document.querySelector('.mc-profit-band.neg')).toBeInTheDocument()
   })
 
+  it('labels filtered marathon start with baseline profit and tournaments', async () => {
+    const base = makeMockData()
+    const now = Math.floor(Date.now() / 1000)
+    const day = 86400
+    const brHistory = [
+      { brAfter: 30000, timestamp: now - 60 * day, sessionResult: 20000, totalTournaments: 1000, tournaments: 1000, text: 'Old 1' },
+      { brAfter: 55000, timestamp: now - 40 * day, sessionResult: 25000, totalTournaments: 2000, tournaments: 1000, text: 'Old 2' },
+      { brAfter: 62000, timestamp: now - 20 * day, sessionResult: 7000, totalTournaments: 2500, tournaments: 500, text: 'Month 1' },
+      { brAfter: 70000, timestamp: now - 10 * day, sessionResult: 8000, totalTournaments: 3000, tournaments: 500, text: 'Month 2' },
+      { brAfter: 68000, timestamp: now - 2 * day, sessionResult: -2000, totalTournaments: 3300, tournaments: 300, text: 'Month 3' },
+    ]
+    fetchPublicData.mockResolvedValue(makeMockData({
+      meta: {
+        ...base.meta,
+        brHistory,
+        totalTournaments: 3300,
+      },
+    }))
+
+    render(<App />)
+    expect(await screen.findByText(new RegExp(translate('ru', 'chart_marathon').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))).toBeInTheDocument()
+    fireEvent.click(screen.getAllByText(translate('ru', 'period_month'))[0])
+
+    await waitFor(() => expect(document.querySelector('.mc-x-tick.range-start')).toBeInTheDocument())
+    const allAxisText = [...document.querySelectorAll('.mc-xaxis-label-main, .mc-xaxis-label-sub')]
+      .map(label => label.textContent)
+      .join(' ')
+
+    expect(allAxisText).toContain('СТАРТ +45.0k$')
+    expect(allAxisText).toContain('2\u202F000 МТТ')
+  })
+
   it('condenses dense same-sign marathon markers and uses rebuilt axes', async () => {
     const base = makeMockData()
     const brHistory = Array.from({ length:80 }, (_, i) => ({
