@@ -450,6 +450,7 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
         ...item,
         sub:uniq(item.notes || [])
           .filter(note => note !== item.main)
+          .filter(note => !(item.kind.includes('best') && String(note).trim().startsWith('$')))
           .sort((a, b) => {
             const rank = note => {
               const lower = String(note).toLowerCase()
@@ -474,14 +475,68 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
     if (!point) return null
     const badgeW = isMobile ? 76 : 72
     const badgeH = isMobile ? 25 : 23
-    const gap = point.y < pT + 46 ? badgeH + 12 : -(badgeH + 10)
-    const cx = Math.min(Math.max(point.x - (point.x > W - pR - 90 ? 34 : 0), pL + badgeW / 2 + 6), W - pR - badgeW / 2 - 6)
-    const cy = Math.min(Math.max(point.y + gap, pT + badgeH / 2 + 5), plotBottom - badgeH / 2 - 6)
+    const clamp = (v, min, max) => Math.min(Math.max(v, min), max)
+    const clampCx = x => clamp(x, pL + badgeW / 2 + 8, W - pR - badgeW / 2 - 8)
+    const clampCy = y => clamp(y, pT + badgeH / 2 + 8, plotBottom - badgeH / 2 - 8)
+    const dangerPoints = coords.flatMap((coord, i) => {
+      const prev = coords[i - 1]
+      return prev ? [coord, { x:(prev.x + coord.x) / 2, y:(prev.y + coord.y) / 2 }] : [coord]
+    })
+    const candidateOffsets = [
+      { dx:-92, dy:-18 },
+      { dx:-104, dy:18 },
+      { dx:-96, dy:50 },
+      { dx:0, dy:-46 },
+      { dx:88, dy:-18 },
+      { dx:82, dy:42 },
+      { dx:0, dy:52 },
+    ]
+    const distanceToRect = (p, rect) => {
+      const dx = Math.max(rect.left - p.x, 0, p.x - rect.right)
+      const dy = Math.max(rect.top - p.y, 0, p.y - rect.bottom)
+      return Math.hypot(dx, dy)
+    }
+    const candidates = candidateOffsets.map(({ dx, dy }) => {
+      const cx = clampCx(point.x + dx)
+      const cy = clampCy(point.y + dy)
+      const rect = {
+        left:cx - badgeW / 2,
+        right:cx + badgeW / 2,
+        top:cy - badgeH / 2,
+        bottom:cy + badgeH / 2,
+      }
+      const padded = {
+        left:rect.left - 12,
+        right:rect.right + 12,
+        top:rect.top - 12,
+        bottom:rect.bottom + 12,
+      }
+      const minDistance = Math.min(...dangerPoints.map(p => distanceToRect(p, rect)))
+      const overlaps = dangerPoints.filter(p =>
+        p.x >= padded.left && p.x <= padded.right && p.y >= padded.top && p.y <= padded.bottom
+      ).length
+      const leaderLength = Math.hypot(cx - point.x, cy - point.y)
+      return {
+        cx,
+        cy,
+        rect,
+        score:minDistance - overlaps * 120 - leaderLength * 0.035,
+      }
+    }).sort((a,b) => b.score - a.score)
+    const { cx, cy, rect } = candidates[0]
+    const anchor = point.x < rect.left
+      ? { x:rect.left, y:clamp(point.y, rect.top + 5, rect.bottom - 5) }
+      : point.x > rect.right
+        ? { x:rect.right, y:clamp(point.y, rect.top + 5, rect.bottom - 5) }
+        : point.y < rect.top
+          ? { x:clamp(point.x, rect.left + 7, rect.right - 7), y:rect.top }
+          : { x:clamp(point.x, rect.left + 7, rect.right - 7), y:rect.bottom }
     return {
       idx:peakIdx,
       point,
       cx,
       cy,
+      anchor,
       badgeW,
       badgeH,
       label:eventLabel('peak'),
@@ -662,8 +717,8 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
         })}
         {peakCallout && (
           <g className="mc-peak-callout" data-idx={peakCallout.idx}>
-            <line x1={peakCallout.point.x} y1={peakCallout.point.y + 8}
-              x2={peakCallout.cx} y2={peakCallout.cy - peakCallout.badgeH / 2}
+            <line x1={peakCallout.point.x} y1={peakCallout.point.y}
+              x2={peakCallout.anchor.x} y2={peakCallout.anchor.y}
               className="mc-peak-callout-line"/>
             <rect x={peakCallout.cx - peakCallout.badgeW / 2} y={peakCallout.cy - peakCallout.badgeH / 2}
               width={peakCallout.badgeW} height={peakCallout.badgeH} rx="7"

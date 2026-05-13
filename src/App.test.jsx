@@ -292,6 +292,7 @@ describe('App', () => {
     expect(allAxisText).toContain('$100k')
     expect(allAxisText).not.toContain('$75k')
     expect(allAxisText).not.toContain('$125k')
+    expect(allAxisText).not.toContain('$150k')
     expect(new Set([...document.querySelectorAll('.mc-xaxis-label-main')].map(label => label.getAttribute('y'))).size).toBe(1)
     expect(new Set([...document.querySelectorAll('.mc-xaxis-label-sub')].map(label => label.getAttribute('y'))).size).toBe(1)
   })
