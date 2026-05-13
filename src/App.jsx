@@ -480,20 +480,6 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
   })()
 
   const sessionProfits = points.map((_, i) => sessionProfitAt(i))
-  const maxAbsSessionProfit = Math.max(1, ...sessionProfits.map(v => Math.abs(v)))
-  const profitBands = coords.slice(1).map((point, idx) => {
-    const i = idx + 1
-    const x1 = coords[i - 1].x
-    const x2 = point.x
-    const profit = sessionProfits[i]
-    return {
-      i,
-      x:x1,
-      width:Math.max(0, x2 - x1),
-      profit,
-      opacity:0.045 + Math.min(Math.abs(profit) / maxAbsSessionProfit, 1) * 0.13,
-    }
-  }).filter(band => band.width > 0.5)
   const lineStops = coords.length
     ? coords.map((point, i) => ({
       offset:`${Math.max(0, Math.min(100, ((point.x - pL) / Math.max(W - pL - pR, 1)) * 100))}%`,
@@ -557,16 +543,6 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
             <stop offset="58%"  stopColor="#ffffff" stopOpacity=".035"/>
             <stop offset="100%" stopColor="#ffffff" stopOpacity="0"/>
           </linearGradient>
-          <linearGradient id="mcBandPos" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#72d77b" stopOpacity=".75"/>
-            <stop offset="58%" stopColor="#72d77b" stopOpacity=".22"/>
-            <stop offset="100%" stopColor="#72d77b" stopOpacity="0"/>
-          </linearGradient>
-          <linearGradient id="mcBandNeg" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="#ff6257" stopOpacity=".72"/>
-            <stop offset="58%" stopColor="#ff6257" stopOpacity=".20"/>
-            <stop offset="100%" stopColor="#ff6257" stopOpacity="0"/>
-          </linearGradient>
           <linearGradient id="mcLineGrad" x1={pL} y1="0" x2={W-pR} y2="0" gradientUnits="userSpaceOnUse">
             {lineStops.map((stop, i) => (
               <stop key={`${stop.offset}-${i}`} offset={stop.offset} stopColor={stop.color}/>
@@ -584,13 +560,6 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
         </defs>
         <rect x={pL} y={pT} width={W-pL-pR} height={plotBottom-pT} rx="10" className="mc-plot-bg"/>
         <rect x={pL} y={pT} width={W-pL-pR} height={plotBottom-pT} rx="10" fill="url(#mcPlotGlow)" className="mc-plot-glow"/>
-        {profitBands.map(band => (
-          <rect key={`profit-band-${band.i}`}
-            x={band.x} y={pT} width={band.width} height={plotBottom-pT}
-            className={`mc-profit-band ${band.profit >= 0 ? 'pos' : 'neg'}`}
-            fill={band.profit >= 0 ? 'url(#mcBandPos)' : 'url(#mcBandNeg)'}
-            opacity={band.opacity}/>
-        ))}
         {yTicks.map(({v,y},i) => (
           <g key={i} className="mc-y-tick">
             <line x1={pL} y1={y} x2={W-pR} y2={y} className="mc-grid"/>

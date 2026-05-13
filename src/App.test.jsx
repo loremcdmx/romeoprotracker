@@ -171,8 +171,8 @@ describe('App', () => {
     expect(document.querySelector('.mc-x-tick.milestone')).toBeInTheDocument()
     expect(document.querySelector('.mc-x-tick.best')).toBeInTheDocument()
     expect(document.querySelector('.mc-x-tick.worst')).toBeInTheDocument()
-    expect(document.querySelector('.mc-profit-band.pos')).toBeInTheDocument()
-    expect(document.querySelector('.mc-profit-band.neg')).toBeInTheDocument()
+    expect(document.querySelectorAll('.mc-profit-band')).toHaveLength(0)
+    expect(document.querySelector('.mc-plot-glow')).toBeInTheDocument()
   })
 
   it('labels filtered marathon start with baseline profit and tournaments', async () => {

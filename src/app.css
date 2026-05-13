@@ -70,7 +70,6 @@ a{color:var(--red2);text-decoration:none}
 .mc-period.active{background:linear-gradient(180deg,#ef5350,#d73c39);border-color:#ff6f61;color:#fff;box-shadow:0 0 0 1px rgba(255,255,255,.05),0 0 16px rgba(229,57,53,.18)}
 .mc-plot-bg{fill:var(--chart-panel);stroke:rgba(255,255,255,.035);stroke-width:1}
 .mc-plot-glow{pointer-events:none}
-.mc-profit-band{pointer-events:none;mix-blend-mode:screen}
 .mc-grid{stroke:var(--chart-grid);stroke-width:1}
 .mc-zero{stroke:var(--chart-grid-strong);stroke-width:1;stroke-dasharray:5 4}
 .mc-axis-line{stroke:var(--chart-grid-strong);stroke-width:1}
@@ -205,7 +204,6 @@ a{color:var(--red2);text-decoration:none}
 .light .mc-grid{stroke:var(--chart-grid)}
 .light .mc-zero{stroke:var(--chart-grid-strong)}
 .light .mc-dot{stroke:var(--bg2)}
-.light .mc-profit-band{mix-blend-mode:multiply}
 .light ::-webkit-scrollbar-track{background:var(--bg3)}
 .light ::-webkit-scrollbar-thumb{background:#b8b4ac}
 .light .filter-num,.light .feed-search,.light .feed-select{background:var(--bg3);color:var(--white)}
