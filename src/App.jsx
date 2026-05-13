@@ -238,6 +238,11 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
     if (lang === 'es') return 'INICIO'
     return 'СТАРТ'
   })()
+  const eventLabel = kind => {
+    if (lang === 'en') return ({ best:'BEST', worst:'WORST', peak:'PEAK' })[kind]
+    if (lang === 'es') return ({ best:'MEJOR', worst:'PEOR', peak:'PICO' })[kind]
+    return ({ best:'БЕСТ', worst:'ВОРСТ', peak:'ПИК' })[kind]
+  }
   const mttUnit = lang === 'ru' ? 'МТТ' : 'MTT'
   const markerGroups = (() => {
     if (!points.length) return []
@@ -307,13 +312,8 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
     if (!points.length) return []
 
     const byIndex = new Map()
-    const eventLabel = kind => {
-      if (lang === 'en') return ({ best:'BEST', worst:'WORST', peak:'PEAK' })[kind]
-      if (lang === 'es') return ({ best:'MEJOR', worst:'PEOR', peak:'PICO' })[kind]
-      return ({ best:'БЕСТ', worst:'ВОРСТ', peak:'ПИК' })[kind]
-    }
     const labelNote = item => item.note || (
-      ['milestone','best','worst','peak','range-start'].includes(item.kind) ? item.main : null
+      ['milestone','best','worst','range-start'].includes(item.kind) ? item.main : null
     )
     const uniq = arr => [...new Set(arr.filter(Boolean))]
     const put = (i, item) => {
@@ -406,17 +406,6 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
       })
     }
 
-    let peakIdx = 0
-    points.forEach((p, i) => { if (p.br > points[peakIdx].br) peakIdx = i })
-    if (peakIdx !== points.length - 1) {
-      put(peakIdx, {
-        kind:'peak',
-        main:`${eventLabel('peak')} $${Math.round(points[peakIdx].br / 1000)}k`,
-        priority:108,
-        note:`${eventLabel('peak').toLowerCase()} $${Math.round(points[peakIdx].br / 1000)}k`,
-      })
-    }
-
     let selected = []
     const maxLabels = isMobile ? 7 : 9
     const minGap = isMobile ? 78 : 68
@@ -476,6 +465,28 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
           .concat(fmtDateShortLang(item.p.timestamp, lang))
           .join(' · '),
       }))
+  })()
+  const peakCallout = (() => {
+    if (!points.length) return null
+    let peakIdx = 0
+    points.forEach((p, i) => { if (p.br > points[peakIdx].br) peakIdx = i })
+    const point = coords[peakIdx]
+    if (!point) return null
+    const badgeW = isMobile ? 76 : 72
+    const badgeH = isMobile ? 25 : 23
+    const gap = point.y < pT + 46 ? badgeH + 12 : -(badgeH + 10)
+    const cx = Math.min(Math.max(point.x - (point.x > W - pR - 90 ? 34 : 0), pL + badgeW / 2 + 6), W - pR - badgeW / 2 - 6)
+    const cy = Math.min(Math.max(point.y + gap, pT + badgeH / 2 + 5), plotBottom - badgeH / 2 - 6)
+    return {
+      idx:peakIdx,
+      point,
+      cx,
+      cy,
+      badgeW,
+      badgeH,
+      label:eventLabel('peak'),
+      value:`$${Math.round(points[peakIdx].br / 1000)}k`,
+    }
   })()
 
   const sessionProfits = points.map((_, i) => sessionProfitAt(i))
@@ -649,6 +660,20 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
             </g>
           )
         })}
+        {peakCallout && (
+          <g className="mc-peak-callout" data-idx={peakCallout.idx}>
+            <line x1={peakCallout.point.x} y1={peakCallout.point.y + 8}
+              x2={peakCallout.cx} y2={peakCallout.cy - peakCallout.badgeH / 2}
+              className="mc-peak-callout-line"/>
+            <rect x={peakCallout.cx - peakCallout.badgeW / 2} y={peakCallout.cy - peakCallout.badgeH / 2}
+              width={peakCallout.badgeW} height={peakCallout.badgeH} rx="7"
+              className="mc-peak-callout-bg"/>
+            <text x={peakCallout.cx} y={peakCallout.cy + 4} textAnchor="middle" className="mc-peak-callout-text">
+              <tspan className="mc-peak-callout-kicker">{peakCallout.label}</tspan>
+              <tspan dx="5" className="mc-peak-callout-value">{peakCallout.value}</tspan>
+            </text>
+          </g>
+        )}
         {xLabelItems.map(({ i, x, y, main, sub, kind }) => {
           const isLast = i===points.length-1
           const lx = Math.min(Math.max(x,pL),W-pR)

@@ -165,11 +165,17 @@ describe('App', () => {
       .map(label => label.textContent)
       .join(' ')
     const bestLabel = document.querySelector('.mc-x-tick.best .mc-xaxis-label-main')
+    const peakCallout = document.querySelector('.mc-peak-callout')
     expect(allAxisText).toContain('$100k')
     expect(bestLabel?.textContent).toMatch(/^\+/)
     expect(labels.some(label => label?.includes('БЕСТ'))).toBe(false)
     expect(labels.some(label => label?.includes('ВОРСТ'))).toBe(true)
-    expect(labels.some(label => label?.includes('ПИК'))).toBe(true)
+    expect(allAxisText).not.toContain('ПИК')
+    expect(document.querySelector('.mc-x-tick.peak')).not.toBeInTheDocument()
+    expect(peakCallout).toBeInTheDocument()
+    expect(peakCallout).toHaveAttribute('data-idx', '6')
+    expect(peakCallout?.textContent).toContain('ПИК')
+    expect(peakCallout?.textContent).toContain('$122k')
     expect(document.querySelector('.mc-x-tick.milestone')).toBeInTheDocument()
     expect(document.querySelector('.mc-x-tick.best')).toBeInTheDocument()
     expect(document.querySelector('.mc-x-tick.worst')).toBeInTheDocument()
@@ -212,6 +218,43 @@ describe('App', () => {
     expect(allAxisText).toContain('2\u202F000 МТТ')
   })
 
+  it('moves the in-plot peak callout to a new all-time high automatically', async () => {
+    const base = makeMockData()
+    const brs = [20000, 55000, 52000, 140000]
+    const brHistory = brs.map((brAfter, i) => {
+      const brPrev = i === 0 ? 10000 : brs[i - 1]
+      return {
+        brAfter,
+        brPrev,
+        date: `D${i + 1}`,
+        timestamp: 1712300000 + i * 86400,
+        sessionResult: brAfter - brPrev,
+        totalTournaments: (i + 1) * 1000,
+        tournaments: 1000,
+        text: `Session ${i + 1}`,
+      }
+    })
+    fetchPublicData.mockResolvedValue(makeMockData({
+      meta: {
+        ...base.meta,
+        brHistory,
+        totalTournaments: 4000,
+      },
+    }))
+
+    render(<App />)
+    expect(await screen.findByText(new RegExp(translate('ru', 'chart_marathon').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))).toBeInTheDocument()
+
+    const peakCallout = document.querySelector('.mc-peak-callout')
+    const axisText = [...document.querySelectorAll('.mc-xaxis-label-main, .mc-xaxis-label-sub')]
+      .map(label => label.textContent)
+      .join(' ')
+    expect(peakCallout).toHaveAttribute('data-idx', '3')
+    expect(peakCallout?.textContent).toContain('ПИК')
+    expect(peakCallout?.textContent).toContain('$140k')
+    expect(axisText).not.toContain('ПИК')
+  })
+
   it('thins milestone labels when event labels crowd the chart tail', async () => {
     const base = makeMockData()
     const brs = [18000, 31000, 48000, 76000, 101000, 126000, 176000, 156000, 153000]
@@ -245,6 +288,7 @@ describe('App', () => {
 
     expect(document.querySelector('.mc-x-tick.best .mc-xaxis-label-main')?.textContent).toMatch(/^\+/)
     expect(allAxisText).not.toContain('БЕСТ')
+    expect(allAxisText).not.toContain('ПИК')
     expect(allAxisText).toContain('$100k')
     expect(allAxisText).not.toContain('$75k')
     expect(allAxisText).not.toContain('$125k')
