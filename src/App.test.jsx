@@ -133,17 +133,19 @@ describe('App', () => {
 
   it('uses semantic event labels on the marathon X axis', async () => {
     const base = makeMockData()
-    const brs = [18000, 31000, 48000, 76000, 101000, 122000, 112000, 119000]
+    const brs = [18000, 31000, 48000, 76000, 91000, 101000, 122000, 121000, 112000, 119000]
+    const totals = [1000, 2000, 3000, 4000, 5000, 6000, 7800, 8400, 9200, 10000]
     const brHistory = brs.map((brAfter, i) => {
       const brPrev = i === 0 ? 10000 : brs[i - 1]
+      const totalTournaments = totals[i]
       return {
         brAfter,
         brPrev,
         date: `D${i + 1}`,
         timestamp: 1712300000 + i * 86400,
         sessionResult: brAfter - brPrev,
-        totalTournaments: (i + 1) * 1000,
-        tournaments: 1000,
+        totalTournaments,
+        tournaments: i === 0 ? totalTournaments : totalTournaments - totals[i - 1],
         text: `Session ${i + 1}`,
       }
     })
@@ -151,7 +153,7 @@ describe('App', () => {
       meta: {
         ...base.meta,
         brHistory,
-        totalTournaments: 8000,
+        totalTournaments: 10000,
       },
     }))
 
@@ -237,10 +239,11 @@ describe('App', () => {
       .join(' ')
 
     expect(allAxisText).toContain('БЕСТ')
-    expect(allAxisText).toContain('ВОРСТ')
     expect(allAxisText).toContain('$100k')
     expect(allAxisText).not.toContain('$75k')
     expect(allAxisText).not.toContain('$125k')
+    expect(new Set([...document.querySelectorAll('.mc-xaxis-label-main')].map(label => label.getAttribute('y'))).size).toBe(1)
+    expect(new Set([...document.querySelectorAll('.mc-xaxis-label-sub')].map(label => label.getAttribute('y'))).size).toBe(1)
   })
 
   it('condenses dense same-sign marathon markers and uses rebuilt axes', async () => {

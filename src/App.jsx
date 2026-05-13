@@ -196,9 +196,7 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
   const xMainLabelY = xAxisY + (isMobile ? 19 : 16)
   const xSubLabelY = xMainLabelY + (isMobile ? 13 : 11)
   const xLabelEdgePad = isMobile ? 6 : 8
-  const xLabelLanes = 3
-  const xLabelLaneGap = isMobile ? 34 : 32
-  const xLabelExtraBottom = (xLabelLanes - 1) * xLabelLaneGap
+  const xLabelExtraBottom = 0
   const signOfProfit = v => v > 0 ? 1 : v < 0 ? -1 : 0
   const sessionProfitAt = i => {
     const p = points[i]
@@ -420,7 +418,7 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
       })
     }
 
-    const selected = []
+    let selected = []
     const maxLabels = isMobile ? 7 : 9
     const minGap = isMobile ? 78 : 68
     const labelWidth = item => {
@@ -429,29 +427,32 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
       const noteWidth = notes.reduce((max, note) => Math.max(max, String(note || '').length * (isMobile ? 4.9 : 4.7)), 0)
       return Math.min(isMobile ? 138 : 176, Math.max(48, mainWidth, noteWidth))
     }
-    const gapFor = (a, b) => Math.max(minGap, (labelWidth(a) + labelWidth(b)) / 2 + (isMobile ? 18 : 22))
+    const gapFor = (a, b) => Math.max(minGap, (labelWidth(a) + labelWidth(b)) / 2 + (isMobile ? 16 : 14))
     const candidates = [...byIndex.values()].sort((a,b) => b.priority - a.priority)
     for (const candidate of candidates) {
-      let placed = false
-      for (let lane = 0; lane < xLabelLanes; lane++) {
-        const laneConflict = selected.find(item =>
-          item.lane === lane && Math.abs(item.x - candidate.x) < gapFor(item, candidate)
-        )
-        if (!laneConflict) {
-          if (selected.length < maxLabels) selected.push({ ...candidate, lane })
-          placed = true
-          break
-        }
-      }
-      if (placed) continue
-
       const conflicts = selected.filter(item =>
         Math.abs(item.x - candidate.x) < gapFor(item, candidate)
       )
-      const weakest = conflicts.sort((a,b) => a.priority - b.priority)[0]
-      if (weakest && candidate.priority > weakest.priority) {
-        const idx = selected.indexOf(weakest)
-        selected.splice(idx, 1, { ...candidate, lane:weakest.lane })
+      if (!conflicts.length && selected.length < maxLabels) {
+        selected.push(candidate)
+        continue
+      }
+
+      if (conflicts.length && conflicts.every(item => candidate.priority > item.priority)) {
+        selected = selected.filter(item => !conflicts.includes(item))
+        if (selected.length < maxLabels) selected.push(candidate)
+        continue
+      }
+
+      if (!conflicts.length && selected.length >= maxLabels) {
+        const weakest = selected.slice().sort((a,b) => a.priority - b.priority)[0]
+        const withoutWeakest = selected.filter(item => item !== weakest)
+        const stillFits = withoutWeakest.every(item =>
+          Math.abs(item.x - candidate.x) >= gapFor(item, candidate)
+        )
+        if (weakest && candidate.priority > weakest.priority && stillFits) {
+          selected = [...withoutWeakest, candidate]
+        }
       }
     }
 
@@ -639,14 +640,13 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
             </g>
           )
         })}
-        {xLabelItems.map(({ i, x, y, main, sub, kind, lane = 0 }) => {
+        {xLabelItems.map(({ i, x, y, main, sub, kind }) => {
           const isLast = i===points.length-1
           const lx = Math.min(Math.max(x,pL),W-pR)
           const tx = Math.min(Math.max(lx, pL + xLabelEdgePad), W - pR - xLabelEdgePad)
           const anchor = tx <= pL + xLabelEdgePad + 1 ? 'start' : tx >= W - pR - xLabelEdgePad - 1 ? 'end' : 'middle'
-          const laneOffset = lane * xLabelLaneGap
-          const mainY = xMainLabelY + laneOffset
-          const subY = xSubLabelY + laneOffset
+          const mainY = xMainLabelY
+          const subY = xSubLabelY
           const currentLine = anchor === 'end'
             ? { x1: tx - 44, x2: tx }
             : anchor === 'start'
