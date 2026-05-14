@@ -79,6 +79,15 @@ function formatLeaderboardPoints(value) {
   return Number(value).toLocaleString('en-US', { maximumFractionDigits: 2 })
 }
 
+function LeaderboardPoints({ value, className = '' }) {
+  return (
+    <span className={className}>
+      <b>{formatLeaderboardPoints(value)}</b>
+      <small>pts</small>
+    </span>
+  )
+}
+
 function leaderboardGapText(board, lang) {
   const target = board?.target
   if (!target) return ''
@@ -207,7 +216,7 @@ function LeaderboardsWidget({ snapshot, lang, t }) {
                       <b>#{board.target.rank}</b>
                     </div>
                     <div className="leaderboard-romeo-metrics">
-                      <span>{formatLeaderboardPoints(board.target.point)} pts</span>
+                      <LeaderboardPoints value={board.target.point} className="leaderboard-romeo-points"/>
                       <strong>{formatLeaderboardPrize(board.target)}</strong>
                     </div>
                     {chase && <div className={`leaderboard-chase ${board.target.rank === 1 ? 'leader' : ''}`}>{chase}</div>}
@@ -217,6 +226,7 @@ function LeaderboardsWidget({ snapshot, lang, t }) {
                   <div className="leaderboard-table-head">
                     <span>#</span>
                     <span>{t('leaderboards_player')}</span>
+                    <span>{t('leaderboards_points')}</span>
                     <span>{t('leaderboards_prize')}</span>
                   </div>
                   {rows.map((row, idx) => (
@@ -224,8 +234,8 @@ function LeaderboardsWidget({ snapshot, lang, t }) {
                       <span className={`leaderboard-rank ${row.rank <= 3 ? `top-${row.rank}` : ''}`}>{row.rank}</span>
                       <span className="leaderboard-player">
                         <span className="leaderboard-name">{row.nickname}</span>
-                        <span className="leaderboard-points">{formatLeaderboardPoints(row.point)} pts</span>
                       </span>
+                      <LeaderboardPoints value={row.point} className="leaderboard-points"/>
                       <span className="leaderboard-prize">{formatLeaderboardPrize(row)}</span>
                     </div>
                   ))}

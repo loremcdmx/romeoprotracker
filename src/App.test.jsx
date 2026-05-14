@@ -149,6 +149,8 @@ describe('App', () => {
 
     expect(await screen.findByText(translate('ru', 'leaderboards_title'))).toBeInTheDocument()
     expect(screen.getByText('Mala_Ale_Farsa')).toBeInTheDocument()
+    expect(screen.getAllByText(translate('ru', 'leaderboards_points')).length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText('3,370.04').length).toBeGreaterThanOrEqual(1)
     expect(screen.getAllByText('Romeo #107').length).toBeGreaterThanOrEqual(1)
     expect(screen.getAllByText('GCD 150').length).toBeGreaterThanOrEqual(1)
     expect(screen.getByText(translate('ru', 'leaderboards_points_help'))).toBeInTheDocument()
