@@ -93,6 +93,20 @@ a{color:var(--red2);text-decoration:none}
 .mc-x-tickmark{stroke:var(--chart-grid-strong);stroke-width:1.1;stroke-linecap:round;opacity:.72}
 .mc-xaxis-label-main{font-family:'Roboto Mono',monospace;font-size:11px;font-weight:800;fill:var(--axis-x);font-variant-numeric:tabular-nums;letter-spacing:0;text-shadow:0 1px 8px rgba(0,0,0,.55)}
 .mc-xaxis-label-sub{font-family:'Roboto Mono',monospace;font-size:8.5px;font-weight:700;fill:var(--axis-x-muted);letter-spacing:.03em;text-transform:uppercase;text-shadow:0 1px 6px rgba(0,0,0,.5)}
+.mc-x-tick.last .mc-xaxis-label-main{fill:var(--gold)}
+.mc-x-tick.last .mc-xaxis-label-sub{fill:#f3d88b}
+.mc-x-tick.start .mc-xaxis-label-main{fill:#f3f3f3}
+.mc-x-tick.milestone .mc-xaxis-label-main{fill:var(--gold)}
+.mc-x-tick.recovery .mc-xaxis-label-main{fill:#80df88}
+.mc-x-tick.recovery .mc-xaxis-label-sub{fill:#b7dfba}
+.mc-x-tick.recovery .mc-x-current-line{stroke:#75d67d}
+.mc-x-tick.best .mc-xaxis-label-main{fill:#78d37e}
+.mc-x-tick.best .mc-xaxis-label-sub{fill:#bee8c2}
+.mc-x-tick.best .mc-x-current-line{stroke:#75d67d}
+.mc-x-tick.worst .mc-xaxis-label-main{fill:#ff7a70}
+.mc-x-tick.worst .mc-xaxis-label-sub{fill:#ffc4be}
+.mc-x-tick.worst .mc-x-current-line{stroke:#ff7a70}
+.mc-x-tick.range-start .mc-xaxis-label-main{fill:#f2f2f2}
 .mc-x-current-line{stroke:var(--gold);stroke-width:1.4;stroke-linecap:round;opacity:.78}
 
 /* ACTIVITY CHART */
