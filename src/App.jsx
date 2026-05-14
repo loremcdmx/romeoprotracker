@@ -139,6 +139,10 @@ function leaderboardRowsForDisplay(board, targetNick) {
 
   ;(board?.top || []).slice(0, 3).forEach(row => add(row, 'leader'))
   if (board?.target) add(board.target, 'romeo')
+  for (const row of (board?.top || []).slice(3)) {
+    if (rows.length >= 4) break
+    add(row, 'leader')
+  }
   return rows
 }
 
@@ -211,7 +215,7 @@ function LeaderboardsWidget({ snapshot, lang, t }) {
                       <LeaderboardPoints value={board.target.point} className="leaderboard-romeo-points"/>
                       <strong>{formatLeaderboardPrize(board.target)}</strong>
                     </div>
-                    {chase && <div className={`leaderboard-chase ${board.target.rank === 1 ? 'leader' : ''}`}>{chase}</div>}
+                    <div className={`leaderboard-chase ${chase ? '' : 'placeholder'}`} aria-hidden={!chase}>{chase || '\u00a0'}</div>
                   </div>
                 )}
                 <div className="leaderboard-table">

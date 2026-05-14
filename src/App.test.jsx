@@ -105,6 +105,7 @@ function makeMockLeaderboards() {
           { rank: 1, nickname: 'R Romanovskyi', point: 1956.18, prizeValue: 80000, prizeCurrency: 'USD' },
           { rank: 2, nickname: 'Tom_Poker_BR', point: 1946.99, prizeValue: 60000, prizeCurrency: 'USD' },
           { rank: 3, nickname: 'Ronan Sweeney', point: 1935.38, prizeValue: 45000, prizeCurrency: 'USD' },
+          { rank: 4, nickname: 'Patrick Leonard', point: 1879.09, prizeValue: 35000, prizeCurrency: 'USD' },
         ],
       },
     ],
@@ -156,6 +157,7 @@ describe('App', () => {
     expect(screen.getByText('до топ-3: 1,167.12 pts')).toBeInTheDocument()
     expect(screen.queryByText('лидер борда')).not.toBeInTheDocument()
     expect(screen.getByText('$300K')).toBeInTheDocument()
+    expect(screen.getByText('Patrick Leonard')).toBeInTheDocument()
     expect(screen.getAllByText('GCD 150').length).toBeGreaterThanOrEqual(1)
     expect(screen.getByText(translate('ru', 'leaderboards_points_help'))).toBeInTheDocument()
   })
