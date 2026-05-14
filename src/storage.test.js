@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { expandPosts, fetchPublicData } from './storage.js'
 
-const CACHE_KEY = 'rpt_cache_v6'
+const CACHE_KEY = 'rpt_cache_v7'
 
 function jsonResponse(body) {
   return Promise.resolve({
@@ -124,6 +124,44 @@ describe('fetchPublicData', () => {
 
     expect(result.meta.lastUpdated).toBe('2026-04-19T02:00:00.000Z')
     expect(result.posts[0].id).toBe('raw')
+  })
+
+  it('keeps leaderboard freshness independent from post freshness', async () => {
+    vi.stubGlobal('fetch', vi.fn((url) => {
+      const href = String(url)
+
+      if (href.includes('localhost') && href.includes('/data/meta.json')) {
+        return jsonResponse({ lastUpdated: '2026-04-19T02:00:00.000Z' })
+      }
+
+      if (href.includes('localhost') && href.includes('/data/posts.min.json')) {
+        return jsonResponse({ avatars: [], posts: [{ i: 'same', a: 'Same origin', t: 1 }] })
+      }
+
+      if (href.includes('localhost') && href.includes('/data/leaderboards.json')) {
+        return jsonResponse({ fetchedAt: '2026-05-14T09:00:00.000Z', leaderboards: [{ tier: 'Low' }] })
+      }
+
+      if (href.includes('raw.githubusercontent.com') && href.includes('/meta.json')) {
+        return jsonResponse({ lastUpdated: '2026-04-19T01:00:00.000Z' })
+      }
+
+      if (href.includes('raw.githubusercontent.com') && href.includes('/posts.min.json')) {
+        return jsonResponse({ avatars: [], posts: [{ i: 'raw', a: 'Raw GitHub', t: 2 }] })
+      }
+
+      if (href.includes('raw.githubusercontent.com') && href.includes('/leaderboards.json')) {
+        return jsonResponse({ fetchedAt: '2026-05-14T10:00:00.000Z', leaderboards: [{ tier: 'High' }] })
+      }
+
+      throw new Error(`Unexpected fetch: ${href}`)
+    }))
+
+    const result = await fetchPublicData()
+
+    expect(result.meta.lastUpdated).toBe('2026-04-19T02:00:00.000Z')
+    expect(result.posts[0].id).toBe('same')
+    expect(result.leaderboards.leaderboards[0].tier).toBe('High')
   })
 
   it('keeps a fresher cached payload when the network returns older data', async () => {

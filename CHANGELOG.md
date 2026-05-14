@@ -2,6 +2,27 @@
 
 ## Unreleased
 
+## 1.10.0 — 2026-05-15
+
+### New features
+- added a GGWF leaderboard widget with three readable columns for Low, Medium, and High
+- each visible board shows the leaders, Romeo's current place, points, prize, and the gap to the next target
+- added a countdown to the end of the GGWF leaderboard period
+- added a points tooltip with the formula and approximate scoring examples
+
+### Data
+- added `data/leaderboards.json` as the app snapshot for GGWF leaderboard data
+- added a repeatable GGWF leaderboard fetcher and a GitHub Actions workflow to refresh it automatically
+- refreshed forum data from a full scan: new posts, latest likes, and compact payloads are updated
+
+### UI polish
+- rebuilt the leaderboard cards with stronger tier accents, cleaner prize chips, and a dedicated Romeo panel
+- moved forum activity below the feed so the leaderboard widget owns the post-chart slot
+
+### Reliability
+- client data loading now carries leaderboard snapshots separately from forum post freshness
+- added tests for the leaderboard widget and independent leaderboard freshness selection
+
 ## 1.9.0 — 2026-05-09
 
 ### New features

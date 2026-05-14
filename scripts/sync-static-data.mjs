@@ -8,7 +8,7 @@ const here = dirname(fileURLToPath(import.meta.url))
 const root = resolve(here, '..')
 const sourceDir = resolve(root, 'data')
 const targetDir = resolve(root, 'public', 'data')
-const files = ['meta.json', 'posts.min.json', 'posts.json']
+const files = ['meta.json', 'posts.min.json', 'posts.json', 'leaderboards.json']
 
 await mkdir(targetDir, { recursive: true })
 

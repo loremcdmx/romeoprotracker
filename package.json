@@ -1,7 +1,7 @@
 {
   "name": "romeoprotracker",
   "private": true,
-  "version": "1.9.0",
+  "version": "1.10.0",
   "type": "module",
   "engines": {
     "node": ">=20.19.0"
@@ -21,7 +21,9 @@
     "scrape:no-push": "node scripts/scrape.mjs --no-push",
     "scrape:full": "node scripts/scrape.mjs --mode=full",
     "scrape:reextract": "node scripts/scrape.mjs --mode=reextract",
-    "scrape:translate": "node scripts/scrape.mjs --mode=translate"
+    "scrape:translate": "node scripts/scrape.mjs --mode=translate",
+    "leaderboards:ggwf": "node scripts/fetch-ggwf-leaderboards.mjs",
+    "leaderboards:coin": "node scripts/check-coinpoker-coinmasters.mjs"
   },
   "dependencies": {
     "@vercel/analytics": "^2.0.1",

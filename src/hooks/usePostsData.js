@@ -48,6 +48,7 @@ export function usePostsData() {
   const latestPostsRef = useRef([])
   const [posts, setPosts] = useState([])
   const [meta, setMeta] = useState(null)
+  const [leaderboards, setLeaderboards] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [newPostIds, setNewPostIds] = useState([])
@@ -56,7 +57,7 @@ export function usePostsData() {
     if (!silent) setError(null)
 
     try {
-      const { posts: nextPosts = [], meta: nextMeta = {} } = await fetchPublicData()
+      const { posts: nextPosts = [], meta: nextMeta = {}, leaderboards: nextLeaderboards = null } = await fetchPublicData()
       enrichPosts(nextPosts, nextMeta)
 
       if (knownIdsRef.current) {
@@ -71,6 +72,7 @@ export function usePostsData() {
       latestPostsRef.current = nextPosts
       setPosts(nextPosts)
       setMeta(nextMeta)
+      setLeaderboards(nextLeaderboards)
       setError(null)
       return { posts: nextPosts, meta: nextMeta }
     } catch (err) {
@@ -129,6 +131,7 @@ export function usePostsData() {
   return {
     posts,
     meta,
+    leaderboards,
     loading,
     error,
     newPostIds,

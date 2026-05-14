@@ -72,6 +72,45 @@ function makeMockData(overrides = {}) {
   }
 }
 
+function makeMockLeaderboards() {
+  return {
+    source: 'ggpoker-pml',
+    officialPage: 'https://ggpoker.com/tournaments/ggpoker-world-festival/',
+    fetchedAt: '2026-05-14T09:02:14.754Z',
+    finishedAt: '2099-06-11T23:59:59.000+00:00',
+    targetNick: 'R Romanovskyi',
+    leaderboards: [
+      {
+        tier: 'Low',
+        target: { rank: 107, nickname: 'R Romanovskyi', point: 1732.59, prizeValue: 150, prizeCurrency: 'GCD' },
+        top: [
+          { rank: 1, nickname: 'Mala_Ale_Farsa', point: 3370.04, prizeValue: 20000, prizeCurrency: 'USD' },
+          { rank: 2, nickname: 'Anton Ivar', point: 3244.61, prizeValue: 12500, prizeCurrency: 'USD' },
+          { rank: 3, nickname: 'HappyNewFear', point: 2899.71, prizeValue: 8000, prizeCurrency: 'USD' },
+        ],
+      },
+      {
+        tier: 'Medium',
+        target: { rank: 4, nickname: 'R Romanovskyi', point: 2675.44, prizeValue: 20000, prizeCurrency: 'USD' },
+        top: [
+          { rank: 1, nickname: 'ANTON BARDZIYAN', point: 2826.77, prizeValue: 50000, prizeCurrency: 'USD' },
+          { rank: 2, nickname: 'Bowrot-', point: 2801.82, prizeValue: 35000, prizeCurrency: 'USD' },
+          { rank: 3, nickname: 'Armanus', point: 2690.35, prizeValue: 25000, prizeCurrency: 'USD' },
+        ],
+      },
+      {
+        tier: 'High',
+        target: { rank: 1, nickname: 'R Romanovskyi', point: 1956.18, prizeValue: 80000, prizeCurrency: 'USD' },
+        top: [
+          { rank: 1, nickname: 'R Romanovskyi', point: 1956.18, prizeValue: 80000, prizeCurrency: 'USD' },
+          { rank: 2, nickname: 'Tom_Poker_BR', point: 1946.99, prizeValue: 60000, prizeCurrency: 'USD' },
+          { rank: 3, nickname: 'Ronan Sweeney', point: 1935.38, prizeValue: 45000, prizeCurrency: 'USD' },
+        ],
+      },
+    ],
+  }
+}
+
 function findPostCardByAuthor(author) {
   return [...document.querySelectorAll('.post-card')].find((card) =>
     card.querySelector('.pc-author')?.textContent === author,
@@ -102,6 +141,17 @@ describe('App', () => {
   it('renders marathon chart', async () => {
     render(<App />)
     expect(await screen.findByText(new RegExp(translate('ru', 'chart_marathon').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))).toBeInTheDocument()
+  })
+
+  it('renders GGWF leaderboard widget with leaders, Romeo, and prizes', async () => {
+    fetchPublicData.mockResolvedValue(makeMockData({ leaderboards: makeMockLeaderboards() }))
+    render(<App />)
+
+    expect(await screen.findByText(translate('ru', 'leaderboards_title'))).toBeInTheDocument()
+    expect(screen.getByText('Mala_Ale_Farsa')).toBeInTheDocument()
+    expect(screen.getAllByText('Romeo #107').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText('GCD 150').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getByText(translate('ru', 'leaderboards_points_help'))).toBeInTheDocument()
   })
 
   it('anchors activity chart edge labels inside the SVG bounds', async () => {
@@ -474,7 +524,7 @@ describe('App', () => {
   it('renders footer with version and changelog', async () => {
     render(<App />)
     await screen.findAllByText('Romeopro')
-    expect(screen.getAllByText('v1.9').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText('v1.10').length).toBeGreaterThanOrEqual(1)
     expect(screen.getByText(translate('ru', 'footer_changelog'))).toBeInTheDocument()
   })
 
