@@ -238,6 +238,16 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
     if (lang === 'es') return 'INICIO'
     return 'СТАРТ'
   })()
+  const firstSessionText = (() => {
+    if (lang === 'en') return 'first session'
+    if (lang === 'es') return 'primera sesión'
+    return 'первая сессия'
+  })()
+  const recoveryText = (() => {
+    if (lang === 'en') return 'turnaround'
+    if (lang === 'es') return 'punto de giro'
+    return 'перелом'
+  })()
   const eventLabel = kind => {
     if (lang === 'en') return ({ best:'BEST', worst:'WORST', peak:'PEAK' })[kind]
     if (lang === 'es') return ({ best:'MEJOR', worst:'PEOR', peak:'PICO' })[kind]
@@ -313,7 +323,7 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
 
     const byIndex = new Map()
     const labelNote = item => item.note || (
-      ['milestone','best','worst','range-start'].includes(item.kind) ? item.main : null
+      ['milestone','best','worst','range-start','recovery'].includes(item.kind) ? item.main : null
     )
     const uniq = arr => [...new Set(arr.filter(Boolean))]
     const put = (i, item) => {
@@ -349,7 +359,7 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
     } else {
       put(0, {
         kind:'start',
-        main:cumMTT[0] ? fmtInt(cumMTT[0]) : 'старт',
+        main:firstSessionText,
         priority:58,
       })
     }
@@ -375,6 +385,26 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
             note:`$${Math.round(mark / 1000)}k`,
           })
           break
+        }
+      }
+    }
+
+    if (!rangeBaseline && points.length > 1 && Number.isFinite(startBR)) {
+      let dippedBelowStart = false
+      for (let i = 0; i < points.length; i++) {
+        const prevBR = i === 0 ? startBR : points[i - 1].br
+        if (points[i].br < startBR) dippedBelowStart = true
+        if (dippedBelowStart && prevBR < startBR && points[i].br >= startBR) {
+          const stayedAboveStart = points.slice(i).every(p => p.br >= startBR)
+          if (stayedAboveStart) {
+            put(i, {
+              kind:'recovery',
+              main:`$${Math.round(startBR / 1000)}k`,
+              priority:96,
+              notes:[recoveryText],
+            })
+            break
+          }
         }
       }
     }
@@ -760,7 +790,7 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
               <text x={tx} y={subY} textAnchor={anchor} className="mc-xaxis-label-sub">
                 {sub}
               </text>
-              {(isLast || kind.includes('milestone')) && <line x1={currentLine.x1} y1={subY + 6} x2={currentLine.x2} y2={subY + 6} className="mc-x-current-line"/>}
+              {(isLast || kind.includes('milestone') || kind.includes('recovery')) && <line x1={currentLine.x1} y1={subY + 6} x2={currentLine.x2} y2={subY + 6} className="mc-x-current-line"/>}
             </g>
           )
         })}

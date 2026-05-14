@@ -186,6 +186,53 @@ describe('App', () => {
     expect(document.querySelectorAll('#mcLineGrad stop').length).toBeGreaterThan(brHistory.length)
   })
 
+  it('labels the first session and the sustained $10k recovery point', async () => {
+    const base = makeMockData()
+    const brs = [
+      9954, 8710, 9099, 12321, 6737, 5257, 3020, 3211,
+      2876, 4192, 6902, 10371, 9957, 8697, 10270, 10190,
+      11334, 22131,
+    ]
+    const totals = [
+      167, 391, 621, 832, 1090, 1302, 1547, 1771,
+      1999, 2254, 2501, 3314, 3565, 3840, 4101, 4307,
+      4625, 4882,
+    ]
+    const startTs = Date.UTC(2026, 2, 11, 12, 0, 0) / 1000
+    const brHistory = brs.map((brAfter, i) => {
+      const brPrev = i === 0 ? 10000 : brs[i - 1]
+      const totalTournaments = totals[i]
+      return {
+        brAfter,
+        brPrev,
+        date: `D${i + 1}`,
+        timestamp: startTs + i * 86400,
+        sessionResult: brAfter - brPrev,
+        totalTournaments,
+        tournaments: i === 0 ? totalTournaments : totalTournaments - totals[i - 1],
+        text: `Session ${i + 1}`,
+      }
+    })
+    fetchPublicData.mockResolvedValue(makeMockData({
+      meta: {
+        ...base.meta,
+        brHistory,
+        totalTournaments: totals.at(-1),
+      },
+    }))
+
+    render(<App />)
+    expect(await screen.findByText(new RegExp(translate('ru', 'chart_marathon').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))).toBeInTheDocument()
+
+    expect(document.querySelector('.mc-x-tick.start .mc-xaxis-label-main')?.textContent).toBe('первая сессия')
+    expect(document.querySelector('.mc-x-tick.recovery .mc-xaxis-label-main')?.textContent).toBe('$10k')
+    expect(document.querySelector('.mc-x-tick.recovery .mc-xaxis-label-sub')?.textContent).toContain('перелом')
+    const axisText = [...document.querySelectorAll('.mc-xaxis-label-main, .mc-xaxis-label-sub')]
+      .map(label => label.textContent)
+      .join(' ')
+    expect(axisText).not.toContain('167')
+  })
+
   it('labels filtered marathon start with baseline profit and tournaments', async () => {
     const base = makeMockData()
     const now = Math.floor(Date.now() / 1000)
