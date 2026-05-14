@@ -91,16 +91,13 @@ function LeaderboardPoints({ value, className = '' }) {
 function leaderboardGapText(board, lang) {
   const target = board?.target
   if (!target) return ''
-  if (target.rank === 1) {
-    if (lang === 'ru') return 'лидер борда'
-    if (lang === 'es') return 'lider del board'
-    return 'board leader'
-  }
-  const gap = board.gapToNextAbove ?? board.gapToLeader
-  const rank = board.nextAbove?.rank ?? board.leader?.rank
-  if (gap == null || rank == null) return ''
-  const label = lang === 'ru' ? 'до' : lang === 'es' ? 'a' : 'to'
-  return `${label} #${rank}: ${formatLeaderboardPoints(Math.abs(gap))} pts`
+  if (target.rank <= 3) return ''
+  const topThree = (board?.top || []).find(row => row.rank === 3) || board?.top?.[2]
+  if (!topThree?.point || target.point == null) return ''
+  const gap = topThree.point - target.point
+  if (!(gap > 0)) return ''
+  const label = lang === 'ru' ? 'до топ-3' : lang === 'es' ? 'al top 3' : 'to top 3'
+  return `${label}: ${formatLeaderboardPoints(gap)} pts`
 }
 
 function formatLeaderboardTimeLeft(finishedAt, lang) {
@@ -201,13 +198,8 @@ function LeaderboardsWidget({ snapshot, lang, t }) {
                 <div className="leaderboard-card-head">
                   <div>
                     <span className="leaderboard-tier">{meta.label}</span>
-                    <span className="leaderboard-pool">{meta.pool}</span>
                   </div>
-                  {board?.target ? (
-                    <span className="leaderboard-romeo-rank">Romeo #{board.target.rank}</span>
-                  ) : (
-                    <span className="leaderboard-romeo-rank muted">{t('leaderboards_romeo_missing')}</span>
-                  )}
+                  <span className="leaderboard-pool">{meta.pool}</span>
                 </div>
                 {board?.target && (
                   <div className="leaderboard-romeo-panel">
