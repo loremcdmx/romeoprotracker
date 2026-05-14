@@ -230,7 +230,7 @@ function LeaderboardsWidget({ snapshot, lang, t }) {
                     <span>{t('leaderboards_prize')}</span>
                   </div>
                   {rows.map((row, idx) => (
-                    <div key={`${tier}-${row.rank}-${row.nickname}`} className={`leaderboard-row ${row.role === 'romeo' ? 'romeo' : ''} ${idx === 3 ? 'after-top' : ''}`}>
+                    <div key={`${tier}-${row.rank}-${row.nickname}`} className={`leaderboard-row ${row.role === 'romeo' ? 'romeo' : ''} ${row.rank <= 3 ? 'top-leader' : ''} ${idx === 3 ? 'after-top' : ''}`}>
                       <span className={`leaderboard-rank ${row.rank <= 3 ? `top-${row.rank}` : ''}`}>{row.rank}</span>
                       <span className="leaderboard-player">
                         <span className="leaderboard-name">{row.nickname}</span>
