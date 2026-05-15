@@ -9,7 +9,7 @@
   "finishedAt": "2026-06-11T23:59:59.000+00:00",
   "targetNick": "R Romanovskyi",
   "limit": 6000,
-  "fetchedAt": "2026-05-15T21:50:05.772Z",
+  "fetchedAt": "2026-05-15T22:44:37.631Z",
   "warnings": [],
   "leaderboards": [
     {
@@ -394,7 +394,7 @@
           "brandId": "POKEROK",
           "siteId": "GGPOK",
           "countryId": "RU",
-          "point": 1258.3,
+          "point": 1266.88,
           "prizeValue": 60000,
           "prizeCurrency": "USD",
           "isCorrect": true
@@ -416,7 +416,7 @@
           "brandId": "GGPCOM",
           "siteId": "GGPCW",
           "countryId": "AT",
-          "point": 1119.55,
+          "point": 1126.75,
           "prizeValue": 45000,
           "prizeCurrency": "USD",
           "isCorrect": true
@@ -424,8 +424,8 @@
       ],
       "nextAbove": null,
       "nextBelow": null,
-      "rowsFetched": 974,
-      "lastRank": 974,
+      "rowsFetched": 975,
+      "lastRank": 975,
       "gapToLeader": null,
       "gapToNextAbove": null,
       "gapToNextBelow": null
