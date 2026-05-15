@@ -9,7 +9,7 @@
   "finishedAt": "2026-06-11T23:59:59.000+00:00",
   "targetNick": "R Romanovskyi",
   "limit": 6000,
-  "fetchedAt": "2026-05-15T15:37:50.651Z",
+  "fetchedAt": "2026-05-15T17:25:22.341Z",
   "warnings": [],
   "leaderboards": [
     {
@@ -390,22 +390,22 @@
         },
         {
           "rank": 3,
-          "nickname": "Niklas Astedt",
-          "brandId": "GGPCOM",
-          "siteId": "GGPCOM",
-          "countryId": "SE",
-          "point": 1244.62,
+          "nickname": "V Buldygin",
+          "brandId": "POKEROK",
+          "siteId": "GGPOK",
+          "countryId": "RU",
+          "point": 1253.15,
           "prizeValue": 60000,
           "prizeCurrency": "USD",
           "isCorrect": true
         },
         {
           "rank": 4,
-          "nickname": "V Buldygin",
-          "brandId": "POKEROK",
-          "siteId": "GGPOK",
-          "countryId": "RU",
-          "point": 1241.08,
+          "nickname": "Niklas Astedt",
+          "brandId": "GGPCOM",
+          "siteId": "GGPCOM",
+          "countryId": "SE",
+          "point": 1244.62,
           "prizeValue": 50000,
           "prizeCurrency": "USD",
           "isCorrect": true
@@ -416,7 +416,7 @@
           "brandId": "GGPCOM",
           "siteId": "GGPCW",
           "countryId": "AT",
-          "point": 1106.57,
+          "point": 1113.88,
           "prizeValue": 45000,
           "prizeCurrency": "USD",
           "isCorrect": true
@@ -424,8 +424,8 @@
       ],
       "nextAbove": null,
       "nextBelow": null,
-      "rowsFetched": 962,
-      "lastRank": 962,
+      "rowsFetched": 966,
+      "lastRank": 966,
       "gapToLeader": null,
       "gapToNextAbove": null,
       "gapToNextBelow": null
