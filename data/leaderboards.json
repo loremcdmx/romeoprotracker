@@ -9,7 +9,7 @@
   "finishedAt": "2026-06-11T23:59:59.000+00:00",
   "targetNick": "R Romanovskyi",
   "limit": 6000,
-  "fetchedAt": "2026-05-16T18:50:19.295Z",
+  "fetchedAt": "2026-05-16T19:57:39.730Z",
   "warnings": [],
   "leaderboards": [
     {
@@ -247,7 +247,7 @@
         "brandId": "GGPCOM",
         "siteId": "GGPUA",
         "countryId": "UA",
-        "point": 2184.07,
+        "point": 2197.17,
         "prizeValue": 50000,
         "prizeCurrency": "USD",
         "isCorrect": true
@@ -258,7 +258,7 @@
         "brandId": "GGPCOM",
         "siteId": "GGPCW",
         "countryId": "AT",
-        "point": 2214.01,
+        "point": 2233.66,
         "prizeValue": 80000,
         "prizeCurrency": "USD",
         "isCorrect": true
@@ -270,7 +270,7 @@
           "brandId": "GGPCOM",
           "siteId": "GGPCW",
           "countryId": "AT",
-          "point": 2214.01,
+          "point": 2233.66,
           "prizeValue": 80000,
           "prizeCurrency": "USD",
           "isCorrect": true
@@ -281,7 +281,7 @@
           "brandId": "GGPCOM",
           "siteId": "GGPCOM",
           "countryId": "IE",
-          "point": 2190,
+          "point": 2201.35,
           "prizeValue": 60000,
           "prizeCurrency": "USD",
           "isCorrect": true
@@ -292,7 +292,7 @@
           "brandId": "GGPCOM",
           "siteId": "GGPUA",
           "countryId": "UA",
-          "point": 2184.07,
+          "point": 2197.17,
           "prizeValue": 50000,
           "prizeCurrency": "USD",
           "isCorrect": true
@@ -326,7 +326,7 @@
         "brandId": "GGPCOM",
         "siteId": "GGPCOM",
         "countryId": "IE",
-        "point": 2190,
+        "point": 2201.35,
         "prizeValue": 60000,
         "prizeCurrency": "USD",
         "isCorrect": true
@@ -344,9 +344,9 @@
       },
       "rowsFetched": 6000,
       "lastRank": 6000,
-      "gapToLeader": -29.94,
-      "gapToNextAbove": -5.93,
-      "gapToNextBelow": -14.62
+      "gapToLeader": -36.49,
+      "gapToNextAbove": -4.18,
+      "gapToNextBelow": -27.72
     },
     {
       "tier": "Super",
