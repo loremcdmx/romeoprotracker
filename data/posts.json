@@ -107552,7 +107552,7 @@
     "date": "16 мая, 15:01",
     "timestamp": 1778936511,
     "text": "Положение в ЛБ на сегодня:",
-    "likes": 15,
+    "likes": 16,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_05_2026/post-134495-1778936384c0da_thumb.webp",
       "https://static-forum.gipsyteam.ru/monthly_05_2026/post-134495-1778936412a104_thumb.webp",
@@ -107700,7 +107700,7 @@
     "date": "16 мая, 19:27",
     "timestamp": 1778952478,
     "text": "Приношу извинения мистерам",
-    "likes": 52,
+    "likes": 53,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_05_2026/post-9100-17789524666bff_thumb.webp"
     ],
@@ -107848,7 +107848,7 @@
     "date": "17 мая, 01:12",
     "timestamp": 1778973136,
     "text": "",
-    "likes": 38,
+    "likes": 39,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_05_2026/post-187091-1778973134c3d2_thumb.webp"
     ],
@@ -107868,7 +107868,7 @@
     "date": "17 мая, 03:44",
     "timestamp": 1778982281,
     "text": "Day 57:",
-    "likes": 46,
+    "likes": 50,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_05_2026/post-6195-177898227749d1_thumb.webp"
     ],
@@ -107940,7 +107940,7 @@
     "date": "17 мая, 10:43",
     "timestamp": 1779007389,
     "text": "[QUOTE]Wakkuum|Wakkuum @ 17.05.26\nскок он стеков накопил в 525? ща прорвет! Чую там полляма откусит...[/QUOTE]",
-    "likes": 2,
+    "likes": 3,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_05_2026/post-6259-17790073838b4c_thumb.webp"
     ],
@@ -108072,12 +108072,48 @@
     "date": "17 мая, 13:24",
     "timestamp": 1779017091,
     "text": "Кто берет билетов пачку...",
-    "likes": 1,
+    "likes": 2,
     "images": [],
     "videos": [],
     "brBefore": null,
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8233706"
+  },
+  {
+    "id": "8233709",
+    "author": "prom",
+    "avatar": "/img/imguser.png",
+    "rating": -465,
+    "msgCount": 1970,
+    "regData": "13 лет на сайте",
+    "date": "17 мая, 13:44",
+    "timestamp": 1779018295,
+    "text": "Да это гениальная идея.Вхерачивать в стэк 50к+,чтобы отбить только нужно в топ 20 попасть и при этом обязательно обнулять людей с баунти что бывает не всегда. В мистери еще можно понять это накопление ,но тут просто сжигание денег и лудка.",
+    "likes": -1,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8233709"
+  },
+  {
+    "id": "8233728",
+    "author": "Ansomon",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/1/5/5/8/155870.jpg",
+    "rating": 7042,
+    "msgCount": 3033,
+    "regData": "11 лет на сайте",
+    "date": "17 мая, 14:35",
+    "timestamp": 1779021346,
+    "text": "Интересно, кто нибудь покупает доли у чуваков с кэфом~2?",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8233728"
   }
 ]
