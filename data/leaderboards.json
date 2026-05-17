@@ -9,7 +9,7 @@
   "finishedAt": "2026-06-11T23:59:59.000+00:00",
   "targetNick": "R Romanovskyi",
   "limit": 6000,
-  "fetchedAt": "2026-05-17T17:49:55.858Z",
+  "fetchedAt": "2026-05-17T18:54:26.387Z",
   "warnings": [],
   "leaderboards": [
     {
@@ -383,7 +383,7 @@
           "brandId": "POKEROK",
           "siteId": "GGPOK",
           "countryId": "RU",
-          "point": 1606.16,
+          "point": 1616.75,
           "prizeValue": 80000,
           "prizeCurrency": "USD",
           "isCorrect": true
@@ -394,7 +394,7 @@
           "brandId": "POKEROK",
           "siteId": "GGPOK",
           "countryId": "RU",
-          "point": 1381.95,
+          "point": 1395.36,
           "prizeValue": 60000,
           "prizeCurrency": "USD",
           "isCorrect": true
@@ -405,7 +405,7 @@
           "brandId": "GGPCOM",
           "siteId": "GGPCOM",
           "countryId": "SE",
-          "point": 1287.53,
+          "point": 1294.69,
           "prizeValue": 50000,
           "prizeCurrency": "USD",
           "isCorrect": true
@@ -416,7 +416,7 @@
           "brandId": "GGPCOM",
           "siteId": "GGPUA",
           "countryId": "UA",
-          "point": 1263.65,
+          "point": 1274.98,
           "prizeValue": 45000,
           "prizeCurrency": "USD",
           "isCorrect": true
@@ -424,8 +424,8 @@
       ],
       "nextAbove": null,
       "nextBelow": null,
-      "rowsFetched": 1029,
-      "lastRank": 1029,
+      "rowsFetched": 1030,
+      "lastRank": 1030,
       "gapToLeader": null,
       "gapToNextAbove": null,
       "gapToNextBelow": null
