@@ -9,7 +9,7 @@
   "finishedAt": "2026-06-11T23:59:59.000+00:00",
   "targetNick": "R Romanovskyi",
   "limit": 6000,
-  "fetchedAt": "2026-05-19T06:40:47.575Z",
+  "fetchedAt": "2026-05-19T10:32:52.449Z",
   "warnings": [],
   "leaderboards": [
     {
@@ -18,7 +18,7 @@
       "promotionName": "2026 GGWF-L(for prize)",
       "status": "found",
       "target": {
-        "rank": 126,
+        "rank": 128,
         "nickname": "R Romanovskyi",
         "brandId": "GGPCOM",
         "siteId": "GGPUA",
@@ -34,7 +34,7 @@
         "brandId": "GGPCOM",
         "siteId": "GGPPL",
         "countryId": "PL",
-        "point": 4219.12,
+        "point": 4225.36,
         "prizeValue": 20000,
         "prizeCurrency": "USD",
         "isCorrect": true
@@ -46,7 +46,7 @@
           "brandId": "GGPCOM",
           "siteId": "GGPPL",
           "countryId": "PL",
-          "point": 4219.12,
+          "point": 4225.36,
           "prizeValue": 20000,
           "prizeCurrency": "USD",
           "isCorrect": true
@@ -57,7 +57,7 @@
           "brandId": "POKEROK",
           "siteId": "GGPOK",
           "countryId": "BY",
-          "point": 3753.48,
+          "point": 3763.93,
           "prizeValue": 12500,
           "prizeCurrency": "USD",
           "isCorrect": true
@@ -79,7 +79,7 @@
           "brandId": "POKEROK",
           "siteId": "GGPOK",
           "countryId": "RU",
-          "point": 3705.81,
+          "point": 3717.36,
           "prizeValue": 5000,
           "prizeCurrency": "USD",
           "isCorrect": true
@@ -90,39 +90,39 @@
           "brandId": "POKEROK",
           "siteId": "GGPOK",
           "countryId": "RO",
-          "point": 3678.74,
+          "point": 3690.05,
           "prizeValue": 4000,
           "prizeCurrency": "USD",
           "isCorrect": true
         }
       ],
       "nextAbove": {
-        "rank": 125,
-        "nickname": "P Kovacs",
-        "brandId": "GGPCOM",
-        "siteId": "GGPHU",
-        "countryId": "HU",
-        "point": 2257.37,
-        "prizeValue": 150,
-        "prizeCurrency": "GCD",
-        "isCorrect": true
-      },
-      "nextBelow": {
         "rank": 127,
         "nickname": "GL to JENIPAPO",
         "brandId": "GGPCOM",
         "siteId": "GGPBR",
         "countryId": "BR",
-        "point": 2247.31,
+        "point": 2253.55,
+        "prizeValue": 150,
+        "prizeCurrency": "GCD",
+        "isCorrect": true
+      },
+      "nextBelow": {
+        "rank": 129,
+        "nickname": "Dowgh Santos",
+        "brandId": "GGPCOM",
+        "siteId": "GGPBR",
+        "countryId": "BR",
+        "point": 2237.66,
         "prizeValue": 150,
         "prizeCurrency": "GCD",
         "isCorrect": true
       },
       "rowsFetched": 6000,
       "lastRank": 6000,
-      "gapToLeader": -1968.89,
-      "gapToNextAbove": -7.14,
-      "gapToNextBelow": -2.92
+      "gapToLeader": -1975.13,
+      "gapToNextAbove": -3.32,
+      "gapToNextBelow": -12.57
     },
     {
       "tier": "Medium",
