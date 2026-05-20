@@ -320,6 +320,7 @@ function PaceRateValue({ value, unit, className = '' }) {
 }
 
 function PaceMiniChart({ segments, unit, t }) {
+  const [hovered, setHovered] = useState(null)
   if (!segments?.length) return <div className="pace-chart-empty">{t('pace_chart_empty')}</div>
 
   const width = 640
@@ -350,9 +351,20 @@ function PaceMiniChart({ segments, unit, t }) {
     const offset = segments.length === 1 ? '0%' : `${idx / (segments.length - 1) * 100}%`
     return { offset, color:seg.rate >= 0 ? '#4caf50' : '#e53935' }
   })
+  const openTooltip = (seg, idx, cx, cy) => {
+    setHovered({
+      seg,
+      idx,
+      x:cx,
+      y:cy,
+      align:cx > width * .72 ? 'left' : cx < width * .28 ? 'right' : 'center',
+      vertical:cy < height * .38 ? 'below' : 'above',
+    })
+  }
+  const closeTooltip = () => setHovered(null)
 
   return (
-    <div className="pace-chart-wrap" data-testid="pace-chart">
+    <div className="pace-chart-wrap" data-testid="pace-chart" onMouseLeave={closeTooltip}>
       <svg className="pace-chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-label={t('pace_chart_label')}>
         <defs>
           <linearGradient id="paceAreaGrad" x1="0" y1={pad.top} x2="0" y2={pad.top + plotH} gradientUnits="userSpaceOnUse">
@@ -393,8 +405,16 @@ function PaceMiniChart({ segments, unit, t }) {
           const rateY = y(seg.rate)
           const tone = seg.rate >= 0 ? 'pos' : 'neg'
           return (
-            <g key={`${idx}-${seg.endMtt}`} className={`pace-segment ${tone}`}>
-              <title>{`${seg.label}: ${formatDollarPerMTT(seg.rate, unit)} · ${fmtBR(seg.profit)} / ${fmtInt(seg.tournaments)} ${unit}`}</title>
+            <g key={`${idx}-${seg.endMtt}`} className={`pace-segment ${tone}`}
+              onMouseEnter={() => openTooltip(seg, idx, cx, rateY)}
+              onMouseMove={() => openTooltip(seg, idx, cx, rateY)}
+              onPointerEnter={() => openTooltip(seg, idx, cx, rateY)}
+              onPointerMove={() => openTooltip(seg, idx, cx, rateY)}
+              onFocus={() => openTooltip(seg, idx, cx, rateY)}
+              onBlur={closeTooltip}
+              onClick={(e) => { e.stopPropagation(); openTooltip(seg, idx, cx, rateY) }}
+              tabIndex="0" role="button" aria-label={`${seg.label}: ${formatDollarPerMTT(seg.rate, unit)}`}>
+              <circle className="pace-dot-hit" cx={cx} cy={rateY} r="12"/>
               <circle className="pace-dot" cx={cx} cy={rateY} r={idx === segments.length - 1 ? 5.2 : 3.9}/>
               {labelIndexes.has(idx) && (
                 <text className={`pace-chart-value ${tone}`} x={cx} y={rateY + (seg.rate >= 0 ? -11 : 17)}>
@@ -406,6 +426,26 @@ function PaceMiniChart({ segments, unit, t }) {
           )
         })}
       </svg>
+      {hovered && (
+        <div className={`pace-point-tooltip ${hovered.align} ${hovered.vertical}`}
+          style={{ left:`${hovered.x / width * 100}%`, top:`${hovered.y / height * 100}%` }}>
+          <div className="pace-point-tooltip-head">
+            <span>{t('pace_tip_chunk')} {hovered.seg.label}</span>
+            <b className={hovered.seg.rate >= 0 ? 'pos' : 'neg'}>{formatDollarPerMTT(hovered.seg.rate, unit)}</b>
+          </div>
+          <div className="pace-point-tooltip-row">
+            <span>{t('pace_tip_net')}</span>
+            <b className={hovered.seg.profit >= 0 ? 'pos' : 'neg'}>{fmtBR(hovered.seg.profit)}</b>
+          </div>
+          <div className="pace-point-tooltip-row">
+            <span>{t('pace_tip_tournaments')}</span>
+            <b>{fmtInt(Math.round(hovered.seg.tournaments))} {unit}</b>
+          </div>
+          <div className="pace-point-tooltip-formula">
+            {t('pace_tip_formula')}: <b>{fmtBR(hovered.seg.profit)}</b> / <b>{fmtInt(Math.round(hovered.seg.tournaments))}</b>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
