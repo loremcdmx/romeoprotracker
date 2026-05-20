@@ -699,9 +699,15 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
     const clamp = (v, min, max) => Math.min(Math.max(v, min), max)
     const clampCx = x => clamp(x, pL + badgeW / 2 + 8, W - pR - badgeW / 2 - 8)
     const clampCy = y => clamp(y, pT + badgeH / 2 + 8, plotBottom - badgeH / 2 - 8)
+    const lineSegments = coords.slice(1).map((coord, i) => ({ a:coords[i], b:coord }))
     const dangerPoints = coords.flatMap((coord, i) => {
       const prev = coords[i - 1]
-      return prev ? [coord, { x:(prev.x + coord.x) / 2, y:(prev.y + coord.y) / 2 }] : [coord]
+      return prev ? [
+        coord,
+        { x:(prev.x * 2 + coord.x) / 3, y:(prev.y * 2 + coord.y) / 3 },
+        { x:(prev.x + coord.x) / 2, y:(prev.y + coord.y) / 2 },
+        { x:(prev.x + coord.x * 2) / 3, y:(prev.y + coord.y * 2) / 3 },
+      ] : [coord]
     })
     const leaderDangerPoints = coords.filter((_, i) => Math.abs(i - peakIdx) > 1)
     const nearX = badgeW / 2 + (isMobile ? 12 : 14)
@@ -709,6 +715,13 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
     const nearY = badgeH / 2 + (isMobile ? 13 : 12)
     const farY = badgeH + (isMobile ? 20 : 16)
     const candidateOffsets = [
+      { cx:pL + badgeW / 2 + 18, cy:pT + badgeH / 2 + 14, affinity:24 },
+      { cx:pL + badgeW / 2 + 18, cy:pT + badgeH / 2 + 42, affinity:18 },
+      { cx:pL + badgeW + 44, cy:pT + badgeH / 2 + 18, affinity:20 },
+      { cx:pL + badgeW * 2.2, cy:pT + badgeH / 2 + 16, affinity:15 },
+      { cx:pL + (W - pL - pR) * .34, cy:pT + badgeH / 2 + 18, affinity:14 },
+      { cx:pL + (W - pL - pR) * .46, cy:pT + badgeH / 2 + 18, affinity:10 },
+      { cx:pL + (W - pL - pR) * .58, cy:pT + badgeH / 2 + 18, affinity:6 },
       { dx:-nearX, dy:nearY, affinity:18 },
       { dx:-nearX, dy:0, affinity:12 },
       { dx:-nearX, dy:-nearY, affinity:4 },
@@ -722,6 +735,22 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
       const dx = Math.max(rect.left - p.x, 0, p.x - rect.right)
       const dy = Math.max(rect.top - p.y, 0, p.y - rect.bottom)
       return Math.hypot(dx, dy)
+    }
+    const rectContainsPoint = (rect, p) =>
+      p.x >= rect.left && p.x <= rect.right && p.y >= rect.top && p.y <= rect.bottom
+    const segmentIntersectsRect = (a, b, rect) => {
+      if (rectContainsPoint(rect, a) || rectContainsPoint(rect, b)) return true
+      const intersects = (p1, p2, p3, p4) => {
+        const ccw = (u, v, w) => (w.y - u.y) * (v.x - u.x) > (v.y - u.y) * (w.x - u.x)
+        return ccw(p1, p3, p4) !== ccw(p2, p3, p4) && ccw(p1, p2, p3) !== ccw(p1, p2, p4)
+      }
+      const corners = [
+        { x:rect.left, y:rect.top },
+        { x:rect.right, y:rect.top },
+        { x:rect.right, y:rect.bottom },
+        { x:rect.left, y:rect.bottom },
+      ]
+      return corners.some((corner, i) => intersects(a, b, corner, corners[(i + 1) % corners.length]))
     }
     const distanceToSegment = (p, a, b) => {
       const vx = b.x - a.x
@@ -742,9 +771,9 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
         : point.y < rect.top
           ? { x:clamp(point.x, rect.left + 7, rect.right - 7), y:rect.top }
           : { x:clamp(point.x, rect.left + 7, rect.right - 7), y:rect.bottom }
-    const candidates = candidateOffsets.map(({ dx, dy, affinity }) => {
-      const targetCx = point.x + dx
-      const targetCy = point.y + dy
+    const candidates = candidateOffsets.map(({ dx, dy, cx:targetAbsCx, cy:targetAbsCy, affinity }) => {
+      const targetCx = Number.isFinite(targetAbsCx) ? targetAbsCx : point.x + dx
+      const targetCy = Number.isFinite(targetAbsCy) ? targetAbsCy : point.y + dy
       const cx = clampCx(targetCx)
       const cy = clampCy(targetCy)
       const rect = {
@@ -760,9 +789,11 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
         bottom:rect.bottom + 12,
       }
       const minDistance = Math.min(...dangerPoints.map(p => distanceToRect(p, rect)))
+      const minPaddedDistance = Math.min(...dangerPoints.map(p => distanceToRect(p, padded)))
       const overlaps = dangerPoints.filter(p =>
         p.x >= padded.left && p.x <= padded.right && p.y >= padded.top && p.y <= padded.bottom
       ).length
+      const lineIntersections = lineSegments.filter(({ a, b }) => segmentIntersectsRect(a, b, padded)).length
       const anchor = anchorForRect(rect)
       const leaderLength = Math.hypot(cx - point.x, cy - point.y)
       const leaderDistance = leaderDangerPoints.length
@@ -770,13 +801,16 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
         : 32
       const leaderCrowding = Math.max(0, 14 - leaderDistance)
       const clampPenalty = Math.hypot(cx - targetCx, cy - targetCy)
+      const topAir = Math.max(0, rect.top - pT)
+      const edgePenalty = rect.top < pT + 7 || rect.right > W - pR - 7 || rect.left < pL + 7 ? 8 : 0
       return {
         cx,
         cy,
         rect,
         anchor,
-        score:minDistance * 1.4 + Math.min(leaderDistance, 34) * 1.2 + affinity
-          - overlaps * 140 - leaderLength * 0.16 - leaderCrowding * 5 - clampPenalty * 1.8,
+        score:minDistance * 2.4 + minPaddedDistance * 2 + Math.min(leaderDistance, 34) * .8
+          + affinity - overlaps * 220 - lineIntersections * 180 - leaderLength * .055
+          - leaderCrowding * 4 - clampPenalty * 1.8 - topAir * .18 - edgePenalty,
       }
     }).sort((a,b) => b.score - a.score)
     const { cx, cy, anchor } = candidates[0]

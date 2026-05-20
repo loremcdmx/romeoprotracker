@@ -351,18 +351,25 @@ describe('App', () => {
     expect(await screen.findByText(new RegExp(translate('ru', 'chart_marathon').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))).toBeInTheDocument()
 
     const peakCallout = document.querySelector('.mc-peak-callout')
-    const peakLeader = peakCallout?.querySelector('.mc-peak-callout-line')
+    const peakRect = peakCallout?.querySelector('.mc-peak-callout-bg')
     const axisText = [...document.querySelectorAll('.mc-xaxis-label-main, .mc-xaxis-label-sub')]
       .map(label => label.textContent)
       .join(' ')
     expect(peakCallout).toHaveAttribute('data-idx', '3')
     expect(peakCallout?.textContent).toContain('ПИК')
     expect(peakCallout?.textContent).toContain('$140k')
-    const leaderLength = Math.hypot(
-      Number(peakLeader?.getAttribute('x2')) - Number(peakLeader?.getAttribute('x1')),
-      Number(peakLeader?.getAttribute('y2')) - Number(peakLeader?.getAttribute('y1')),
-    )
-    expect(leaderLength).toBeLessThan(45)
+    const peakBounds = {
+      left: Number(peakRect?.getAttribute('x')) - 12,
+      right: Number(peakRect?.getAttribute('x')) + Number(peakRect?.getAttribute('width')) + 12,
+      top: Number(peakRect?.getAttribute('y')) - 12,
+      bottom: Number(peakRect?.getAttribute('y')) + Number(peakRect?.getAttribute('height')) + 12,
+    }
+    const coveredDots = [...document.querySelectorAll('.mc-dot')].filter(dot => {
+      const x = Number(dot.getAttribute('cx'))
+      const y = Number(dot.getAttribute('cy'))
+      return x >= peakBounds.left && x <= peakBounds.right && y >= peakBounds.top && y <= peakBounds.bottom
+    })
+    expect(coveredDots).toHaveLength(0)
     expect(axisText).not.toContain('ПИК')
   })
 
