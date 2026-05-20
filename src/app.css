@@ -249,24 +249,30 @@ a{color:var(--red2);text-decoration:none}
 .leaderboard-source:hover{color:var(--lb-score);border-color:rgba(123,220,255,.2)}
 
 /* PACE WIDGET */
-.pace-widget{--pace-blue:#7bdcff;--pace-blue-soft:rgba(123,220,255,.115);--pace-green:#7ee787;--pace-red:#ff746c;--pace-gold:#ffd479;margin-top:10px;position:relative;background:radial-gradient(circle at 82% 18%,rgba(123,220,255,.055),transparent 34%),linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.012)),var(--bg2);border:1px solid rgba(255,255,255,.09);border-radius:var(--r);padding:14px;overflow:hidden;box-shadow:inset 0 1px 0 rgba(255,255,255,.04),0 10px 30px rgba(0,0,0,.13)}
-.pace-widget::before{content:"";position:absolute;left:14px;right:14px;top:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.08),transparent);pointer-events:none}
+.pace-widget{--pace-blue:#7bdcff;--pace-blue-soft:rgba(123,220,255,.115);--pace-green:#7ee787;--pace-red:#ff746c;--pace-gold:#ffd479;margin-top:10px;position:relative;background:radial-gradient(circle at 80% 14%,rgba(123,220,255,.070),transparent 32%),radial-gradient(circle at 16% 44%,rgba(126,231,135,.055),transparent 30%),linear-gradient(180deg,rgba(255,255,255,.046),rgba(255,255,255,.014)),var(--bg2);border:1px solid rgba(255,255,255,.10);border-radius:var(--r);padding:14px;overflow:hidden;box-shadow:inset 0 1px 0 rgba(255,255,255,.045),0 12px 34px rgba(0,0,0,.16)}
+.pace-widget::before{content:"";position:absolute;left:14px;right:14px;top:0;height:1px;background:linear-gradient(90deg,transparent,rgba(123,220,255,.16),rgba(255,212,121,.11),transparent);pointer-events:none}
 .pace-widget.negative::before{background:linear-gradient(90deg,transparent,rgba(255,116,108,.4),rgba(255,179,0,.22),transparent)}
 .pace-head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;margin-bottom:14px;position:relative;z-index:1}
 .pace-widget .section-title{color:var(--white);font-size:13.5px;text-shadow:0 0 14px rgba(123,220,255,.08)}
 .pace-sub{margin-top:5px;font-size:10px;color:color-mix(in srgb,var(--dim2) 76%,var(--pace-blue));font-family:'Roboto Mono',monospace}
 .pace-periods{display:flex;gap:4px;flex-shrink:0}
-.pace-dashboard{display:grid;gap:10px;position:relative;z-index:1}
-.pace-summary-panel.marathon-progress-side{display:flex;align-items:stretch;gap:0;background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.018));border:1px solid rgba(255,255,255,.10);border-radius:8px;padding:6px 4px;font-family:'Roboto Mono',monospace;box-shadow:none;overflow:hidden}
-.pace-summary-panel.marathon-progress-side .mps-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;line-height:1;padding:2px 8px;min-width:0;border:0;border-radius:0;background:transparent;box-shadow:none;overflow:hidden}
-.pace-summary-panel .mps-label{font-size:9px;color:var(--dim);font-weight:700;letter-spacing:.4px;text-transform:uppercase;white-space:nowrap}
-.pace-summary-panel .mps-value{font-size:13px;font-weight:700;color:var(--text);line-height:1;white-space:nowrap;font-variant-numeric:tabular-nums;letter-spacing:0;text-shadow:none}
-.pace-summary-panel .pace-rate-value{font-size:13px;letter-spacing:0;text-shadow:none}
-.pace-summary-panel .pace-rate-value.pulse,.pace-summary-panel .tempo-val.pulse{transform:none;color:inherit;text-shadow:none}
-.pace-summary-panel .pace-rate-value.pos{color:#66bb6a}
+.pace-dashboard{display:grid;gap:11px;position:relative;z-index:1}
+.pace-summary-panel.marathon-progress-side{display:flex;align-items:stretch;gap:4px;background:linear-gradient(180deg,rgba(255,255,255,.060),rgba(255,255,255,.020));border:1px solid rgba(255,255,255,.115);border-radius:10px;padding:5px;font-family:'Roboto Mono',monospace;box-shadow:inset 0 1px 0 rgba(255,255,255,.045),0 9px 24px rgba(0,0,0,.13);overflow:hidden}
+.pace-summary-panel.marathon-progress-side .mps-item{flex:1;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;line-height:1;padding:9px 10px 8px;min-width:0;min-height:54px;border:1px solid rgba(255,255,255,.055);border-radius:7px;background:linear-gradient(180deg,rgba(255,255,255,.042),rgba(255,255,255,.014));box-shadow:inset 0 1px 0 rgba(255,255,255,.035);overflow:hidden}
+.pace-summary-panel.marathon-progress-side .mps-item::before{content:"";position:absolute;left:0;top:9px;bottom:9px;width:2px;border-radius:999px;background:rgba(123,220,255,.50);box-shadow:0 0 13px rgba(123,220,255,.18)}
+.pace-summary-panel .pace-rate-item{background:radial-gradient(circle at 18% 50%,rgba(126,231,135,.14),transparent 48%),linear-gradient(180deg,rgba(126,231,135,.055),rgba(255,255,255,.012))}
+.pace-summary-panel .pace-rate-item::before{background:var(--pace-green);box-shadow:0 0 16px rgba(126,231,135,.30)}
+.pace-summary-panel .pace-projection-item{background:radial-gradient(circle at 50% 44%,rgba(255,212,121,.12),transparent 52%),linear-gradient(180deg,rgba(255,212,121,.050),rgba(255,255,255,.012))}
+.pace-summary-panel .pace-projection-item::before{background:var(--pace-gold);box-shadow:0 0 15px rgba(255,212,121,.24)}
+.pace-summary-panel .pace-history-item{background:radial-gradient(circle at 82% 48%,rgba(123,220,255,.10),transparent 52%),linear-gradient(180deg,rgba(123,220,255,.045),rgba(255,255,255,.012))}
+.pace-summary-panel .mps-label{font-size:9.2px;color:rgba(216,216,216,.72);font-weight:800;letter-spacing:.055em;text-transform:uppercase;white-space:nowrap}
+.pace-summary-panel .mps-value{font-size:16px;font-weight:800;color:var(--white);line-height:1;white-space:nowrap;font-variant-numeric:tabular-nums;letter-spacing:0;text-shadow:0 1px 2px rgba(0,0,0,.30)}
+.pace-summary-panel .pace-rate-value{font-size:16px;letter-spacing:0;text-shadow:0 1px 2px rgba(0,0,0,.32)}
+.pace-summary-panel .pace-rate-value.pulse,.pace-summary-panel .tempo-val.pulse{transform:none;color:var(--pace-gold);text-shadow:0 0 12px rgba(255,212,121,.28),0 1px 2px rgba(0,0,0,.40)}
+.pace-summary-panel .pace-rate-value.pos{color:var(--pace-green)}
 .pace-summary-panel .pace-rate-value.neg{color:var(--red2)}
-.pace-summary-panel .tempo-val{color:var(--text);text-shadow:none}
-.pace-summary-note{display:block;max-width:100%;font-size:9px;color:var(--dim);font-family:'Roboto Mono',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+.pace-summary-panel .tempo-val{color:#f4f0df;text-shadow:0 0 10px rgba(255,212,121,.10),0 1px 2px rgba(0,0,0,.32)}
+.pace-summary-note{display:block;max-width:100%;font-size:9.2px;color:rgba(190,190,190,.72);font-family:'Roboto Mono',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
 .pace-rate-value{display:inline-block;color:var(--white);font-family:'Roboto Mono',monospace;font-variant-numeric:tabular-nums;transition:color .28s,text-shadow .28s,transform .28s}
 .pace-rate-value.pos{color:var(--pace-green);text-shadow:0 0 13px rgba(126,231,135,.16)}
 .pace-rate-value.neg{color:var(--pace-red);text-shadow:0 0 13px rgba(255,116,108,.16)}
@@ -592,6 +598,7 @@ html{scroll-behavior:smooth}
 .tempo-val.pulse{color:#ffd479;text-shadow:0 0 10px rgba(255,212,121,.55)}
 .light .tempo-val.pulse{color:#b8860b;text-shadow:0 0 8px rgba(184,134,11,.35)}
 .mps-divider{width:1px;background:var(--border);margin:2px 0}
+.pace-summary-panel.marathon-progress-side .mps-divider{background:linear-gradient(180deg,transparent,rgba(255,255,255,.12),transparent);margin:7px 0}
 .light .marathon-progress{background:linear-gradient(180deg,rgba(235,232,226,.98),rgba(235,232,226,.92));box-shadow:0 8px 24px rgba(0,0,0,.08)}
 .light .marathon-progress-track{background:linear-gradient(180deg,#d9d4ca,#ebe7de);border-color:rgba(0,0,0,.10);box-shadow:inset 0 1px 3px rgba(0,0,0,.14),0 1px 0 rgba(255,255,255,.45)}
 .light .marathon-progress-side{background:rgba(255,255,255,.38);border-color:var(--border)}
@@ -750,13 +757,13 @@ html{scroll-behavior:smooth}
   .pace-widget{margin:10px 8px 0;border-radius:14px;padding:12px 10px}
   .pace-head{flex-direction:column;gap:10px;margin-bottom:10px}
   .pace-periods{width:100%;justify-content:flex-start;overflow-x:auto;padding-bottom:1px}
-  .pace-summary-panel.marathon-progress-side{gap:0;padding:6px 4px;border-radius:8px}
-  .pace-summary-panel.marathon-progress-side.has-history{display:grid;grid-template-columns:1fr;gap:0}
-  .pace-summary-panel.marathon-progress-side.has-history .mps-divider{width:auto;height:1px;margin:5px 6px;background:var(--border)}
-  .pace-summary-panel.marathon-progress-side .mps-item{min-height:0;align-items:center;padding:4px 8px;border-bottom:0}
+  .pace-summary-panel.marathon-progress-side{gap:5px;padding:5px;border-radius:10px}
+  .pace-summary-panel.marathon-progress-side.has-history{display:grid;grid-template-columns:1fr;gap:5px}
+  .pace-summary-panel.marathon-progress-side.has-history .mps-divider{width:auto;height:1px;margin:0 6px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.12),transparent)}
+  .pace-summary-panel.marathon-progress-side .mps-item{min-height:52px;align-items:center;padding:8px 10px;border-bottom:0}
   .pace-summary-panel .mps-item:last-child{border-bottom:0}
-  .pace-summary-panel .mps-value{font-size:13px}
-  .pace-rate-item .pace-rate-value{font-size:13px}
+  .pace-summary-panel .mps-value{font-size:15px}
+  .pace-rate-item .pace-rate-value{font-size:15px}
   .pace-rate-item::after{display:none}
   .pace-summary-note{font-size:9px}
   .pace-chart-title{align-items:flex-start;flex-direction:column;gap:7px;margin-top:4px}
