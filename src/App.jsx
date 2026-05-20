@@ -445,10 +445,12 @@ function PaceMiniChart({ segments, unit, t }) {
             <span>{t('pace_tip_chunk')} {hovered.seg.label}{!hovered.seg.full && <em>{t('pace_tip_partial')}</em>}</span>
             <b className={hovered.seg.rate >= 0 ? 'pos' : 'neg'}>{formatDollarPerMTT(hovered.seg.rate, unit)}</b>
           </div>
-          <div className="pace-point-tooltip-row">
-            <span>{t('pace_tip_net')}</span>
-            <b className={hovered.seg.profit >= 0 ? 'pos' : 'neg'}>{formatPaceMoney(hovered.seg.profit)}</b>
-          </div>
+          {!hovered.seg.full && (
+            <div className="pace-point-tooltip-row">
+              <span>{t('pace_tip_net')}</span>
+              <b className={hovered.seg.profit >= 0 ? 'pos' : 'neg'}>{formatPaceMoney(hovered.seg.profit)}</b>
+            </div>
+          )}
           <div className="pace-point-tooltip-row">
             <span>{t('pace_tip_tournaments')}</span>
             <b>{fmtInt(Math.round(hovered.seg.tournaments))} {unit}</b>
