@@ -192,15 +192,24 @@ describe('App', () => {
     const widget = await screen.findByTestId('pace-widget')
     expect(within(widget).getByText(translate('ru', 'pace_title'))).toBeInTheDocument()
     expect(within(widget).getAllByText('+5.5$/МТТ').length).toBeGreaterThanOrEqual(1)
+    expect(within(widget).getByTestId('pace-chart')).toBeInTheDocument()
+    expect(within(widget).getByText(translate('ru', 'pace_chart_title'))).toBeInTheDocument()
+    expect(within(widget).getAllByText('4k').length).toBeGreaterThanOrEqual(1)
 
     fireEvent.click(within(widget).getByText(translate('ru', 'period_week')))
 
     await waitFor(() => {
       expect(within(widget).getAllByText('+6$/МТТ').length).toBeGreaterThanOrEqual(1)
     })
-    expect(within(widget).getAllByText('+5$/МТТ').length).toBeGreaterThanOrEqual(1)
+    await waitFor(() => {
+      expect(within(widget).getAllByText('+5$/МТТ').length).toBeGreaterThanOrEqual(1)
+    })
     expect(within(widget).getByText('изменение: +1$/МТТ')).toBeInTheDocument()
-    expect(within(widget).getByText((text) => text.replace(/\s/g, '') === '~1661334')).toBeInTheDocument()
+    await waitFor(() => {
+      expect(within(widget).getByText((text) => text.replace(/\s/g, '') === '~1661334')).toBeInTheDocument()
+    })
+    expect(within(widget).getAllByText('1k').length).toBeGreaterThanOrEqual(1)
+    expect(within(widget).getAllByText('2k').length).toBeGreaterThanOrEqual(1)
   })
 
   it('anchors activity chart edge labels inside the SVG bounds', async () => {

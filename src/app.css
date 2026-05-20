@@ -255,24 +255,39 @@ a{color:var(--red2);text-decoration:none}
 .pace-head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;margin-bottom:12px;position:relative;z-index:1}
 .pace-sub{margin-top:4px;font-size:10px;color:var(--dim);font-family:'Roboto Mono',monospace}
 .pace-periods{display:flex;gap:4px;flex-shrink:0}
-.pace-grid{display:grid;grid-template-columns:1.1fr 1fr 1.15fr;gap:9px;position:relative;z-index:1}
-.pace-card{min-width:0;border:1px solid rgba(255,255,255,.065);border-radius:10px;background:linear-gradient(180deg,rgba(255,255,255,.042),rgba(0,0,0,.09));padding:10px 11px;box-shadow:inset 0 1px 0 rgba(255,255,255,.045)}
-.pace-card span{display:block;color:var(--dim);font-size:9px;text-transform:uppercase;letter-spacing:.08em;font-weight:800;margin-bottom:5px}
-.pace-card strong{display:block;color:var(--white);font-family:'Roboto Mono',monospace;font-size:21px;line-height:1.05;font-weight:900;letter-spacing:-.025em;font-variant-numeric:tabular-nums;white-space:nowrap}
-.pace-card strong.pos{color:var(--pace-green);text-shadow:0 0 14px rgba(126,231,135,.12)}
-.pace-card strong.neg{color:var(--pace-red);text-shadow:0 0 14px rgba(255,116,108,.12)}
-.pace-card small{display:block;margin-top:6px;color:var(--dim2);font-size:10px;font-family:'Roboto Mono',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.pace-card-primary{border-color:rgba(123,220,255,.16);background:linear-gradient(180deg,var(--pace-blue-soft),rgba(0,0,0,.11))}
-.pace-card-finish{border-color:rgba(255,209,102,.15);background:linear-gradient(180deg,rgba(255,209,102,.09),rgba(0,0,0,.12))}
-.pace-card-finish strong{color:#ffd166}
-.pace-rail{display:grid;gap:6px;margin-top:10px;padding:9px 10px;border:1px solid rgba(255,255,255,.055);border-radius:10px;background:rgba(0,0,0,.10);position:relative;z-index:1}
-.pace-rail-row{display:grid;grid-template-columns:104px minmax(0,1fr) 82px;align-items:center;gap:10px;font-family:'Roboto Mono',monospace;font-size:10px;color:var(--dim)}
-.pace-rail-row b{justify-self:end;color:var(--dim2);font-weight:900;white-space:nowrap}
-.pace-rail-row.current b{color:var(--white)}
-.pace-rail-track{height:7px;border-radius:999px;background:rgba(255,255,255,.055);overflow:hidden}
-.pace-rail-track i{display:block;height:100%;border-radius:999px;box-shadow:0 0 12px currentColor}
-.pace-rail-track i.pos{background:linear-gradient(90deg,rgba(126,231,135,.28),var(--pace-green));color:rgba(126,231,135,.38)}
-.pace-rail-track i.neg{background:linear-gradient(90deg,rgba(255,116,108,.26),var(--pace-red));color:rgba(255,116,108,.38)}
+.pace-dashboard{display:grid;gap:10px;position:relative;z-index:1}
+.pace-summary-panel.marathon-progress-side{display:grid;grid-template-columns:1fr 1px 1fr 1px 1fr;align-items:stretch;padding:7px 5px;border-radius:10px;background:linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,.022));box-shadow:inset 0 1px 0 rgba(255,255,255,.055),0 10px 24px rgba(0,0,0,.13)}
+.pace-summary-panel .mps-item{min-height:50px;padding:3px 8px}
+.pace-summary-panel .mps-value{font-size:15px;font-weight:900;color:var(--white)}
+.pace-summary-panel .mps-label{font-size:8.5px}
+.pace-summary-note{display:block;max-width:100%;font-size:8.5px;color:var(--dim);font-family:'Roboto Mono',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+.pace-rate-value{display:inline-block;color:var(--white);font-family:'Roboto Mono',monospace;font-variant-numeric:tabular-nums;transition:color .28s,text-shadow .28s,transform .28s}
+.pace-rate-value.pos{color:var(--pace-green);text-shadow:0 0 13px rgba(126,231,135,.16)}
+.pace-rate-value.neg{color:var(--pace-red);text-shadow:0 0 13px rgba(255,116,108,.16)}
+.pace-rate-value.pulse{transform:translateY(-1px);color:#ffd479;text-shadow:0 0 12px rgba(255,212,121,.55)}
+.pace-chart-title{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 2px -4px;font-family:'Roboto Mono',monospace;color:var(--dim);font-size:9px;text-transform:uppercase;letter-spacing:.08em}
+.pace-chart-title b{color:var(--pace-blue);font-size:10px;font-weight:900;letter-spacing:0;text-transform:none}
+.pace-chart-wrap{border:1px solid rgba(255,255,255,.06);border-radius:10px;background:linear-gradient(180deg,rgba(0,0,0,.13),rgba(0,0,0,.06));overflow:hidden}
+.pace-chart{display:block;width:100%;height:auto;min-height:178px}
+.pace-grid-line{stroke:rgba(255,255,255,.07);stroke-width:1}
+.pace-zero{stroke:rgba(255,255,255,.18);stroke-dasharray:7 7}
+.pace-y-label,.pace-x-label,.pace-chart-value{font-family:'Roboto Mono',monospace;font-weight:900;font-variant-numeric:tabular-nums;text-shadow:0 2px 7px rgba(0,0,0,.75)}
+.pace-y-label{fill:var(--dim);font-size:10px}
+.pace-y-label.zero{fill:var(--dim2)}
+.pace-x-label{fill:var(--dim);font-size:9px;text-anchor:middle}
+.pace-chart-value{font-size:10px;text-anchor:middle;paint-order:stroke;stroke:rgba(0,0,0,.55);stroke-width:3;stroke-linejoin:round}
+.pace-chart-value.pos{fill:var(--pace-green)}
+.pace-chart-value.neg{fill:var(--pace-red)}
+.pace-bar{transform-origin:center;animation:paceBarIn .55s cubic-bezier(.2,.8,.2,1) both;filter:drop-shadow(0 0 8px rgba(123,220,255,.08))}
+.pace-bar.neg{filter:drop-shadow(0 0 8px rgba(255,116,108,.11))}
+.pace-dot-halo{fill:rgba(0,0,0,.42);stroke:rgba(255,255,255,.08);stroke-width:1}
+.pace-dot{fill:var(--pace-green);stroke:#050505;stroke-width:4;filter:url(#paceGlow)}
+.pace-segment.neg .pace-dot{fill:var(--pace-red)}
+.pace-line-glow{fill:none;stroke:rgba(123,220,255,.22);stroke-width:8;stroke-linecap:round;stroke-linejoin:round;filter:blur(1px)}
+.pace-line{fill:none;stroke:rgba(255,255,255,.78);stroke-width:2;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:680;animation:paceLineIn .75s ease-out both}
+.pace-chart-empty{padding:24px 14px;border:1px dashed rgba(255,255,255,.09);border-radius:10px;color:var(--dim);font-size:11px;text-align:center}
+@keyframes paceBarIn{from{transform:scaleY(.15);opacity:.35}to{transform:scaleY(1);opacity:1}}
+@keyframes paceLineIn{from{stroke-dashoffset:680;opacity:.35}to{stroke-dashoffset:0;opacity:1}}
 
 /* SETTINGS */
 .ignore-empty{font-size:12px;color:var(--dim);padding:12px 14px}
@@ -690,9 +705,12 @@ html{scroll-behavior:smooth}
   .pace-widget{margin:10px 8px 0;border-radius:14px;padding:12px 10px}
   .pace-head{flex-direction:column;gap:10px;margin-bottom:10px}
   .pace-periods{width:100%;justify-content:flex-start;overflow-x:auto;padding-bottom:1px}
-  .pace-grid{grid-template-columns:1fr;gap:8px}
-  .pace-card{padding:10px}
-  .pace-card strong{font-size:20px}
+  .pace-summary-panel.marathon-progress-side{grid-template-columns:1fr;gap:7px;padding:8px}
+  .pace-summary-panel .mps-divider{display:none}
+  .pace-summary-panel .mps-item{min-height:44px;border-bottom:1px solid rgba(255,255,255,.06)}
+  .pace-summary-panel .mps-item:last-child{border-bottom:0}
+  .pace-chart-title{margin-top:2px}
+  .pace-chart{min-height:210px}
   .pace-rail{padding:8px}
   .pace-rail-row{grid-template-columns:78px minmax(0,1fr) 76px;gap:7px;font-size:9px}
 

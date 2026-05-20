@@ -148,6 +148,7 @@ function leaderboardRowsForDisplay(board, targetNick) {
 
 const MARATHON_TARGET = 10_000_000
 const PACE_PERIOD_SECONDS = { week:7 * 86400, month:30 * 86400 }
+const PACE_BIN_SIZE = 1000
 
 function formatDollarPerMTT(value, unit = 'MTT') {
   if (value == null || !Number.isFinite(value)) return '—'
@@ -192,6 +193,63 @@ function computePaceWindow(sorted, predicate, startBR, fallbackTotal = null) {
   }
 }
 
+function historySessionTournaments(row, sorted, idx) {
+  if (row?.tournaments) return row.tournaments
+  const prevTotal = idx === 0 ? 0 : sorted[idx - 1]?.totalTournaments || 0
+  const total = row?.totalTournaments || 0
+  return Math.max(0, total - prevTotal)
+}
+
+function buildPaceSegments(sorted, predicate, startBR, binSize = PACE_BIN_SIZE) {
+  const segments = []
+  let active = { profit:0, tournaments:0 }
+
+  const flush = () => {
+    if (!active.tournaments) return
+    const startMtt = segments.reduce((sum, seg) => sum + seg.tournaments, 0)
+    segments.push({
+      ...active,
+      startMtt,
+      endMtt:startMtt + active.tournaments,
+      rate:active.profit / active.tournaments,
+      full:active.tournaments >= binSize - 0.01,
+    })
+    active = { profit:0, tournaments:0 }
+  }
+
+  sorted.forEach((row, idx) => {
+    if (!predicate(row)) return
+    const tournaments = historySessionTournaments(row, sorted, idx)
+    if (!tournaments) return
+
+    // Reports are session-level, so split session profit proportionally when it crosses a 1k-MTT bin.
+    const profit = historySessionProfit(row, sorted, idx, startBR)
+    let left = tournaments
+    while (left > 0) {
+      const room = binSize - active.tournaments
+      const take = Math.min(room, left)
+      active.tournaments += take
+      active.profit += profit * (take / tournaments)
+      left -= take
+      if (active.tournaments >= binSize - 0.01) flush()
+    }
+  })
+
+  flush()
+  return segments.map((seg, idx) => ({
+    ...seg,
+    index:idx,
+    label:formatPaceSegmentLabel(seg.endMtt, binSize),
+  }))
+}
+
+function formatPaceSegmentLabel(endMtt, binSize) {
+  if (Math.abs(endMtt % binSize) < 0.01) return `${Math.round(endMtt / 1000)}k`
+  const thousands = endMtt / 1000
+  const digits = thousands < 10 ? 2 : 1
+  return `${Number(thousands.toFixed(digits))}k`
+}
+
 function computePaceMetrics({ meta, stats, period, target = MARATHON_TARGET, now = Date.now() / 1000 }) {
   const sorted = (meta?.brHistory || [])
     .slice()
@@ -200,14 +258,15 @@ function computePaceMetrics({ meta, stats, period, target = MARATHON_TARGET, now
 
   const startBR = stats.startBR || meta?.startBankroll || 10000
   const totalTournaments = stats.totalTourneys || meta?.totalTournaments || null
-  const current = period === 'all'
-    ? computePaceWindow(sorted, () => true, startBR, totalTournaments)
+  const currentPredicate = period === 'all'
+    ? () => true
     : (() => {
       const seconds = PACE_PERIOD_SECONDS[period]
-      if (!seconds) return null
+      if (!seconds) return () => false
       const cutoff = now - seconds
-      return computePaceWindow(sorted, row => (row.timestamp || 0) >= cutoff, startBR)
+      return row => (row.timestamp || 0) >= cutoff
     })()
+  const current = computePaceWindow(sorted, currentPredicate, startBR, totalTournaments)
 
   if (!current?.tournaments) return current ? { current, period, target, remaining:Math.max(0, target - stats.br) } : null
 
@@ -233,12 +292,114 @@ function computePaceMetrics({ meta, stats, period, target = MARATHON_TARGET, now
     target,
     current,
     previous,
+    segments:buildPaceSegments(sorted, currentPredicate, startBR, PACE_BIN_SIZE),
+    binSize:PACE_BIN_SIZE,
     rate,
     deltaRate,
     finishMTT,
     bustMTT,
     remaining,
   }
+}
+
+function PaceRateValue({ value, unit, className = '' }) {
+  const animated = useTweenValue(value ?? 0, 620)
+  const [pulse, setPulse] = useState(false)
+  const prev = useRef(value)
+  useEffect(() => {
+    if (prev.current !== value) {
+      prev.current = value
+      setPulse(true)
+      const t = setTimeout(() => setPulse(false), 650)
+      return () => clearTimeout(t)
+    }
+  }, [value])
+  if (value == null) return <span className={className}>—</span>
+  const tone = value > 0 ? 'pos' : value < 0 ? 'neg' : ''
+  return <span className={`pace-rate-value ${tone} ${pulse ? 'pulse' : ''} ${className}`}>{formatDollarPerMTT(animated, unit)}</span>
+}
+
+function PaceMiniChart({ segments, unit, t }) {
+  if (!segments?.length) return <div className="pace-chart-empty">{t('pace_chart_empty')}</div>
+
+  const width = 640
+  const height = 194
+  const pad = { left:44, right:12, top:26, bottom:30 }
+  const gridLeft = pad.left
+  const gridRight = width - pad.right
+  const basePlotW = gridRight - gridLeft
+  const plotH = height - pad.top - pad.bottom
+  const maxAbs = Math.max(5, ...segments.map(seg => Math.abs(seg.rate || 0)))
+  const zeroY = pad.top + plotH / 2
+  const barW = Math.max(12, Math.min(34, basePlotW / Math.max(1, segments.length) * .48))
+  const pointLeft = gridLeft + barW / 2
+  const pointRight = gridRight - barW / 2
+  const pointW = pointRight - pointLeft
+  const xStep = pointW / Math.max(1, segments.length - 1)
+  const x = idx => pointLeft + (segments.length === 1 ? pointW / 2 : idx * xStep)
+  const y = value => pad.top + (maxAbs - value) / (maxAbs * 2) * plotH
+  const linePath = segments
+    .map((seg, idx) => `${idx ? 'L' : 'M'} ${x(idx).toFixed(1)} ${y(seg.rate).toFixed(1)}`)
+    .join(' ')
+
+  return (
+    <div className="pace-chart-wrap" data-testid="pace-chart">
+      <svg className="pace-chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-label={t('pace_chart_label')}>
+        <defs>
+          <linearGradient id="pacePosFill" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0%" stopColor="#7ee787" stopOpacity=".92"/>
+            <stop offset="100%" stopColor="#7bdcff" stopOpacity=".32"/>
+          </linearGradient>
+          <linearGradient id="paceNegFill" x1="0" x2="0" y1="0" y2="1">
+            <stop offset="0%" stopColor="#ff746c" stopOpacity=".28"/>
+            <stop offset="100%" stopColor="#ff746c" stopOpacity=".9"/>
+          </linearGradient>
+          <filter id="paceGlow" x="-40%" y="-40%" width="180%" height="180%">
+            <feGaussianBlur stdDeviation="3" result="blur"/>
+            <feMerge>
+              <feMergeNode in="blur"/>
+              <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+          </filter>
+        </defs>
+        <line className="pace-grid-line" x1={gridLeft} x2={gridRight} y1={pad.top} y2={pad.top}/>
+        <line className="pace-grid-line pace-zero" x1={gridLeft} x2={gridRight} y1={zeroY} y2={zeroY}/>
+        <line className="pace-grid-line" x1={gridLeft} x2={gridRight} y1={pad.top + plotH} y2={pad.top + plotH}/>
+        <text className="pace-y-label" x="8" y={pad.top + 4}>+{Math.round(maxAbs)}$</text>
+        <text className="pace-y-label zero" x="20" y={zeroY + 4}>0</text>
+        <text className="pace-y-label" x="8" y={pad.top + plotH + 4}>-{Math.round(maxAbs)}$</text>
+        {segments.map((seg, idx) => {
+          const cx = x(idx)
+          const rateY = y(seg.rate)
+          const top = Math.min(rateY, zeroY)
+          const h = Math.max(2, Math.abs(zeroY - rateY))
+          return (
+            <rect key={`bar-${idx}-${seg.endMtt}`} className={`pace-bar ${seg.rate >= 0 ? 'pos' : 'neg'}`}
+              x={cx - barW / 2} y={top} width={barW} height={h} rx="5"
+              fill={seg.rate >= 0 ? 'url(#pacePosFill)' : 'url(#paceNegFill)'}/>
+          )
+        })}
+        {segments.length > 1 && <path className="pace-line-glow" d={linePath}/>}
+        {segments.length > 1 && <path className="pace-line" d={linePath}/>}
+        {segments.map((seg, idx) => {
+          const cx = x(idx)
+          const rateY = y(seg.rate)
+          const tone = seg.rate >= 0 ? 'pos' : 'neg'
+          return (
+            <g key={`${idx}-${seg.endMtt}`} className={`pace-segment ${tone}`}>
+              <title>{`${seg.label}: ${formatDollarPerMTT(seg.rate, unit)} · ${fmtBR(seg.profit)} / ${fmtInt(seg.tournaments)} ${unit}`}</title>
+              <circle className="pace-dot-halo" cx={cx} cy={rateY} r="8"/>
+              <circle className="pace-dot" cx={cx} cy={rateY} r="4.2"/>
+              <text className={`pace-chart-value ${tone}`} x={cx} y={rateY + (seg.rate >= 0 ? -11 : 17)}>
+                {formatDollarPerMTT(seg.rate, unit).replace(`/${unit}`, '')}
+              </text>
+              <text className="pace-x-label" x={cx} y={height - 8}>{seg.label}</text>
+            </g>
+          )
+        })}
+      </svg>
+    </div>
+  )
 }
 
 function LeaderboardsWidget({ snapshot, lang, t }) {
@@ -351,10 +512,10 @@ function PaceWidget({ meta, stats, period, setPeriod, lang, t }) {
   const prevRate = pace.previous?.rate
   const deltaRate = pace.deltaRate
   const isNegative = currentRate != null && currentRate < 0
-  const maxAbsRate = Math.max(1, Math.abs(currentRate || 0), Math.abs(prevRate || 0))
-  const rateWidth = value => `${Math.max(5, Math.min(100, Math.abs(value || 0) / maxAbsRate * 100))}%`
   const periodLabel = t(period === 'week' ? 'period_week' : period === 'month' ? 'period_month' : 'period_all')
   const mttUnit = t('sr_mtt_short')
+  const finishTarget = pace.finishMTT || pace.bustMTT || null
+  const finishSteps = finishTarget ? Math.ceil(finishTarget / pace.binSize) : null
 
   return (
     <section className={`pace-widget ${isNegative ? 'negative' : currentRate > 0 ? 'positive' : ''}`} data-testid="pace-widget">
@@ -372,39 +533,35 @@ function PaceWidget({ meta, stats, period, setPeriod, lang, t }) {
         </div>
       </div>
 
-      <div className="pace-grid">
-        <div className="pace-card pace-card-primary">
-          <span>{t('pace_rate_now')}</span>
-          <strong className={currentRate > 0 ? 'pos' : currentRate < 0 ? 'neg' : ''}>{formatDollarPerMTT(currentRate, mttUnit)}</strong>
-          <small>{fmtBR(pace.current.profit)} / {fmtInt(pace.current.tournaments)} {mttUnit}</small>
-        </div>
-        <div className="pace-card">
-          <span>{t('pace_rate_prev')}</span>
-          <strong className={prevRate > 0 ? 'pos' : prevRate < 0 ? 'neg' : ''}>{prevRate == null ? '—' : formatDollarPerMTT(prevRate, mttUnit)}</strong>
-          <small>{prevRate == null ? t(period === 'all' ? 'pace_all_note' : 'pace_no_prev') : `${t('pace_delta')}: ${formatDollarPerMTT(deltaRate, mttUnit)}`}</small>
-        </div>
-        <div className="pace-card pace-card-finish">
-          <span>{isNegative ? t('pace_to_zero') : t('pace_finish')}</span>
-          <strong>{pace.finishMTT ? `~${fmtInt(pace.finishMTT)}` : pace.bustMTT ? `~${fmtInt(pace.bustMTT)}` : '—'}</strong>
-          <small>{pace.finishMTT || pace.bustMTT ? `${mttUnit} · ${t('pace_at_current')}` : t('pace_no_finish')}</small>
-        </div>
-      </div>
-
-      <div className="pace-rail" aria-hidden="true">
-        <div className="pace-rail-row">
-          <span>{t('pace_rate_prev')}</span>
-          <div className="pace-rail-track">
-            {prevRate != null && <i className={prevRate >= 0 ? 'pos' : 'neg'} style={{ width:rateWidth(prevRate) }}/>}
+      <div className="pace-dashboard">
+        <div className="pace-summary-panel marathon-progress-side">
+          <div className="mps-item pace-rate-item">
+            <span className="mps-label">{t('pace_rate_now')}</span>
+            <span className="mps-value-row">
+              <PaceRateValue value={currentRate} unit={mttUnit} className="mps-value"/>
+            </span>
+            <span className="pace-summary-note">{fmtBR(pace.current.profit)} / {fmtInt(pace.current.tournaments)} {mttUnit}</span>
           </div>
-          <b>{prevRate == null ? '—' : formatDollarPerMTT(prevRate, mttUnit)}</b>
-        </div>
-        <div className="pace-rail-row current">
-          <span>{t('pace_rate_now')}</span>
-          <div className="pace-rail-track">
-            {currentRate != null && <i className={currentRate >= 0 ? 'pos' : 'neg'} style={{ width:rateWidth(currentRate) }}/>}
+          <div className="mps-divider"/>
+          <div className="mps-item">
+            <span className="mps-label">{isNegative ? t('pace_to_zero') : t('pace_finish')}</span>
+            {finishTarget ? <TempoValue target={finishTarget} title={t('pace_at_current')}/> : <span className="mps-value">—</span>}
+            <span className="pace-summary-note">{finishSteps ? `${fmtInt(finishSteps)} × ${fmtInt(pace.binSize)} ${mttUnit}` : t('pace_no_finish')}</span>
           </div>
-          <b>{formatDollarPerMTT(currentRate, mttUnit)}</b>
+          <div className="mps-divider"/>
+          <div className="mps-item">
+            <span className="mps-label">{t('pace_rate_prev')}</span>
+            <span className="mps-value">
+              <PaceRateValue value={prevRate} unit={mttUnit}/>
+            </span>
+            <span className="pace-summary-note">{prevRate == null ? t(period === 'all' ? 'pace_all_note' : 'pace_no_prev') : `${t('pace_delta')}: ${formatDollarPerMTT(deltaRate, mttUnit)}`}</span>
+          </div>
         </div>
+        <div className="pace-chart-title">
+          <span>{t('pace_chart_title')}</span>
+          <b>{fmtInt(pace.binSize)} {mttUnit}</b>
+        </div>
+        <PaceMiniChart segments={pace.segments} unit={mttUnit} t={t}/>
       </div>
     </section>
   )
