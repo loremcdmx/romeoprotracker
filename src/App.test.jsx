@@ -162,6 +162,47 @@ describe('App', () => {
     expect(screen.getByText(translate('ru', 'leaderboards_points_help'))).toBeInTheDocument()
   })
 
+  it('renders pace widget and applies the shared date period filters', async () => {
+    const now = Math.floor(Date.now() / 1000)
+    const brs = [15000, 20000, 26000, 32000]
+    const totals = [1000, 2000, 3000, 4000]
+    const timestamps = [now - 13 * 86400, now - 9 * 86400, now - 5 * 86400, now - 86400]
+    const brHistory = brs.map((brAfter, i) => {
+      const brPrev = i === 0 ? 10000 : brs[i - 1]
+      return {
+        brAfter,
+        brPrev,
+        date: `D${i + 1}`,
+        timestamp: timestamps[i],
+        sessionResult: brAfter - brPrev,
+        totalTournaments: totals[i],
+        tournaments: i === 0 ? totals[i] : totals[i] - totals[i - 1],
+        text: `Session ${i + 1}`,
+      }
+    })
+    fetchPublicData.mockResolvedValue(makeMockData({
+      meta: {
+        ...makeMockData().meta,
+        brHistory,
+        totalTournaments: 4000,
+      },
+    }))
+
+    render(<App />)
+    const widget = await screen.findByTestId('pace-widget')
+    expect(within(widget).getByText(translate('ru', 'pace_title'))).toBeInTheDocument()
+    expect(within(widget).getAllByText('+5.5$/МТТ').length).toBeGreaterThanOrEqual(1)
+
+    fireEvent.click(within(widget).getByText(translate('ru', 'period_week')))
+
+    await waitFor(() => {
+      expect(within(widget).getAllByText('+6$/МТТ').length).toBeGreaterThanOrEqual(1)
+    })
+    expect(within(widget).getAllByText('+5$/МТТ').length).toBeGreaterThanOrEqual(1)
+    expect(within(widget).getByText('изменение: +1$/МТТ')).toBeInTheDocument()
+    expect(within(widget).getByText((text) => text.replace(/\s/g, '') === '~1661334')).toBeInTheDocument()
+  })
+
   it('anchors activity chart edge labels inside the SVG bounds', async () => {
     const day = 86400
     const posts = Array.from({ length:61 }, (_, i) => ({

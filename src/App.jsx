@@ -146,6 +146,101 @@ function leaderboardRowsForDisplay(board, targetNick) {
   return rows
 }
 
+const MARATHON_TARGET = 10_000_000
+const PACE_PERIOD_SECONDS = { week:7 * 86400, month:30 * 86400 }
+
+function formatDollarPerMTT(value, unit = 'MTT') {
+  if (value == null || !Number.isFinite(value)) return '—'
+  const rounded = Math.round(value * 10) / 10
+  const abs = Math.abs(rounded)
+  const body = Number.isInteger(abs) ? String(abs) : abs.toFixed(1)
+  return `${rounded > 0 ? '+' : rounded < 0 ? '-' : ''}${body}$/${unit}`
+}
+
+function historySessionProfit(row, sorted, idx, startBR) {
+  if (row?.sessionResult != null) return row.sessionResult
+  const prev = idx === 0 ? startBR : sorted[idx - 1]?.brAfter
+  return row?.brAfter != null && prev != null ? row.brAfter - prev : 0
+}
+
+function computePaceWindow(sorted, predicate, startBR, fallbackTotal = null) {
+  const indexed = sorted
+    .map((row, idx) => ({ row, idx }))
+    .filter(({ row }) => predicate(row))
+
+  if (!indexed.length) return null
+
+  const profit = indexed.reduce((sum, { row, idx }) =>
+    sum + historySessionProfit(row, sorted, idx, startBR), 0)
+  let tournaments = indexed.reduce((sum, { row }) => sum + (row.tournaments || 0), 0)
+
+  if (!tournaments) {
+    const firstIdx = indexed[0].idx
+    const lastIdx = indexed[indexed.length - 1].idx
+    const beforeTotal = firstIdx > 0 ? sorted[firstIdx - 1]?.totalTournaments || 0 : 0
+    const lastTotal = sorted[lastIdx]?.totalTournaments || fallbackTotal || 0
+    tournaments = Math.max(0, lastTotal - beforeTotal)
+  }
+
+  return {
+    profit,
+    tournaments:tournaments || null,
+    sessions:indexed.length,
+    startTs:indexed[0].row.timestamp,
+    endTs:indexed[indexed.length - 1].row.timestamp,
+    rate:tournaments ? profit / tournaments : null,
+  }
+}
+
+function computePaceMetrics({ meta, stats, period, target = MARATHON_TARGET, now = Date.now() / 1000 }) {
+  const sorted = (meta?.brHistory || [])
+    .slice()
+    .sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0))
+  if (!sorted.length || !stats?.br) return null
+
+  const startBR = stats.startBR || meta?.startBankroll || 10000
+  const totalTournaments = stats.totalTourneys || meta?.totalTournaments || null
+  const current = period === 'all'
+    ? computePaceWindow(sorted, () => true, startBR, totalTournaments)
+    : (() => {
+      const seconds = PACE_PERIOD_SECONDS[period]
+      if (!seconds) return null
+      const cutoff = now - seconds
+      return computePaceWindow(sorted, row => (row.timestamp || 0) >= cutoff, startBR)
+    })()
+
+  if (!current?.tournaments) return current ? { current, period, target, remaining:Math.max(0, target - stats.br) } : null
+
+  let previous = null
+  if (period !== 'all' && PACE_PERIOD_SECONDS[period]) {
+    const seconds = PACE_PERIOD_SECONDS[period]
+    const start = now - seconds * 2
+    const end = now - seconds
+    previous = computePaceWindow(sorted, row => {
+      const ts = row.timestamp || 0
+      return ts >= start && ts < end
+    }, startBR)
+  }
+
+  const remaining = Math.max(0, target - stats.br)
+  const rate = current.rate
+  const finishMTT = rate > 0 ? Math.ceil(remaining / rate) : null
+  const bustMTT = rate < 0 ? Math.ceil(stats.br / Math.abs(rate)) : null
+  const deltaRate = previous?.rate != null && rate != null ? rate - previous.rate : null
+
+  return {
+    period,
+    target,
+    current,
+    previous,
+    rate,
+    deltaRate,
+    finishMTT,
+    bustMTT,
+    remaining,
+  }
+}
+
 function LeaderboardsWidget({ snapshot, lang, t }) {
   const boards = snapshot?.leaderboards || []
   const byTier = new Map(boards.map(board => [board.tier, board]))
@@ -244,6 +339,73 @@ function LeaderboardsWidget({ snapshot, lang, t }) {
       <a className="leaderboard-source" href={sourceUrl} target="_blank" rel="noreferrer">
         {t('leaderboards_source')} →
       </a>
+    </section>
+  )
+}
+
+function PaceWidget({ meta, stats, period, setPeriod, lang, t }) {
+  const pace = useMemo(() => computePaceMetrics({ meta, stats, period }), [meta, stats, period])
+  if (!pace?.current) return null
+
+  const currentRate = pace.rate
+  const prevRate = pace.previous?.rate
+  const deltaRate = pace.deltaRate
+  const isNegative = currentRate != null && currentRate < 0
+  const maxAbsRate = Math.max(1, Math.abs(currentRate || 0), Math.abs(prevRate || 0))
+  const rateWidth = value => `${Math.max(5, Math.min(100, Math.abs(value || 0) / maxAbsRate * 100))}%`
+  const periodLabel = t(period === 'week' ? 'period_week' : period === 'month' ? 'period_month' : 'period_all')
+  const mttUnit = t('sr_mtt_short')
+
+  return (
+    <section className={`pace-widget ${isNegative ? 'negative' : currentRate > 0 ? 'positive' : ''}`} data-testid="pace-widget">
+      <div className="pace-head">
+        <div>
+          <div className="section-title">{t('pace_title')}</div>
+          <div className="pace-sub">{t('pace_sub')} · {periodLabel.toLowerCase()}</div>
+        </div>
+        <div className="pace-periods">
+          {[['week', t('period_week')], ['month', t('period_month')], ['all', t('period_all')]].map(([key, label]) => (
+            <button key={key} className={`mc-period ${period === key ? 'active' : ''}`} onClick={() => setPeriod(key)}>
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="pace-grid">
+        <div className="pace-card pace-card-primary">
+          <span>{t('pace_rate_now')}</span>
+          <strong className={currentRate > 0 ? 'pos' : currentRate < 0 ? 'neg' : ''}>{formatDollarPerMTT(currentRate, mttUnit)}</strong>
+          <small>{fmtBR(pace.current.profit)} / {fmtInt(pace.current.tournaments)} {mttUnit}</small>
+        </div>
+        <div className="pace-card">
+          <span>{t('pace_rate_prev')}</span>
+          <strong className={prevRate > 0 ? 'pos' : prevRate < 0 ? 'neg' : ''}>{prevRate == null ? '—' : formatDollarPerMTT(prevRate, mttUnit)}</strong>
+          <small>{prevRate == null ? t(period === 'all' ? 'pace_all_note' : 'pace_no_prev') : `${t('pace_delta')}: ${formatDollarPerMTT(deltaRate, mttUnit)}`}</small>
+        </div>
+        <div className="pace-card pace-card-finish">
+          <span>{isNegative ? t('pace_to_zero') : t('pace_finish')}</span>
+          <strong>{pace.finishMTT ? `~${fmtInt(pace.finishMTT)}` : pace.bustMTT ? `~${fmtInt(pace.bustMTT)}` : '—'}</strong>
+          <small>{pace.finishMTT || pace.bustMTT ? `${mttUnit} · ${t('pace_at_current')}` : t('pace_no_finish')}</small>
+        </div>
+      </div>
+
+      <div className="pace-rail" aria-hidden="true">
+        <div className="pace-rail-row">
+          <span>{t('pace_rate_prev')}</span>
+          <div className="pace-rail-track">
+            {prevRate != null && <i className={prevRate >= 0 ? 'pos' : 'neg'} style={{ width:rateWidth(prevRate) }}/>}
+          </div>
+          <b>{prevRate == null ? '—' : formatDollarPerMTT(prevRate, mttUnit)}</b>
+        </div>
+        <div className="pace-rail-row current">
+          <span>{t('pace_rate_now')}</span>
+          <div className="pace-rail-track">
+            {currentRate != null && <i className={currentRate >= 0 ? 'pos' : 'neg'} style={{ width:rateWidth(currentRate) }}/>}
+          </div>
+          <b>{formatDollarPerMTT(currentRate, mttUnit)}</b>
+        </div>
+      </div>
     </section>
   )
 }
@@ -2813,52 +2975,16 @@ export default function App() {
 
       {/* PROGRESS BAR */}
       {!loading && stats?.br && (() => {
-        const target = 10_000_000
-        const start  = stats.startBR || 10000
+        const target = MARATHON_TARGET
         const raw = stats.br / target * 100
         const pct = Math.max(0, Math.min(100, raw))
         const remaining = Math.max(0, target - stats.br)
 
-        // Темп зависит от выбранного периода графика:
-        //   week  → $/MTT за последние 7 дней сессий
-        //   month → за последние 30 дней
-        //   all   → за весь марафон (как раньше)
-        const hist = meta?.brHistory
-        let periodProfit = null, periodMTT = null
-        if (hist?.length) {
-          if (chartPeriod === 'all') {
-            periodProfit = stats.br - start
-            periodMTT    = stats.totalTourneys || meta?.totalTournaments || null
-          } else {
-            const now = Date.now() / 1000
-            const cutoff = chartPeriod === 'week' ? now - 7*86400 : now - 30*86400
-            const sorted = [...hist].sort((a,b)=>(a.timestamp||0)-(b.timestamp||0))
-            const insideIdx = sorted.findIndex(h => (h.timestamp||0) >= cutoff)
-            if (insideIdx >= 0) {
-              const firstInside = sorted[insideIdx]
-              const baseBR = insideIdx === 0 ? start : sorted[insideIdx-1].brAfter
-              const lastBR = sorted[sorted.length-1].brAfter
-              periodProfit = lastBR - baseBR
-              periodMTT = sorted.slice(insideIdx).reduce((s,h)=>s+(h.tournaments||0), 0) || null
-              if (!periodMTT) {
-                // fallback: delta of cumulative totalTournaments
-                const baseTotal = insideIdx === 0 ? 0 : (sorted[insideIdx-1].totalTournaments||0)
-                const lastTotal = sorted[sorted.length-1].totalTournaments||0
-                periodMTT = Math.max(0, lastTotal - baseTotal) || null
-              }
-            }
-          }
-        }
-        const isLosing = periodProfit != null && periodProfit < 0 && periodMTT > 0
-        const mttNeeded = (periodProfit > 0 && periodMTT)
-          ? Math.ceil(remaining * periodMTT / periodProfit)
-          : null
-        const mttToBust = isLosing
-          ? Math.ceil(stats.br * periodMTT / Math.abs(periodProfit))
-          : null
-        const dollarPerMTT = (periodMTT && periodProfit != null && periodProfit !== 0)
-          ? periodProfit / periodMTT
-          : null
+        const pace = computePaceMetrics({ meta, stats, period:chartPeriod, target })
+        const isLosing = pace?.rate != null && pace.rate < 0
+        const mttNeeded = pace?.finishMTT || null
+        const mttToBust = pace?.bustMTT || null
+        const dollarPerMTT = pace?.rate ?? null
         const tempoLabel = isLosing
           ? (chartPeriod === 'week' ? t('tempo_week_neg')
            : chartPeriod === 'month' ? t('tempo_month_neg')
@@ -3034,6 +3160,7 @@ export default function App() {
               <MarathonChart posts={posts} meta={meta} startBR={stats.startBR} setLightbox={setLightbox}
                 period={chartPeriod} setPeriod={setChartPeriod} lang={lang} t={t}/>
               <LeaderboardsWidget snapshot={leaderboards} lang={lang} t={t}/>
+              <PaceWidget meta={meta} stats={stats} period={chartPeriod} setPeriod={setChartPeriod} lang={lang} t={t}/>
               {/* Mobile-only top posts */}
               {lang==='ru' && hotPosts.length > 0 && (() => {
                 const now = Date.now() / 1000
