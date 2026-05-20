@@ -323,8 +323,8 @@ function PaceMiniChart({ segments, unit, t }) {
   if (!segments?.length) return <div className="pace-chart-empty">{t('pace_chart_empty')}</div>
 
   const width = 640
-  const height = 194
-  const pad = { left:44, right:12, top:26, bottom:30 }
+  const height = 210
+  const pad = { left:44, right:12, top:28, bottom:44 }
   const gridLeft = pad.left
   const gridRight = width - pad.right
   const basePlotW = gridRight - gridLeft
@@ -365,6 +365,8 @@ function PaceMiniChart({ segments, unit, t }) {
         <line className="pace-grid-line" x1={gridLeft} x2={gridRight} y1={pad.top} y2={pad.top}/>
         <line className="pace-grid-line pace-zero" x1={gridLeft} x2={gridRight} y1={zeroY} y2={zeroY}/>
         <line className="pace-grid-line" x1={gridLeft} x2={gridRight} y1={pad.top + plotH} y2={pad.top + plotH}/>
+        <text className="pace-axis-caption" x={gridLeft} y="16">{t('pace_axis_caption')}</text>
+        <text className="pace-goal-caption" x={(gridLeft + gridRight) / 2} y="16">{t('pace_goal_caption')}</text>
         <text className="pace-y-label" x="8" y={pad.top + 4}>+{Math.round(maxAbs)}$</text>
         <text className="pace-y-label zero" x="20" y={zeroY + 4}>0</text>
         <text className="pace-y-label" x="8" y={pad.top + plotH + 4}>-{Math.round(maxAbs)}$</text>
@@ -381,6 +383,7 @@ function PaceMiniChart({ segments, unit, t }) {
         })}
         {segments.length > 1 && <path className="pace-line-glow" d={linePath}/>}
         {segments.length > 1 && <path className="pace-line" d={linePath}/>}
+        <text className="pace-x-caption" x={(gridLeft + gridRight) / 2} y={height - 1}>{t('pace_x_caption')}</text>
         {segments.map((seg, idx) => {
           const cx = x(idx)
           const rateY = y(seg.rate)
@@ -393,7 +396,7 @@ function PaceMiniChart({ segments, unit, t }) {
               <text className={`pace-chart-value ${tone}`} x={cx} y={rateY + (seg.rate >= 0 ? -11 : 17)}>
                 {formatDollarPerMTT(seg.rate, unit).replace(`/${unit}`, '')}
               </text>
-              <text className="pace-x-label" x={cx} y={height - 8}>{seg.label}</text>
+              <text className="pace-x-label" x={cx} y={height - 22}>{seg.label}</text>
             </g>
           )
         })}
@@ -558,8 +561,15 @@ function PaceWidget({ meta, stats, period, setPeriod, lang, t }) {
           </div>
         </div>
         <div className="pace-chart-title">
-          <span>{t('pace_chart_title')}</span>
-          <b>{fmtInt(pace.binSize)} {mttUnit}</b>
+          <div>
+            <span>{t('pace_chart_title')}</span>
+            <small>{t('pace_chart_hint')}</small>
+          </div>
+          <b>{t('pace_chart_step')}: {fmtInt(pace.binSize)} {mttUnit}</b>
+        </div>
+        <div className="pace-speed-legend" aria-hidden="true">
+          <span className="pos">{t('pace_speed_positive')}</span>
+          <span className="neg">{t('pace_speed_negative')}</span>
         </div>
         <PaceMiniChart segments={pace.segments} unit={mttUnit} t={t}/>
       </div>

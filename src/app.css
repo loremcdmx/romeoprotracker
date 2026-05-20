@@ -249,29 +249,44 @@ a{color:var(--red2);text-decoration:none}
 .leaderboard-source:hover{color:var(--lb-score);border-color:rgba(123,220,255,.2)}
 
 /* PACE WIDGET */
-.pace-widget{--pace-blue:#7bdcff;--pace-blue-soft:rgba(123,220,255,.115);--pace-green:#7ee787;--pace-red:#ff746c;margin-top:10px;position:relative;background:radial-gradient(circle at 8% 0,rgba(123,220,255,.13),transparent 34%),linear-gradient(180deg,rgba(255,255,255,.054),rgba(255,255,255,.021) 52%,rgba(0,0,0,.13)),var(--bg2);border:1px solid rgba(255,255,255,.105);border-radius:var(--r);padding:14px;overflow:hidden;box-shadow:inset 0 1px 0 rgba(255,255,255,.055),0 12px 30px rgba(0,0,0,.16)}
-.pace-widget::before{content:"";position:absolute;left:14px;right:14px;top:0;height:1px;background:linear-gradient(90deg,transparent,rgba(123,220,255,.42),rgba(126,231,135,.28),transparent);pointer-events:none}
+.pace-widget{--pace-blue:#7bdcff;--pace-blue-soft:rgba(123,220,255,.115);--pace-green:#7ee787;--pace-red:#ff746c;--pace-gold:#ffd479;margin-top:10px;position:relative;background:radial-gradient(circle at 12% 0,rgba(126,231,135,.16),transparent 32%),radial-gradient(circle at 82% 6%,rgba(255,212,121,.10),transparent 28%),linear-gradient(180deg,rgba(255,255,255,.058),rgba(255,255,255,.022) 52%,rgba(0,0,0,.15)),var(--bg2);border:1px solid rgba(126,231,135,.14);border-radius:var(--r);padding:14px;overflow:hidden;box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 12px 30px rgba(0,0,0,.16)}
+.pace-widget::before{content:"";position:absolute;left:14px;right:14px;top:0;height:1px;background:linear-gradient(90deg,transparent,rgba(126,231,135,.52),rgba(123,220,255,.32),rgba(255,212,121,.28),transparent);pointer-events:none}
 .pace-widget.negative::before{background:linear-gradient(90deg,transparent,rgba(255,116,108,.4),rgba(255,179,0,.22),transparent)}
 .pace-head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;margin-bottom:12px;position:relative;z-index:1}
-.pace-sub{margin-top:4px;font-size:10px;color:var(--dim);font-family:'Roboto Mono',monospace}
+.pace-widget .section-title{color:var(--white);text-shadow:0 0 16px rgba(126,231,135,.16)}
+.pace-sub{margin-top:4px;font-size:10px;color:color-mix(in srgb,var(--pace-green) 48%,var(--dim));font-family:'Roboto Mono',monospace}
 .pace-periods{display:flex;gap:4px;flex-shrink:0}
 .pace-dashboard{display:grid;gap:10px;position:relative;z-index:1}
-.pace-summary-panel.marathon-progress-side{display:grid;grid-template-columns:1fr 1px 1fr 1px 1fr;align-items:stretch;padding:7px 5px;border-radius:10px;background:linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,.022));box-shadow:inset 0 1px 0 rgba(255,255,255,.055),0 10px 24px rgba(0,0,0,.13)}
+.pace-summary-panel.marathon-progress-side{display:grid;grid-template-columns:1fr 1px 1fr 1px 1fr;align-items:stretch;padding:7px 5px;border-radius:10px;background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.024));box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 10px 24px rgba(0,0,0,.13)}
 .pace-summary-panel .mps-item{min-height:50px;padding:3px 8px}
 .pace-summary-panel .mps-value{font-size:15px;font-weight:900;color:var(--white)}
 .pace-summary-panel .mps-label{font-size:8.5px}
+.pace-rate-item{position:relative;background:linear-gradient(180deg,rgba(126,231,135,.09),rgba(123,220,255,.035));border-radius:8px}
+.pace-rate-item::before{content:"";position:absolute;left:0;top:9px;bottom:9px;width:3px;border-radius:999px;background:linear-gradient(180deg,var(--pace-green),var(--pace-blue));box-shadow:0 0 13px rgba(126,231,135,.28)}
+.pace-rate-item .pace-rate-value{font-size:18px}
 .pace-summary-note{display:block;max-width:100%;font-size:8.5px;color:var(--dim);font-family:'Roboto Mono',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
 .pace-rate-value{display:inline-block;color:var(--white);font-family:'Roboto Mono',monospace;font-variant-numeric:tabular-nums;transition:color .28s,text-shadow .28s,transform .28s}
 .pace-rate-value.pos{color:var(--pace-green);text-shadow:0 0 13px rgba(126,231,135,.16)}
 .pace-rate-value.neg{color:var(--pace-red);text-shadow:0 0 13px rgba(255,116,108,.16)}
 .pace-rate-value.pulse{transform:translateY(-1px);color:#ffd479;text-shadow:0 0 12px rgba(255,212,121,.55)}
-.pace-chart-title{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 2px -4px;font-family:'Roboto Mono',monospace;color:var(--dim);font-size:9px;text-transform:uppercase;letter-spacing:.08em}
-.pace-chart-title b{color:var(--pace-blue);font-size:10px;font-weight:900;letter-spacing:0;text-transform:none}
-.pace-chart-wrap{border:1px solid rgba(255,255,255,.06);border-radius:10px;background:linear-gradient(180deg,rgba(0,0,0,.13),rgba(0,0,0,.06));overflow:hidden}
+.pace-chart-title{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;margin:1px 2px 0;font-family:'Roboto Mono',monospace;color:var(--dim);font-size:9px;text-transform:uppercase;letter-spacing:.08em}
+.pace-chart-title>div{display:flex;flex-direction:column;gap:3px;min-width:0}
+.pace-chart-title span{color:var(--white);font-weight:900}
+.pace-chart-title small{color:var(--dim);font-size:8.5px;text-transform:none;letter-spacing:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pace-chart-title b{color:var(--pace-blue);font-size:10px;font-weight:900;letter-spacing:0;text-transform:none;white-space:nowrap}
+.pace-speed-legend{display:flex;gap:7px;align-items:center;margin:-3px 2px 0;font-family:'Roboto Mono',monospace;font-size:8.5px;color:var(--dim)}
+.pace-speed-legend span{display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
+.pace-speed-legend span::before{content:"";width:7px;height:7px;border-radius:999px;background:currentColor;box-shadow:0 0 9px currentColor}
+.pace-speed-legend .pos{color:var(--pace-green)}
+.pace-speed-legend .neg{color:var(--pace-red)}
+.pace-chart-wrap{border:1px solid rgba(126,231,135,.11);border-radius:10px;background:linear-gradient(180deg,rgba(126,231,135,.035),rgba(0,0,0,.13) 42%,rgba(0,0,0,.065));overflow:hidden}
 .pace-chart{display:block;width:100%;height:auto;min-height:178px}
 .pace-grid-line{stroke:rgba(255,255,255,.07);stroke-width:1}
 .pace-zero{stroke:rgba(255,255,255,.18);stroke-dasharray:7 7}
-.pace-y-label,.pace-x-label,.pace-chart-value{font-family:'Roboto Mono',monospace;font-weight:900;font-variant-numeric:tabular-nums;text-shadow:0 2px 7px rgba(0,0,0,.75)}
+.pace-y-label,.pace-x-label,.pace-chart-value,.pace-axis-caption,.pace-goal-caption,.pace-x-caption{font-family:'Roboto Mono',monospace;font-weight:900;font-variant-numeric:tabular-nums;text-shadow:0 2px 7px rgba(0,0,0,.75)}
+.pace-axis-caption{fill:var(--pace-blue);font-size:9px;text-transform:uppercase;letter-spacing:.05em}
+.pace-goal-caption{fill:var(--pace-green);font-size:9px;text-anchor:middle;letter-spacing:.02em}
+.pace-x-caption{fill:var(--dim);font-size:8px;text-anchor:middle;text-transform:uppercase;letter-spacing:.06em}
 .pace-y-label{fill:var(--dim);font-size:10px}
 .pace-y-label.zero{fill:var(--dim2)}
 .pace-x-label{fill:var(--dim);font-size:9px;text-anchor:middle}
@@ -283,8 +298,8 @@ a{color:var(--red2);text-decoration:none}
 .pace-dot-halo{fill:rgba(0,0,0,.42);stroke:rgba(255,255,255,.08);stroke-width:1}
 .pace-dot{fill:var(--pace-green);stroke:#050505;stroke-width:4;filter:url(#paceGlow)}
 .pace-segment.neg .pace-dot{fill:var(--pace-red)}
-.pace-line-glow{fill:none;stroke:rgba(123,220,255,.22);stroke-width:8;stroke-linecap:round;stroke-linejoin:round;filter:blur(1px)}
-.pace-line{fill:none;stroke:rgba(255,255,255,.78);stroke-width:2;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:680;animation:paceLineIn .75s ease-out both}
+.pace-line-glow{fill:none;stroke:rgba(126,231,135,.20);stroke-width:9;stroke-linecap:round;stroke-linejoin:round;filter:blur(1px)}
+.pace-line{fill:none;stroke:rgba(218,248,226,.84);stroke-width:2.25;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:680;animation:paceLineIn .75s ease-out both}
 .pace-chart-empty{padding:24px 14px;border:1px dashed rgba(255,255,255,.09);border-radius:10px;color:var(--dim);font-size:11px;text-align:center}
 @keyframes paceBarIn{from{transform:scaleY(.15);opacity:.35}to{transform:scaleY(1);opacity:1}}
 @keyframes paceLineIn{from{stroke-dashoffset:680;opacity:.35}to{stroke-dashoffset:0;opacity:1}}
