@@ -252,23 +252,26 @@ a{color:var(--red2);text-decoration:none}
 .pace-widget{--pace-blue:#7bdcff;--pace-blue-soft:rgba(123,220,255,.115);--pace-green:#7ee787;--pace-red:#ff746c;--pace-gold:#ffd479;margin-top:10px;position:relative;background:radial-gradient(circle at 82% 18%,rgba(123,220,255,.055),transparent 34%),linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.012)),var(--bg2);border:1px solid rgba(255,255,255,.09);border-radius:var(--r);padding:14px;overflow:hidden;box-shadow:inset 0 1px 0 rgba(255,255,255,.04),0 10px 30px rgba(0,0,0,.13)}
 .pace-widget::before{content:"";position:absolute;left:14px;right:14px;top:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.08),transparent);pointer-events:none}
 .pace-widget.negative::before{background:linear-gradient(90deg,transparent,rgba(255,116,108,.4),rgba(255,179,0,.22),transparent)}
-.pace-head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;margin-bottom:12px;position:relative;z-index:1}
+.pace-head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;margin-bottom:13px;position:relative;z-index:1}
 .pace-widget .section-title{color:var(--white);font-size:13px;text-shadow:none}
 .pace-sub{margin-top:4px;font-size:10px;color:color-mix(in srgb,var(--dim2) 82%,var(--pace-blue));font-family:'Roboto Mono',monospace}
 .pace-periods{display:flex;gap:4px;flex-shrink:0}
 .pace-dashboard{display:grid;gap:10px;position:relative;z-index:1}
-.pace-summary-panel.marathon-progress-side{display:grid;grid-template-columns:1.08fr 1px 1fr 1px 1fr;align-items:stretch;padding:8px;border:1px solid rgba(255,255,255,.09);border-radius:12px;background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.024));box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 12px 28px rgba(0,0,0,.15)}
-.pace-summary-panel.marathon-progress-side .mps-item{position:relative;align-items:flex-start;min-height:58px;padding:7px 11px;border-radius:9px;overflow:hidden}
-.pace-summary-panel .mps-value{font-size:18px;font-weight:900;color:var(--white);line-height:1.05}
-.pace-summary-panel .mps-label{font-size:8.7px;color:color-mix(in srgb,var(--dim2) 86%,var(--white));font-weight:900;letter-spacing:.08em}
-.pace-rate-item{position:relative;background:linear-gradient(180deg,rgba(126,231,135,.10),rgba(123,220,255,.035));border:1px solid rgba(126,231,135,.12);border-radius:9px;box-shadow:inset 0 1px 0 rgba(255,255,255,.06)}
+.pace-summary-panel.marathon-progress-side{display:grid;grid-template-columns:1.1fr 1fr 1fr;gap:8px;align-items:stretch;padding:8px;border:1px solid rgba(255,255,255,.08);border-radius:14px;background:linear-gradient(180deg,rgba(255,255,255,.045),rgba(255,255,255,.014));box-shadow:inset 0 1px 0 rgba(255,255,255,.055),0 12px 28px rgba(0,0,0,.12)}
+.pace-summary-panel.marathon-progress-side .mps-divider{display:none}
+.pace-summary-panel.marathon-progress-side .mps-item{position:relative;align-items:flex-start;min-height:58px;padding:9px 12px 9px 14px;border:1px solid rgba(255,255,255,.075);border-radius:10px;background:linear-gradient(180deg,rgba(255,255,255,.042),rgba(255,255,255,.012));box-shadow:inset 0 1px 0 rgba(255,255,255,.045);overflow:hidden}
+.pace-summary-panel .mps-value{font-size:18px;font-weight:850;color:var(--white);line-height:1.05}
+.pace-summary-panel .mps-label{font-size:8.4px;color:color-mix(in srgb,var(--dim2) 82%,var(--white));font-weight:850;letter-spacing:.09em}
+.pace-summary-panel.marathon-progress-side .pace-rate-item{position:relative;background:linear-gradient(180deg,rgba(126,231,135,.115),rgba(123,220,255,.035));border-color:rgba(126,231,135,.18);box-shadow:inset 0 1px 0 rgba(255,255,255,.07),0 0 0 1px rgba(126,231,135,.035)}
 .pace-rate-item::before{content:"";position:absolute;left:0;top:9px;bottom:9px;width:3px;border-radius:999px;background:linear-gradient(180deg,var(--pace-green),var(--pace-blue));box-shadow:0 0 13px rgba(126,231,135,.28)}
 .pace-rate-item .pace-rate-value{font-size:17px}
+.pace-summary-panel.marathon-progress-side .pace-projection-item{border-color:rgba(255,212,121,.105);background:linear-gradient(180deg,rgba(255,212,121,.045),rgba(255,255,255,.012))}
+.pace-summary-panel.marathon-progress-side .pace-history-item{background:linear-gradient(180deg,rgba(255,255,255,.034),rgba(255,255,255,.010))}
 .pace-projection-item::before,.pace-history-item::before{content:"";position:absolute;left:0;top:10px;bottom:10px;width:2px;border-radius:999px;background:rgba(255,255,255,.10)}
 .pace-projection-item::before{background:linear-gradient(180deg,var(--pace-gold),rgba(123,220,255,.62));box-shadow:0 0 12px rgba(255,212,121,.14)}
 .pace-history-item::before{background:rgba(255,255,255,.13)}
 .pace-projection-item .tempo-val{color:#f4f4f4;text-shadow:0 0 12px rgba(255,212,121,.10)}
-.pace-summary-note{display:block;max-width:100%;font-size:9px;color:rgba(220,220,220,.62);font-family:'Roboto Mono',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
+.pace-summary-note{display:block;max-width:100%;font-size:8.8px;color:rgba(220,220,220,.62);font-family:'Roboto Mono',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
 .pace-rate-value{display:inline-block;color:var(--white);font-family:'Roboto Mono',monospace;font-variant-numeric:tabular-nums;transition:color .28s,text-shadow .28s,transform .28s}
 .pace-rate-value.pos{color:var(--pace-green);text-shadow:0 0 13px rgba(126,231,135,.16)}
 .pace-rate-value.neg{color:var(--pace-red);text-shadow:0 0 13px rgba(255,116,108,.16)}
@@ -754,7 +757,7 @@ html{scroll-behavior:smooth}
   .pace-periods{width:100%;justify-content:flex-start;overflow-x:auto;padding-bottom:1px}
   .pace-summary-panel.marathon-progress-side{grid-template-columns:1fr;gap:7px;padding:8px}
   .pace-summary-panel .mps-divider{display:none}
-  .pace-summary-panel.marathon-progress-side .mps-item{min-height:50px;align-items:flex-start;padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.06)}
+  .pace-summary-panel.marathon-progress-side .mps-item{min-height:50px;align-items:flex-start;padding:10px 12px 10px 14px;border-bottom:0}
   .pace-summary-panel .mps-item:last-child{border-bottom:0}
   .pace-summary-panel .mps-value{font-size:17px}
   .pace-chart-title{align-items:flex-start;flex-direction:column;gap:7px;margin-top:4px}
