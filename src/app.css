@@ -287,7 +287,7 @@ a{color:var(--red2);text-decoration:none}
 .pace-zero{stroke:rgba(255,255,255,.22);stroke-dasharray:7 7}
 .pace-y-label,.pace-x-label,.pace-chart-value,.pace-axis-caption,.pace-goal-caption,.pace-x-caption{font-family:'Roboto Mono',monospace;font-weight:900;font-variant-numeric:tabular-nums;text-shadow:0 1px 2px rgba(0,0,0,.30)}
 .pace-axis-caption{fill:rgba(170,222,255,.86);font-size:9px;text-transform:uppercase;letter-spacing:.05em}
-.pace-goal-caption{fill:#a1eba8;font-size:9px;text-anchor:middle;letter-spacing:.02em}
+.pace-goal-caption{fill:#b7f4bd;font-family:'Inter',system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:10px;font-weight:700;text-anchor:middle;letter-spacing:.01em;text-shadow:0 1px 1px rgba(0,0,0,.35)}
 .pace-x-caption{fill:rgba(220,220,220,.58);font-size:8px;text-anchor:middle;text-transform:uppercase;letter-spacing:.06em}
 .pace-y-label{fill:rgba(230,230,230,.72);font-size:10px}
 .pace-y-label.zero{fill:var(--dim2)}
