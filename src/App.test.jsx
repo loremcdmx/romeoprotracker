@@ -351,12 +351,18 @@ describe('App', () => {
     expect(await screen.findByText(new RegExp(translate('ru', 'chart_marathon').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))).toBeInTheDocument()
 
     const peakCallout = document.querySelector('.mc-peak-callout')
+    const peakLeader = peakCallout?.querySelector('.mc-peak-callout-line')
     const axisText = [...document.querySelectorAll('.mc-xaxis-label-main, .mc-xaxis-label-sub')]
       .map(label => label.textContent)
       .join(' ')
     expect(peakCallout).toHaveAttribute('data-idx', '3')
     expect(peakCallout?.textContent).toContain('ПИК')
     expect(peakCallout?.textContent).toContain('$140k')
+    const leaderLength = Math.hypot(
+      Number(peakLeader?.getAttribute('x2')) - Number(peakLeader?.getAttribute('x1')),
+      Number(peakLeader?.getAttribute('y2')) - Number(peakLeader?.getAttribute('y1')),
+    )
+    expect(leaderLength).toBeLessThan(45)
     expect(axisText).not.toContain('ПИК')
   })
 

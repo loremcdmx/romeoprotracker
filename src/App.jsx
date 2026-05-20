@@ -703,23 +703,50 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
       const prev = coords[i - 1]
       return prev ? [coord, { x:(prev.x + coord.x) / 2, y:(prev.y + coord.y) / 2 }] : [coord]
     })
+    const leaderDangerPoints = coords.filter((_, i) => Math.abs(i - peakIdx) > 1)
+    const nearX = badgeW / 2 + (isMobile ? 12 : 14)
+    const farX = badgeW + (isMobile ? 20 : 22)
+    const nearY = badgeH / 2 + (isMobile ? 13 : 12)
+    const farY = badgeH + (isMobile ? 20 : 16)
     const candidateOffsets = [
-      { dx:-92, dy:-18 },
-      { dx:-104, dy:18 },
-      { dx:-96, dy:50 },
-      { dx:0, dy:-46 },
-      { dx:88, dy:-18 },
-      { dx:82, dy:42 },
-      { dx:0, dy:52 },
+      { dx:-nearX, dy:nearY, affinity:18 },
+      { dx:-nearX, dy:0, affinity:12 },
+      { dx:-nearX, dy:-nearY, affinity:4 },
+      { dx:-farX, dy:nearY, affinity:7 },
+      { dx:-farX, dy:farY, affinity:2 },
+      { dx:0, dy:farY, affinity:3 },
+      { dx:nearX, dy:nearY, affinity:0 },
+      { dx:nearX, dy:-nearY, affinity:-4 },
     ]
     const distanceToRect = (p, rect) => {
       const dx = Math.max(rect.left - p.x, 0, p.x - rect.right)
       const dy = Math.max(rect.top - p.y, 0, p.y - rect.bottom)
       return Math.hypot(dx, dy)
     }
-    const candidates = candidateOffsets.map(({ dx, dy }) => {
-      const cx = clampCx(point.x + dx)
-      const cy = clampCy(point.y + dy)
+    const distanceToSegment = (p, a, b) => {
+      const vx = b.x - a.x
+      const vy = b.y - a.y
+      const wx = p.x - a.x
+      const wy = p.y - a.y
+      const c1 = vx * wx + vy * wy
+      if (c1 <= 0) return Math.hypot(p.x - a.x, p.y - a.y)
+      const c2 = vx * vx + vy * vy
+      if (c2 <= c1) return Math.hypot(p.x - b.x, p.y - b.y)
+      const t = c1 / c2
+      return Math.hypot(p.x - (a.x + t * vx), p.y - (a.y + t * vy))
+    }
+    const anchorForRect = rect => point.x < rect.left
+      ? { x:rect.left, y:clamp(point.y, rect.top + 5, rect.bottom - 5) }
+      : point.x > rect.right
+        ? { x:rect.right, y:clamp(point.y, rect.top + 5, rect.bottom - 5) }
+        : point.y < rect.top
+          ? { x:clamp(point.x, rect.left + 7, rect.right - 7), y:rect.top }
+          : { x:clamp(point.x, rect.left + 7, rect.right - 7), y:rect.bottom }
+    const candidates = candidateOffsets.map(({ dx, dy, affinity }) => {
+      const targetCx = point.x + dx
+      const targetCy = point.y + dy
+      const cx = clampCx(targetCx)
+      const cy = clampCy(targetCy)
       const rect = {
         left:cx - badgeW / 2,
         right:cx + badgeW / 2,
@@ -736,22 +763,23 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
       const overlaps = dangerPoints.filter(p =>
         p.x >= padded.left && p.x <= padded.right && p.y >= padded.top && p.y <= padded.bottom
       ).length
+      const anchor = anchorForRect(rect)
       const leaderLength = Math.hypot(cx - point.x, cy - point.y)
+      const leaderDistance = leaderDangerPoints.length
+        ? Math.min(...leaderDangerPoints.map(p => distanceToSegment(p, point, anchor)))
+        : 32
+      const leaderCrowding = Math.max(0, 14 - leaderDistance)
+      const clampPenalty = Math.hypot(cx - targetCx, cy - targetCy)
       return {
         cx,
         cy,
         rect,
-        score:minDistance - overlaps * 120 - leaderLength * 0.035,
+        anchor,
+        score:minDistance * 1.4 + Math.min(leaderDistance, 34) * 1.2 + affinity
+          - overlaps * 140 - leaderLength * 0.16 - leaderCrowding * 5 - clampPenalty * 1.8,
       }
     }).sort((a,b) => b.score - a.score)
-    const { cx, cy, rect } = candidates[0]
-    const anchor = point.x < rect.left
-      ? { x:rect.left, y:clamp(point.y, rect.top + 5, rect.bottom - 5) }
-      : point.x > rect.right
-        ? { x:rect.right, y:clamp(point.y, rect.top + 5, rect.bottom - 5) }
-        : point.y < rect.top
-          ? { x:clamp(point.x, rect.left + 7, rect.right - 7), y:rect.top }
-          : { x:clamp(point.x, rect.left + 7, rect.right - 7), y:rect.bottom }
+    const { cx, cy, anchor } = candidates[0]
     return {
       idx:peakIdx,
       point,
