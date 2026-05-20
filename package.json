@@ -16,6 +16,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "check": "npm run build && npm run test",
+    "favicon": "node scripts/generate-favicon.mjs",
     "scrape": "node scripts/scrape.mjs",
     "scrape:dry-run": "node scripts/scrape.mjs --dry-run",
     "scrape:no-push": "node scripts/scrape.mjs --no-push",
