@@ -579,7 +579,6 @@ function PaceWidget({ meta, stats, period, setPeriod, lang, t }) {
   const periodLabel = t(period === 'week' ? 'period_week' : period === 'month' ? 'period_month' : 'period_all')
   const mttUnit = t('sr_mtt_short')
   const finishTarget = pace.finishMTT || pace.bustMTT || null
-  const finishSteps = finishTarget ? Math.ceil(finishTarget / pace.binSize) : null
   const showHistory = prevRate != null
 
   return (
@@ -610,8 +609,7 @@ function PaceWidget({ meta, stats, period, setPeriod, lang, t }) {
           <div className="mps-divider"/>
           <div className="mps-item pace-projection-item">
             <span className="mps-label">{isNegative ? t('pace_to_zero') : t('pace_finish')}</span>
-            {finishTarget ? <TempoValue target={finishTarget} title={t('pace_at_current')} animate={false}/> : <span className="mps-value">—</span>}
-            <span className="pace-summary-note">{finishSteps ? `${t('pace_at_current')} · ${fmtInt(finishSteps)} × ${fmtInt(pace.binSize)} ${mttUnit}` : t('pace_no_finish')}</span>
+            {finishTarget ? <TempoValue target={finishTarget} title={t('pace_at_current')}/> : <span className="mps-value">—</span>}
           </div>
           {showHistory && <>
             <div className="mps-divider"/>
