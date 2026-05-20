@@ -329,7 +329,12 @@ a{color:var(--red2);text-decoration:none}
   border-radius:12px;padding:12px 14px;pointer-events:auto;
   z-index:20;min-width:220px;max-width:270px;
   box-shadow:0 8px 32px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,0.06);
+  opacity:0;
+  transform:translate3d(var(--mc-tooltip-x,0),6px,0);
+  transition:opacity .16s ease-out,transform .18s cubic-bezier(.2,.8,.2,1),left .14s ease-out,bottom .14s ease-out;
+  will-change:opacity,transform,left,bottom;
 }
+.mc-tooltip.is-visible{opacity:1;transform:translate3d(var(--mc-tooltip-x,0),0,0)}
 .light .mc-tooltip{background:rgba(255,255,255,0.80);border-color:rgba(0,0,0,0.08);box-shadow:0 8px 32px rgba(0,0,0,.12)}
 .chart-tooltip{
   position:absolute;
@@ -553,9 +558,10 @@ html{scroll-behavior:smooth}
   0%,100%{filter:drop-shadow(0 0 2px currentColor);opacity:1}
   50%{filter:drop-shadow(0 0 6px currentColor);opacity:.75}
 }
-@keyframes fadeIn{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:scale(1)}}
 .mc-dot-last{animation:pulseDot 2s ease-in-out infinite}
-.mc-tooltip{animation:fadeIn .15s ease}
+@media (prefers-reduced-motion:reduce){
+  .mc-tooltip{transition:none}
+}
 
 /* ─── MOBILE-ONLY COMPONENTS (hidden on desktop) ─────────────────────── */
 .mobile-stats{display:none}

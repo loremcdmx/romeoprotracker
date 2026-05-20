@@ -260,24 +260,41 @@ const CHART_ROOMS = [
 
 function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, lang, t }) {
   const [tip, setTip]     = useState(null)
+  const [tipVisible, setTipVisible] = useState(false)
   const [pathLen, setPathLen] = useState(null)
   const setPeriodPersist = (p) => {
     setPeriod(p)
   }
   const pathRef = useRef(null)
   const chartRef = useRef(null)
+  const tipCloseTimer = useRef(null)
   const isMobile = useIsMobile()
-  const { announceOpen: announceHoverPopupOpen } = useExclusiveHoverPopup(() => setTip(null))
+  const closeTip = useCallback(() => {
+    setTipVisible(false)
+    clearTimeout(tipCloseTimer.current)
+    tipCloseTimer.current = setTimeout(() => setTip(null), 130)
+  }, [])
+  const openTipState = useCallback((nextTip) => {
+    clearTimeout(tipCloseTimer.current)
+    setTip(nextTip)
+    const raf = typeof window !== 'undefined' && window.requestAnimationFrame
+      ? window.requestAnimationFrame
+      : (fn) => setTimeout(fn, 0)
+    raf(() => setTipVisible(true))
+  }, [])
+  const { announceOpen: announceHoverPopupOpen } = useExclusiveHoverPopup(closeTip)
+
+  useEffect(() => () => clearTimeout(tipCloseTimer.current), [])
 
   // Close tooltip on click outside chart
   useEffect(() => {
     if (!tip) return
     const handler = (e) => {
-      if (chartRef.current && !chartRef.current.contains(e.target)) setTip(null)
+      if (chartRef.current && !chartRef.current.contains(e.target)) closeTip()
     }
     document.addEventListener('click', handler)
     return () => document.removeEventListener('click', handler)
-  }, [tip])
+  }, [tip, closeTip])
 
   // Reset animation on period change so line redraws
   useEffect(() => { setPathLen(null) }, [period])
@@ -890,7 +907,7 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
       if (!nearest) return
       const p = nearest.p
       announceHoverPopupOpen()
-      setTip({ p, profit:nearest.profit, x:nearest.x, y:nearest.y, screenY: sy, groupCount:nearest.count, sessions:nearest.sessions })
+      openTipState({ p, profit:nearest.profit, x:nearest.x, y:nearest.y, screenY: sy, groupCount:nearest.count, sessions:nearest.sessions })
     }, 300)
   }
   const handleTouchEnd = () => { clearTimeout(longPressTimer.current) }
@@ -904,7 +921,7 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
   )
 
   return (
-    <div className="marathon-chart" ref={chartRef} onClick={tip?()=>setTip(null):undefined}>
+    <div className="marathon-chart" ref={chartRef} onClick={tip ? closeTip : undefined}>
       <div className="section-head" style={{marginBottom:6,display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
         <span className="section-title">{t('chart_marathon')}</span>
         <div className="mc-periods">
@@ -922,7 +939,7 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
           // Don't close tooltip if mouse moved to the tooltip itself
           const related = e.relatedTarget
           if (related && chartRef.current?.contains(related)) return
-          setTip(null)
+          closeTip()
         }}
         onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}
         style={{touchAction:'pan-y',WebkitUserSelect:'none',userSelect:'none',WebkitTouchCallout:'none'}}>
@@ -984,7 +1001,7 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
             : baseDotR
           const openTip = () => {
             announceHoverPopupOpen()
-            setTip({p,profit,x:cx,y:cy,groupCount:count,sessions})
+            openTipState({p,profit,x:cx,y:cy,groupCount:count,sessions})
           }
           return (
             <g key={`marker-${start}-${end}`} onMouseEnter={!isMobile ? openTip : undefined}
@@ -1064,14 +1081,17 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
         const mobileStyle = isMobile ? {
           position:'fixed', bottom:Math.max(90, window.innerHeight - (tip.screenY||0) + 16)+'px',
           left:'12px', right:'12px', maxWidth:'none', width:'auto',
+          '--mc-tooltip-x':'0px',
         } : {
           position:'absolute',
           bottom:(H-tip.y+24)+'px',
-          left:right?'auto':`calc(${pct}% - 8px)`,
-          right:right?`calc(${100-pct}% - 8px)`:'auto',
+          left:`${pct}%`,
+          right:'auto',
+          '--mc-tooltip-x':right?'calc(-100% + 8px)':'8px',
+          transformOrigin:right?'right bottom':'left bottom',
         }
         return (
-          <div className="mc-tooltip" style={{...mobileStyle, position: isMobile ? 'fixed' : 'absolute', pointerEvents: isMobile ? 'auto' : 'none'}}
+          <div className={`mc-tooltip ${tipVisible ? 'is-visible' : ''}`} style={{...mobileStyle, position: isMobile ? 'fixed' : 'absolute', pointerEvents: isMobile ? 'auto' : 'none'}}
             onClick={e => e.stopPropagation()}>
             {/* Pill — всегда в правом верхнем углу тултипа */}
             <div className="mc-pill" style={{
@@ -1120,7 +1140,7 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
             )}
             {tip.p.text && <div style={{fontSize:11,color:'var(--dim2)',lineHeight:1.6,display:'-webkit-box',WebkitLineClamp:3,WebkitBoxOrient:'vertical',overflow:'hidden'}}>{tip.p.text.substring(0,180)}</div>}
             <div style={{fontSize:10,color:'var(--dim)',marginTop:5,display:'flex',justifyContent:'space-between',alignItems:'center',pointerEvents:'auto'}}>
-              <span style={{cursor:'pointer'}} onClick={()=>setTip(null)}>{t('close')}</span>
+              <span style={{cursor:'pointer'}} onClick={closeTip}>{t('close')}</span>
               {tip.p.url && <a href={tip.p.url} target="_blank" rel="noreferrer"
                 onClick={e=>e.stopPropagation()}
                 style={{color:'var(--red2)',fontSize:11}}>→ {FORUM_WORD[_lang] || 'форум'}</a>}
