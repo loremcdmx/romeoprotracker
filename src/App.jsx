@@ -409,6 +409,7 @@ function PaceMiniChart({ segments, unit, t }) {
           const cx = x(idx)
           const rateY = y(seg.rate)
           const tone = seg.rate >= 0 ? 'pos' : 'neg'
+          const showRateLabel = labelIndexes.has(idx) && (idx === segments.length - 1 || Math.abs(seg.rate) >= Math.max(1, maxAbs * .08))
           return (
             <g key={`${idx}-${seg.endMtt}`} className={`pace-segment ${tone}`}
               onMouseEnter={() => openTooltip(seg, idx, cx, rateY)}
@@ -421,7 +422,7 @@ function PaceMiniChart({ segments, unit, t }) {
               tabIndex="0" role="button" aria-label={`${seg.label}: ${formatDollarPerMTT(seg.rate, unit)}`}>
               <circle className="pace-dot-hit" cx={cx} cy={rateY} r="12"/>
               <circle className="pace-dot" cx={cx} cy={rateY} r={idx === segments.length - 1 ? 5.2 : 3.9}/>
-              {labelIndexes.has(idx) && (
+              {showRateLabel && (
                 <text className={`pace-chart-value ${tone}`} x={cx} y={rateY + (seg.rate >= 0 ? -11 : 17)}>
                   {formatDollarPerMTT(seg.rate, unit).replace(`/${unit}`, '')}
                 </text>
