@@ -1,6 +1,10 @@
 const DEFAULT_REPO = 'loremcdmx/romeoprotracker'
 const CACHE_KEY = 'rpt_cache_v7'
 const CACHE_TTL = 60 * 1000
+const IS_TEST = import.meta.env.MODE === 'test'
+const JSON_FETCH_TIMEOUT_MS = IS_TEST ? 300 : 6500
+const OPTIONAL_DATA_SETTLE_MS = IS_TEST ? 0 : 650
+const SOURCE_SETTLE_MS = IS_TEST ? 0 : 1400
 
 function trimTrailingSlash(value) {
   return value.replace(/\/+$/, '')
@@ -32,6 +36,13 @@ export function getDataBases() {
 function withCacheBust(url) {
   const separator = url.includes('?') ? '&' : '?'
   return `${url}${separator}t=${Date.now()}`
+}
+
+function delay(ms) {
+  return new Promise((resolve) => {
+    const id = setTimeout(resolve, ms)
+    id.unref?.()
+  })
 }
 
 function getCache() {
@@ -129,8 +140,24 @@ function inflateCachedPayload(cache) {
   }
 }
 
-async function fetchJson(url) {
-  const response = await fetch(withCacheBust(url), { cache: 'no-store' })
+async function fetchJson(url, timeoutMs = JSON_FETCH_TIMEOUT_MS) {
+  const controller = typeof AbortController === 'undefined' ? null : new AbortController()
+  let timeoutId = null
+  const timeout = new Promise((_, reject) => {
+    timeoutId = setTimeout(() => {
+      controller?.abort()
+      reject(new Error(`Timeout loading ${url}`))
+    }, timeoutMs)
+    timeoutId.unref?.()
+  })
+
+  const response = await Promise.race([
+    fetch(withCacheBust(url), { cache: 'no-store', signal: controller?.signal }),
+    timeout,
+  ]).finally(() => {
+    if (timeoutId) clearTimeout(timeoutId)
+  })
+
   if (!response.ok) {
     throw new Error(`${response.status} ${response.statusText} for ${url}`)
   }
@@ -141,10 +168,10 @@ async function fetchFromBase(base) {
   let compact = null
   let posts = null
 
-  const [metaResult, compactResult, leaderboardsResult] = await Promise.allSettled([
+  const leaderboardsPromise = fetchJson(`${base}/leaderboards.json`).catch(() => null)
+  const [metaResult, compactResult] = await Promise.allSettled([
     fetchJson(`${base}/meta.json`),
     fetchJson(`${base}/posts.min.json`),
-    fetchJson(`${base}/leaderboards.json`),
   ])
 
   if (metaResult.status !== 'fulfilled') {
@@ -159,9 +186,40 @@ async function fetchFromBase(base) {
     posts = await fetchJson(`${base}/posts.json`)
   }
 
-  const leaderboards = leaderboardsResult.status === 'fulfilled' ? leaderboardsResult.value : null
+  const leaderboards = await Promise.race([
+    leaderboardsPromise,
+    delay(OPTIONAL_DATA_SETTLE_MS).then(() => null),
+  ])
 
   return { compact, posts, meta, leaderboards, source: base }
+}
+
+async function collectNetworkPayloads() {
+  const pending = getDataBases().map((base) => (
+    fetchFromBase(base)
+      .then((value) => ({ status: 'fulfilled', value }))
+      .catch((reason) => ({ status: 'rejected', reason }))
+  ))
+  const settled = []
+
+  while (pending.length) {
+    const next = await Promise.race(
+      pending.map((promise, index) => promise.then((result) => ({ ...result, index })))
+    )
+    pending.splice(next.index, 1)
+    settled.push(next)
+
+    if (next.status === 'fulfilled') {
+      const extra = await Promise.race([
+        Promise.all(pending),
+        delay(SOURCE_SETTLE_MS).then(() => []),
+      ])
+      settled.push(...extra)
+      break
+    }
+  }
+
+  return settled
 }
 
 export async function fetchPublicData() {
@@ -174,9 +232,7 @@ export async function fetchPublicData() {
   let freshestNetworkPayload = null
   const fulfilledPayloads = []
 
-  const results = await Promise.allSettled(
-    getDataBases().map((base) => fetchFromBase(base))
-  )
+  const results = await collectNetworkPayloads()
 
   for (const result of results) {
     if (result.status === 'fulfilled') {

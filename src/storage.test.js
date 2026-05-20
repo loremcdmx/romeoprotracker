@@ -164,6 +164,36 @@ describe('fetchPublicData', () => {
     expect(result.leaderboards.leaderboards[0].tier).toBe('High')
   })
 
+  it('returns a working source instead of waiting forever for a stalled fallback', async () => {
+    vi.stubGlobal('fetch', vi.fn((url) => {
+      const href = String(url)
+
+      if (href.includes('localhost') && href.includes('/data/meta.json')) {
+        return jsonResponse({ lastUpdated: '2026-04-19T02:00:00.000Z' })
+      }
+
+      if (href.includes('localhost') && href.includes('/data/posts.min.json')) {
+        return jsonResponse({ avatars: [], posts: [{ i: 'same', a: 'Same origin', t: 1 }] })
+      }
+
+      if (href.includes('localhost') && href.includes('/data/leaderboards.json')) {
+        return jsonResponse({ fetchedAt: '2026-05-14T09:00:00.000Z', leaderboards: [{ tier: 'Low' }] })
+      }
+
+      if (href.includes('raw.githubusercontent.com')) {
+        return new Promise(() => {})
+      }
+
+      throw new Error(`Unexpected fetch: ${href}`)
+    }))
+
+    const result = await fetchPublicData()
+
+    expect(result.meta.lastUpdated).toBe('2026-04-19T02:00:00.000Z')
+    expect(result.posts[0].id).toBe('same')
+    expect(result.leaderboards.leaderboards[0].tier).toBe('Low')
+  })
+
   it('keeps a fresher cached payload when the network returns older data', async () => {
     localStorage.setItem(CACHE_KEY, JSON.stringify({
       ts: Date.now() - 5 * 60 * 1000,
