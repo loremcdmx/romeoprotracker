@@ -158,6 +158,11 @@ function formatDollarPerMTT(value, unit = 'MTT') {
   return `${rounded > 0 ? '+' : rounded < 0 ? '-' : ''}${body}$/${unit}`
 }
 
+function formatPaceMoney(value) {
+  if (value == null || !Number.isFinite(value)) return '—'
+  return fmtBR(Math.round(value))
+}
+
 function historySessionProfit(row, sorted, idx, startBR) {
   if (row?.sessionResult != null) return row.sessionResult
   const prev = idx === 0 ? startBR : sorted[idx - 1]?.brAfter
@@ -435,14 +440,14 @@ function PaceMiniChart({ segments, unit, t }) {
           </div>
           <div className="pace-point-tooltip-row">
             <span>{t('pace_tip_net')}</span>
-            <b className={hovered.seg.profit >= 0 ? 'pos' : 'neg'}>{fmtBR(hovered.seg.profit)}</b>
+            <b className={hovered.seg.profit >= 0 ? 'pos' : 'neg'}>{formatPaceMoney(hovered.seg.profit)}</b>
           </div>
           <div className="pace-point-tooltip-row">
             <span>{t('pace_tip_tournaments')}</span>
             <b>{fmtInt(Math.round(hovered.seg.tournaments))} {unit}</b>
           </div>
           <div className="pace-point-tooltip-formula">
-            {t('pace_tip_formula')}: <b>{fmtBR(hovered.seg.profit)}</b> / <b>{fmtInt(Math.round(hovered.seg.tournaments))}</b>
+            {t('pace_tip_formula')}: <b>{formatPaceMoney(hovered.seg.profit)}</b> / <b>{fmtInt(Math.round(hovered.seg.tournaments))}</b> = <b className={hovered.seg.rate >= 0 ? 'pos' : 'neg'}>{formatDollarPerMTT(hovered.seg.rate, unit)}</b>
           </div>
         </div>
       )}
