@@ -192,6 +192,8 @@ describe('App', () => {
     const widget = await screen.findByTestId('pace-widget')
     expect(within(widget).getByText(translate('ru', 'pace_title'))).toBeInTheDocument()
     expect(within(widget).getAllByText('+5.5$/МТТ').length).toBeGreaterThanOrEqual(1)
+    expect(within(widget).queryByText(translate('ru', 'pace_rate_prev'))).not.toBeInTheDocument()
+    expect(within(widget).queryByText(translate('ru', 'pace_all_note'))).not.toBeInTheDocument()
     expect(within(widget).getByTestId('pace-chart')).toBeInTheDocument()
     expect(within(widget).getByText(translate('ru', 'pace_chart_title'))).toBeInTheDocument()
     expect(within(widget).getAllByText('4k').length).toBeGreaterThanOrEqual(1)
@@ -204,6 +206,7 @@ describe('App', () => {
     await waitFor(() => {
       expect(within(widget).getAllByText('+5$/МТТ').length).toBeGreaterThanOrEqual(1)
     })
+    expect(within(widget).getByText(translate('ru', 'pace_rate_prev'))).toBeInTheDocument()
     expect(within(widget).getByText('изменение: +1$/МТТ')).toBeInTheDocument()
     await waitFor(() => {
       expect(within(widget).getByText((text) => text.replace(/\s/g, '') === '~1661334')).toBeInTheDocument()

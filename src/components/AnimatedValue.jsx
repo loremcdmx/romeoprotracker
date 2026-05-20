@@ -9,6 +9,11 @@ export function useTweenValue(target, duration = 650) {
   const fromRef = useRef(target || 0)
   useEffect(() => {
     if (target == null) return
+    if (duration <= 0) {
+      fromRef.current = target
+      setVal(target)
+      return
+    }
     const from = fromRef.current
     if (from === target) { setVal(target); return }
     const start = Date.now()

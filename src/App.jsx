@@ -307,18 +307,19 @@ function computePaceMetrics({ meta, stats, period, target = MARATHON_TARGET, now
   }
 }
 
-function PaceRateValue({ value, unit, className = '' }) {
-  const animated = useTweenValue(value ?? 0, 620)
+function PaceRateValue({ value, unit, className = '', animate = true }) {
+  const animated = useTweenValue(value ?? 0, animate ? 620 : 0)
   const [pulse, setPulse] = useState(false)
   const prev = useRef(value)
   useEffect(() => {
-    if (prev.current !== value) {
+    if (animate && prev.current !== value) {
       prev.current = value
       setPulse(true)
       const t = setTimeout(() => setPulse(false), 650)
       return () => clearTimeout(t)
     }
-  }, [value])
+    prev.current = value
+  }, [animate, value])
   if (value == null) return <span className={className}>—</span>
   const tone = value > 0 ? 'pos' : value < 0 ? 'neg' : ''
   return <span className={`pace-rate-value ${tone} ${pulse ? 'pulse' : ''} ${className}`}>{formatDollarPerMTT(animated, unit)}</span>
@@ -579,6 +580,7 @@ function PaceWidget({ meta, stats, period, setPeriod, lang, t }) {
   const mttUnit = t('sr_mtt_short')
   const finishTarget = pace.finishMTT || pace.bustMTT || null
   const finishSteps = finishTarget ? Math.ceil(finishTarget / pace.binSize) : null
+  const showHistory = prevRate != null
 
   return (
     <section className={`pace-widget ${isNegative ? 'negative' : currentRate > 0 ? 'positive' : ''}`} data-testid="pace-widget">
@@ -597,28 +599,30 @@ function PaceWidget({ meta, stats, period, setPeriod, lang, t }) {
       </div>
 
       <div className="pace-dashboard">
-        <div className="pace-summary-panel marathon-progress-side">
+        <div className={`pace-summary-panel marathon-progress-side ${showHistory ? 'has-history' : 'no-history'}`}>
           <div className="mps-item pace-rate-item">
             <span className="mps-label">{t('pace_rate_now')}</span>
             <span className="mps-value-row">
-              <PaceRateValue value={currentRate} unit={mttUnit} className="mps-value"/>
+              <PaceRateValue value={currentRate} unit={mttUnit} className="mps-value" animate={false}/>
             </span>
             <span className="pace-summary-note">{fmtBR(pace.current.profit)} / {fmtInt(pace.current.tournaments)} {mttUnit}</span>
           </div>
           <div className="mps-divider"/>
           <div className="mps-item pace-projection-item">
             <span className="mps-label">{isNegative ? t('pace_to_zero') : t('pace_finish')}</span>
-            {finishTarget ? <TempoValue target={finishTarget} title={t('pace_at_current')}/> : <span className="mps-value">—</span>}
+            {finishTarget ? <TempoValue target={finishTarget} title={t('pace_at_current')} animate={false}/> : <span className="mps-value">—</span>}
             <span className="pace-summary-note">{finishSteps ? `${t('pace_at_current')} · ${fmtInt(finishSteps)} × ${fmtInt(pace.binSize)} ${mttUnit}` : t('pace_no_finish')}</span>
           </div>
-          <div className="mps-divider"/>
-          <div className="mps-item pace-history-item">
-            <span className="mps-label">{t('pace_rate_prev')}</span>
-            <span className="mps-value">
-              <PaceRateValue value={prevRate} unit={mttUnit}/>
-            </span>
-            <span className="pace-summary-note">{prevRate == null ? t(period === 'all' ? 'pace_all_note' : 'pace_no_prev') : `${t('pace_delta')}: ${formatDollarPerMTT(deltaRate, mttUnit)}`}</span>
-          </div>
+          {showHistory && <>
+            <div className="mps-divider"/>
+            <div className="mps-item pace-history-item">
+              <span className="mps-label">{t('pace_rate_prev')}</span>
+              <span className="mps-value">
+                <PaceRateValue value={prevRate} unit={mttUnit} animate={false}/>
+              </span>
+              <span className="pace-summary-note">{`${t('pace_delta')}: ${formatDollarPerMTT(deltaRate, mttUnit)}`}</span>
+            </div>
+          </>}
         </div>
         <div className="pace-chart-title">
           <div>
@@ -2462,18 +2466,19 @@ const PostCard = memo(function PostCard({ p, favorites, ignored, onFav, onIgnore
 // ─── TEMPO VALUE (animated, used in progress bar) ────────────────────────────
 // Smoothly tweens `target` when it changes (e.g. user toggles chart period).
 // Briefly pulses with a subtle highlight to draw the eye.
-function TempoValue({ target, title }) {
-  const v = useTweenValue(target, 700)
+function TempoValue({ target, title, animate = true }) {
+  const v = useTweenValue(target, animate ? 700 : 0)
   const [pulse, setPulse] = useState(false)
   const prev = useRef(target)
   useEffect(() => {
-    if (prev.current !== target) {
+    if (animate && prev.current !== target) {
       prev.current = target
       setPulse(true)
       const t = setTimeout(() => setPulse(false), 700)
       return () => clearTimeout(t)
     }
-  }, [target])
+    prev.current = target
+  }, [animate, target])
   return (
     <span className={`mps-value tempo-val ${pulse?'pulse':''}`} title={title}>
       ~{fmtInt(Math.round(v))}
