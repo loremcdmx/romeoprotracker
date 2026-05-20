@@ -352,6 +352,10 @@ function PaceMiniChart({ segments, unit, t }) {
   const worstIdx = segments.reduce((worst, seg, idx) => seg.rate < segments[worst].rate ? idx : worst, 0)
   const labelIndexes = new Set([segments.length - 1, bestIdx, worstIdx])
   if (segments.length <= 3) segments.forEach((_, idx) => labelIndexes.add(idx))
+  const xLabelIndexes = new Set()
+  segments.forEach((_, idx) => {
+    if (segments.length <= 8 || idx % 2 === 0 || idx === segments.length - 1) xLabelIndexes.add(idx)
+  })
   const lineStops = segments.map((seg, idx) => {
     const offset = segments.length === 1 ? '0%' : `${idx / (segments.length - 1) * 100}%`
     return { offset, color:seg.rate >= 0 ? '#4caf50' : '#e53935' }
@@ -410,8 +414,9 @@ function PaceMiniChart({ segments, unit, t }) {
           const rateY = y(seg.rate)
           const tone = seg.rate >= 0 ? 'pos' : 'neg'
           const showRateLabel = labelIndexes.has(idx) && (idx === segments.length - 1 || Math.abs(seg.rate) >= Math.max(1, maxAbs * .08))
+          const isPartial = !seg.full
           return (
-            <g key={`${idx}-${seg.endMtt}`} className={`pace-segment ${tone}`}
+            <g key={`${idx}-${seg.endMtt}`} className={`pace-segment ${tone} ${isPartial ? 'partial' : ''}`}
               onMouseEnter={() => openTooltip(seg, idx, cx, rateY)}
               onMouseMove={() => openTooltip(seg, idx, cx, rateY)}
               onPointerEnter={() => openTooltip(seg, idx, cx, rateY)}
@@ -419,15 +424,16 @@ function PaceMiniChart({ segments, unit, t }) {
               onFocus={() => openTooltip(seg, idx, cx, rateY)}
               onBlur={closeTooltip}
               onClick={(e) => { e.stopPropagation(); openTooltip(seg, idx, cx, rateY) }}
-              tabIndex="0" role="button" aria-label={`${seg.label}: ${formatDollarPerMTT(seg.rate, unit)}`}>
+              tabIndex="0" role="button" aria-label={`${seg.label}: ${formatDollarPerMTT(seg.rate, unit)}${isPartial ? `, ${t('pace_tip_partial')}` : ''}`}>
               <circle className="pace-dot-hit" cx={cx} cy={rateY} r="12"/>
+              {isPartial && <circle className="pace-dot-partial-ring" cx={cx} cy={rateY} r="8.2"/>}
               <circle className="pace-dot" cx={cx} cy={rateY} r={idx === segments.length - 1 ? 5.2 : 3.9}/>
               {showRateLabel && (
                 <text className={`pace-chart-value ${tone}`} x={cx} y={rateY + (seg.rate >= 0 ? -11 : 17)}>
                   {formatDollarPerMTT(seg.rate, unit).replace(`/${unit}`, '')}
                 </text>
               )}
-              <text className="pace-x-label" x={cx} y={height - 22}>{seg.label}</text>
+              {xLabelIndexes.has(idx) && <text className="pace-x-label" x={cx} y={height - 22}>{seg.label}</text>}
             </g>
           )
         })}
@@ -436,7 +442,7 @@ function PaceMiniChart({ segments, unit, t }) {
         <div className={`pace-point-tooltip ${hovered.align} ${hovered.vertical}`}
           style={{ left:`${hovered.x / width * 100}%`, top:`${hovered.y / height * 100}%` }}>
           <div className="pace-point-tooltip-head">
-            <span>{t('pace_tip_chunk')} {hovered.seg.label}</span>
+            <span>{t('pace_tip_chunk')} {hovered.seg.label}{!hovered.seg.full && <em>{t('pace_tip_partial')}</em>}</span>
             <b className={hovered.seg.rate >= 0 ? 'pos' : 'neg'}>{formatDollarPerMTT(hovered.seg.rate, unit)}</b>
           </div>
           <div className="pace-point-tooltip-row">
@@ -448,7 +454,8 @@ function PaceMiniChart({ segments, unit, t }) {
             <b>{fmtInt(Math.round(hovered.seg.tournaments))} {unit}</b>
           </div>
           <div className="pace-point-tooltip-formula">
-            {t('pace_tip_formula')}: <b>{formatPaceMoney(hovered.seg.profit)}</b> / <b>{fmtInt(Math.round(hovered.seg.tournaments))}</b> = <b className={hovered.seg.rate >= 0 ? 'pos' : 'neg'}>{formatDollarPerMTT(hovered.seg.rate, unit)}</b>
+            <span className="pace-formula-label">{t('pace_tip_formula')}</span>
+            <span className="pace-formula-eq"><b>{formatPaceMoney(hovered.seg.profit)}</b> / <b>{fmtInt(Math.round(hovered.seg.tournaments))}</b> = <b className={hovered.seg.rate >= 0 ? 'pos' : 'neg'}>{formatDollarPerMTT(hovered.seg.rate, unit)}</b></span>
           </div>
         </div>
       )}
@@ -597,13 +604,13 @@ function PaceWidget({ meta, stats, period, setPeriod, lang, t }) {
             <span className="pace-summary-note">{fmtBR(pace.current.profit)} / {fmtInt(pace.current.tournaments)} {mttUnit}</span>
           </div>
           <div className="mps-divider"/>
-          <div className="mps-item">
+          <div className="mps-item pace-projection-item">
             <span className="mps-label">{isNegative ? t('pace_to_zero') : t('pace_finish')}</span>
             {finishTarget ? <TempoValue target={finishTarget} title={t('pace_at_current')}/> : <span className="mps-value">—</span>}
-            <span className="pace-summary-note">{finishSteps ? `${fmtInt(finishSteps)} × ${fmtInt(pace.binSize)} ${mttUnit}` : t('pace_no_finish')}</span>
+            <span className="pace-summary-note">{finishSteps ? `${t('pace_at_current')} · ${fmtInt(finishSteps)} × ${fmtInt(pace.binSize)} ${mttUnit}` : t('pace_no_finish')}</span>
           </div>
           <div className="mps-divider"/>
-          <div className="mps-item">
+          <div className="mps-item pace-history-item">
             <span className="mps-label">{t('pace_rate_prev')}</span>
             <span className="mps-value">
               <PaceRateValue value={prevRate} unit={mttUnit}/>
