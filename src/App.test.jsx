@@ -358,6 +358,7 @@ describe('App', () => {
     expect(peakCallout).toHaveAttribute('data-idx', '3')
     expect(peakCallout?.textContent).toContain('ПИК')
     expect(peakCallout?.textContent).toContain('$140k')
+    expect(Number(peakRect?.getAttribute('x'))).toBeGreaterThan(300)
     const peakBounds = {
       left: Number(peakRect?.getAttribute('x')) - 12,
       right: Number(peakRect?.getAttribute('x')) + Number(peakRect?.getAttribute('width')) + 12,

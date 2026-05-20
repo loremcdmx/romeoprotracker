@@ -715,13 +715,14 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
     const nearY = badgeH / 2 + (isMobile ? 13 : 12)
     const farY = badgeH + (isMobile ? 20 : 16)
     const candidateOffsets = [
-      { cx:pL + badgeW / 2 + 18, cy:pT + badgeH / 2 + 14, affinity:24 },
-      { cx:pL + badgeW / 2 + 18, cy:pT + badgeH / 2 + 42, affinity:18 },
-      { cx:pL + badgeW + 44, cy:pT + badgeH / 2 + 18, affinity:20 },
-      { cx:pL + badgeW * 2.2, cy:pT + badgeH / 2 + 16, affinity:15 },
-      { cx:pL + (W - pL - pR) * .34, cy:pT + badgeH / 2 + 18, affinity:14 },
-      { cx:pL + (W - pL - pR) * .46, cy:pT + badgeH / 2 + 18, affinity:10 },
-      { cx:pL + (W - pL - pR) * .58, cy:pT + badgeH / 2 + 18, affinity:6 },
+      { cx:point.x - badgeW * 2.1, cy:pT + badgeH / 2 + 16, affinity:34 },
+      { cx:point.x - badgeW * 2.6, cy:pT + badgeH / 2 + 16, affinity:30 },
+      { cx:point.x - badgeW * 3.1, cy:pT + badgeH / 2 + 17, affinity:22 },
+      { cx:point.x - badgeW * 3.7, cy:pT + badgeH / 2 + 18, affinity:10 },
+      { cx:pL + (W - pL - pR) * .58, cy:pT + badgeH / 2 + 18, affinity:5 },
+      { cx:pL + (W - pL - pR) * .46, cy:pT + badgeH / 2 + 18, affinity:-4 },
+      { cx:pL + badgeW * 2.2, cy:pT + badgeH / 2 + 16, affinity:-12 },
+      { cx:pL + badgeW / 2 + 18, cy:pT + badgeH / 2 + 14, affinity:-42 },
       { dx:-nearX, dy:nearY, affinity:18 },
       { dx:-nearX, dy:0, affinity:12 },
       { dx:-nearX, dy:-nearY, affinity:4 },
@@ -802,15 +803,18 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
       const leaderCrowding = Math.max(0, 14 - leaderDistance)
       const clampPenalty = Math.hypot(cx - targetCx, cy - targetCy)
       const topAir = Math.max(0, rect.top - pT)
+      const farLeaderPenalty = Math.max(0, leaderLength - (isMobile ? 230 : 210))
+      const clearRectScore = Math.min(minDistance, isMobile ? 96 : 110)
+      const clearPaddedScore = Math.min(minPaddedDistance, isMobile ? 74 : 84)
       const edgePenalty = rect.top < pT + 7 || rect.right > W - pR - 7 || rect.left < pL + 7 ? 8 : 0
       return {
         cx,
         cy,
         rect,
         anchor,
-        score:minDistance * 2.4 + minPaddedDistance * 2 + Math.min(leaderDistance, 34) * .8
-          + affinity - overlaps * 220 - lineIntersections * 180 - leaderLength * .055
-          - leaderCrowding * 4 - clampPenalty * 1.8 - topAir * .18 - edgePenalty,
+        score:clearRectScore * 2.4 + clearPaddedScore * 2 + Math.min(leaderDistance, 34) * .8
+          + affinity - overlaps * 220 - lineIntersections * 180 - leaderLength * .12
+          - farLeaderPenalty * 1.7 - leaderCrowding * 4 - clampPenalty * 1.8 - topAir * .18 - edgePenalty,
       }
     }).sort((a,b) => b.score - a.score)
     const { cx, cy, anchor } = candidates[0]
