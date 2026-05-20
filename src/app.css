@@ -75,7 +75,7 @@ a{color:var(--red2);text-decoration:none}
 .mc-axis-line{stroke:var(--chart-grid-strong);stroke-width:1}
 .mc-axis-line-y{opacity:.55}
 .mc-y-tickmark{stroke:var(--chart-grid-strong);stroke-width:1;stroke-linecap:round;opacity:.72}
-.mc-yaxis-label{font-size:10px;fill:var(--axis-y);text-anchor:end;font-family:'Roboto Mono',monospace;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:0;opacity:.92}
+.mc-yaxis-label{font-size:9.8px;fill:var(--axis-y);text-anchor:end;font-family:'Roboto Mono',monospace;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:0;opacity:.82}
 .mc-line-aura{stroke-linecap:round;stroke-linejoin:round;filter:blur(2.4px);opacity:.32;pointer-events:none}
 .mc-line-main{stroke-linecap:round;stroke-linejoin:round}
 .mc-line-highlight{stroke:rgba(255,255,255,.18);stroke-linecap:round;stroke-linejoin:round;opacity:.42;mix-blend-mode:screen;pointer-events:none}
@@ -771,7 +771,7 @@ html{scroll-behavior:smooth}
   /* CHART */
   .chart-wrap{margin:10px 12px 0;border-radius:12px;overflow:hidden;padding:10px 8px}
   .mc-svg{overflow:hidden;display:block;max-width:100%}
-  .mc-yaxis-label{font-size:11.5px}
+  .mc-yaxis-label{font-size:10.6px;font-weight:600;opacity:.84}
   .mc-xaxis-label-main{font-size:11px}
   .mc-xaxis-label-sub{font-size:8.8px}
   .mc-period{font-size:10.5px;padding:4px 8px;border-radius:7px}
