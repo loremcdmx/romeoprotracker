@@ -341,27 +341,40 @@ function PaceMiniChart({ segments, unit, t }) {
   const linePath = segments
     .map((seg, idx) => `${idx ? 'L' : 'M'} ${x(idx).toFixed(1)} ${y(seg.rate).toFixed(1)}`)
     .join(' ')
+  const areaPath = `${linePath} L ${x(segments.length - 1).toFixed(1)} ${zeroY.toFixed(1)} L ${x(0).toFixed(1)} ${zeroY.toFixed(1)} Z`
+  const bestIdx = segments.reduce((best, seg, idx) => seg.rate > segments[best].rate ? idx : best, 0)
+  const worstIdx = segments.reduce((worst, seg, idx) => seg.rate < segments[worst].rate ? idx : worst, 0)
+  const labelIndexes = new Set([segments.length - 1, bestIdx, worstIdx])
+  if (segments.length <= 3) segments.forEach((_, idx) => labelIndexes.add(idx))
+  const lineStops = segments.map((seg, idx) => {
+    const offset = segments.length === 1 ? '0%' : `${idx / (segments.length - 1) * 100}%`
+    return { offset, color:seg.rate >= 0 ? '#4caf50' : '#e53935' }
+  })
 
   return (
     <div className="pace-chart-wrap" data-testid="pace-chart">
       <svg className="pace-chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-label={t('pace_chart_label')}>
         <defs>
-          <linearGradient id="pacePosFill" x1="0" x2="0" y1="0" y2="1">
-            <stop offset="0%" stopColor="#7ee787" stopOpacity=".92"/>
-            <stop offset="100%" stopColor="#7bdcff" stopOpacity=".32"/>
+          <linearGradient id="paceAreaGrad" x1="0" y1={pad.top} x2="0" y2={pad.top + plotH} gradientUnits="userSpaceOnUse">
+            <stop offset="0%" stopColor="#ffffff" stopOpacity=".12"/>
+            <stop offset="60%" stopColor="#ffffff" stopOpacity=".04"/>
+            <stop offset="100%" stopColor="#ffffff" stopOpacity="0"/>
           </linearGradient>
-          <linearGradient id="paceNegFill" x1="0" x2="0" y1="0" y2="1">
-            <stop offset="0%" stopColor="#ff746c" stopOpacity=".28"/>
-            <stop offset="100%" stopColor="#ff746c" stopOpacity=".9"/>
+          <linearGradient id="paceLineGrad" x1={gridLeft} y1="0" x2={gridRight} y2="0" gradientUnits="userSpaceOnUse">
+            {lineStops.map((stop, idx) => <stop key={`${stop.offset}-${idx}`} offset={stop.offset} stopColor={stop.color}/>)}
           </linearGradient>
-          <filter id="paceGlow" x="-40%" y="-40%" width="180%" height="180%">
-            <feGaussianBlur stdDeviation="3" result="blur"/>
-            <feMerge>
-              <feMergeNode in="blur"/>
-              <feMergeNode in="SourceGraphic"/>
-            </feMerge>
+          <radialGradient id="pacePlotGlow" cx="85%" cy="18%" r="72%">
+            <stop offset="0%" stopColor="#ffb300" stopOpacity=".10"/>
+            <stop offset="55%" stopColor="#e53935" stopOpacity=".03"/>
+            <stop offset="100%" stopColor="#e53935" stopOpacity="0"/>
+          </radialGradient>
+          <filter id="paceGlow" x="-20%" y="-20%" width="140%" height="140%">
+            <feGaussianBlur stdDeviation="2" result="blur"/>
+            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
           </filter>
         </defs>
+        <rect x={gridLeft} y={pad.top} width={basePlotW} height={plotH} rx="10" className="pace-plot-bg"/>
+        <rect x={gridLeft} y={pad.top} width={basePlotW} height={plotH} rx="10" fill="url(#pacePlotGlow)" className="pace-plot-glow"/>
         <line className="pace-grid-line" x1={gridLeft} x2={gridRight} y1={pad.top} y2={pad.top}/>
         <line className="pace-grid-line pace-zero" x1={gridLeft} x2={gridRight} y1={zeroY} y2={zeroY}/>
         <line className="pace-grid-line" x1={gridLeft} x2={gridRight} y1={pad.top + plotH} y2={pad.top + plotH}/>
@@ -370,19 +383,10 @@ function PaceMiniChart({ segments, unit, t }) {
         <text className="pace-y-label" x="8" y={pad.top + 4}>+{Math.round(maxAbs)}$</text>
         <text className="pace-y-label zero" x="20" y={zeroY + 4}>0</text>
         <text className="pace-y-label" x="8" y={pad.top + plotH + 4}>-{Math.round(maxAbs)}$</text>
-        {segments.map((seg, idx) => {
-          const cx = x(idx)
-          const rateY = y(seg.rate)
-          const top = Math.min(rateY, zeroY)
-          const h = Math.max(2, Math.abs(zeroY - rateY))
-          return (
-            <rect key={`bar-${idx}-${seg.endMtt}`} className={`pace-bar ${seg.rate >= 0 ? 'pos' : 'neg'}`}
-              x={cx - barW / 2} y={top} width={barW} height={h} rx="5"
-              fill={seg.rate >= 0 ? 'url(#pacePosFill)' : 'url(#paceNegFill)'}/>
-          )
-        })}
-        {segments.length > 1 && <path className="pace-line-glow" d={linePath}/>}
+        <path className="pace-area" d={areaPath}/>
+        {segments.length > 1 && <path className="pace-line-aura" d={linePath}/>}
         {segments.length > 1 && <path className="pace-line" d={linePath}/>}
+        {segments.length > 1 && <path className="pace-line-highlight" d={linePath}/>}
         <text className="pace-x-caption" x={(gridLeft + gridRight) / 2} y={height - 1}>{t('pace_x_caption')}</text>
         {segments.map((seg, idx) => {
           const cx = x(idx)
@@ -391,11 +395,12 @@ function PaceMiniChart({ segments, unit, t }) {
           return (
             <g key={`${idx}-${seg.endMtt}`} className={`pace-segment ${tone}`}>
               <title>{`${seg.label}: ${formatDollarPerMTT(seg.rate, unit)} · ${fmtBR(seg.profit)} / ${fmtInt(seg.tournaments)} ${unit}`}</title>
-              <circle className="pace-dot-halo" cx={cx} cy={rateY} r="8"/>
-              <circle className="pace-dot" cx={cx} cy={rateY} r="4.2"/>
-              <text className={`pace-chart-value ${tone}`} x={cx} y={rateY + (seg.rate >= 0 ? -11 : 17)}>
-                {formatDollarPerMTT(seg.rate, unit).replace(`/${unit}`, '')}
-              </text>
+              <circle className="pace-dot" cx={cx} cy={rateY} r={idx === segments.length - 1 ? 5.2 : 3.9}/>
+              {labelIndexes.has(idx) && (
+                <text className={`pace-chart-value ${tone}`} x={cx} y={rateY + (seg.rate >= 0 ? -11 : 17)}>
+                  {formatDollarPerMTT(seg.rate, unit).replace(`/${unit}`, '')}
+                </text>
+              )}
               <text className="pace-x-label" x={cx} y={height - 22}>{seg.label}</text>
             </g>
           )
