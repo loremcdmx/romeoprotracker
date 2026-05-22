@@ -9,7 +9,7 @@
   "finishedAt": "2026-06-11T23:59:59.000+00:00",
   "targetNick": "R Romanovskyi",
   "limit": 6000,
-  "fetchedAt": "2026-05-22T21:58:43.450Z",
+  "fetchedAt": "2026-05-22T22:57:58.707Z",
   "warnings": [],
   "leaderboards": [
     {
@@ -354,12 +354,12 @@
       "promotionName": "2026 GGWF-S(for prize)",
       "status": "found",
       "target": {
-        "rank": 127,
+        "rank": 115,
         "nickname": "R Romanovskyi",
         "brandId": "GGPCOM",
         "siteId": "GGPUA",
         "countryId": "UA",
-        "point": 255.95,
+        "point": 276.27,
         "prizeValue": 1500,
         "prizeCurrency": "GCD",
         "isCorrect": true
@@ -404,7 +404,7 @@
           "brandId": "POKEROK",
           "siteId": "GGPOK",
           "countryId": "RU",
-          "point": 1926.94,
+          "point": 1941.31,
           "prizeValue": 60000,
           "prizeCurrency": "USD",
           "isCorrect": true
@@ -415,7 +415,7 @@
           "brandId": "GGPCOM",
           "siteId": "GGPUA",
           "countryId": "UA",
-          "point": 1859.6,
+          "point": 1876.2,
           "prizeValue": 50000,
           "prizeCurrency": "USD",
           "isCorrect": true
@@ -433,32 +433,32 @@
         }
       ],
       "nextAbove": {
-        "rank": 126,
-        "nickname": "Sergio Vamos",
+        "rank": 114,
+        "nickname": "Luan Barbosa",
         "brandId": "GGPCOM",
-        "siteId": "GGPCW",
-        "countryId": "AT",
-        "point": 257.32,
+        "siteId": "GGPBR",
+        "countryId": "BR",
+        "point": 281.57,
         "prizeValue": 1500,
         "prizeCurrency": "GCD",
         "isCorrect": true
       },
       "nextBelow": {
-        "rank": 128,
-        "nickname": "Carlos Ribeiro",
+        "rank": 116,
+        "nickname": "don chimbo",
         "brandId": "GGPCOM",
-        "siteId": "GGPBR",
-        "countryId": "BR",
-        "point": 254.27,
+        "siteId": "GGPCOM",
+        "countryId": "MX",
+        "point": 273.24,
         "prizeValue": 1500,
         "prizeCurrency": "GCD",
         "isCorrect": true
       },
       "rowsFetched": 1148,
       "lastRank": 1148,
-      "gapToLeader": -1972.65,
-      "gapToNextAbove": -1.37,
-      "gapToNextBelow": -1.68
+      "gapToLeader": -1952.33,
+      "gapToNextAbove": -5.3,
+      "gapToNextBelow": -3.03
     }
   ]
 }
