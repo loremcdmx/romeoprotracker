@@ -196,8 +196,15 @@ describe('App', () => {
     expect(within(widget).queryByText(translate('ru', 'pace_all_note'))).not.toBeInTheDocument()
     expect(within(widget).queryByText(/при текущем темпе/)).not.toBeInTheDocument()
     expect(within(widget).getByTestId('pace-chart')).toBeInTheDocument()
-    expect(within(widget).getByText(translate('ru', 'pace_chart_title'))).toBeInTheDocument()
+    expect(within(widget).getByText((text) => text.replace(/\s/g, ' ') === 'шаг: 2 000 МТТ')).toBeInTheDocument()
+    expect(within(widget).queryByText(translate('ru', 'pace_chart_title'))).not.toBeInTheDocument()
+    expect(within(widget).getAllByText('2k').length).toBeGreaterThanOrEqual(1)
     expect(within(widget).getAllByText('4k').length).toBeGreaterThanOrEqual(1)
+    const paceLineStart = widget.querySelector('.pace-line:not(.partial)')?.getAttribute('d')?.match(/^M ([\d.]+) ([\d.]+)/)
+    const plotLeft = Number(widget.querySelector('.pace-plot-bg')?.getAttribute('x'))
+    const zeroAxisY = Number(widget.querySelector('.pace-y-label.zero')?.getAttribute('y')) - 4
+    expect(Number(paceLineStart?.[1])).toBeCloseTo(plotLeft, 1)
+    expect(Number(paceLineStart?.[2])).toBeCloseTo(zeroAxisY, 1)
 
     fireEvent.click(within(widget).getByText(translate('ru', 'period_week')))
 
@@ -213,8 +220,41 @@ describe('App', () => {
     await waitFor(() => {
       expect(within(widget).getByText((text) => text.replace(/\s/g, '') === '~1661334')).toBeInTheDocument()
     })
-    expect(within(widget).getAllByText('1k').length).toBeGreaterThanOrEqual(1)
     expect(within(widget).getAllByText('2k').length).toBeGreaterThanOrEqual(1)
+    expect(within(widget).queryByText('1k')).not.toBeInTheDocument()
+  })
+
+  it('renders the incomplete pace chunk as a muted partial marker', async () => {
+    const now = Math.floor(Date.now() / 1000)
+    const brs = [22000, 46000, 51000]
+    const totals = [2000, 4000, 4500]
+    const brHistory = brs.map((brAfter, i) => {
+      const brPrev = i === 0 ? 10000 : brs[i - 1]
+      return {
+        brAfter,
+        brPrev,
+        date: `P${i + 1}`,
+        timestamp: now - (3 - i) * 86400,
+        sessionResult: brAfter - brPrev,
+        totalTournaments: totals[i],
+        tournaments: i === 0 ? totals[i] : totals[i] - totals[i - 1],
+        text: `Pace session ${i + 1}`,
+      }
+    })
+    fetchPublicData.mockResolvedValue(makeMockData({
+      meta: {
+        ...makeMockData().meta,
+        brHistory,
+        totalTournaments: 4500,
+      },
+    }))
+
+    render(<App />)
+    const widget = await screen.findByTestId('pace-widget')
+    expect(within(widget).getAllByText('4.5k').length).toBeGreaterThanOrEqual(1)
+    expect(widget.querySelector('.pace-segment.partial')).toBeInTheDocument()
+    expect(widget.querySelector('.pace-dot-partial-ring')).toBeInTheDocument()
+    expect(widget.querySelector('.pace-line.partial')).toBeInTheDocument()
   })
 
   it('anchors activity chart edge labels inside the SVG bounds', async () => {
@@ -601,7 +641,7 @@ describe('App', () => {
   it('renders footer with version and changelog', async () => {
     render(<App />)
     await screen.findAllByText('Romeopro')
-    expect(screen.getAllByText('v1.10').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText('v1.11').length).toBeGreaterThanOrEqual(1)
     expect(screen.getByText(translate('ru', 'footer_changelog'))).toBeInTheDocument()
   })
 

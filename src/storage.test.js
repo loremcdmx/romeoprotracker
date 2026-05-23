@@ -85,6 +85,27 @@ describe('expandPosts', () => {
       translations: null,
     }])
   })
+
+  it('normalizes forum-relative avatar URLs', () => {
+    const posts = expandPosts({
+      avatars: [
+        '/img/imguser.png',
+        '/upload/Avatar/default/1/2/3/avatar.jpg',
+        '//cdn.example.com/avatar.png',
+      ],
+      posts: [
+        { i: '1', a: 'Default avatar', t: 1, v: 0 },
+        { i: '2', a: 'Uploaded avatar', t: 2, v: 1 },
+        { i: '3', a: 'Protocol relative avatar', t: 3, v: 2 },
+      ],
+    })
+
+    expect(posts.map(post => post.avatar)).toEqual([
+      'https://forum.gipsyteam.com/img/imguser.png',
+      'https://www.gipsyteam.ru/upload/Avatar/default/1/2/3/avatar.jpg',
+      'https://cdn.example.com/avatar.png',
+    ])
+  })
 })
 
 describe('fetchPublicData', () => {
@@ -252,7 +273,7 @@ describe('fetchPublicData', () => {
       }
 
       if (href.includes('/posts.json')) {
-        return jsonResponse([{ id: 'full', author: 'Fallback' }])
+        return jsonResponse([{ id: 'full', author: 'Fallback', avatar: '/img/imguser.png' }])
       }
 
       throw new Error(`Unexpected fetch: ${href}`)
@@ -260,7 +281,11 @@ describe('fetchPublicData', () => {
 
     const result = await fetchPublicData()
 
-    expect(result.posts).toEqual([{ id: 'full', author: 'Fallback' }])
+    expect(result.posts).toEqual([{
+      id: 'full',
+      author: 'Fallback',
+      avatar: 'https://forum.gipsyteam.com/img/imguser.png',
+    }])
   })
 
   it('returns stale cache when every configured source fails', async () => {

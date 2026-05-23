@@ -102,8 +102,29 @@ function selectFreshestLeaderboards(payloads) {
     })[0] || null
 }
 
+function normalizeAvatarUrl(value) {
+  if (!value) return null
+  const src = String(value).trim()
+  if (!src) return null
+  if (src.startsWith('//')) return `https:${src}`
+  if (/^https?:\/\/forum\.gipsyteam\.ru\/img\//i.test(src)) {
+    return src.replace(/^https?:\/\/forum\.gipsyteam\.ru/i, 'https://forum.gipsyteam.com')
+  }
+  if (/^https?:\/\//i.test(src)) return src
+  if (src.startsWith('/upload/')) return `https://www.gipsyteam.ru${src}`
+  if (src.startsWith('/img/')) return `https://forum.gipsyteam.com${src}`
+  if (src.startsWith('/')) return `https://forum.gipsyteam.ru${src}`
+  return src
+}
+
+function normalizePostAvatar(post) {
+  if (!post || typeof post !== 'object') return post
+  if (!Object.prototype.hasOwnProperty.call(post, 'avatar')) return post
+  return { ...post, avatar: normalizeAvatarUrl(post.avatar) }
+}
+
 export function expandPosts(compact) {
-  const avatars = compact?.avatars || []
+  const avatars = (compact?.avatars || []).map(normalizeAvatarUrl)
   const posts = compact?.posts || []
   const forumBase = 'https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p='
 
@@ -130,7 +151,7 @@ export function expandPosts(compact) {
 }
 
 function inflateCachedPayload(cache) {
-  const posts = cache.compact ? expandPosts(cache.compact) : (cache.posts || [])
+  const posts = cache.compact ? expandPosts(cache.compact) : (cache.posts || []).map(normalizePostAvatar)
   return {
     posts,
     meta: cache.meta || {},

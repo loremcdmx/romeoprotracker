@@ -148,7 +148,7 @@ function leaderboardRowsForDisplay(board, targetNick) {
 
 const MARATHON_TARGET = 10_000_000
 const PACE_PERIOD_SECONDS = { week:7 * 86400, month:30 * 86400 }
-const PACE_BIN_SIZE = 1000
+const PACE_BIN_SIZE = 2000
 
 function formatDollarPerMTT(value, unit = 'MTT') {
   if (value == null || !Number.isFinite(value)) return '—'
@@ -227,7 +227,7 @@ function buildPaceSegments(sorted, predicate, startBR, binSize = PACE_BIN_SIZE) 
     const tournaments = historySessionTournaments(row, sorted, idx)
     if (!tournaments) return
 
-    // Reports are session-level, so split session profit proportionally when it crosses a 1k-MTT bin.
+    // Reports are session-level, so split session profit proportionally when it crosses a bin.
     const profit = historySessionProfit(row, sorted, idx, startBR)
     let left = tournaments
     while (left > 0) {
@@ -253,6 +253,31 @@ function formatPaceSegmentLabel(endMtt, binSize) {
   const thousands = endMtt / 1000
   const digits = thousands < 10 ? 2 : 1
   return `${Number(thousands.toFixed(digits))}k`
+}
+
+function clampNumber(value, min, max) {
+  return Math.min(Math.max(value, min), max)
+}
+
+function buildSmoothSvgPath(points, tension = .64, minY = -Infinity, maxY = Infinity) {
+  if (!points.length) return ''
+  const p = point => `${point.x.toFixed(1)} ${point.y.toFixed(1)}`
+  if (points.length === 1) return `M ${p(points[0])}`
+  if (points.length === 2) return `M ${p(points[0])} L ${p(points[1])}`
+
+  let d = `M ${p(points[0])}`
+  for (let i = 0; i < points.length - 1; i += 1) {
+    const p0 = points[i - 1] || points[i]
+    const p1 = points[i]
+    const p2 = points[i + 1]
+    const p3 = points[i + 2] || p2
+    const cp1x = p1.x + (p2.x - p0.x) * tension / 6
+    const cp1y = clampNumber(p1.y + (p2.y - p0.y) * tension / 6, minY, maxY)
+    const cp2x = p2.x - (p3.x - p1.x) * tension / 6
+    const cp2y = clampNumber(p2.y - (p3.y - p1.y) * tension / 6, minY, maxY)
+    d += ` C ${cp1x.toFixed(1)} ${cp1y.toFixed(1)} ${cp2x.toFixed(1)} ${cp2y.toFixed(1)} ${p(p2)}`
+  }
+  return d
 }
 
 function computePaceMetrics({ meta, stats, period, target = MARATHON_TARGET, now = Date.now() / 1000 }) {
@@ -339,16 +364,44 @@ function PaceMiniChart({ segments, unit, t }) {
   const maxAbs = Math.max(5, ...segments.map(seg => Math.abs(seg.rate || 0)))
   const zeroY = pad.top + plotH / 2
   const barW = Math.max(12, Math.min(34, basePlotW / Math.max(1, segments.length) * .48))
-  const pointLeft = gridLeft + barW / 2
+  const pointLeft = gridLeft
   const pointRight = gridRight - barW / 2
   const pointW = pointRight - pointLeft
-  const xStep = pointW / Math.max(1, segments.length - 1)
-  const x = idx => pointLeft + (segments.length === 1 ? pointW / 2 : idx * xStep)
+  const maxMtt = Math.max(1, ...segments.map(seg => seg.endMtt || 0))
+  const xByMtt = value => pointLeft + clampNumber(value / maxMtt, 0, 1) * pointW
+  const x = idx => xByMtt(segments[idx]?.endMtt || 0)
   const y = value => pad.top + (maxAbs - value) / (maxAbs * 2) * plotH
-  const linePath = segments
-    .map((seg, idx) => `${idx ? 'L' : 'M'} ${x(idx).toFixed(1)} ${y(seg.rate).toFixed(1)}`)
-    .join(' ')
-  const areaPath = `${linePath} L ${x(segments.length - 1).toFixed(1)} ${zeroY.toFixed(1)} L ${x(0).toFixed(1)} ${zeroY.toFixed(1)} Z`
+  const points = segments.map((seg, idx) => ({ x:x(idx), y:y(seg.rate) }))
+  const originPoint = { x:pointLeft, y:zeroY }
+  const hasPartialTail = !segments[segments.length - 1].full
+  const fullPoints = hasPartialTail ? points.slice(0, -1) : points
+  const solidPoints = [originPoint, ...fullPoints]
+  const solidLinePath = buildSmoothSvgPath(solidPoints, .62, pad.top, pad.top + plotH)
+  const lastSolidPoint = solidPoints[solidPoints.length - 1]
+  const areaPath = solidLinePath && solidPoints.length > 1 && lastSolidPoint
+    ? `${solidLinePath} L ${lastSolidPoint.x.toFixed(1)} ${zeroY.toFixed(1)} L ${solidPoints[0].x.toFixed(1)} ${zeroY.toFixed(1)} Z`
+    : ''
+  const partialStartPoint = fullPoints.length ? fullPoints[fullPoints.length - 1] : originPoint
+  const partialTailPath = hasPartialTail
+    ? `M ${partialStartPoint.x.toFixed(1)} ${partialStartPoint.y.toFixed(1)} L ${points[points.length - 1].x.toFixed(1)} ${points[points.length - 1].y.toFixed(1)}`
+    : ''
+  const partialTailTone = hasPartialTail && segments[segments.length - 1].rate >= 0 ? 'pos' : 'neg'
+  const trend = segments.length > 2 ? (() => {
+    const n = segments.length
+    const meanX = (n - 1) / 2
+    const meanY = segments.reduce((sum, seg) => sum + seg.rate, 0) / n
+    const denominator = segments.reduce((sum, _, idx) => sum + (idx - meanX) ** 2, 0)
+    if (!denominator) return null
+    const slope = segments.reduce((sum, seg, idx) => sum + (idx - meanX) * (seg.rate - meanY), 0) / denominator
+    const intercept = meanY - slope * meanX
+    const startRate = clampNumber(intercept, -maxAbs, maxAbs)
+    const endRate = clampNumber(intercept + slope * (n - 1), -maxAbs, maxAbs)
+    const trendY = y(endRate)
+    return {
+      path:`M ${x(0).toFixed(1)} ${y(startRate).toFixed(1)} L ${x(n - 1).toFixed(1)} ${trendY.toFixed(1)}`,
+      rising:endRate >= startRate,
+    }
+  })() : null
   const bestIdx = segments.reduce((best, seg, idx) => seg.rate > segments[best].rate ? idx : best, 0)
   const worstIdx = segments.reduce((worst, seg, idx) => seg.rate < segments[worst].rate ? idx : worst, 0)
   const labelIndexes = new Set([segments.length - 1, bestIdx, worstIdx])
@@ -357,10 +410,14 @@ function PaceMiniChart({ segments, unit, t }) {
   segments.forEach((_, idx) => {
     if (segments.length <= 8 || idx % 2 === 0 || idx === segments.length - 1) xLabelIndexes.add(idx)
   })
-  const lineStops = segments.map((seg, idx) => {
-    const offset = segments.length === 1 ? '0%' : `${idx / (segments.length - 1) * 100}%`
-    return { offset, color:seg.rate >= 0 ? '#4caf50' : '#e53935' }
-  })
+  const firstTone = segments[0]?.rate >= 0 ? '#78d984' : '#f0756d'
+  const lineStops = [
+    { offset:'0%', color:firstTone },
+    ...segments.map(seg => ({
+      offset:`${(seg.endMtt || 0) / maxMtt * 100}%`,
+      color:seg.rate >= 0 ? '#78d984' : '#f0756d',
+    })),
+  ]
   const openTooltip = (seg, idx, cx, cy) => {
     setHovered({
       seg,
@@ -385,39 +442,37 @@ function PaceMiniChart({ segments, unit, t }) {
           <linearGradient id="paceLineGrad" x1={gridLeft} y1="0" x2={gridRight} y2="0" gradientUnits="userSpaceOnUse">
             {lineStops.map((stop, idx) => <stop key={`${stop.offset}-${idx}`} offset={stop.offset} stopColor={stop.color}/>)}
           </linearGradient>
-          <radialGradient id="pacePlotGlow" cx="85%" cy="18%" r="72%">
-            <stop offset="0%" stopColor="#ffb300" stopOpacity=".10"/>
-            <stop offset="55%" stopColor="#e53935" stopOpacity=".03"/>
-            <stop offset="100%" stopColor="#e53935" stopOpacity="0"/>
-          </radialGradient>
-          <filter id="paceGlow" x="-20%" y="-20%" width="140%" height="140%">
-            <feGaussianBlur stdDeviation="2" result="blur"/>
-            <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-          </filter>
         </defs>
         <rect x={gridLeft} y={pad.top} width={basePlotW} height={plotH} rx="10" className="pace-plot-bg"/>
-        <rect x={gridLeft} y={pad.top} width={basePlotW} height={plotH} rx="10" fill="url(#pacePlotGlow)" className="pace-plot-glow"/>
+        {segments.map((seg, idx) => {
+          const cx = x(idx)
+          return <line key={`guide-${idx}`} className="pace-chunk-guide" x1={cx} x2={cx} y1={pad.top + 6} y2={pad.top + plotH - 6}/>
+        })}
         <line className="pace-grid-line" x1={gridLeft} x2={gridRight} y1={pad.top} y2={pad.top}/>
         <line className="pace-grid-line pace-zero" x1={gridLeft} x2={gridRight} y1={zeroY} y2={zeroY}/>
         <line className="pace-grid-line" x1={gridLeft} x2={gridRight} y1={pad.top + plotH} y2={pad.top + plotH}/>
-        <text className="pace-axis-caption" x={gridLeft} y="16">{t('pace_axis_caption')}</text>
-        <text className="pace-goal-caption" x={(gridLeft + gridRight) / 2} y="16">{t('pace_goal_caption')}</text>
-        <text className="pace-y-label" x="8" y={pad.top + 4}>+{Math.round(maxAbs)}$</text>
         <text className="pace-y-label zero" x="20" y={zeroY + 4}>0</text>
-        <text className="pace-y-label" x="8" y={pad.top + plotH + 4}>-{Math.round(maxAbs)}$</text>
-        <path className="pace-area" d={areaPath}/>
-        {segments.length > 1 && <path className="pace-line-aura" d={linePath}/>}
-        {segments.length > 1 && <path className="pace-line" d={linePath}/>}
-        {segments.length > 1 && <path className="pace-line-highlight" d={linePath}/>}
-        <text className="pace-x-caption" x={(gridLeft + gridRight) / 2} y={height - 1}>{t('pace_x_caption')}</text>
+        {areaPath && <path className="pace-area" d={areaPath}/>}
+        {trend && (
+          <g className={`pace-trend ${trend.rising ? 'rising' : 'falling'}`} aria-hidden="true">
+            <path className="pace-trend-line" d={trend.path}/>
+          </g>
+        )}
+        {solidPoints.length > 1 && <path className="pace-line-rail" d={solidLinePath}/>}
+        {solidPoints.length > 1 && <path className="pace-line" d={solidLinePath}/>}
+        {partialTailPath && <path className="pace-line-rail partial" d={partialTailPath}/>}
+        {partialTailPath && <path className={`pace-line partial ${partialTailTone}`} d={partialTailPath}/>}
         {segments.map((seg, idx) => {
           const cx = x(idx)
           const rateY = y(seg.rate)
           const tone = seg.rate >= 0 ? 'pos' : 'neg'
+          const isLatest = idx === segments.length - 1
+          const isBest = idx === bestIdx
+          const isWorst = idx === worstIdx
           const showRateLabel = labelIndexes.has(idx) && (idx === segments.length - 1 || Math.abs(seg.rate) >= Math.max(1, maxAbs * .08))
           const isPartial = !seg.full
           return (
-            <g key={`${idx}-${seg.endMtt}`} className={`pace-segment ${tone} ${isPartial ? 'partial' : ''}`}
+            <g key={`${idx}-${seg.endMtt}`} className={`pace-segment ${tone} ${isPartial ? 'partial' : ''} ${isLatest ? 'latest' : ''} ${isBest ? 'best' : ''} ${isWorst ? 'worst' : ''}`}
               onMouseEnter={() => openTooltip(seg, idx, cx, rateY)}
               onMouseMove={() => openTooltip(seg, idx, cx, rateY)}
               onPointerEnter={() => openTooltip(seg, idx, cx, rateY)}
@@ -428,7 +483,8 @@ function PaceMiniChart({ segments, unit, t }) {
               tabIndex="0" role="button" aria-label={`${seg.label}: ${formatDollarPerMTT(seg.rate, unit)}${isPartial ? `, ${t('pace_tip_partial')}` : ''}`}>
               <circle className="pace-dot-hit" cx={cx} cy={rateY} r="12"/>
               {isPartial && <circle className="pace-dot-partial-ring" cx={cx} cy={rateY} r="8.2"/>}
-              <circle className="pace-dot" cx={cx} cy={rateY} r={idx === segments.length - 1 ? 5.2 : 3.9}/>
+              {isLatest && <circle className="pace-dot-latest-ring" cx={cx} cy={rateY} r="8.4"/>}
+              <circle className="pace-dot" cx={cx} cy={rateY} r={isLatest ? 5 : 3.8}/>
               {showRateLabel && (
                 <text className={`pace-chart-value ${tone}`} x={cx} y={rateY + (seg.rate >= 0 ? -11 : 17)}>
                   {formatDollarPerMTT(seg.rate, unit).replace(`/${unit}`, '')}
@@ -535,7 +591,7 @@ function LeaderboardsWidget({ snapshot, lang, t }) {
                       <LeaderboardPoints value={board.target.point} className="leaderboard-romeo-points"/>
                       <strong>{formatLeaderboardPrize(board.target)}</strong>
                     </div>
-                    <div className={`leaderboard-chase ${chase ? '' : 'placeholder'}`} aria-hidden={!chase}>{chase || '\u00a0'}</div>
+                    {chase && <div className="leaderboard-chase">{chase}</div>}
                   </div>
                 )}
                 <div className="leaderboard-table">
@@ -609,7 +665,8 @@ function PaceWidget({ meta, stats, period, setPeriod, lang, t }) {
           <div className="mps-divider"/>
           <div className="mps-item pace-projection-item">
             <span className="mps-label">{isNegative ? t('pace_to_zero') : t('pace_finish')}</span>
-            {finishTarget ? <TempoValue target={finishTarget} title={t('pace_at_current')}/> : <span className="mps-value">—</span>}
+            {finishTarget ? <TempoValue target={finishTarget} title={t('pace_at_current')} animate={false}/> : <span className="mps-value">—</span>}
+            <span className="pace-summary-note">{isNegative ? t('pace_to_zero_note') : t('pace_finish_note')}</span>
           </div>
           {showHistory && <>
             <div className="mps-divider"/>
@@ -622,16 +679,15 @@ function PaceWidget({ meta, stats, period, setPeriod, lang, t }) {
             </div>
           </>}
         </div>
-        <div className="pace-chart-title">
-          <div>
-            <span>{t('pace_chart_title')}</span>
-            <small>{t('pace_chart_hint')}</small>
+        <div className="pace-chart-meta">
+          <div className="pace-speed-legend" aria-hidden="true">
+            <span className="pos">{t('pace_speed_positive')}</span>
+            <span className="neg">{t('pace_speed_negative')}</span>
+            <span className="trend">{t('pace_trend_label')}</span>
           </div>
-          <b>{t('pace_chart_step')}: {fmtInt(pace.binSize)} {mttUnit}</b>
-        </div>
-        <div className="pace-speed-legend" aria-hidden="true">
-          <span className="pos">{t('pace_speed_positive')}</span>
-          <span className="neg">{t('pace_speed_negative')}</span>
+          <div className="pace-chart-title">
+            <b>{t('pace_chart_step')}: {fmtInt(pace.binSize)} {mttUnit}</b>
+          </div>
         </div>
         <PaceMiniChart segments={pace.segments} unit={mttUnit} t={t}/>
       </div>
@@ -2093,8 +2149,17 @@ function ActivityChart({ posts, favorites, ignored, onFav, onIgnore, onUnignore,
 
 // ─── FILTER BAR ──────────────────────────────────────────────────────────────
 const ROMEO_AVATAR = 'https://www.gipsyteam.ru/upload/Avatar/default/2/6/6/26670.jpg'
-const DEFAULT_AVATAR = 'https://forum.gipsyteam.ru/img/imguser.png'
-const avatarError = e => { e.target.onerror = null; e.target.src = DEFAULT_AVATAR }
+const GT_DEFAULT_AVATAR = 'https://forum.gipsyteam.com/img/imguser.png'
+const avatarError = e => {
+  const img = e.currentTarget
+  if (img.dataset.fallbackApplied !== '1') {
+    img.dataset.fallbackApplied = '1'
+    img.src = GT_DEFAULT_AVATAR
+    return
+  }
+  img.closest('[data-avatar-initial]')?.classList.add('avatar-failed')
+  img.style.display = 'none'
+}
 
 function FilterBar({ sortBy, setSortBy, search, setSearch, showSearch, setShowSearch,
                      romeoOnly, setRomeoOnly, minLikes, setMinLikes,
@@ -2345,10 +2410,8 @@ const PostCard = memo(function PostCard({ p, favorites, ignored, onFav, onIgnore
   return (
     <div className={`post-card ${isFav?'faved':''} ${isRomeo?'romeo-post':''}`} onClick={()=>menu&&setMenu(false)}>
       <div className="pc-head">
-        <div className="pc-avatar" style={{cursor:'pointer'}} onClick={e=>{e.stopPropagation();setMenu(m=>!m)}}>
-          {p.avatar
-            ? <img src={p.avatar} alt={p.author} referrerPolicy="no-referrer" onError={avatarError}/>
-            : <img src={DEFAULT_AVATAR} alt={p.author} referrerPolicy="no-referrer" style={{width:'100%',height:'100%',objectFit:'cover'}}/>}
+        <div className="pc-avatar" data-avatar-initial={initial} style={{cursor:'pointer'}} onClick={e=>{e.stopPropagation();setMenu(m=>!m)}}>
+          <img src={p.avatar || GT_DEFAULT_AVATAR} alt={p.author} referrerPolicy="no-referrer" onError={avatarError}/>
         </div>
         {/* Dropdown меню профиля */}
         {menu && (
@@ -2497,10 +2560,8 @@ function AuthorsPanel({ authors, favorites, onFav, onIgnore, setLightbox, t }) {
           <div key={a.name} className="author-row" style={{marginBottom:6,border:'1px solid var(--border)',borderRadius:8,background:'var(--bg2)'}}>
             <div style={{display:'flex',alignItems:'center',gap:10,padding:'10px 14px',cursor:'pointer'}}
               onClick={()=>setExpanded(open ? null : a.name)}>
-              <div style={{width:28,height:28,borderRadius:'50%',background:'var(--red)',overflow:'hidden',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,fontWeight:700,color:'#fff'}}>
-                {a.posts[0]?.avatar
-                  ? <img src={a.posts[0].avatar} alt="" referrerPolicy="no-referrer" style={{width:'100%',height:'100%',objectFit:'cover'}} onError={avatarError}/>
-                  : a.name[0]?.toUpperCase()}
+              <div data-avatar-initial={a.name[0]?.toUpperCase() || '?'} style={{width:28,height:28,borderRadius:'50%',background:'var(--red)',overflow:'hidden',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,fontWeight:700,color:'#fff'}}>
+                <img src={a.posts[0]?.avatar || GT_DEFAULT_AVATAR} alt="" referrerPolicy="no-referrer" style={{width:'100%',height:'100%',objectFit:'cover'}} onError={avatarError}/>
               </div>
               <div style={S_FLEX1}>
                 <div style={{fontWeight:700,color:'var(--white)',fontSize:13}}>{a.name} {isFav && <span title={tr('author_fav_label')}>⭐</span>}</div>
@@ -2739,12 +2800,10 @@ export function SidebarTopList({ posts, setLightbox }) {
             onClick={()=>p.url&&window.open(p.url,'_blank')}
             onMouseEnter={e => openItem(i, e.currentTarget)}>
             <span style={{color:'var(--gold)',fontWeight:700,fontSize:11,minWidth:16,flexShrink:0,paddingTop:10}}>{i+1}</span>
-            <div style={{width:28,height:28,borderRadius:'50%',background:'var(--red)',flexShrink:0,
+            <div data-avatar-initial={initial} style={{width:28,height:28,borderRadius:'50%',background:'var(--red)',flexShrink:0,
               overflow:'hidden',display:'flex',alignItems:'center',justifyContent:'center',
               fontSize:11,fontWeight:700,color:'#fff',marginTop:2}}>
-              {p.avatar
-                ? <img src={p.avatar} alt="" referrerPolicy="no-referrer" style={{width:'100%',height:'100%',objectFit:'cover'}} onError={avatarError}/>
-                : initial}
+              <img src={p.avatar || GT_DEFAULT_AVATAR} alt="" referrerPolicy="no-referrer" style={{width:'100%',height:'100%',objectFit:'cover'}} onError={avatarError}/>
             </div>
             <div style={S_FLEX1}>
               <div style={{fontSize:10,color:'var(--dim2)',fontWeight:600,marginBottom:2}}>{p.author}</div>
@@ -3282,7 +3341,7 @@ export default function App() {
             {/* HERO */}
             <div className="hero">
               <div className="hero-top">
-                <div className="hero-avatar">
+                <div className="hero-avatar" data-avatar-initial="R">
                   <img src="https://www.gipsyteam.ru/upload/Avatar/default/2/6/6/26670.jpg"
                     alt="Romeopro" referrerPolicy="no-referrer" onError={avatarError}/>
                 </div>
@@ -3607,7 +3666,7 @@ export default function App() {
                   style={{color:'var(--dim2)',textDecoration:'none'}}>LoremCDMX</a>
               </div>
               <div style={{fontSize:10,color:'var(--dim2)'}}>
-                {t('footer_updated')}: 19.04.2026
+                {t('footer_updated')}: 23.05.2026
               </div>
               {(() => {
                 const scrapeTs = meta?.lastScrapeRun
@@ -3655,6 +3714,7 @@ export default function App() {
                 {t('footer_changelog')}
               </div>
               {[
+                ['23.05', 'v1.11', '«Доллар с турнира» стал чище: точки по 2k МТТ, зелёный тренд, неполный отрезок приглушён, старт от нуля. Починены аватарки, favicon и узкая верстка'],
                 ['15.05', 'v1.10', 'Появился виджет GGWF-лидербордов: три борда Low/Medium/High, лидеры, место Ромео, призы, сколько осталось до конца и тултип с формулой очков'],
                 ['09.05', 'v1.9', 'График марафона стал крупнее и честнее читается на телефоне: точки объединяются по сессиям, попап показывает разбивку, а подписи оси X отмечают важные рубежи — $25k, $100k и крупные доезды'],
                 ['19.04', 'v1.8', 'Попапы снова открываются рядом с нужным местом, не прилипают к верху и не дублируются при хаотичном наведении. У «Сыграно МТТ» теперь нейтральная иконка'],

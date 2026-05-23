@@ -118,6 +118,20 @@ function htmlToText($el, $) {
 }
 
 const MONTHS_RU = ['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря']
+function normalizeGtAssetUrl(value) {
+  if (!value) return null
+  const src = String(value).trim()
+  if (!src) return null
+  if (src.startsWith('//')) return `https:${src}`
+  if (/^https?:\/\/forum\.gipsyteam\.ru\/img\//i.test(src)) {
+    return src.replace(/^https?:\/\/forum\.gipsyteam\.ru/i, 'https://forum.gipsyteam.com')
+  }
+  if (/^https?:\/\//i.test(src)) return src
+  if (src.startsWith('/upload/')) return `https://www.gipsyteam.ru${src}`
+  if (src.startsWith('/img/')) return `https://forum.gipsyteam.com${src}`
+  if (src.startsWith('/')) return `https://forum.gipsyteam.ru${src}`
+  return src
+}
 function tsToDate(ts) {
   if (!ts) return ''
   const d = new Date(ts * 1000)
@@ -212,7 +226,7 @@ function parsePosts(html) {
     posts.push({
       id: postId,
       author,
-      avatar: avatarEl.attr('src') || null,
+      avatar: normalizeGtAssetUrl(avatarEl.attr('src')),
       rating: ratingEl.length ? parseInt(ratingEl.text().replace(/[^\d-]/g, '')) || null : null,
       msgCount: msgEl.length ? parseInt(msgEl.text().replace(/[^\d]/g, '')) || null : null,
       regData: regEl.length ? regEl.text().trim() : null,

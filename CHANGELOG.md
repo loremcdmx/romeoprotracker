@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+## 1.11.0 — 2026-05-23
+
+### UI
+- rebuilt the dollar-per-tournament widget with calmer typography, cleaner chart lines, a green trend line, and 2k-MTT chart points
+- incomplete chart chunks are shown as muted partial points, while the graph now starts from zero
+- improved narrow-screen layout by hiding the right stats rail and keeping bankroll/profit cards readable
+
+### Fixes
+- restored real GipsyTeam avatars instead of letter fallbacks when the forum default avatar URL appears
+- restored Romeo's avatar favicon
+
 ## 1.10.0 — 2026-05-15
 
 ### New features
