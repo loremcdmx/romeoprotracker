@@ -387,18 +387,21 @@ function PaceMiniChart({ segments, unit, t }) {
     : ''
   const partialTailTone = hasPartialTail && segments[segments.length - 1].rate >= 0 ? 'pos' : 'neg'
   const trend = segments.length > 2 ? (() => {
-    const n = segments.length
-    const meanX = (n - 1) / 2
-    const meanY = segments.reduce((sum, seg) => sum + seg.rate, 0) / n
-    const denominator = segments.reduce((sum, _, idx) => sum + (idx - meanX) ** 2, 0)
+    const trendPoints = segments.map(seg => ({
+      mtt:seg.endMtt || 0,
+      rate:seg.rate || 0,
+    }))
+    const meanX = trendPoints.reduce((sum, point) => sum + point.mtt, 0) / trendPoints.length
+    const meanY = trendPoints.reduce((sum, point) => sum + point.rate, 0) / trendPoints.length
+    const denominator = trendPoints.reduce((sum, point) => sum + (point.mtt - meanX) ** 2, 0)
     if (!denominator) return null
-    const slope = segments.reduce((sum, seg, idx) => sum + (idx - meanX) * (seg.rate - meanY), 0) / denominator
+    const slope = trendPoints.reduce((sum, point) => sum + (point.mtt - meanX) * (point.rate - meanY), 0) / denominator
     const intercept = meanY - slope * meanX
     const startRate = clampNumber(intercept, -maxAbs, maxAbs)
-    const endRate = clampNumber(intercept + slope * (n - 1), -maxAbs, maxAbs)
+    const endRate = clampNumber(intercept + slope * maxMtt, -maxAbs, maxAbs)
     const trendY = y(endRate)
     return {
-      path:`M ${x(0).toFixed(1)} ${y(startRate).toFixed(1)} L ${x(n - 1).toFixed(1)} ${trendY.toFixed(1)}`,
+      path:`M ${xByMtt(0).toFixed(1)} ${y(startRate).toFixed(1)} L ${xByMtt(maxMtt).toFixed(1)} ${trendY.toFixed(1)}`,
       rising:endRate >= startRate,
     }
   })() : null
@@ -633,6 +636,7 @@ function PaceWidget({ meta, stats, period, setPeriod, lang, t }) {
   const deltaRate = pace.deltaRate
   const isNegative = currentRate != null && currentRate < 0
   const periodLabel = t(period === 'week' ? 'period_week' : period === 'month' ? 'period_month' : 'period_all')
+  const paceRateLabel = period === 'all' ? t('pace_rate_all') : t('pace_rate_now')
   const mttUnit = t('sr_mtt_short')
   const finishTarget = pace.finishMTT || pace.bustMTT || null
   const showHistory = prevRate != null
@@ -656,7 +660,7 @@ function PaceWidget({ meta, stats, period, setPeriod, lang, t }) {
       <div className="pace-dashboard">
         <div className={`pace-summary-panel marathon-progress-side ${showHistory ? 'has-history' : 'no-history'}`}>
           <div className="mps-item pace-rate-item">
-            <span className="mps-label">{t('pace_rate_now')}</span>
+            <span className="mps-label">{paceRateLabel}</span>
             <span className="mps-value-row">
               <PaceRateValue value={currentRate} unit={mttUnit} className="mps-value" animate={false}/>
             </span>
@@ -665,8 +669,7 @@ function PaceWidget({ meta, stats, period, setPeriod, lang, t }) {
           <div className="mps-divider"/>
           <div className="mps-item pace-projection-item">
             <span className="mps-label">{isNegative ? t('pace_to_zero') : t('pace_finish')}</span>
-            {finishTarget ? <TempoValue target={finishTarget} title={t('pace_at_current')} animate={false}/> : <span className="mps-value">—</span>}
-            <span className="pace-summary-note">{isNegative ? t('pace_to_zero_note') : t('pace_finish_note')}</span>
+            {finishTarget ? <TempoValue target={finishTarget} title={t('pace_at_current')} animate={false} suffix={` ${t('pace_projection_unit')}`}/> : <span className="mps-value">—</span>}
           </div>
           {showHistory && <>
             <div className="mps-divider"/>
@@ -2527,7 +2530,7 @@ const PostCard = memo(function PostCard({ p, favorites, ignored, onFav, onIgnore
 // ─── TEMPO VALUE (animated, used in progress bar) ────────────────────────────
 // Smoothly tweens `target` when it changes (e.g. user toggles chart period).
 // Briefly pulses with a subtle highlight to draw the eye.
-function TempoValue({ target, title, animate = true }) {
+function TempoValue({ target, title, animate = true, suffix = '' }) {
   const v = useTweenValue(target, animate ? 700 : 0)
   const [pulse, setPulse] = useState(false)
   const prev = useRef(target)
@@ -2542,7 +2545,7 @@ function TempoValue({ target, title, animate = true }) {
   }, [animate, target])
   return (
     <span className={`mps-value tempo-val ${pulse?'pulse':''}`} title={title}>
-      ~{fmtInt(Math.round(v))}
+      ~{fmtInt(Math.round(v))}{suffix && <span className="tempo-unit">{suffix}</span>}
     </span>
   )
 }

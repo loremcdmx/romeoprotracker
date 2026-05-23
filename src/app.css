@@ -295,12 +295,14 @@ a{color:var(--red2);text-decoration:none}
 .pace-summary-panel .pace-rate-item::before{background:var(--pace-green)}
 .pace-summary-panel .pace-projection-item::before{background:var(--pace-gold)}
 .pace-summary-panel .mps-label{font-size:10.2px;color:rgba(220,220,220,.68);font-weight:700;letter-spacing:.015em;text-transform:none;white-space:nowrap}
+.pace-summary-panel .pace-rate-item .mps-label,.pace-summary-panel .pace-projection-item .mps-label{color:rgba(255,212,121,.78)}
 .pace-summary-panel .mps-value{font-size:16px;font-weight:800;color:var(--white);line-height:1;white-space:nowrap;font-variant-numeric:tabular-nums;letter-spacing:0;text-shadow:0 1px 2px rgba(0,0,0,.30)}
 .pace-summary-panel .pace-rate-value{font-size:16px;letter-spacing:0;text-shadow:0 1px 2px rgba(0,0,0,.32)}
 .pace-summary-panel .pace-rate-value.pulse,.pace-summary-panel .tempo-val.pulse{transform:none;color:var(--pace-gold);text-shadow:0 0 12px rgba(255,212,121,.28),0 1px 2px rgba(0,0,0,.40)}
 .pace-summary-panel .pace-rate-value.pos{color:var(--pace-green)}
 .pace-summary-panel .pace-rate-value.neg{color:var(--red2)}
 .pace-summary-panel .tempo-val{color:#f4f0df;text-shadow:0 1px 2px rgba(0,0,0,.32)}
+.pace-summary-panel .tempo-unit{margin-left:5px;font-size:10.5px;font-weight:700;color:rgba(220,220,220,.62);text-shadow:none}
 .pace-summary-note{display:block;max-width:100%;font-size:9.5px;color:rgba(190,190,190,.68);font-family:'Roboto Mono',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-variant-numeric:tabular-nums}
 .pace-rate-value{display:inline-block;color:var(--white);font-family:'Roboto Mono',monospace;font-variant-numeric:tabular-nums;transition:color .18s}
 .pace-rate-value.pos{color:var(--pace-green);text-shadow:none}
@@ -322,7 +324,7 @@ a{color:var(--red2);text-decoration:none}
 .pace-chart-wrap{border:1px solid rgba(255,255,255,.07);border-radius:12px;background:linear-gradient(180deg,rgba(255,255,255,.02),rgba(0,0,0,.05));overflow:visible;position:relative;box-shadow:inset 0 1px 0 rgba(255,255,255,.03)}
 .pace-chart{display:block;width:100%;height:auto;min-height:188px}
 .pace-grid-line{stroke:rgba(255,255,255,.07);stroke-width:1}
-.pace-zero{stroke:rgba(255,255,255,.18);stroke-dasharray:7 8}
+.pace-zero{stroke:rgba(255,255,255,.18)}
 .pace-y-label,.pace-x-label,.pace-chart-value,.pace-axis-caption,.pace-goal-caption,.pace-x-caption{font-family:'Roboto Mono',monospace;font-weight:900;font-variant-numeric:tabular-nums;text-shadow:0 1px 2px rgba(0,0,0,.30)}
 .pace-axis-caption{fill:rgba(170,222,255,.86);font-size:9px;text-transform:uppercase;letter-spacing:.05em}
 .pace-goal-caption{fill:#b7f4bd;font-family:'Inter',system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:10px;font-weight:700;text-anchor:middle;letter-spacing:.01em;text-shadow:0 1px 1px rgba(0,0,0,.35)}

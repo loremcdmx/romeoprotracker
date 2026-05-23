@@ -191,10 +191,14 @@ describe('App', () => {
     render(<App />)
     const widget = await screen.findByTestId('pace-widget')
     expect(within(widget).getByText(translate('ru', 'pace_title'))).toBeInTheDocument()
+    expect(within(widget).getByText(translate('ru', 'pace_rate_all'))).toBeInTheDocument()
+    expect(within(widget).queryByText(translate('ru', 'pace_rate_now'))).not.toBeInTheDocument()
     expect(within(widget).getAllByText('+5.5$/МТТ').length).toBeGreaterThanOrEqual(1)
     expect(within(widget).queryByText(translate('ru', 'pace_rate_prev'))).not.toBeInTheDocument()
     expect(within(widget).queryByText(translate('ru', 'pace_all_note'))).not.toBeInTheDocument()
     expect(within(widget).queryByText(/при текущем темпе/)).not.toBeInTheDocument()
+    expect(within(widget).getByText(translate('ru', 'pace_finish'))).toBeInTheDocument()
+    expect(within(widget).queryByText(translate('ru', 'pace_finish_note'))).not.toBeInTheDocument()
     expect(within(widget).getByTestId('pace-chart')).toBeInTheDocument()
     expect(within(widget).getByText((text) => text.replace(/\s/g, ' ') === 'шаг: 2 000 МТТ')).toBeInTheDocument()
     expect(within(widget).queryByText(translate('ru', 'pace_chart_title'))).not.toBeInTheDocument()
@@ -211,6 +215,7 @@ describe('App', () => {
     await waitFor(() => {
       expect(within(widget).getAllByText('+6$/МТТ').length).toBeGreaterThanOrEqual(1)
     })
+    expect(within(widget).getByText(translate('ru', 'pace_rate_now'))).toBeInTheDocument()
     await waitFor(() => {
       expect(within(widget).getAllByText('+5$/МТТ').length).toBeGreaterThanOrEqual(1)
     })
@@ -218,7 +223,7 @@ describe('App', () => {
     expect(within(widget).getByText('изменение: +1$/МТТ')).toBeInTheDocument()
     expect(within(widget).queryByText(/при текущем темпе/)).not.toBeInTheDocument()
     await waitFor(() => {
-      expect(within(widget).getByText((text) => text.replace(/\s/g, '') === '~1661334')).toBeInTheDocument()
+      expect(widget.querySelector('.pace-projection-item .tempo-val')?.textContent?.replace(/\s/g, '')).toBe('~1661334турниров')
     })
     expect(within(widget).getAllByText('2k').length).toBeGreaterThanOrEqual(1)
     expect(within(widget).queryByText('1k')).not.toBeInTheDocument()
@@ -255,6 +260,9 @@ describe('App', () => {
     expect(widget.querySelector('.pace-segment.partial')).toBeInTheDocument()
     expect(widget.querySelector('.pace-dot-partial-ring')).toBeInTheDocument()
     expect(widget.querySelector('.pace-line.partial')).toBeInTheDocument()
+    const plotLeft = Number(widget.querySelector('.pace-plot-bg')?.getAttribute('x'))
+    const trendStart = widget.querySelector('.pace-trend-line')?.getAttribute('d')?.match(/^M ([\d.]+) /)
+    expect(Number(trendStart?.[1])).toBeCloseTo(plotLeft, 1)
   })
 
   it('anchors activity chart edge labels inside the SVG bounds', async () => {
