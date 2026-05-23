@@ -9,7 +9,7 @@
   "finishedAt": "2026-06-11T23:59:59.000+00:00",
   "targetNick": "R Romanovskyi",
   "limit": 6000,
-  "fetchedAt": "2026-05-23T18:56:23.080Z",
+  "fetchedAt": "2026-05-23T20:03:08.857Z",
   "warnings": [],
   "leaderboards": [
     {
@@ -354,12 +354,12 @@
       "promotionName": "2026 GGWF-S(for prize)",
       "status": "found",
       "target": {
-        "rank": 92,
+        "rank": 90,
         "nickname": "R Romanovskyi",
         "brandId": "GGPCOM",
         "siteId": "GGPUA",
         "countryId": "UA",
-        "point": 355.91,
+        "point": 364.02,
         "prizeValue": 2000,
         "prizeCurrency": "GCD",
         "isCorrect": true
@@ -404,7 +404,7 @@
           "brandId": "POKEROK",
           "siteId": "GGPOK",
           "countryId": "RU",
-          "point": 1974.6,
+          "point": 1981.29,
           "prizeValue": 60000,
           "prizeCurrency": "USD",
           "isCorrect": true
@@ -415,7 +415,7 @@
           "brandId": "GGPCOM",
           "siteId": "GGPUA",
           "countryId": "UA",
-          "point": 1906.81,
+          "point": 1924.94,
           "prizeValue": 50000,
           "prizeCurrency": "USD",
           "isCorrect": true
@@ -433,32 +433,32 @@
         }
       ],
       "nextAbove": {
-        "rank": 91,
-        "nickname": "Leon Sturm",
+        "rank": 89,
+        "nickname": "M_R_Z_E_",
         "brandId": "GGPCOM",
         "siteId": "GGPCW",
         "countryId": "AT",
-        "point": 359.47,
+        "point": 365.77,
         "prizeValue": 2000,
         "prizeCurrency": "GCD",
         "isCorrect": true
       },
       "nextBelow": {
-        "rank": 93,
-        "nickname": "Diogo Coelho",
-        "brandId": "GGPCOM",
-        "siteId": "GGPBR",
-        "countryId": "BR",
-        "point": 347.53,
+        "rank": 91,
+        "nickname": "V Larin",
+        "brandId": "POKEROK",
+        "siteId": "GGPOK",
+        "countryId": "ME",
+        "point": 361.47,
         "prizeValue": 2000,
         "prizeCurrency": "GCD",
         "isCorrect": true
       },
-      "rowsFetched": 1168,
-      "lastRank": 1168,
-      "gapToLeader": -1872.69,
-      "gapToNextAbove": -3.56,
-      "gapToNextBelow": -8.38
+      "rowsFetched": 1171,
+      "lastRank": 1171,
+      "gapToLeader": -1864.58,
+      "gapToNextAbove": -1.75,
+      "gapToNextBelow": -2.55
     }
   ]
 }
