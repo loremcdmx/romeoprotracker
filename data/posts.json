@@ -116015,7 +116015,7 @@
     "date": "24 мая, 18:55",
     "timestamp": 1779641714,
     "text": "Положение в ЛБ на сегодня:",
-    "likes": 2,
+    "likes": 6,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_05_2026/post-134495-177964161051da_thumb.webp",
       "https://static-forum.gipsyteam.ru/monthly_05_2026/post-134495-1779641663964c_thumb.webp",
@@ -116049,13 +116049,13 @@
     "id": "8237649",
     "author": "pokerpain",
     "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/1/6/9/8/169882.webp",
-    "rating": 365,
+    "rating": 465,
     "msgCount": 54,
     "regData": "1 год на сайте",
     "date": "24 мая, 19:01",
     "timestamp": 1779642119,
     "text": "Смотрим на твиче, ждем лудки за сундуки.",
-    "likes": 0,
+    "likes": 1,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_05_2026/post-187091-17796421061bf1_thumb.webp"
     ],
@@ -116100,5 +116100,25 @@
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8237630"
+  },
+  {
+    "id": "8237662",
+    "author": "LakyFish",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/7/9/7/79773.jpg",
+    "rating": 2663,
+    "msgCount": 3998,
+    "regData": "15 лет на сайте",
+    "date": "24 мая, 19:33",
+    "timestamp": 1779643987,
+    "text": "",
+    "likes": 1,
+    "images": [
+      "https://static-forum.gipsyteam.ru/monthly_05_2026/post-13344-1779643980433f_thumb.webp"
+    ],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8237662"
   }
 ]
