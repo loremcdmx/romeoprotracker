@@ -117217,7 +117217,7 @@
     "date": "25 мая, 18:11",
     "timestamp": 1779725485,
     "text": "[QUOTE]almagro|almagro @ 25.05.26\nА как ты сделал вывод о каком то \"безумном апе\" ? На основание каких аргументов? Из за того, что 600к спинов откатал?[/QUOTE]На основании своего огромного опыта , понимание дисперсии, скилле.   Пока из переапаного результата делают какой то маркетинг..",
-    "likes": -7,
+    "likes": -8,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -117361,7 +117361,7 @@
     "date": "25 мая, 18:59",
     "timestamp": 1779728391,
     "text": "Положение в ЛБ на сегодня:",
-    "likes": 9,
+    "likes": 10,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_05_2026/post-134495-1779728277b409_thumb.webp",
       "https://static-forum.gipsyteam.ru/monthly_05_2026/post-134495-177972833426e0_thumb.webp",
@@ -117421,7 +117421,7 @@
     "date": "25 мая, 20:20",
     "timestamp": 1779733213,
     "text": "Кто переап?",
-    "likes": 24,
+    "likes": 28,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_05_2026/post-54-17797331971a23_thumb.webp"
     ],
@@ -117441,7 +117441,7 @@
     "date": "25 мая, 20:23",
     "timestamp": 1779733406,
     "text": "[QUOTE]flash11123|flash11123 @ 25.05.26\nВозможно ты и прав, я только не понимаю при чем тут 600к спинов? Типо кол-во спинов помогает осознать когда ап безумный а когда нет? Для меня очевидно что 200к сделать за 2 месяца c 10к,даже играя каждый день, весьма сложная задача.[/QUOTE]Как человек, который сегодня вкусно позавтракал, удивлен твоим вопросом и даже несколько оскорблен",
-    "likes": 8,
+    "likes": 11,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -117477,7 +117477,7 @@
     "date": "25 мая, 20:14",
     "timestamp": 1779732867,
     "text": "Почему нас обгоняет Том и Джери, нельзя уступать фишу!",
-    "likes": -1,
+    "likes": -2,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -117531,7 +117531,7 @@
     "date": "25 мая, 21:57",
     "timestamp": 1779739072,
     "text": "Подрубил 5к на твиче. Идем хорошо",
-    "likes": 8,
+    "likes": 9,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_05_2026/post-187091-177973906749a0_thumb.webp"
     ],
@@ -117551,7 +117551,7 @@
     "date": "25 мая, 23:09",
     "timestamp": 1779743350,
     "text": "darkmoon311, вводим термин разумный переап - когда апает, но по совести-то давно было пора",
-    "likes": 2,
+    "likes": 3,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -117587,12 +117587,48 @@
     "date": "26 мая, 00:52",
     "timestamp": 1779749570,
     "text": "[QUOTE]Hesmotrisuda|Hesmotrisuda @ 25.05.26\nКак человек который откатал больше 600к спинов[/QUOTE]Постыдился бы без дистанции писать.",
-    "likes": 1,
+    "likes": 3,
     "images": [],
     "videos": [],
     "brBefore": null,
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8238418"
+  },
+  {
+    "id": "8238447",
+    "author": "Romeopro",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/2/6/6/26670.jpg",
+    "rating": 25663,
+    "msgCount": 4139,
+    "regData": "16 лет на сайте",
+    "date": "26 мая, 03:27",
+    "timestamp": 1779758875,
+    "text": "Day 66:",
+    "likes": 2,
+    "images": [
+      "https://static-forum.gipsyteam.ru/monthly_05_2026/post-6195-17797588339dab_thumb.webp"
+    ],
+    "videos": [],
+    "brBefore": 186657,
+    "brAfter": 175802,
+    "sessionResult": -10855,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8238447",
+    "rooms": {
+      "before": {
+        "gg": 185220,
+        "ps": 1188,
+        "king": 232,
+        "coin": 17,
+        "lux": 0
+      },
+      "after": {
+        "gg": 174365,
+        "ps": 1188,
+        "king": 232,
+        "coin": 17,
+        "lux": 0
+      }
+    }
   }
 ]
