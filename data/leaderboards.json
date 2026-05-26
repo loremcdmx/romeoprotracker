@@ -9,7 +9,7 @@
   "finishedAt": "2026-06-11T23:59:59.000+00:00",
   "targetNick": "R Romanovskyi",
   "limit": 6000,
-  "fetchedAt": "2026-05-26T06:38:38.847Z",
+  "fetchedAt": "2026-05-26T13:48:18.900Z",
   "warnings": [],
   "leaderboards": [
     {
@@ -34,7 +34,7 @@
         "brandId": "GGPCOM",
         "siteId": "GGPPL",
         "countryId": "PL",
-        "point": 5872.27,
+        "point": 5881.79,
         "prizeValue": 20000,
         "prizeCurrency": "USD",
         "isCorrect": true
@@ -46,7 +46,7 @@
           "brandId": "GGPCOM",
           "siteId": "GGPPL",
           "countryId": "PL",
-          "point": 5872.27,
+          "point": 5881.79,
           "prizeValue": 20000,
           "prizeCurrency": "USD",
           "isCorrect": true
@@ -57,7 +57,7 @@
           "brandId": "POKEROK",
           "siteId": "GGPOK",
           "countryId": "BY",
-          "point": 5076.41,
+          "point": 5087.29,
           "prizeValue": 12500,
           "prizeCurrency": "USD",
           "isCorrect": true
@@ -68,7 +68,7 @@
           "brandId": "GGPCOM",
           "siteId": "GGPCW",
           "countryId": "SI",
-          "point": 5066.35,
+          "point": 5072.25,
           "prizeValue": 8000,
           "prizeCurrency": "USD",
           "isCorrect": true
@@ -79,7 +79,7 @@
           "brandId": "POKEROK",
           "siteId": "GGPOK",
           "countryId": "RO",
-          "point": 4941.79,
+          "point": 4953.1,
           "prizeValue": 5000,
           "prizeCurrency": "USD",
           "isCorrect": true
@@ -90,7 +90,7 @@
           "brandId": "POKEROK",
           "siteId": "GGPOK",
           "countryId": "RU",
-          "point": 4888.93,
+          "point": 4895.12,
           "prizeValue": 4000,
           "prizeCurrency": "USD",
           "isCorrect": true
@@ -109,20 +109,20 @@
       },
       "nextBelow": {
         "rank": 198,
-        "nickname": "AteneaT",
+        "nickname": "El paqueteee",
         "brandId": "GGPCOM",
-        "siteId": "GGPCW",
-        "countryId": "AD",
-        "point": 2354.68,
+        "siteId": "GGPCOM",
+        "countryId": "PE",
+        "point": 2356.33,
         "prizeValue": 150,
         "prizeCurrency": "GCD",
         "isCorrect": true
       },
       "rowsFetched": 6000,
       "lastRank": 6000,
-      "gapToLeader": -3514.16,
+      "gapToLeader": -3523.68,
       "gapToNextAbove": -6.73,
-      "gapToNextBelow": -3.43
+      "gapToNextBelow": -1.78
     },
     {
       "tier": "Medium",
