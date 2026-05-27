@@ -519,6 +519,43 @@ describe('App', () => {
     expect(new Set([...document.querySelectorAll('.mc-xaxis-label-sub')].map(label => label.getAttribute('y'))).size).toBe(1)
   })
 
+  it('stacks adjacent best and worst marathon labels instead of overlapping them', async () => {
+    const base = makeMockData()
+    const brs = [18000, 42000, 76000, 120000, 177800, 142600]
+    const totals = [1000, 3500, 6500, 10000, 11700, 13957]
+    const brHistory = brs.map((brAfter, i) => {
+      const brPrev = i === 0 ? 10000 : brs[i - 1]
+      const totalTournaments = totals[i]
+      return {
+        brAfter,
+        brPrev,
+        date: `D${i + 1}`,
+        timestamp: 1712300000 + i * 86400,
+        sessionResult: brAfter - brPrev,
+        totalTournaments,
+        tournaments: i === 0 ? totalTournaments : totalTournaments - totals[i - 1],
+        text: `Session ${i + 1}`,
+      }
+    })
+    fetchPublicData.mockResolvedValue(makeMockData({
+      meta: {
+        ...base.meta,
+        brHistory,
+        totalTournaments: totals.at(-1),
+      },
+    }))
+
+    render(<App />)
+    expect(await screen.findByText(new RegExp(translate('ru', 'chart_marathon').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))).toBeInTheDocument()
+
+    const bestLabel = document.querySelector('.mc-x-tick.best .mc-xaxis-label-main')
+    const worstLabel = document.querySelector('.mc-x-tick.worst .mc-xaxis-label-main')
+
+    expect(bestLabel?.textContent).toMatch(/^\+/)
+    expect(worstLabel?.textContent).toContain('\u0412\u041e\u0420\u0421\u0422')
+    expect(bestLabel?.getAttribute('y')).not.toBe(worstLabel?.getAttribute('y'))
+  })
+
   it('condenses dense same-sign marathon markers and uses rebuilt axes', async () => {
     const base = makeMockData()
     const brHistory = Array.from({ length:80 }, (_, i) => ({
