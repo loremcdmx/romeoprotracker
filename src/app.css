@@ -293,7 +293,7 @@ a{color:var(--red2);text-decoration:none}
 .pace-summary-panel.marathon-progress-side .mps-item::before{content:"";position:absolute;left:0;top:10px;bottom:10px;width:3px;border-radius:0 999px 999px 0;background:rgba(123,220,255,.58)}
 .pace-summary-panel .pace-rate-item::before{background:var(--pace-green)}
 .pace-summary-panel .pace-projection-item::before{background:var(--pace-gold)}
-.pace-summary-panel .mps-label{font-size:10.2px;color:rgba(220,220,220,.68);font-weight:700;letter-spacing:.015em;text-transform:none;white-space:nowrap}
+.pace-summary-panel .mps-label{font-size:14px;color:rgba(220,220,220,.72);font-weight:800;letter-spacing:0;text-transform:none;white-space:nowrap}
 .pace-summary-panel .pace-rate-item .mps-label,.pace-summary-panel .pace-projection-item .mps-label{color:rgba(255,212,121,.78)}
 .pace-summary-panel .mps-value{font-size:16px;font-weight:800;color:var(--white);line-height:1;white-space:nowrap;font-variant-numeric:tabular-nums;letter-spacing:0;text-shadow:0 1px 2px rgba(0,0,0,.30)}
 .pace-summary-panel .pace-rate-value{font-size:16px;letter-spacing:0;text-shadow:0 1px 2px rgba(0,0,0,.32)}
@@ -792,6 +792,7 @@ html{scroll-behavior:smooth}
   .pace-summary-panel.marathon-progress-side .mps-item{min-height:52px;align-items:center;padding:8px 10px;border-bottom:0}
   .pace-summary-panel .mps-item:last-child{border-bottom:0}
   .pace-summary-panel .mps-value{font-size:15px}
+  .pace-summary-panel .mps-label{font-size:12.5px}
   .pace-rate-item .pace-rate-value{font-size:15px}
   .pace-rate-item::after{display:none}
   .pace-summary-note{font-size:9px}
