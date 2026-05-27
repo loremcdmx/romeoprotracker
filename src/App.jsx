@@ -855,7 +855,6 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
   const xSubLabelY = xMainLabelY + (isMobile ? 13 : 11)
   const xLabelEdgePad = isMobile ? 6 : 8
   const xLabelExtraBottom = 0
-  const xLabelLaneStep = isMobile ? 30 : 25
   const signOfProfit = v => v > 0 ? 1 : v < 0 ? -1 : 0
   const sessionProfitAt = i => {
     const p = points[i]
@@ -1089,9 +1088,9 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
     if (worstDay?.profit < 0) {
       put(worstDay.lastIdx, {
         kind:'worst',
-        main:`${eventLabel('worst')} ${fk(worstDay.profit)}`,
+        main:fk(worstDay.profit),
         priority:126,
-        note:`${eventLabel('worst').toLowerCase()} ${fk(worstDay.profit)}`,
+        note:eventLabel('worst').toLowerCase(),
       })
     }
 
@@ -1133,39 +1132,7 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
       }
     }
 
-    const labelMetrics = item => {
-      const textWidth = labelWidth(item)
-      const lx = Math.min(Math.max(item.x, pL), W - pR)
-      const leftBound = pL + xLabelEdgePad
-      const rightBound = W - pR - xLabelEdgePad
-      const anchor = lx - textWidth / 2 < leftBound
-        ? 'start'
-        : lx + textWidth / 2 > rightBound
-          ? 'end'
-          : 'middle'
-      const tx = anchor === 'start' ? leftBound : anchor === 'end' ? rightBound : lx
-      const left = anchor === 'start' ? tx : anchor === 'end' ? tx - textWidth : tx - textWidth / 2
-      const right = anchor === 'start' ? tx + textWidth : anchor === 'end' ? tx : tx + textWidth / 2
-      return { lx, tx, anchor, textWidth, left, right }
-    }
-
-    const rows = [[], []]
-    const laneGap = isMobile ? 12 : 10
-    const placed = selected
-      .slice()
-      .sort((a,b) => b.priority - a.priority || a.x - b.x)
-      .reduce((acc, item) => {
-        const metrics = labelMetrics(item)
-        const lane = rows.findIndex(row => row.every(other =>
-          metrics.right + laneGap <= other.left || metrics.left >= other.right + laneGap
-        ))
-        if (lane === -1) return acc
-        rows[lane].push(metrics)
-        acc.push({ ...item, ...metrics, lane })
-        return acc
-      }, [])
-
-    return placed
+    return selected
       .sort((a,b) => a.x - b.x)
       .map(item => ({
         ...item,
@@ -1516,11 +1483,22 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
             </text>
           </g>
         )}
-        {xLabelItems.map(({ i, y, main, sub, kind, lx, tx, anchor, lane }) => {
+        {xLabelItems.map(({ i, x, y, main, sub, kind }) => {
           const isLast = i===points.length-1
-          const laneOffset = (lane || 0) * xLabelLaneStep
-          const mainY = xMainLabelY + laneOffset
-          const subY = xSubLabelY + laneOffset
+          const lx = Math.min(Math.max(x,pL),W-pR)
+          const mainWidth = String(main || '').length * (isMobile ? 7.4 : 7.1)
+          const subWidth = String(sub || '').length * (isMobile ? 4.9 : 4.7)
+          const textWidth = Math.min(isMobile ? 138 : 176, Math.max(48, mainWidth, subWidth))
+          const leftBound = pL + xLabelEdgePad
+          const rightBound = W - pR - xLabelEdgePad
+          const anchor = lx - textWidth / 2 < leftBound
+            ? 'start'
+            : lx + textWidth / 2 > rightBound
+              ? 'end'
+              : 'middle'
+          const tx = anchor === 'start' ? leftBound : anchor === 'end' ? rightBound : lx
+          const mainY = xMainLabelY
+          const subY = xSubLabelY
           const currentLine = anchor === 'end'
             ? { x1: tx - 44, x2: tx }
             : anchor === 'start'

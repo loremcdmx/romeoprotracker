@@ -330,7 +330,7 @@ describe('App', () => {
     expect(allAxisText).toContain('$100k')
     expect(bestLabel?.textContent).toMatch(/^\+/)
     expect(labels.some(label => label?.includes('БЕСТ'))).toBe(false)
-    expect(labels.some(label => label?.includes('ВОРСТ'))).toBe(true)
+    expect(labels.some(label => label?.includes('ВОРСТ'))).toBe(false)
     expect(allAxisText).not.toContain('ПИК')
     expect(document.querySelector('.mc-x-tick.peak')).not.toBeInTheDocument()
     expect(peakCallout).toBeInTheDocument()
@@ -519,7 +519,7 @@ describe('App', () => {
     expect(new Set([...document.querySelectorAll('.mc-xaxis-label-sub')].map(label => label.getAttribute('y'))).size).toBe(1)
   })
 
-  it('stacks adjacent best and worst marathon labels instead of overlapping them', async () => {
+  it('keeps adjacent best and worst marathon labels compact on one line', async () => {
     const base = makeMockData()
     const brs = [18000, 42000, 76000, 120000, 177800, 142600]
     const totals = [1000, 3500, 6500, 10000, 11700, 13957]
@@ -552,8 +552,8 @@ describe('App', () => {
     const worstLabel = document.querySelector('.mc-x-tick.worst .mc-xaxis-label-main')
 
     expect(bestLabel?.textContent).toMatch(/^\+/)
-    expect(worstLabel?.textContent).toContain('\u0412\u041e\u0420\u0421\u0422')
-    expect(bestLabel?.getAttribute('y')).not.toBe(worstLabel?.getAttribute('y'))
+    expect(worstLabel?.textContent).toBe('-35.2k$')
+    expect(bestLabel?.getAttribute('y')).toBe(worstLabel?.getAttribute('y'))
   })
 
   it('condenses dense same-sign marathon markers and uses rebuilt axes', async () => {
