@@ -683,11 +683,6 @@ function PaceWidget({ meta, stats, period, setPeriod, lang, t }) {
           </>}
         </div>
         <div className="pace-chart-meta">
-          <div className="pace-speed-legend" aria-hidden="true">
-            <span className="pos">{t('pace_speed_positive')}</span>
-            <span className="neg">{t('pace_speed_negative')}</span>
-            <span className="trend">{t('pace_trend_label')}</span>
-          </div>
           <div className="pace-chart-title">
             <b>{t('pace_chart_step')}: {fmtInt(pace.binSize)} {mttUnit}</b>
           </div>

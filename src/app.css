@@ -314,13 +314,6 @@ a{color:var(--red2);text-decoration:none}
 .pace-chart-title span{color:rgba(245,245,245,.88);font-size:12px;font-weight:760;letter-spacing:.01em}
 .pace-chart-title small{color:rgba(220,220,220,.54);font-size:10.2px;font-weight:500;letter-spacing:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pace-chart-title b{display:inline-flex;align-items:center;color:color-mix(in srgb,var(--pace-blue) 74%,var(--dim2));font-size:10px;font-weight:760;letter-spacing:0;white-space:nowrap;padding:4px 9px;border-radius:999px;background:rgba(123,220,255,.055);border:1px solid rgba(123,220,255,.14)}
-.pace-speed-legend{display:flex;gap:10px;align-items:center;margin:0;font-family:inherit;font-size:10px;font-weight:650;color:var(--dim);min-width:0;flex-wrap:wrap}
-.pace-speed-legend span{display:inline-flex;align-items:center;gap:4px;white-space:nowrap}
-.pace-speed-legend span::before{content:"";width:7px;height:7px;border-radius:999px;background:currentColor}
-.pace-speed-legend .pos{color:var(--pace-green)}
-.pace-speed-legend .neg{color:var(--pace-red)}
-.pace-speed-legend .trend{color:rgba(177,238,183,.70)}
-.pace-speed-legend .trend::before{width:18px;height:0;border-radius:0;background:transparent;border-top:1.5px dashed currentColor}
 .pace-chart-wrap{border:1px solid rgba(255,255,255,.07);border-radius:12px;background:linear-gradient(180deg,rgba(255,255,255,.02),rgba(0,0,0,.05));overflow:visible;position:relative;box-shadow:inset 0 1px 0 rgba(255,255,255,.03)}
 .pace-chart{display:block;width:100%;height:auto;min-height:188px}
 .pace-grid-line{stroke:rgba(255,255,255,.07);stroke-width:1}
@@ -807,7 +800,6 @@ html{scroll-behavior:smooth}
   .pace-chart-title{align-items:flex-start;flex-direction:column;gap:7px}
   .pace-chart-title small{white-space:normal;line-height:1.35}
   .pace-chart-title b{align-self:flex-start}
-  .pace-speed-legend{flex-wrap:wrap;margin-top:-1px;font-size:9px}
   .pace-chart{min-height:218px}
   .pace-y-label{font-size:9.4px}
   .pace-x-label{font-size:8.7px}
