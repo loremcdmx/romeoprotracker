@@ -284,7 +284,6 @@ a{color:var(--red2);text-decoration:none}
 .pace-widget.negative::before{background:linear-gradient(90deg,transparent,rgba(255,116,108,.4),rgba(255,179,0,.22),transparent)}
 .pace-head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;margin-bottom:14px;position:relative;z-index:1}
 .pace-widget .section-title{color:rgba(245,245,245,.94);font-size:15px;font-weight:760;text-transform:none;letter-spacing:.012em;line-height:1.18;text-shadow:0 1px 2px rgba(0,0,0,.32)}
-.pace-sub{margin-top:6px;font-size:11px;color:color-mix(in srgb,var(--dim2) 82%,var(--pace-blue));font-family:inherit;font-weight:500;letter-spacing:0}
 .pace-periods{display:flex;gap:4px;flex-shrink:0}
 .pace-widget .mc-period{font-size:11px;font-weight:720;text-transform:none;letter-spacing:.01em;border-radius:8px;padding:5px 10px;color:rgba(224,224,224,.76)}
 .pace-widget .mc-period.active{color:#fff;box-shadow:0 0 0 1px rgba(255,255,255,.045),0 5px 14px rgba(229,57,53,.14)}

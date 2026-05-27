@@ -635,7 +635,6 @@ function PaceWidget({ meta, stats, period, setPeriod, lang, t }) {
   const prevRate = pace.previous?.rate
   const deltaRate = pace.deltaRate
   const isNegative = currentRate != null && currentRate < 0
-  const periodLabel = t(period === 'week' ? 'period_week' : period === 'month' ? 'period_month' : 'period_all')
   const paceRateLabel = period === 'all' ? t('pace_rate_all') : t('pace_rate_now')
   const mttUnit = t('sr_mtt_short')
   const finishTarget = pace.finishMTT || pace.bustMTT || null
@@ -646,7 +645,6 @@ function PaceWidget({ meta, stats, period, setPeriod, lang, t }) {
       <div className="pace-head">
         <div>
           <div className="section-title">{t('pace_title')}</div>
-          <div className="pace-sub">{t('pace_sub')} · {periodLabel.toLowerCase()}</div>
         </div>
         <div className="pace-periods">
           {[['week', t('period_week')], ['month', t('period_month')], ['all', t('period_all')]].map(([key, label]) => (
