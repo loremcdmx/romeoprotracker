@@ -9,7 +9,7 @@
   "finishedAt": "2026-06-11T23:59:59.000+00:00",
   "targetNick": "R Romanovskyi",
   "limit": 6000,
-  "fetchedAt": "2026-05-27T17:39:40.902Z",
+  "fetchedAt": "2026-05-27T20:00:09.524Z",
   "warnings": [],
   "leaderboards": [
     {
@@ -370,7 +370,7 @@
         "brandId": "POKEROK",
         "siteId": "GGPOK",
         "countryId": "RU",
-        "point": 2625.07,
+        "point": 2662.52,
         "prizeValue": 100000,
         "prizeCurrency": "USD",
         "isCorrect": true
@@ -382,7 +382,7 @@
           "brandId": "POKEROK",
           "siteId": "GGPOK",
           "countryId": "RU",
-          "point": 2625.07,
+          "point": 2662.52,
           "prizeValue": 100000,
           "prizeCurrency": "USD",
           "isCorrect": true
@@ -393,7 +393,7 @@
           "brandId": "POKEROK",
           "siteId": "GGPOK",
           "countryId": "RU",
-          "point": 2487.18,
+          "point": 2493.51,
           "prizeValue": 80000,
           "prizeCurrency": "USD",
           "isCorrect": true
@@ -404,7 +404,7 @@
           "brandId": "GGPCOM",
           "siteId": "GGPUA",
           "countryId": "UA",
-          "point": 2328.98,
+          "point": 2350.6,
           "prizeValue": 60000,
           "prizeCurrency": "USD",
           "isCorrect": true
@@ -415,7 +415,7 @@
           "brandId": "GGPCOM",
           "siteId": "GGPCW",
           "countryId": "AT",
-          "point": 2170.46,
+          "point": 2177.18,
           "prizeValue": 50000,
           "prizeCurrency": "USD",
           "isCorrect": true
@@ -426,7 +426,7 @@
           "brandId": "DAVAOPOKER",
           "siteId": "DavaoPoker",
           "countryId": "PH",
-          "point": 2150.45,
+          "point": 2160.46,
           "prizeValue": 45000,
           "prizeCurrency": "USD",
           "isCorrect": true
@@ -456,7 +456,7 @@
       },
       "rowsFetched": 1349,
       "lastRank": 1349,
-      "gapToLeader": -1900.91,
+      "gapToLeader": -1938.36,
       "gapToNextAbove": -3.29,
       "gapToNextBelow": -6.81
     }
