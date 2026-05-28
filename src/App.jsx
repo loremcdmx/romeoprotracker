@@ -2834,6 +2834,97 @@ export function SidebarTopList({ posts, setLightbox }) {
 }
 
 
+const FF_URL = 'https://firstfund.pro/?utm_source=romeofish&utm_medium=referral&utm_campaign=romeofish'
+const FF_CHIP_EDGES = 30 // cylindrical rim segments for the 3D coin
+
+function FfLogo() {
+  return (
+    <svg className="ff-chip-logo" viewBox="0 0 443 240" aria-hidden="true">
+      <path d="M210 0H0V239.999H82.4998V164.154H194.08V90.2182H82.4998V74.9998H210V0Z"/>
+      <path d="M442.498 0.000513315H232.499V240H314.999V164.154H425.13V90.2187H314.999V75.0004H442.498V0.000513315Z"/>
+    </svg>
+  )
+}
+
+function FirstFundChip() {
+  const chipRef = useRef(null)
+  const rafRef = useRef(0)
+
+  // The chip leans toward the cursor anywhere on the page; the idle tumble
+  // keeps running underneath (tilt is on .ff-chip, spin on .ff-chip-spin).
+  useEffect(() => {
+    const clamp = (v, m) => Math.max(-m, Math.min(m, v))
+    const onMove = (e) => {
+      const el = chipRef.current
+      if (!el) return
+      const rect = el.getBoundingClientRect()
+      const cx = rect.left + rect.width / 2
+      const cy = rect.top + rect.height / 2
+      const ry = clamp((e.clientX - cx) / 300 * 26, 26)
+      const rx = clamp(-(e.clientY - cy) / 300 * 26, 26)
+      cancelAnimationFrame(rafRef.current)
+      rafRef.current = requestAnimationFrame(() => {
+        const node = chipRef.current
+        if (!node) return
+        node.style.setProperty('--rx', `${rx.toFixed(2)}deg`)
+        node.style.setProperty('--ry', `${ry.toFixed(2)}deg`)
+      })
+    }
+    window.addEventListener('pointermove', onMove, { passive: true })
+    return () => {
+      window.removeEventListener('pointermove', onMove)
+      cancelAnimationFrame(rafRef.current)
+    }
+  }, [])
+
+  const edges = Array.from({ length: FF_CHIP_EDGES }, (_, i) => (
+    <span key={i} className={'ff-chip-edge' + (i % 5 < 2 ? ' ff-chip-edge--spot' : '')} style={{ '--i': i }} aria-hidden="true"/>
+  ))
+
+  return (
+    <div className="ff-chip-stage" aria-hidden="true">
+      <div className="ff-chip" ref={chipRef}>
+        <div className="ff-chip-spin">
+          <div className="ff-chip-face ff-chip-front">
+            <span className="ff-chip-mono"><FfLogo/></span>
+          </div>
+          <div className="ff-chip-face ff-chip-back">
+            <span className="ff-chip-mono"><FfLogo/></span>
+          </div>
+          <div className="ff-chip-rim">{edges}</div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function FirstFundBanner({ t }) {
+  const stats = [
+    ['$92M', t('ff_stat_income')],
+    ['1500+', t('ff_stat_players')],
+    ['13', t('ff_stat_years')],
+  ]
+  return (
+    <a className="ff-banner" href={FF_URL} target="_blank" rel="noreferrer">
+      <span className="ff-banner-glow" aria-hidden="true"/>
+      <span className="ff-banner-shine" aria-hidden="true"/>
+      <FirstFundChip/>
+      <span className="ff-banner-kicker">FirstFund</span>
+      <span className="ff-banner-headline">{t('ff_headline')}</span>
+      <span className="ff-banner-sub">{t('ff_sub')}</span>
+      <span className="ff-banner-stats">
+        {stats.map(([v, l]) => (
+          <span key={l} className="ff-banner-stat">
+            <b className="ff-banner-stat-val">{v}</b>
+            <span className="ff-banner-stat-label">{l}</span>
+          </span>
+        ))}
+      </span>
+      <span className="ff-banner-cta">{t('join_ff')} →</span>
+    </a>
+  )
+}
+
 // ─── APP ─────────────────────────────────────────────────────────────────────
 export default function App() {
   const { posts, meta, leaderboards, loading, error, newPostIds, refresh, clearNewPosts } = usePostsData()
@@ -3252,6 +3343,10 @@ export default function App() {
             ))}
           </div>
           <div className="topbar-right">
+            <a className="join-ff-btn" href={FF_URL} target="_blank" rel="noreferrer">
+              <span className="join-ff-label">{t('join_ff')}</span>
+              <span className="join-ff-shine" aria-hidden="true"/>
+            </a>
             <button className="theme-toggle" onClick={()=>setTheme(tv=>tv==='dark'?'light':'dark')}
               title={theme==='dark'?t('theme_light'):t('theme_dark')}>
               {theme==='dark'?'☀️':'🌙'}
@@ -3457,6 +3552,8 @@ export default function App() {
               <MarathonChart posts={posts} meta={meta} startBR={stats.startBR} setLightbox={setLightbox}
                 period={chartPeriod} setPeriod={setChartPeriod} lang={lang} t={t}/>
               <LeaderboardsWidget snapshot={leaderboards} lang={lang} t={t}/>
+              {/* Mobile-only: sidebar is hidden <980px, so surface the FF banner here, after the leaderboard */}
+              <div className="ff-banner-mobile-slot"><FirstFundBanner t={t}/></div>
               <PaceWidget meta={meta} stats={stats} period={chartPeriod} setPeriod={setChartPeriod} lang={lang} t={t}/>
               {/* Mobile-only top posts */}
               {lang==='ru' && hotPosts.length > 0 && (() => {
@@ -3593,6 +3690,8 @@ export default function App() {
                   )}
                 </div>
               </div>
+
+              <FirstFundBanner t={t}/>
 
               <div className="sblock">
                 <div className="sblock-title">🧵 {t('forum_stats')}</div>
