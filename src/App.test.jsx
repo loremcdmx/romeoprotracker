@@ -229,6 +229,45 @@ describe('App', () => {
     expect(within(widget).queryByText('1k')).not.toBeInTheDocument()
   })
 
+  it('drops the colliding full-bin pace label when the total sits just past a bin', async () => {
+    const now = Math.floor(Date.now() / 1000)
+    const totals = [2000, 4000, 6000, 8000, 10000, 12000, 14000, 14165]
+    let br = 10000
+    const brHistory = totals.map((total, i) => {
+      const brPrev = br
+      br += 1500
+      return {
+        brAfter: br,
+        brPrev,
+        date: `D${i + 1}`,
+        timestamp: now - (totals.length - i) * 86400,
+        sessionResult: 1500,
+        totalTournaments: total,
+        tournaments: i === 0 ? total : total - totals[i - 1],
+        text: `Session ${i + 1}`,
+      }
+    })
+    fetchPublicData.mockResolvedValue(makeMockData({
+      meta: { ...makeMockData().meta, brHistory, totalTournaments: 14165 },
+    }))
+
+    render(<App />)
+    const widget = await screen.findByTestId('pace-widget')
+    const labels = [...widget.querySelectorAll('.pace-x-label')]
+      .map((el) => ({ x: Number(el.getAttribute('x')), txt: el.textContent.trim() }))
+      .filter((l) => Number.isFinite(l.x))
+
+    // the current-total label stays; the full-bin tick it would overlap is dropped
+    expect(labels.some((l) => l.txt === '14.2k')).toBe(true)
+    expect(labels.some((l) => l.txt === '14k')).toBe(false)
+    // no two x-axis labels collide (within 30px)
+    for (let i = 0; i < labels.length; i++) {
+      for (let j = i + 1; j < labels.length; j++) {
+        expect(Math.abs(labels[i].x - labels[j].x)).toBeGreaterThanOrEqual(30)
+      }
+    }
+  })
+
   it('renders the incomplete pace chunk as a muted partial marker', async () => {
     const now = Math.floor(Date.now() / 1000)
     const brs = [22000, 46000, 51000]
