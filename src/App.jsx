@@ -386,11 +386,13 @@ function PaceMiniChart({ segments, unit, t }) {
     ? `M ${partialStartPoint.x.toFixed(1)} ${partialStartPoint.y.toFixed(1)} L ${points[points.length - 1].x.toFixed(1)} ${points[points.length - 1].y.toFixed(1)}`
     : ''
   const partialTailTone = hasPartialTail && segments[segments.length - 1].rate >= 0 ? 'pos' : 'neg'
-  const trend = segments.length > 2 ? (() => {
-    const trendPoints = segments.map(seg => ({
+  const trendSegments = segments.filter(seg => seg.full)
+  const trend = trendSegments.length > 1 ? (() => {
+    const trendPoints = trendSegments.map(seg => ({
       mtt:seg.endMtt || 0,
       rate:seg.rate || 0,
     }))
+    const trendEndMtt = trendPoints[trendPoints.length - 1].mtt || maxMtt
     const meanX = trendPoints.reduce((sum, point) => sum + point.mtt, 0) / trendPoints.length
     const meanY = trendPoints.reduce((sum, point) => sum + point.rate, 0) / trendPoints.length
     const denominator = trendPoints.reduce((sum, point) => sum + (point.mtt - meanX) ** 2, 0)
@@ -398,10 +400,10 @@ function PaceMiniChart({ segments, unit, t }) {
     const slope = trendPoints.reduce((sum, point) => sum + (point.mtt - meanX) * (point.rate - meanY), 0) / denominator
     const intercept = meanY - slope * meanX
     const startRate = clampNumber(intercept, -maxAbs, maxAbs)
-    const endRate = clampNumber(intercept + slope * maxMtt, -maxAbs, maxAbs)
+    const endRate = clampNumber(intercept + slope * trendEndMtt, -maxAbs, maxAbs)
     const trendY = y(endRate)
     return {
-      path:`M ${xByMtt(0).toFixed(1)} ${y(startRate).toFixed(1)} L ${xByMtt(maxMtt).toFixed(1)} ${trendY.toFixed(1)}`,
+      path:`M ${xByMtt(0).toFixed(1)} ${y(startRate).toFixed(1)} L ${xByMtt(trendEndMtt).toFixed(1)} ${trendY.toFixed(1)}`,
       rising:endRate >= startRate,
     }
   })() : null
