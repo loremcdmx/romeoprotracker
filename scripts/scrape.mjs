@@ -793,7 +793,38 @@ async function main() {
   })
 }
 
-main().catch(e => {
+// Optional failure alert so a silently broken scraper (forum markup change,
+// Cloudflare block, API key issue) doesn't quietly serve stale data for hours.
+// No-op unless a channel is configured: SCRAPE_ALERT_WEBHOOK (Slack/Discord/
+// generic JSON webhook) or TELEGRAM_BOT_TOKEN + TELEGRAM_CHAT_ID.
+async function notifyFailure(error) {
+  const message = `🚨 RomeoPro scraper failed (mode=${MODE}): ${error?.message || error}`
+  try {
+    const webhook = process.env.SCRAPE_ALERT_WEBHOOK
+    if (webhook) {
+      await fetch(webhook, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ text: message, content: message }),
+      })
+      return
+    }
+    const token = process.env.TELEGRAM_BOT_TOKEN
+    const chatId = process.env.TELEGRAM_CHAT_ID
+    if (token && chatId) {
+      await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ chat_id: chatId, text: message }),
+      })
+    }
+  } catch (alertError) {
+    console.error('⚠️  Failed to send failure alert:', alertError.message)
+  }
+}
+
+main().catch(async e => {
   console.error('❌ Fatal:', e.message)
+  await notifyFailure(e)
   process.exit(1)
 })

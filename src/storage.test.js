@@ -309,4 +309,65 @@ describe('fetchPublicData', () => {
 
     await expect(fetchPublicData()).rejects.toThrow('offline')
   })
+
+  it('reuses cached posts and skips the heavy payload when meta is unchanged', async () => {
+    localStorage.setItem(CACHE_KEY, JSON.stringify({
+      ts: Date.now() - 5 * 60 * 1000,
+      compact: { avatars: [], posts: [{ i: 'cached', a: 'Cached', t: 1 }] },
+      meta: { lastUpdated: '2026-04-19T03:00:00.000Z' },
+      leaderboards: { fetchedAt: '2026-05-14T08:00:00.000Z', leaderboards: [{ tier: 'Low' }] },
+      source: 'cache',
+    }))
+
+    const fetchSpy = vi.fn((url) => {
+      const href = String(url)
+      if (href.includes('/meta.json')) {
+        return jsonResponse({ lastUpdated: '2026-04-19T03:00:00.000Z' })
+      }
+      if (href.includes('/leaderboards.json')) {
+        return jsonResponse({ fetchedAt: '2026-05-14T11:00:00.000Z', leaderboards: [{ tier: 'High' }] })
+      }
+      if (href.includes('/posts')) {
+        throw new Error(`Should not fetch posts when meta is unchanged: ${href}`)
+      }
+      throw new Error(`Unexpected fetch: ${href}`)
+    })
+    vi.stubGlobal('fetch', fetchSpy)
+
+    const result = await fetchPublicData()
+
+    expect(result.posts[0].id).toBe('cached')
+    expect(result.meta.lastUpdated).toBe('2026-04-19T03:00:00.000Z')
+    expect(result.leaderboards.leaderboards[0].tier).toBe('High')
+    const postsFetches = fetchSpy.mock.calls.filter(([url]) => String(url).includes('/posts'))
+    expect(postsFetches).toHaveLength(0)
+  })
+
+  it('downloads fresh posts when upstream meta advances', async () => {
+    localStorage.setItem(CACHE_KEY, JSON.stringify({
+      ts: Date.now() - 5 * 60 * 1000,
+      compact: { avatars: [], posts: [{ i: 'cached', a: 'Cached', t: 1 }] },
+      meta: { lastUpdated: '2026-04-19T03:00:00.000Z' },
+      source: 'cache',
+    }))
+
+    vi.stubGlobal('fetch', vi.fn((url) => {
+      const href = String(url)
+      if (href.includes('/meta.json')) {
+        return jsonResponse({ lastUpdated: '2026-04-19T04:00:00.000Z' })
+      }
+      if (href.includes('/leaderboards.json')) {
+        return jsonResponse({ fetchedAt: '2026-05-14T11:00:00.000Z', leaderboards: [{ tier: 'High' }] })
+      }
+      if (href.includes('/posts.min.json')) {
+        return jsonResponse({ avatars: [], posts: [{ i: 'fresh', a: 'Fresh network', t: 2 }] })
+      }
+      throw new Error(`Unexpected fetch: ${href}`)
+    }))
+
+    const result = await fetchPublicData()
+
+    expect(result.posts[0].id).toBe('fresh')
+    expect(result.meta.lastUpdated).toBe('2026-04-19T04:00:00.000Z')
+  })
 })

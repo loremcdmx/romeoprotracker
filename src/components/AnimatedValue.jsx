@@ -1,5 +1,13 @@
 import { useState, useEffect, useRef, memo } from 'react'
 
+// Respect the OS "reduce motion" setting. These counters animate via rAF, so a
+// CSS @media guard can't reach them — we check the preference in JS and snap
+// straight to the final value instead of easing toward it.
+const prefersReducedMotion = () =>
+  typeof window !== 'undefined'
+  && typeof window.matchMedia === 'function'
+  && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
 // Smoothly tween the displayed number from its previous value to a new target
 // whenever `target` changes. Unlike useAnimatedCounter this does NOT reset to 0
 // — it remembers what was on screen and eases from there. Useful for values
@@ -9,7 +17,7 @@ export function useTweenValue(target, duration = 650) {
   const fromRef = useRef(target || 0)
   useEffect(() => {
     if (target == null) return
-    if (duration <= 0) {
+    if (duration <= 0 || prefersReducedMotion()) {
       fromRef.current = target
       setVal(target)
       return
@@ -36,6 +44,7 @@ function useAnimatedCounter(target, duration = 1100) {
   const [val, setVal] = useState(0)
   useEffect(() => {
     if (!target) return
+    if (prefersReducedMotion()) { setVal(target); return }
     const start = Date.now()
     let raf
     const tick = () => {
@@ -60,6 +69,7 @@ function useAnimatedPath(path, duration) {
       if (path?.length) setVal(path[path.length - 1])
       return
     }
+    if (prefersReducedMotion()) { setVal(path[path.length - 1]); return }
     const start = Date.now()
     const segCount = path.length - 1
     let raf

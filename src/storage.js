@@ -243,11 +243,58 @@ async function collectNetworkPayloads() {
   return settled
 }
 
+// Cheap freshness probe: pull only the small meta.json (and optional
+// leaderboards) from every base and keep the freshest. Used to decide whether
+// the heavy posts.min.json actually needs to be downloaded again.
+async function probeFreshestMeta() {
+  const bases = getDataBases()
+  const results = await Promise.allSettled(bases.map(async (base) => {
+    const leaderboardsPromise = fetchJson(`${base}/leaderboards.json`).catch(() => null)
+    const meta = await fetchJson(`${base}/meta.json`)
+    const leaderboards = await Promise.race([
+      leaderboardsPromise,
+      delay(OPTIONAL_DATA_SETTLE_MS).then(() => null),
+    ])
+    return { meta, leaderboards, source: base }
+  }))
+
+  let freshest = null
+  const fulfilled = []
+  for (const result of results) {
+    if (result.status === 'fulfilled') {
+      fulfilled.push(result.value)
+      freshest = selectFreshestPayload(freshest, result.value)
+    }
+  }
+
+  if (!freshest) return null
+  return { meta: freshest.meta, leaderboards: selectFreshestLeaderboards(fulfilled) }
+}
+
 export async function fetchPublicData() {
   const cached = getCache()
   const cachedPayload = cached ? inflateCachedPayload(cached) : null
 
   if (cachedPayload && !cachedPayload.stale) return cachedPayload
+
+  // Stale cache but posts already in hand: probe the tiny meta first and reuse
+  // the cached posts when nothing changed upstream. This is the common polling
+  // case, and it avoids re-downloading the multi-MB posts payload every cycle.
+  if (cached && (cached.compact || cached.posts) && cached.meta?.lastUpdated) {
+    const probe = await probeFreshestMeta().catch(() => null)
+    if (probe && getPayloadUpdatedAt(probe) <= getPayloadUpdatedAt({ meta: cached.meta })) {
+      const refreshed = {
+        compact: cached.compact ?? null,
+        posts: cached.posts ?? null,
+        meta: cached.meta,
+        leaderboards: selectFreshestLeaderboards([probe, { leaderboards: cached.leaderboards }])
+          || cached.leaderboards || null,
+        source: cached.source ?? null,
+      }
+      setCache(refreshed)
+      return inflateCachedPayload(refreshed)
+    }
+  }
 
   let lastError = null
   let freshestNetworkPayload = null
