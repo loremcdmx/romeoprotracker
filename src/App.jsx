@@ -413,6 +413,14 @@ function PaceMiniChart({ segments, unit, t }) {
   segments.forEach((_, idx) => {
     if (segments.length <= 8 || idx % 2 === 0 || idx === segments.length - 1) xLabelIndexes.add(idx)
   })
+  // Drop x-axis ticks that would collide with the final (current-total) label.
+  // The partial tail can end only a few MTT past the last full bin (e.g. 14k vs
+  // 14.2k), which otherwise renders as overlapping text.
+  const lastLabelIdx = segments.length - 1
+  const lastLabelX = x(lastLabelIdx)
+  for (const idx of [...xLabelIndexes]) {
+    if (idx !== lastLabelIdx && Math.abs(x(idx) - lastLabelX) < 30) xLabelIndexes.delete(idx)
+  }
   const firstTone = segments[0]?.rate >= 0 ? '#78d984' : '#f0756d'
   const lineStops = [
     { offset:'0%', color:firstTone },
