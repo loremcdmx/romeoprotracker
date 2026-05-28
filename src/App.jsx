@@ -2936,6 +2936,9 @@ function FirstFundBanner({ t }) {
 // ─── APP ─────────────────────────────────────────────────────────────────────
 export default function App() {
   const { posts, meta, leaderboards, loading, error, newPostIds, refresh, clearNewPosts } = usePostsData()
+  // Below 980px the sidebar is hidden and the FF banner moves into the feed.
+  // Render only the visible one so the hidden copy doesn't mount a second chip.
+  const isNarrow = useIsMobile(980)
   const [activeTab, setActiveTab] = useState('feed')
   const [lightbox,  setLightbox]  = useState(null)
   const [theme, setTheme] = usePersistentState('rpt_theme', 'dark', {
@@ -3560,8 +3563,8 @@ export default function App() {
               <MarathonChart posts={posts} meta={meta} startBR={stats.startBR} setLightbox={setLightbox}
                 period={chartPeriod} setPeriod={setChartPeriod} lang={lang} t={t}/>
               <LeaderboardsWidget snapshot={leaderboards} lang={lang} t={t}/>
-              {/* Mobile-only: sidebar is hidden <980px, so surface the FF banner here, after the leaderboard */}
-              <div className="ff-banner-mobile-slot"><FirstFundBanner t={t}/></div>
+              {/* Mobile-only: sidebar is hidden <=980px, so surface the FF banner here, after the leaderboard */}
+              {isNarrow && <div className="ff-banner-mobile-slot"><FirstFundBanner t={t}/></div>}
               <PaceWidget meta={meta} stats={stats} period={chartPeriod} setPeriod={setChartPeriod} lang={lang} t={t}/>
               {/* Mobile-only top posts */}
               {lang==='ru' && hotPosts.length > 0 && (() => {
@@ -3699,7 +3702,7 @@ export default function App() {
                 </div>
               </div>
 
-              <FirstFundBanner t={t}/>
+              {!isNarrow && <FirstFundBanner t={t}/>}
 
               <div className="sblock">
                 <div className="sblock-title">🧵 {t('forum_stats')}</div>
