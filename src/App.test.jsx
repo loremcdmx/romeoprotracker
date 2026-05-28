@@ -270,7 +270,7 @@ describe('App', () => {
 
   it('renders the incomplete pace chunk as a muted partial marker', async () => {
     const now = Math.floor(Date.now() / 1000)
-    const brs = [22000, 46000, 51000]
+    const brs = [22000, 46000, 1000]
     const totals = [2000, 4000, 4500]
     const brHistory = brs.map((brAfter, i) => {
       const brPrev = i === 0 ? 10000 : brs[i - 1]
@@ -302,6 +302,7 @@ describe('App', () => {
     const plotLeft = Number(widget.querySelector('.pace-plot-bg')?.getAttribute('x'))
     const trendStart = widget.querySelector('.pace-trend-line')?.getAttribute('d')?.match(/^M ([\d.]+) /)
     expect(Number(trendStart?.[1])).toBeCloseTo(plotLeft, 1)
+    expect(widget.querySelector('.pace-trend.rising')).toBeInTheDocument()
   })
 
   it('anchors activity chart edge labels inside the SVG bounds', async () => {
