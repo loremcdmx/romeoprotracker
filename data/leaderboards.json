@@ -9,7 +9,7 @@
   "finishedAt": "2026-06-11T23:59:59.000+00:00",
   "targetNick": "R Romanovskyi",
   "limit": 6000,
-  "fetchedAt": "2026-05-28T20:09:05.786Z",
+  "fetchedAt": "2026-05-28T22:15:44.117Z",
   "warnings": [],
   "leaderboards": [
     {
@@ -34,7 +34,7 @@
         "brandId": "GGPCOM",
         "siteId": "GGPPL",
         "countryId": "PL",
-        "point": 6181.03,
+        "point": 6197.92,
         "prizeValue": 20000,
         "prizeCurrency": "USD",
         "isCorrect": true
@@ -46,7 +46,7 @@
           "brandId": "GGPCOM",
           "siteId": "GGPPL",
           "countryId": "PL",
-          "point": 6181.03,
+          "point": 6197.92,
           "prizeValue": 20000,
           "prizeCurrency": "USD",
           "isCorrect": true
@@ -57,7 +57,7 @@
           "brandId": "POKEROK",
           "siteId": "GGPOK",
           "countryId": "BY",
-          "point": 5588.53,
+          "point": 5600.07,
           "prizeValue": 12500,
           "prizeCurrency": "USD",
           "isCorrect": true
@@ -68,7 +68,7 @@
           "brandId": "GGPCOM",
           "siteId": "GGPCW",
           "countryId": "SI",
-          "point": 5364.02,
+          "point": 5373.68,
           "prizeValue": 8000,
           "prizeCurrency": "USD",
           "isCorrect": true
@@ -79,7 +79,7 @@
           "brandId": "POKEROK",
           "siteId": "GGPOK",
           "countryId": "RU",
-          "point": 5324.83,
+          "point": 5342.77,
           "prizeValue": 5000,
           "prizeCurrency": "USD",
           "isCorrect": true
@@ -90,7 +90,7 @@
           "brandId": "POKEROK",
           "siteId": "GGPOK",
           "countryId": "RO",
-          "point": 5238.52,
+          "point": 5309.9,
           "prizeValue": 4000,
           "prizeCurrency": "USD",
           "isCorrect": true
@@ -120,7 +120,7 @@
       },
       "rowsFetched": 6000,
       "lastRank": 6000,
-      "gapToLeader": -3737.61,
+      "gapToLeader": -3754.5,
       "gapToNextAbove": -0.9,
       "gapToNextBelow": -2.14
     },
@@ -354,7 +354,7 @@
       "promotionName": "2026 GGWF-S(for prize)",
       "status": "found",
       "target": {
-        "rank": 51,
+        "rank": 52,
         "nickname": "R Romanovskyi",
         "brandId": "GGPCOM",
         "siteId": "GGPUA",
@@ -370,7 +370,7 @@
         "brandId": "POKEROK",
         "siteId": "GGPOK",
         "countryId": "RU",
-        "point": 2695.6,
+        "point": 2721.77,
         "prizeValue": 100000,
         "prizeCurrency": "USD",
         "isCorrect": true
@@ -382,7 +382,7 @@
           "brandId": "POKEROK",
           "siteId": "GGPOK",
           "countryId": "RU",
-          "point": 2695.6,
+          "point": 2721.77,
           "prizeValue": 100000,
           "prizeCurrency": "USD",
           "isCorrect": true
@@ -393,7 +393,7 @@
           "brandId": "POKEROK",
           "siteId": "GGPOK",
           "countryId": "RU",
-          "point": 2542.6,
+          "point": 2596.58,
           "prizeValue": 80000,
           "prizeCurrency": "USD",
           "isCorrect": true
@@ -404,7 +404,7 @@
           "brandId": "GGPCOM",
           "siteId": "GGPUA",
           "countryId": "UA",
-          "point": 2387.53,
+          "point": 2443.92,
           "prizeValue": 60000,
           "prizeCurrency": "USD",
           "isCorrect": true
@@ -415,7 +415,7 @@
           "brandId": "GGPCOM",
           "siteId": "GGPCW",
           "countryId": "AT",
-          "point": 2229.61,
+          "point": 2255.19,
           "prizeValue": 50000,
           "prizeCurrency": "USD",
           "isCorrect": true
@@ -433,18 +433,18 @@
         }
       ],
       "nextAbove": {
-        "rank": 50,
+        "rank": 51,
         "nickname": "yyyyy96",
         "brandId": "MBP",
         "siteId": "GGPUKE",
         "countryId": "MO",
         "point": 732.11,
-        "prizeValue": 5000,
-        "prizeCurrency": "USD",
+        "prizeValue": 2500,
+        "prizeCurrency": "GCD",
         "isCorrect": true
       },
       "nextBelow": {
-        "rank": 52,
+        "rank": 53,
         "nickname": "StealFromBrazil",
         "brandId": "GGPCOM",
         "siteId": "GGPCW",
@@ -456,7 +456,7 @@
       },
       "rowsFetched": 1362,
       "lastRank": 1362,
-      "gapToLeader": -1964.11,
+      "gapToLeader": -1990.28,
       "gapToNextAbove": -0.62,
       "gapToNextBelow": -3.34
     }
