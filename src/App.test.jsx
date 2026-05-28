@@ -864,4 +864,14 @@ describe('App', () => {
       expect(findTestUserCard()).toBeNull()
     })
   })
+
+  it('mounts the FirstFund banner once on desktop (no hidden duplicate)', async () => {
+    fetchPublicData.mockResolvedValue(makeMockData())
+    const { container } = render(<App />)
+    await screen.findByTestId('pace-widget')
+    // matchMedia reports not-narrow in tests, so only the sidebar banner mounts
+    // (previously both the sidebar and the hidden mobile-slot copy rendered).
+    expect(container.querySelectorAll('.ff-banner').length).toBe(1)
+    expect(container.querySelector('.ff-banner-mobile-slot')).toBeNull()
+  })
 })
