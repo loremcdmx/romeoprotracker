@@ -9,7 +9,7 @@
   "finishedAt": "2026-06-11T23:59:59.000+00:00",
   "targetNick": "R Romanovskyi",
   "limit": 6000,
-  "fetchedAt": "2026-05-29T21:45:05.054Z",
+  "fetchedAt": "2026-05-29T23:04:11.158Z",
   "warnings": [],
   "leaderboards": [
     {
@@ -404,7 +404,7 @@
           "brandId": "GGPCOM",
           "siteId": "GGPUA",
           "countryId": "UA",
-          "point": 2500.46,
+          "point": 2505.8,
           "prizeValue": 60000,
           "prizeCurrency": "USD",
           "isCorrect": true
@@ -415,7 +415,7 @@
           "brandId": "GGPCOM",
           "siteId": "GGPCW",
           "countryId": "AT",
-          "point": 2354.62,
+          "point": 2361.75,
           "prizeValue": 50000,
           "prizeCurrency": "USD",
           "isCorrect": true
