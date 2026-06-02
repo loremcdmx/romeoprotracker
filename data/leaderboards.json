@@ -9,7 +9,7 @@
   "finishedAt": "2026-06-11T23:59:59.000+00:00",
   "targetNick": "R Romanovskyi",
   "limit": 6000,
-  "fetchedAt": "2026-06-01T22:40:12.455Z",
+  "fetchedAt": "2026-06-02T00:06:46.789Z",
   "warnings": [],
   "leaderboards": [
     {
@@ -370,7 +370,7 @@
         "brandId": "POKEROK",
         "siteId": "GGPOK",
         "countryId": "RU",
-        "point": 3164.66,
+        "point": 3171.96,
         "prizeValue": 100000,
         "prizeCurrency": "USD",
         "isCorrect": true
@@ -382,7 +382,7 @@
           "brandId": "POKEROK",
           "siteId": "GGPOK",
           "countryId": "RU",
-          "point": 3164.66,
+          "point": 3171.96,
           "prizeValue": 100000,
           "prizeCurrency": "USD",
           "isCorrect": true
@@ -393,7 +393,7 @@
           "brandId": "POKEROK",
           "siteId": "GGPOK",
           "countryId": "RU",
-          "point": 3040.18,
+          "point": 3050.14,
           "prizeValue": 80000,
           "prizeCurrency": "USD",
           "isCorrect": true
@@ -404,7 +404,7 @@
           "brandId": "GGPCOM",
           "siteId": "GGPUA",
           "countryId": "UA",
-          "point": 2809.72,
+          "point": 2815.47,
           "prizeValue": 60000,
           "prizeCurrency": "USD",
           "isCorrect": true
@@ -415,7 +415,7 @@
           "brandId": "GGPCOM",
           "siteId": "GGPCW",
           "countryId": "AT",
-          "point": 2650.54,
+          "point": 2659.31,
           "prizeValue": 50000,
           "prizeCurrency": "USD",
           "isCorrect": true
@@ -426,7 +426,7 @@
           "brandId": "GGPCOM",
           "siteId": "GGPCW",
           "countryId": "AT",
-          "point": 2486.52,
+          "point": 2495.83,
           "prizeValue": 45000,
           "prizeCurrency": "USD",
           "isCorrect": true
@@ -434,31 +434,31 @@
       ],
       "nextAbove": {
         "rank": 62,
-        "nickname": "Gavin Andreanoff",
+        "nickname": "Checo Pacheco",
         "brandId": "GGPCOM",
-        "siteId": "GGPUK",
-        "countryId": "GB",
-        "point": 749.86,
+        "siteId": "GGPCOM",
+        "countryId": "MX",
+        "point": 754.28,
         "prizeValue": 2500,
         "prizeCurrency": "GCD",
         "isCorrect": true
       },
       "nextBelow": {
         "rank": 64,
-        "nickname": "D Smiljkovic",
+        "nickname": "Ognyan Dimov",
         "brandId": "GGPCOM",
-        "siteId": "GGPCW",
-        "countryId": "AT",
-        "point": 687.63,
+        "siteId": "GGPCOM",
+        "countryId": "MX",
+        "point": 691.38,
         "prizeValue": 2500,
         "prizeCurrency": "GCD",
         "isCorrect": true
       },
-      "rowsFetched": 1444,
-      "lastRank": 1444,
-      "gapToLeader": -2420.29,
-      "gapToNextAbove": -5.49,
-      "gapToNextBelow": -56.74
+      "rowsFetched": 1446,
+      "lastRank": 1446,
+      "gapToLeader": -2427.59,
+      "gapToNextAbove": -9.91,
+      "gapToNextBelow": -52.99
     }
   ]
 }
