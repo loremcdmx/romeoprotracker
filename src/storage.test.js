@@ -343,6 +343,55 @@ describe('fetchPublicData', () => {
     expect(postsFetches).toHaveLength(0)
   })
 
+  it('downloads fresh posts when the bankroll history advances without a new lastUpdated timestamp', async () => {
+    localStorage.setItem(CACHE_KEY, JSON.stringify({
+      ts: Date.now() - 5 * 60 * 1000,
+      compact: { avatars: [], posts: [{ i: 'cached', a: 'Cached', t: 1 }] },
+      meta: {
+        lastUpdated: '2026-04-19T03:00:00.000Z',
+        bankroll: 12000,
+        totalTournaments: 4000,
+        totalPosts: 10,
+        brHistory: [
+          { id: 'old', timestamp: 1000, brAfter: 12000, totalTournaments: 4000 },
+        ],
+      },
+      source: 'cache',
+    }))
+
+    const fetchSpy = vi.fn((url) => {
+      const href = String(url)
+      if (href.includes('/meta.json')) {
+        return jsonResponse({
+          lastUpdated: '2026-04-19T03:00:00.000Z',
+          bankroll: 9000,
+          totalTournaments: 4500,
+          totalPosts: 10,
+          brHistory: [
+            { id: 'old', timestamp: 1000, brAfter: 12000, totalTournaments: 4000 },
+            { id: 'new', timestamp: 2000, brBefore: 12000, brAfter: 9000, sessionResult: -3000, tournaments: 500, totalTournaments: 4500 },
+          ],
+        })
+      }
+      if (href.includes('/leaderboards.json')) {
+        return jsonResponse({ fetchedAt: '2026-05-14T11:00:00.000Z', leaderboards: [] })
+      }
+      if (href.includes('/posts.min.json')) {
+        return jsonResponse({ avatars: [], posts: [{ i: 'fresh', a: 'Fresh network', t: 2 }] })
+      }
+      throw new Error(`Unexpected fetch: ${href}`)
+    })
+    vi.stubGlobal('fetch', fetchSpy)
+
+    const result = await fetchPublicData()
+
+    expect(result.posts[0].id).toBe('fresh')
+    expect(result.meta.totalTournaments).toBe(4500)
+    expect(result.meta.brHistory).toHaveLength(2)
+    const postsFetches = fetchSpy.mock.calls.filter(([url]) => String(url).includes('/posts.min.json'))
+    expect(postsFetches.length).toBeGreaterThan(0)
+  })
+
   it('downloads fresh posts when upstream meta advances', async () => {
     localStorage.setItem(CACHE_KEY, JSON.stringify({
       ts: Date.now() - 5 * 60 * 1000,

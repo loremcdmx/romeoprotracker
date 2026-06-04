@@ -259,6 +259,76 @@ function clampNumber(value, min, max) {
   return Math.min(Math.max(value, min), max)
 }
 
+function computePaceTrendStats(segments, binSize = PACE_BIN_SIZE) {
+  const trendPoints = (segments || [])
+    .filter(seg => Number.isFinite(seg?.rate) && (seg.full || (seg.tournaments || 0) > 0))
+    .map(seg => {
+      const tournaments = Math.max(0, seg.tournaments || 0)
+      const weight = seg.full ? 1 : clampNumber(tournaments / binSize, 0, 1)
+      return {
+        mtt:seg.endMtt || 0,
+        rate:seg.rate,
+        weight,
+      }
+    })
+    .filter(point => point.weight > 0 && Number.isFinite(point.mtt) && Number.isFinite(point.rate))
+
+  if (trendPoints.length < 2) return null
+
+  const totalWeight = trendPoints.reduce((sum, point) => sum + point.weight, 0)
+  if (!totalWeight) return null
+
+  const meanX = trendPoints.reduce((sum, point) => sum + point.mtt * point.weight, 0) / totalWeight
+  const meanY = trendPoints.reduce((sum, point) => sum + point.rate * point.weight, 0) / totalWeight
+  const denominator = trendPoints.reduce((sum, point) => sum + point.weight * (point.mtt - meanX) ** 2, 0)
+  if (!denominator) return null
+
+  const slope = trendPoints.reduce(
+    (sum, point) => sum + point.weight * (point.mtt - meanX) * (point.rate - meanY),
+    0
+  ) / denominator
+  const intercept = meanY - slope * meanX
+  const endMtt = Math.max(...trendPoints.map(point => point.mtt))
+  const startRate = intercept
+  const endRate = intercept + slope * endMtt
+
+  return {
+    slope,
+    intercept,
+    startRate,
+    endRate,
+    endMtt,
+    rising:endRate >= startRate,
+  }
+}
+
+function buildPaceTrend(segments, { binSize = PACE_BIN_SIZE, maxMtt, maxAbs, xByMtt, y }) {
+  const stats = computePaceTrendStats(segments, binSize)
+  if (!stats) return null
+
+  const trendEndMtt = maxMtt || stats.endMtt
+  const visibleStartRate = clampNumber(stats.startRate, -maxAbs, maxAbs)
+  const visibleEndRate = clampNumber(stats.intercept + stats.slope * trendEndMtt, -maxAbs, maxAbs)
+  const startX = xByMtt(0)
+  const endX = xByMtt(trendEndMtt)
+  const startY = y(visibleStartRate)
+  const endY = y(visibleEndRate)
+
+  return {
+    ...stats,
+    path:`M ${startX.toFixed(1)} ${startY.toFixed(1)} L ${endX.toFixed(1)} ${endY.toFixed(1)}`,
+    startX,
+    endX,
+    startY,
+    endY,
+  }
+}
+
+function formatPaceAxisTick(value, unit) {
+  if (Math.abs(value) < .05) return '0'
+  return formatDollarPerMTT(value, unit).replace(`/${unit}`, '')
+}
+
 function buildSmoothSvgPath(points, tension = .64, minY = -Infinity, maxY = Infinity) {
   if (!points.length) return ''
   const p = point => `${point.x.toFixed(1)} ${point.y.toFixed(1)}`
@@ -316,13 +386,15 @@ function computePaceMetrics({ meta, stats, period, target = MARATHON_TARGET, now
   const finishMTT = rate > 0 ? Math.ceil(remaining / rate) : null
   const bustMTT = rate < 0 ? Math.ceil(stats.br / Math.abs(rate)) : null
   const deltaRate = previous?.rate != null && rate != null ? rate - previous.rate : null
+  const segments = buildPaceSegments(sorted, currentPredicate, startBR, PACE_BIN_SIZE)
 
   return {
     period,
     target,
     current,
     previous,
-    segments:buildPaceSegments(sorted, currentPredicate, startBR, PACE_BIN_SIZE),
+    segments,
+    trend:computePaceTrendStats(segments, PACE_BIN_SIZE),
     binSize:PACE_BIN_SIZE,
     rate,
     deltaRate,
@@ -350,13 +422,13 @@ function PaceRateValue({ value, unit, className = '', animate = true }) {
   return <span className={`pace-rate-value ${tone} ${pulse ? 'pulse' : ''} ${className}`}>{formatDollarPerMTT(animated, unit)}</span>
 }
 
-function PaceMiniChart({ segments, unit, t }) {
+function PaceMiniChart({ segments, unit, t, binSize = PACE_BIN_SIZE }) {
   const [hovered, setHovered] = useState(null)
   if (!segments?.length) return <div className="pace-chart-empty">{t('pace_chart_empty')}</div>
 
-  const width = 640
-  const height = 210
-  const pad = { left:44, right:12, top:28, bottom:44 }
+  const width = 920
+  const height = 230
+  const pad = { left:58, right:28, top:32, bottom:42 }
   const gridLeft = pad.left
   const gridRight = width - pad.right
   const basePlotW = gridRight - gridLeft
@@ -371,6 +443,7 @@ function PaceMiniChart({ segments, unit, t }) {
   const xByMtt = value => pointLeft + clampNumber(value / maxMtt, 0, 1) * pointW
   const x = idx => xByMtt(segments[idx]?.endMtt || 0)
   const y = value => pad.top + (maxAbs - value) / (maxAbs * 2) * plotH
+  const yTicks = [maxAbs, maxAbs / 2, 0, -maxAbs / 2, -maxAbs]
   const points = segments.map((seg, idx) => ({ x:x(idx), y:y(seg.rate) }))
   const originPoint = { x:pointLeft, y:zeroY }
   const hasPartialTail = !segments[segments.length - 1].full
@@ -386,27 +459,13 @@ function PaceMiniChart({ segments, unit, t }) {
     ? `M ${partialStartPoint.x.toFixed(1)} ${partialStartPoint.y.toFixed(1)} L ${points[points.length - 1].x.toFixed(1)} ${points[points.length - 1].y.toFixed(1)}`
     : ''
   const partialTailTone = hasPartialTail && segments[segments.length - 1].rate >= 0 ? 'pos' : 'neg'
-  const trendSegments = segments.filter(seg => seg.full)
-  const trend = trendSegments.length > 1 ? (() => {
-    const trendPoints = trendSegments.map(seg => ({
-      mtt:seg.endMtt || 0,
-      rate:seg.rate || 0,
-    }))
-    const trendEndMtt = trendPoints[trendPoints.length - 1].mtt || maxMtt
-    const meanX = trendPoints.reduce((sum, point) => sum + point.mtt, 0) / trendPoints.length
-    const meanY = trendPoints.reduce((sum, point) => sum + point.rate, 0) / trendPoints.length
-    const denominator = trendPoints.reduce((sum, point) => sum + (point.mtt - meanX) ** 2, 0)
-    if (!denominator) return null
-    const slope = trendPoints.reduce((sum, point) => sum + (point.mtt - meanX) * (point.rate - meanY), 0) / denominator
-    const intercept = meanY - slope * meanX
-    const startRate = clampNumber(intercept, -maxAbs, maxAbs)
-    const endRate = clampNumber(intercept + slope * trendEndMtt, -maxAbs, maxAbs)
-    const trendY = y(endRate)
-    return {
-      path:`M ${xByMtt(0).toFixed(1)} ${y(startRate).toFixed(1)} L ${xByMtt(trendEndMtt).toFixed(1)} ${trendY.toFixed(1)}`,
-      rising:endRate >= startRate,
-    }
-  })() : null
+  const trend = buildPaceTrend(segments, { binSize, maxMtt, maxAbs, xByMtt, y })
+  const trendLabelX = trend ? clampNumber(trend.endX - 8, gridLeft + 92, gridRight - 8) : null
+  const trendLabelY = trend ? clampNumber(
+    trend.endY + (trend.rising ? -10 : 14),
+    pad.top + 13,
+    pad.top + plotH - 8
+  ) : null
   const bestIdx = segments.reduce((best, seg, idx) => seg.rate > segments[best].rate ? idx : best, 0)
   const worstIdx = segments.reduce((worst, seg, idx) => seg.rate < segments[worst].rate ? idx : worst, 0)
   const labelIndexes = new Set([segments.length - 1, bestIdx, worstIdx])
@@ -456,19 +515,30 @@ function PaceMiniChart({ segments, unit, t }) {
             {lineStops.map((stop, idx) => <stop key={`${stop.offset}-${idx}`} offset={stop.offset} stopColor={stop.color}/>)}
           </linearGradient>
         </defs>
-        <rect x={gridLeft} y={pad.top} width={basePlotW} height={plotH} rx="10" className="pace-plot-bg"/>
+        <rect x={gridLeft} y={pad.top} width={basePlotW} height={plotH} rx="12" className="pace-plot-bg"/>
+        {yTicks.map(rate => {
+          const tickY = y(rate)
+          const isZero = Math.abs(rate) < .05
+          return (
+            <g key={`yt-${rate.toFixed(3)}`} className={isZero ? 'pace-y-tick zero' : 'pace-y-tick'}>
+              <line className={`pace-grid-line ${isZero ? 'pace-zero' : ''}`} x1={gridLeft} x2={gridRight} y1={tickY} y2={tickY}/>
+              <text className={`pace-y-label ${isZero ? 'zero' : ''}`} x={gridLeft - 13} y={tickY + 4}>
+                {formatPaceAxisTick(rate, unit)}
+              </text>
+            </g>
+          )
+        })}
         {segments.map((seg, idx) => {
           const cx = x(idx)
           return <line key={`guide-${idx}`} className="pace-chunk-guide" x1={cx} x2={cx} y1={pad.top + 6} y2={pad.top + plotH - 6}/>
         })}
-        <line className="pace-grid-line" x1={gridLeft} x2={gridRight} y1={pad.top} y2={pad.top}/>
-        <line className="pace-grid-line pace-zero" x1={gridLeft} x2={gridRight} y1={zeroY} y2={zeroY}/>
-        <line className="pace-grid-line" x1={gridLeft} x2={gridRight} y1={pad.top + plotH} y2={pad.top + plotH}/>
-        <text className="pace-y-label zero" x="20" y={zeroY + 4}>0</text>
         {areaPath && <path className="pace-area" d={areaPath}/>}
         {trend && (
           <g className={`pace-trend ${trend.rising ? 'rising' : 'falling'}`} aria-hidden="true">
             <path className="pace-trend-line" d={trend.path}/>
+            <text className={`pace-trend-label ${trend.rising ? 'rising' : 'falling'}`} x={trendLabelX} y={trendLabelY}>
+              {t('pace_trend_label')} {formatPaceAxisTick(trend.endRate, unit)}
+            </text>
           </g>
         )}
         {solidPoints.length > 1 && <path className="pace-line-rail" d={solidLinePath}/>}
@@ -484,6 +554,8 @@ function PaceMiniChart({ segments, unit, t }) {
           const isWorst = idx === worstIdx
           const showRateLabel = labelIndexes.has(idx) && (idx === segments.length - 1 || Math.abs(seg.rate) >= Math.max(1, maxAbs * .08))
           const isPartial = !seg.full
+          const isRightEdgeLabel = isLatest && cx > gridRight - 42
+          const valueLabelX = isRightEdgeLabel ? cx - 10 : cx
           return (
             <g key={`${idx}-${seg.endMtt}`} className={`pace-segment ${tone} ${isPartial ? 'partial' : ''} ${isLatest ? 'latest' : ''} ${isBest ? 'best' : ''} ${isWorst ? 'worst' : ''}`}
               onMouseEnter={() => openTooltip(seg, idx, cx, rateY)}
@@ -499,7 +571,7 @@ function PaceMiniChart({ segments, unit, t }) {
               {isLatest && <circle className="pace-dot-latest-ring" cx={cx} cy={rateY} r="8.4"/>}
               <circle className="pace-dot" cx={cx} cy={rateY} r={isLatest ? 5 : 3.8}/>
               {showRateLabel && (
-                <text className={`pace-chart-value ${tone}`} x={cx} y={rateY + (seg.rate >= 0 ? -11 : 17)}>
+                <text className={`pace-chart-value ${tone} ${isRightEdgeLabel ? 'edge' : ''}`} x={valueLabelX} y={rateY + (seg.rate >= 0 ? -11 : 17)}>
                   {formatDollarPerMTT(seg.rate, unit).replace(`/${unit}`, '')}
                 </text>
               )}
@@ -649,6 +721,7 @@ function PaceWidget({ meta, stats, period, setPeriod, lang, t }) {
   const mttUnit = t('sr_mtt_short')
   const finishTarget = pace.finishMTT || pace.bustMTT || null
   const showHistory = prevRate != null
+  const showTrend = pace.trend?.endRate != null
 
   return (
     <section className={`pace-widget ${isNegative ? 'negative' : currentRate > 0 ? 'positive' : ''}`} data-testid="pace-widget">
@@ -666,7 +739,7 @@ function PaceWidget({ meta, stats, period, setPeriod, lang, t }) {
       </div>
 
       <div className="pace-dashboard">
-        <div className={`pace-summary-panel marathon-progress-side ${showHistory ? 'has-history' : 'no-history'}`}>
+        <div className={`pace-summary-panel marathon-progress-side ${showHistory ? 'has-history' : 'no-history'} ${showTrend ? 'has-trend' : 'no-trend'}`}>
           <div className="mps-item pace-rate-item">
             <span className="mps-label">{paceRateLabel}</span>
             <span className="mps-value-row">
@@ -679,6 +752,16 @@ function PaceWidget({ meta, stats, period, setPeriod, lang, t }) {
             <span className="mps-label">{isNegative ? t('pace_to_zero') : t('pace_finish')}</span>
             {finishTarget ? <TempoValue target={finishTarget} title={t('pace_at_current')} animate={false} suffix={` ${t('pace_projection_unit')}`}/> : <span className="mps-value">—</span>}
           </div>
+          {showTrend && <>
+            <div className="mps-divider"/>
+            <div className="mps-item pace-trend-item">
+              <span className="mps-label">{t('pace_trend_card')}</span>
+              <span className="mps-value">
+                <PaceRateValue value={pace.trend.endRate} unit={mttUnit} animate={false}/>
+              </span>
+              <span className="pace-summary-note">{t('pace_trend_note')}</span>
+            </div>
+          </>}
           {showHistory && <>
             <div className="mps-divider"/>
             <div className="mps-item pace-history-item">
@@ -695,7 +778,7 @@ function PaceWidget({ meta, stats, period, setPeriod, lang, t }) {
             <b>{t('pace_chart_step')}: {fmtInt(pace.binSize)} {mttUnit}</b>
           </div>
         </div>
-        <PaceMiniChart segments={pace.segments} unit={mttUnit} t={t}/>
+        <PaceMiniChart segments={pace.segments} unit={mttUnit} t={t} binSize={pace.binSize}/>
       </div>
     </section>
   )

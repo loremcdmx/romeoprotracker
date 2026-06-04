@@ -79,16 +79,70 @@ function getPayloadUpdatedAt(payload) {
   return Number.isFinite(timestamp) ? timestamp : 0
 }
 
-function selectFreshestPayload(current, candidate) {
-  if (!candidate) return current
-  if (!current) return candidate
+function getPayloadTrendSignature(payload) {
+  const meta = payload?.meta || {}
+  const brHistory = Array.isArray(meta.brHistory) ? meta.brHistory : []
+  const last = brHistory[brHistory.length - 1] || {}
+  return [
+    meta.bankroll ?? '',
+    meta.totalTournaments ?? '',
+    meta.totalPosts ?? '',
+    brHistory.length,
+    last.id ?? '',
+    last.timestamp ?? '',
+    last.brBefore ?? '',
+    last.brAfter ?? '',
+    last.sessionResult ?? '',
+    last.tournaments ?? '',
+    last.totalTournaments ?? '',
+  ].join('|')
+}
+
+function getPayloadTrendRank(payload) {
+  const meta = payload?.meta || {}
+  const brHistory = Array.isArray(meta.brHistory) ? meta.brHistory : []
+  const last = brHistory[brHistory.length - 1] || {}
+  return {
+    historyLength:brHistory.length,
+    lastTimestamp:Number(last.timestamp || 0),
+    totalTournaments:Number(meta.totalTournaments ?? last.totalTournaments ?? 0),
+    totalPosts:Number(meta.totalPosts || 0),
+  }
+}
+
+function comparePayloadTrendRank(candidate, current) {
+  const next = getPayloadTrendRank(candidate)
+  const prev = getPayloadTrendRank(current)
+  for (const key of ['historyLength', 'lastTimestamp', 'totalTournaments', 'totalPosts']) {
+    if (next[key] > prev[key]) return 1
+    if (next[key] < prev[key]) return -1
+  }
+  return 0
+}
+
+function hasPayloadAdvanced(candidate, current) {
+  if (!candidate) return false
+  if (!current) return true
 
   const currentTs = getPayloadUpdatedAt(current)
   const candidateTs = getPayloadUpdatedAt(candidate)
 
-  if (candidateTs > currentTs) return candidate
-  if (candidateTs < currentTs) return current
-  return current
+  if (candidateTs > currentTs) return true
+  if (candidateTs < currentTs) return false
+
+  const trendRank = comparePayloadTrendRank(candidate, current)
+  if (trendRank > 0) return true
+  if (trendRank < 0) return false
+
+  if (getPayloadTrendSignature(candidate) === getPayloadTrendSignature(current)) return false
+  return !(candidate.stale && !current.stale)
+}
+
+function selectFreshestPayload(current, candidate) {
+  if (!candidate) return current
+  if (!current) return candidate
+
+  return hasPayloadAdvanced(candidate, current) ? candidate : current
 }
 
 function selectFreshestLeaderboards(payloads) {
@@ -280,9 +334,9 @@ export async function fetchPublicData() {
   // Stale cache but posts already in hand: probe the tiny meta first and reuse
   // the cached posts when nothing changed upstream. This is the common polling
   // case, and it avoids re-downloading the multi-MB posts payload every cycle.
-  if (cached && (cached.compact || cached.posts) && cached.meta?.lastUpdated) {
+  if (cached && (cached.compact || cached.posts) && cached.meta) {
     const probe = await probeFreshestMeta().catch(() => null)
-    if (probe && getPayloadUpdatedAt(probe) <= getPayloadUpdatedAt({ meta: cached.meta })) {
+    if (probe && !hasPayloadAdvanced(probe, { meta: cached.meta, stale: true })) {
       const refreshed = {
         compact: cached.compact ?? null,
         posts: cached.posts ?? null,
