@@ -9,7 +9,7 @@
   "finishedAt": "2026-06-11T23:59:59.000+00:00",
   "targetNick": "R Romanovskyi",
   "limit": 6000,
-  "fetchedAt": "2026-06-04T18:09:04.535Z",
+  "fetchedAt": "2026-06-04T20:30:36.410Z",
   "warnings": [],
   "leaderboards": [
     {
@@ -354,7 +354,7 @@
       "promotionName": "2026 GGWF-S(for prize)",
       "status": "found",
       "target": {
-        "rank": 64,
+        "rank": 65,
         "nickname": "R Romanovskyi",
         "brandId": "GGPCOM",
         "siteId": "GGPUA",
@@ -370,7 +370,7 @@
         "brandId": "POKEROK",
         "siteId": "GGPOK",
         "countryId": "RU",
-        "point": 3403.66,
+        "point": 3419.24,
         "prizeValue": 100000,
         "prizeCurrency": "USD",
         "isCorrect": true
@@ -382,7 +382,7 @@
           "brandId": "POKEROK",
           "siteId": "GGPOK",
           "countryId": "RU",
-          "point": 3403.66,
+          "point": 3419.24,
           "prizeValue": 100000,
           "prizeCurrency": "USD",
           "isCorrect": true
@@ -404,7 +404,7 @@
           "brandId": "GGPCOM",
           "siteId": "GGPUA",
           "countryId": "UA",
-          "point": 3072.53,
+          "point": 3098.91,
           "prizeValue": 60000,
           "prizeCurrency": "USD",
           "isCorrect": true
@@ -415,7 +415,7 @@
           "brandId": "GGPCOM",
           "siteId": "GGPCW",
           "countryId": "AT",
-          "point": 2956.57,
+          "point": 2971.51,
           "prizeValue": 50000,
           "prizeCurrency": "USD",
           "isCorrect": true
@@ -426,39 +426,39 @@
           "brandId": "GGPCOM",
           "siteId": "GGPCW",
           "countryId": "AT",
-          "point": 2609.97,
+          "point": 2636.66,
           "prizeValue": 45000,
           "prizeCurrency": "USD",
           "isCorrect": true
         }
       ],
       "nextAbove": {
-        "rank": 63,
-        "nickname": "JohanC-14",
+        "rank": 64,
+        "nickname": "D Lakerveld",
         "brandId": "GGPCOM",
-        "siteId": "GGPCW",
-        "countryId": "SI",
-        "point": 784.68,
+        "siteId": "GGPCOM",
+        "countryId": "MX",
+        "point": 783.3,
         "prizeValue": 2500,
         "prizeCurrency": "GCD",
         "isCorrect": true
       },
       "nextBelow": {
-        "rank": 65,
-        "nickname": "D Lakerveld",
+        "rank": 66,
+        "nickname": "msxiter",
         "brandId": "GGPCOM",
-        "siteId": "GGPCOM",
-        "countryId": "MX",
-        "point": 776.13,
+        "siteId": "GGPBR",
+        "countryId": "BR",
+        "point": 760.11,
         "prizeValue": 2500,
         "prizeCurrency": "GCD",
         "isCorrect": true
       },
-      "rowsFetched": 1777,
-      "lastRank": 1777,
-      "gapToLeader": -2621.79,
-      "gapToNextAbove": -2.81,
-      "gapToNextBelow": -5.74
+      "rowsFetched": 1780,
+      "lastRank": 1780,
+      "gapToLeader": -2637.37,
+      "gapToNextAbove": -1.43,
+      "gapToNextBelow": -21.76
     }
   ]
 }
