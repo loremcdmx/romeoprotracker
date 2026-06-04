@@ -259,6 +259,104 @@ function clampNumber(value, min, max) {
   return Math.min(Math.max(value, min), max)
 }
 
+function mergeMarathonMarkerCluster(cluster) {
+  if (!cluster.length) return null
+  if (cluster.length === 1) return cluster[0]
+
+  const first = cluster[0]
+  const last = cluster[cluster.length - 1]
+  const sessions = cluster.flatMap(marker => marker.sessions || [])
+  const count = cluster.reduce((sum, marker) => sum + (marker.count || 1), 0)
+  const profit = cluster.reduce((sum, marker) => sum + (marker.profit || 0), 0)
+  const weightTotal = cluster.reduce((sum, marker) => sum + Math.max(1, marker.count || 1), 0) || 1
+  const x = cluster.reduce((sum, marker) => sum + marker.x * Math.max(1, marker.count || 1), 0) / weightTotal
+  const y = cluster.reduce((sum, marker) => sum + marker.y * Math.max(1, marker.count || 1), 0) / weightTotal
+  const hasPositive = cluster.some(marker => (marker.profit || 0) > 0 || (marker.sessions || []).some(session => session.profit > 0))
+  const hasNegative = cluster.some(marker => (marker.profit || 0) < 0 || (marker.sessions || []).some(session => session.profit < 0))
+
+  return {
+    start:first.start,
+    end:last.end,
+    p:last.p,
+    x,
+    y,
+    profit,
+    count,
+    sessions,
+    compacted:true,
+    mixedTone:hasPositive && hasNegative,
+  }
+}
+
+function compactCrowdedMarathonMarkers(markers, minGap) {
+  if (!markers?.length || markers.length <= 2) return markers || []
+
+  const latest = markers[markers.length - 1]
+  const keepLatestReadable = items => {
+    const output = items.slice(0, -1)
+    const previous = output[output.length - 1]
+    if (previous && Math.hypot(latest.x - previous.x, latest.y - previous.y) < minGap * .82) {
+      const beforePrevious = output[output.length - 2]
+      const targetX = latest.x - minGap * .95
+      const leftLimit = beforePrevious ? beforePrevious.x + minGap * .72 : previous.x - minGap
+      output[output.length - 1] = {
+        ...previous,
+        x:clampNumber(targetX, leftLimit, previous.x),
+      }
+    }
+    return [...output, latest]
+  }
+  const tailSearchStart = Math.max(0, markers.length - 18)
+  let tailStart = markers.length - 2
+
+  while (tailStart > tailSearchStart) {
+    const prev = markers[tailStart - 1]
+    const current = markers[tailStart]
+    if (!prev || !current) break
+    const horizontalGap = current.x - prev.x
+    const visualGap = Math.hypot(current.x - prev.x, current.y - prev.y)
+    if (horizontalGap >= minGap * 1.35 && visualGap >= minGap * 1.55) break
+    tailStart--
+  }
+
+  const body = markers.slice(tailStart, -1)
+  if (body.length < 2) return keepLatestReadable(markers)
+
+  const head = markers.slice(0, tailStart)
+  const compacted = []
+  let cluster = []
+
+  const flushCluster = () => {
+    const merged = mergeMarathonMarkerCluster(cluster)
+    if (merged) compacted.push(merged)
+    cluster = []
+  }
+
+  body.forEach(marker => {
+    if (!cluster.length) {
+      cluster = [marker]
+      return
+    }
+
+    const prev = cluster[cluster.length - 1]
+    const prevGap = Math.hypot(marker.x - prev.x, marker.y - prev.y)
+    const horizontalGap = marker.x - prev.x
+    const shouldMerge = prevGap < minGap || horizontalGap < minGap * .8
+
+    if (shouldMerge) {
+      cluster.push(marker)
+      return
+    }
+
+    flushCluster()
+    cluster = [marker]
+  })
+
+  flushCluster()
+
+  return keepLatestReadable([...head, ...compacted, latest])
+}
+
 function computePaceTrendStats(segments, binSize = PACE_BIN_SIZE) {
   const trendPoints = (segments || [])
     .filter(seg => Number.isFinite(seg?.rate) && (seg.full || (seg.tournaments || 0) > 0))
@@ -1045,7 +1143,7 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
       groups.push({ start:i, end:i })
     }
 
-    return groups
+    const rawMarkers = groups
       .filter((g, idx, arr) => idx === 0 || g.end !== arr[idx - 1].end)
       .map(g => ({
         ...g,
@@ -1061,6 +1159,8 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
           return { p, profit:sessionProfitAt(idx), tournaments:mttDeltaAt(idx) }
         }),
       }))
+
+    return compactCrowdedMarathonMarkers(rawMarkers, isMobile ? 30 : 24)
   })()
   const xLabelItems = (() => {
     if (!points.length) return []
@@ -1523,7 +1623,7 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
           } : {}}
         />
         <path d={linePath} fill="none" className="mc-line-highlight" strokeWidth={isMobile ? 1.1 : .9}/>
-        {markerVisuals.map(({ p, start, end, x, y, profit, count, sessions, isCrowded }) => {
+        {markerVisuals.map(({ p, start, end, x, y, profit, count, sessions, compacted, mixedTone, isCrowded }) => {
           const i=end
           const isLast = i===points.length-1
           const cx=x, cy=y
@@ -1545,11 +1645,11 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
               data-start={start} data-end={end} data-count={count}>
               {!isMobile && <circle cx={cx} cy={cy} r={isLast?14:10} fill="transparent"
                 />}
-              {isGrouped && <circle cx={cx} cy={cy} r={dotR + 2.6}
-                className="mc-dot-grouped-ring"
+              {isGrouped && <circle cx={cx} cy={cy} r={dotR + (compacted ? 3.2 : 2.6)}
+                className={`mc-dot-grouped-ring ${mixedTone ? 'mc-dot-mixed-ring' : ''}`}
                 stroke={profit>=0?'#4caf50':'#e53935'}/>}
               <circle cx={cx} cy={cy} r={dotR}
-                className={`mc-dot ${isLast && !isCrowded ? 'mc-dot-last' : ''} ${isGrouped?'mc-dot-grouped':''} ${isCrowded?'mc-dot-crowded':''}`}
+                className={`mc-dot ${isLast && !isCrowded ? 'mc-dot-last' : ''} ${isGrouped?'mc-dot-grouped':''} ${compacted?'mc-dot-compacted':''} ${mixedTone?'mc-dot-mixed':''} ${isCrowded?'mc-dot-crowded':''}`}
                 fill={profit>=0?'#4caf50':'#e53935'}
                 style={{transition:'r .12s', ...(isLast?{color:profit>=0?'#4caf50':'#e53935'}:{})}}/>
             </g>

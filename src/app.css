@@ -96,6 +96,8 @@ a{color:var(--red2);text-decoration:none}
 .mc-dot{stroke:#0b0b0b;stroke-width:2.2;cursor:pointer;transition:r .1s;filter:drop-shadow(0 1px 2px rgba(0,0,0,.72))}
 .mc-dot-grouped{stroke-width:2.4}
 .mc-dot-grouped-ring{fill:none;stroke-width:1;opacity:.22;pointer-events:none}
+.mc-dot-compacted{stroke-width:2.6}
+.mc-dot-mixed-ring{stroke:rgba(255,179,0,.72);stroke-dasharray:2.2 2.8;opacity:.5}
 .mc-dot-crowded{stroke-width:2.5;filter:drop-shadow(0 1px 2px rgba(0,0,0,.86))}
 .mc-peak-callout{pointer-events:none;filter:drop-shadow(0 2px 8px rgba(0,0,0,.5))}
 .mc-peak-callout-line{stroke:rgba(255,179,0,.64);stroke-width:1.2;stroke-linecap:round;stroke-dasharray:2 4}

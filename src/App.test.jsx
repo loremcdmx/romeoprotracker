@@ -144,6 +144,52 @@ describe('App', () => {
     expect(await screen.findByText(new RegExp(translate('ru', 'chart_marathon').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))).toBeInTheDocument()
   })
 
+  it('compacts crowded marathon tail markers while keeping the latest point readable', async () => {
+    const now = Math.floor(Date.now() / 1000)
+    const totals = [1000, 2400, 3900, 5400, 6900, 8200, 9000, 9400, 9450, 9500, 9550, 9600, 9650, 9700]
+    let br = 10000
+    const brHistory = totals.map((total, i) => {
+      const brPrev = br
+      const sessionResult = i < 8 ? 850 : (i % 2 === 0 ? 420 : -360)
+      br += sessionResult
+      return {
+        brAfter: br,
+        brPrev,
+        date: `T${i + 1}`,
+        timestamp: now - (totals.length - i) * 3600,
+        sessionResult,
+        totalTournaments: total,
+        tournaments: i === 0 ? total : total - totals[i - 1],
+        text: `Tail session ${i + 1}`,
+      }
+    })
+    fetchPublicData.mockResolvedValue(makeMockData({
+      meta: { ...makeMockData().meta, brHistory, totalTournaments: totals[totals.length - 1] },
+    }))
+
+    render(<App />)
+    expect(await screen.findByText(new RegExp(translate('ru', 'chart_marathon').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))).toBeInTheDocument()
+
+    const markers = [...document.querySelectorAll('.marathon-chart g[data-start][data-end]')]
+    const latest = markers[markers.length - 1]
+    const previous = markers[markers.length - 2]
+    const latestDot = latest?.querySelector('.mc-dot')
+    const previousDot = previous?.querySelector('.mc-dot')
+    const latestX = Number(latestDot?.getAttribute('cx'))
+    const latestY = Number(latestDot?.getAttribute('cy'))
+    const previousX = Number(previousDot?.getAttribute('cx'))
+    const previousY = Number(previousDot?.getAttribute('cy'))
+
+    expect(markers.length).toBeLessThan(brHistory.length)
+    expect(Number(latest?.getAttribute('data-start'))).toBe(brHistory.length - 1)
+    expect(Number(latest?.getAttribute('data-end'))).toBe(brHistory.length - 1)
+    expect(Number(latest?.getAttribute('data-count'))).toBe(1)
+    expect(Number(previous?.getAttribute('data-count'))).toBeGreaterThan(1)
+    expect(previousDot).toHaveClass('mc-dot-compacted')
+    expect(previous?.querySelector('.mc-dot-mixed-ring')).toBeInTheDocument()
+    expect(Math.hypot(latestX - previousX, latestY - previousY)).toBeGreaterThanOrEqual(20)
+  })
+
   it('renders GGWF leaderboard widget with leaders, Romeo, and prizes', async () => {
     fetchPublicData.mockResolvedValue(makeMockData({ leaderboards: makeMockLeaderboards() }))
     render(<App />)
@@ -629,10 +675,21 @@ describe('App', () => {
     expect(await screen.findByText(new RegExp(translate('ru', 'chart_marathon').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))).toBeInTheDocument()
     expect(document.querySelectorAll('.mc-dot').length).toBeLessThan(brHistory.length)
     expect(document.querySelectorAll('.mc-dot-grouped-ring').length).toBeGreaterThan(0)
-    const tailMarkers = [...document.querySelectorAll('g[data-start][data-end]')]
-      .filter(marker => Number(marker.dataset.start) >= brHistory.length - 5)
-    expect(tailMarkers).toHaveLength(5)
-    expect(tailMarkers.every(marker => marker.dataset.count === '1')).toBe(true)
+    const markers = [...document.querySelectorAll('g[data-start][data-end]')]
+    const latestMarker = markers[markers.length - 1]
+    const previousMarker = markers[markers.length - 2]
+    const latestDot = latestMarker?.querySelector('.mc-dot')
+    const previousDot = previousMarker?.querySelector('.mc-dot')
+    const latestX = Number(latestDot?.getAttribute('cx'))
+    const latestY = Number(latestDot?.getAttribute('cy'))
+    const previousX = Number(previousDot?.getAttribute('cx'))
+    const previousY = Number(previousDot?.getAttribute('cy'))
+    expect(Number(latestMarker?.dataset.start)).toBe(brHistory.length - 1)
+    expect(Number(latestMarker?.dataset.end)).toBe(brHistory.length - 1)
+    expect(Number(latestMarker?.dataset.count)).toBe(1)
+    expect(Number(previousMarker?.dataset.count)).toBeGreaterThan(1)
+    expect(previousDot).toHaveClass('mc-dot-compacted')
+    expect(Math.hypot(latestX - previousX, latestY - previousY)).toBeGreaterThanOrEqual(20)
     expect(document.querySelectorAll('.mc-xlabel-bg')).toHaveLength(0)
     expect(document.querySelectorAll('.mc-ylabel-bg')).toHaveLength(0)
     expect(document.querySelectorAll('.mc-xaxis-label-main').length).toBeGreaterThan(0)
@@ -676,11 +733,18 @@ describe('App', () => {
     expect(await screen.findByText(new RegExp(translate('ru', 'chart_marathon').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))).toBeInTheDocument()
 
     const lastMarker = document.querySelector('g[data-end="5"]')
+    const previousMarker = document.querySelector('g[data-end="4"]')
     const lastDot = lastMarker?.querySelector('.mc-dot')
+    const previousDot = previousMarker?.querySelector('.mc-dot')
+    const lastX = Number(lastDot?.getAttribute('cx'))
+    const lastY = Number(lastDot?.getAttribute('cy'))
+    const previousX = Number(previousDot?.getAttribute('cx'))
+    const previousY = Number(previousDot?.getAttribute('cy'))
     expect(lastDot).toBeInTheDocument()
-    expect(lastDot).toHaveClass('mc-dot-crowded')
-    expect(lastDot).not.toHaveClass('mc-dot-last')
-    expect(Number(lastDot.getAttribute('r'))).toBeLessThan(5)
+    expect(lastMarker?.dataset.count).toBe('1')
+    expect(lastDot).toHaveClass('mc-dot-last')
+    expect(lastDot).not.toHaveClass('mc-dot-crowded')
+    expect(Math.hypot(lastX - previousX, lastY - previousY)).toBeGreaterThanOrEqual(20)
   })
 
   it('renders post cards in feed', async () => {
