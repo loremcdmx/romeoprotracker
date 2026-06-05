@@ -124617,7 +124617,7 @@
     "date": "4 июня, 17:01",
     "timestamp": 1780585280,
     "text": "[QUOTE]vernyandyann|vernyandyann @ 04.06.26\nFill_Luck терпел и нам велел?[/QUOTE]Бля и этому бедолаге -100 уебал 🤣\n\nЗашел бы хоть посмотрел ,кого минусишь \n\nЧувак с 3 группой инвалидности ,который из банки собачий корм жрал на камеру.",
-    "likes": 1,
+    "likes": 2,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -124707,7 +124707,7 @@
     "date": "4 июня, 19:12",
     "timestamp": 1780593152,
     "text": "Кстати о шахматах. Куча народу от перворазрядников до гроссмейстеров стримят основные шахматные турниры, не получая никаких разрешений и пиявками себя вроде не считают. Если нужна картинка из зала, то обычно да, нужно покупать права, а показывать ходы и комментировать может кто угодно и как  угодно.\n\nРовно тоже самое, на мой взгляд.",
-    "likes": 5,
+    "likes": 6,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -124747,7 +124747,7 @@
     "date": "4 июня, 19:19",
     "timestamp": 1780593594,
     "text": "scorpchess, да можно и человека толпой буллить и уродом себя не считать, а просто веселым и позитивным парнем",
-    "likes": 0,
+    "likes": 1,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -124819,7 +124819,7 @@
     "date": "4 июня, 19:57",
     "timestamp": 1780595872,
     "text": "Вы заебали... \n\nГде этот чел, который мне минус сотку в репу поставил с коментом \"душнила\"? Твой выход, чел, нахуярь им минусов",
-    "likes": 3,
+    "likes": 4,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -124927,7 +124927,7 @@
     "date": "4 июня, 21:42",
     "timestamp": 1780602147,
     "text": "с 325 по 327 какой-то газ распыляли походу, вызывающий резкий рост IQ",
-    "likes": 9,
+    "likes": 10,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -124963,7 +124963,7 @@
     "date": "4 июня, 22:05",
     "timestamp": 1780603517,
     "text": "[QUOTE]Trosh|Trosh @ 04.06.26\nТвой выход, чел, нахуярь им минусов[/QUOTE]минусы еще надо заработать. абы кому не выдаем",
-    "likes": 0,
+    "likes": 1,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -125006,5 +125006,41 @@
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8243875"
+  },
+  {
+    "id": "8243902",
+    "author": "Romeopro",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/2/6/6/26670.jpg",
+    "rating": 25538,
+    "msgCount": 4149,
+    "regData": "16 лет на сайте",
+    "date": "5 июня, 03:10",
+    "timestamp": 1780621859,
+    "text": "Day 76:",
+    "likes": 0,
+    "images": [
+      "https://static-forum.gipsyteam.ru/monthly_06_2026/post-6195-17806218569ecf_thumb.webp"
+    ],
+    "videos": [],
+    "brBefore": 155354,
+    "brAfter": 140161,
+    "sessionResult": -15193,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8243902",
+    "rooms": {
+      "before": {
+        "gg": 153917,
+        "ps": 1188,
+        "king": 232,
+        "coin": 17,
+        "lux": 0
+      },
+      "after": {
+        "gg": 138724,
+        "ps": 1188,
+        "king": 232,
+        "coin": 17,
+        "lux": 0
+      }
+    }
   }
 ]

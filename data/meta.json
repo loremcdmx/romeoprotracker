@@ -1,11 +1,11 @@
 {
-  "bankroll": 155354,
+  "bankroll": 140161,
   "startBankroll": 10000,
   "targetBankroll": 10000000,
-  "day": 75,
+  "day": 76,
   "status": "active",
-  "lastUpdated": "2026-06-04T04:59:03.976Z",
-  "totalPosts": 6568,
+  "lastUpdated": "2026-06-05T01:33:45.270Z",
+  "totalPosts": 6569,
   "scrapedPages": 0,
   "chronicle": [],
   "authorName": "Romeopro",
@@ -2062,8 +2062,35 @@
       "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8243378",
       "tournaments": 129,
       "totalTournaments": 15187
+    },
+    {
+      "id": "8243902",
+      "date": "5 июня, 03:10",
+      "timestamp": 1780621859,
+      "brBefore": 155354,
+      "brAfter": 140161,
+      "sessionResult": -15193,
+      "rooms": {
+        "before": {
+          "gg": 153917,
+          "ps": 1188,
+          "king": 232,
+          "coin": 17,
+          "lux": 0
+        },
+        "after": {
+          "gg": 138724,
+          "ps": 1188,
+          "king": 232,
+          "coin": 17,
+          "lux": 0
+        }
+      },
+      "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8243902",
+      "tournaments": 117,
+      "totalTournaments": 15304
     }
   ],
-  "totalTournaments": 15187,
-  "lastScrapeRun": "2026-06-04T23:22:01.341Z"
+  "totalTournaments": 15304,
+  "lastScrapeRun": "2026-06-05T01:33:45.270Z"
 }
