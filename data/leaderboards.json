@@ -9,7 +9,7 @@
   "finishedAt": "2026-06-11T23:59:59.000+00:00",
   "targetNick": "R Romanovskyi",
   "limit": 6000,
-  "fetchedAt": "2026-06-05T21:54:22.791Z",
+  "fetchedAt": "2026-06-05T22:58:50.368Z",
   "warnings": [],
   "leaderboards": [
     {
@@ -370,7 +370,7 @@
         "brandId": "POKEROK",
         "siteId": "GGPOK",
         "countryId": "RU",
-        "point": 3504.89,
+        "point": 3511.14,
         "prizeValue": 100000,
         "prizeCurrency": "USD",
         "isCorrect": true
@@ -382,7 +382,7 @@
           "brandId": "POKEROK",
           "siteId": "GGPOK",
           "countryId": "RU",
-          "point": 3504.89,
+          "point": 3511.14,
           "prizeValue": 100000,
           "prizeCurrency": "USD",
           "isCorrect": true
@@ -393,7 +393,7 @@
           "brandId": "GGPCOM",
           "siteId": "GGPUA",
           "countryId": "UA",
-          "point": 3182.17,
+          "point": 3194.66,
           "prizeValue": 80000,
           "prizeCurrency": "USD",
           "isCorrect": true
@@ -415,7 +415,7 @@
           "brandId": "GGPCOM",
           "siteId": "GGPCW",
           "countryId": "AT",
-          "point": 3077.79,
+          "point": 3083.37,
           "prizeValue": 50000,
           "prizeCurrency": "USD",
           "isCorrect": true
@@ -434,11 +434,11 @@
       ],
       "nextAbove": {
         "rank": 66,
-        "nickname": "msxiter",
+        "nickname": "Vlad Batrakov",
         "brandId": "GGPCOM",
-        "siteId": "GGPBR",
-        "countryId": "BR",
-        "point": 785.47,
+        "siteId": "GGPCOM",
+        "countryId": "ME",
+        "point": 786.2,
         "prizeValue": 2500,
         "prizeCurrency": "GCD",
         "isCorrect": true
@@ -456,8 +456,8 @@
       },
       "rowsFetched": 1786,
       "lastRank": 1786,
-      "gapToLeader": -2723.02,
-      "gapToNextAbove": -3.6,
+      "gapToLeader": -2729.27,
+      "gapToNextAbove": -4.33,
       "gapToNextBelow": -22.72
     }
   ]
