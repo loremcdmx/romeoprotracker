@@ -5,7 +5,7 @@
   "day": 76,
   "status": "active",
   "lastUpdated": "2026-06-05T01:33:45.270Z",
-  "totalPosts": 6569,
+  "totalPosts": 6572,
   "scrapedPages": 0,
   "chronicle": [],
   "authorName": "Romeopro",
@@ -2011,7 +2011,7 @@
     },
     {
       "id": "8242929",
-      "date": "3 июня, 06:49",
+      "date": "3 июня, 08:49",
       "timestamp": 1780462186,
       "brBefore": 149216,
       "brAfter": 140709,
@@ -2092,5 +2092,5 @@
     }
   ],
   "totalTournaments": 15304,
-  "lastScrapeRun": "2026-06-05T01:33:45.270Z"
+  "lastScrapeRun": "2026-06-05T04:33:17.062Z"
 }
