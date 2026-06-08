@@ -15,7 +15,7 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
-    "check": "npm run build && npm run test",
+    "check": "npm run build && npm run test && node scripts/vercel-ignore-build-smoke.mjs",
     "favicon": "node scripts/generate-favicon.mjs",
     "scrape": "node scripts/scrape.mjs",
     "scrape:dry-run": "node scripts/scrape.mjs --dry-run",

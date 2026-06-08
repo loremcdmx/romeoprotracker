@@ -77,6 +77,8 @@ Runtime data is resolved from multiple sources:
 
 The client compares `meta.lastUpdated` across successful sources and keeps the freshest payload instead of trusting the first response. That avoids stale Vercel assets when code deploys and scraper commits move at different cadences.
 
+Vercel uses `scripts/vercel-ignore-build.mjs` as its ignored build step. Data-only scraper and leaderboard commits are skipped on Vercel because the deployed client can read fresher JSON directly from GitHub raw; source, dependency, config, and public asset changes still build normally.
+
 ## Scraper
 
 The scraper lives in `scripts/scrape.mjs`.

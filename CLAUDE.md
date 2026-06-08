@@ -44,6 +44,9 @@ Scraper:
 ## Deployment Notes
 
 - The production app is a static Vercel deployment.
+- Vercel runs `scripts/vercel-ignore-build.mjs` before builds. Data-only scraper
+  commits are intentionally skipped because the client also reads fresh JSON from
+  GitHub raw; code/config/dependency changes still build.
 - Scraper automation is defined in `.github/workflows/scrape.yml`.
 - CI checks are defined in `.github/workflows/ci.yml`.
 - Feature work should happen on non-`main` branches; scraper automation is intended to run on `main`.
