@@ -9,7 +9,7 @@
   "finishedAt": "2026-06-11T23:59:59.000+00:00",
   "targetNick": "R Romanovskyi",
   "limit": 6000,
-  "fetchedAt": "2026-06-08T06:28:54.979Z",
+  "fetchedAt": "2026-06-08T11:25:56.202Z",
   "warnings": [],
   "leaderboards": [
     {
@@ -34,7 +34,7 @@
         "brandId": "GGPCOM",
         "siteId": "GGPPL",
         "countryId": "PL",
-        "point": 8305.3,
+        "point": 8325.09,
         "prizeValue": 20000,
         "prizeCurrency": "USD",
         "isCorrect": true
@@ -46,7 +46,7 @@
           "brandId": "GGPCOM",
           "siteId": "GGPPL",
           "countryId": "PL",
-          "point": 8305.3,
+          "point": 8325.09,
           "prizeValue": 20000,
           "prizeCurrency": "USD",
           "isCorrect": true
@@ -57,7 +57,7 @@
           "brandId": "POKEROK",
           "siteId": "GGPOK",
           "countryId": "BY",
-          "point": 8026.19,
+          "point": 8040.12,
           "prizeValue": 12500,
           "prizeCurrency": "USD",
           "isCorrect": true
@@ -68,7 +68,7 @@
           "brandId": "POKEROK",
           "siteId": "GGPOK",
           "countryId": "RU",
-          "point": 7941.49,
+          "point": 7975.39,
           "prizeValue": 8000,
           "prizeCurrency": "USD",
           "isCorrect": true
@@ -79,7 +79,7 @@
           "brandId": "GGPCOM",
           "siteId": "GGPPL",
           "countryId": "PL",
-          "point": 7635.13,
+          "point": 7647.08,
           "prizeValue": 5000,
           "prizeCurrency": "USD",
           "isCorrect": true
@@ -90,7 +90,7 @@
           "brandId": "POKEROK",
           "siteId": "GGPOK",
           "countryId": "RU",
-          "point": 7358.67,
+          "point": 7369.3,
           "prizeValue": 4000,
           "prizeCurrency": "USD",
           "isCorrect": true
@@ -109,20 +109,20 @@
       },
       "nextBelow": {
         "rank": 301,
-        "nickname": "Rafael Alcantara",
+        "nickname": "Shelbyufc",
         "brandId": "GGPCOM",
-        "siteId": "GGPBR",
-        "countryId": "BR",
-        "point": 2737.86,
+        "siteId": "GGPEU",
+        "countryId": "MT",
+        "point": 2738.96,
         "prizeValue": 100,
         "prizeCurrency": "GCD",
         "isCorrect": true
       },
       "rowsFetched": 6000,
       "lastRank": 6000,
-      "gapToLeader": -5559.71,
+      "gapToLeader": -5579.5,
       "gapToNextAbove": -1.48,
-      "gapToNextBelow": -7.73
+      "gapToNextBelow": -6.63
     },
     {
       "tier": "Medium",
