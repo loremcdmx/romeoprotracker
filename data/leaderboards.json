@@ -9,7 +9,7 @@
   "finishedAt": "2026-06-11T23:59:59.000+00:00",
   "targetNick": "R Romanovskyi",
   "limit": 6000,
-  "fetchedAt": "2026-06-08T23:43:23.756Z",
+  "fetchedAt": "2026-06-09T02:06:33.950Z",
   "warnings": [],
   "leaderboards": [
     {
@@ -18,7 +18,7 @@
       "promotionName": "2026 GGWF-L(for prize)",
       "status": "found",
       "target": {
-        "rank": 301,
+        "rank": 302,
         "nickname": "R Romanovskyi",
         "brandId": "GGPCOM",
         "siteId": "GGPUA",
@@ -34,7 +34,7 @@
         "brandId": "GGPCOM",
         "siteId": "GGPPL",
         "countryId": "PL",
-        "point": 8335.64,
+        "point": 8362.53,
         "prizeValue": 20000,
         "prizeCurrency": "USD",
         "isCorrect": true
@@ -46,7 +46,7 @@
           "brandId": "GGPCOM",
           "siteId": "GGPPL",
           "countryId": "PL",
-          "point": 8335.64,
+          "point": 8362.53,
           "prizeValue": 20000,
           "prizeCurrency": "USD",
           "isCorrect": true
@@ -57,7 +57,7 @@
           "brandId": "POKEROK",
           "siteId": "GGPOK",
           "countryId": "BY",
-          "point": 8059.99,
+          "point": 8101.38,
           "prizeValue": 12500,
           "prizeCurrency": "USD",
           "isCorrect": true
@@ -68,7 +68,7 @@
           "brandId": "POKEROK",
           "siteId": "GGPOK",
           "countryId": "RU",
-          "point": 8003.46,
+          "point": 8048.09,
           "prizeValue": 8000,
           "prizeCurrency": "USD",
           "isCorrect": true
@@ -79,7 +79,7 @@
           "brandId": "GGPCOM",
           "siteId": "GGPPL",
           "countryId": "PL",
-          "point": 7672.53,
+          "point": 7679.78,
           "prizeValue": 5000,
           "prizeCurrency": "USD",
           "isCorrect": true
@@ -90,39 +90,39 @@
           "brandId": "POKEROK",
           "siteId": "GGPOK",
           "countryId": "RU",
-          "point": 7387.13,
+          "point": 7429.32,
           "prizeValue": 4000,
           "prizeCurrency": "USD",
           "isCorrect": true
         }
       ],
       "nextAbove": {
-        "rank": 300,
-        "nickname": "PUN[I]T",
-        "brandId": "GGPCOM",
-        "siteId": "GGPCOM",
-        "countryId": "CY",
-        "point": 2747.07,
+        "rank": 301,
+        "nickname": "Hamster-13",
+        "brandId": "POKEROK",
+        "siteId": "GGPOK",
+        "countryId": "RU",
+        "point": 2749.36,
         "prizeValue": 100,
         "prizeCurrency": "GCD",
         "isCorrect": true
       },
       "nextBelow": {
-        "rank": 302,
-        "nickname": "Shelbyufc",
+        "rank": 303,
+        "nickname": "Rafael Alcantara",
         "brandId": "GGPCOM",
-        "siteId": "GGPEU",
-        "countryId": "MT",
-        "point": 2738.96,
+        "siteId": "GGPBR",
+        "countryId": "BR",
+        "point": 2745.25,
         "prizeValue": 100,
         "prizeCurrency": "GCD",
         "isCorrect": true
       },
       "rowsFetched": 6000,
       "lastRank": 6000,
-      "gapToLeader": -5590.05,
-      "gapToNextAbove": -1.48,
-      "gapToNextBelow": -6.63
+      "gapToLeader": -5616.94,
+      "gapToNextAbove": -3.77,
+      "gapToNextBelow": -0.34
     },
     {
       "tier": "Medium",
@@ -135,7 +135,7 @@
         "brandId": "GGPCOM",
         "siteId": "GGPUA",
         "countryId": "UA",
-        "point": 7288.42,
+        "point": 7323.15,
         "prizeValue": 15000,
         "prizeCurrency": "USD",
         "isCorrect": true
@@ -146,7 +146,7 @@
         "brandId": "GGPCOM",
         "siteId": "GGPNL",
         "countryId": "NL",
-        "point": 7974.68,
+        "point": 7999.07,
         "prizeValue": 50000,
         "prizeCurrency": "USD",
         "isCorrect": true
@@ -158,7 +158,7 @@
           "brandId": "GGPCOM",
           "siteId": "GGPNL",
           "countryId": "NL",
-          "point": 7974.68,
+          "point": 7999.07,
           "prizeValue": 50000,
           "prizeCurrency": "USD",
           "isCorrect": true
@@ -169,29 +169,29 @@
           "brandId": "POKEROK",
           "siteId": "GGPOK",
           "countryId": "BY",
-          "point": 7743.04,
+          "point": 7783.32,
           "prizeValue": 40000,
           "prizeCurrency": "USD",
           "isCorrect": true
         },
         {
           "rank": 3,
-          "nickname": "Tom_Poker_BR",
+          "nickname": "Caracara",
           "brandId": "GGPCOM",
           "siteId": "GGPCW",
-          "countryId": "AT",
-          "point": 7699.02,
+          "countryId": "LU",
+          "point": 7723.35,
           "prizeValue": 30000,
           "prizeCurrency": "USD",
           "isCorrect": true
         },
         {
           "rank": 4,
-          "nickname": "Caracara",
+          "nickname": "Tom_Poker_BR",
           "brandId": "GGPCOM",
           "siteId": "GGPCW",
-          "countryId": "LU",
-          "point": 7676.53,
+          "countryId": "AT",
+          "point": 7711.96,
           "prizeValue": 20000,
           "prizeCurrency": "USD",
           "isCorrect": true
@@ -202,7 +202,7 @@
           "brandId": "GGPCOM",
           "siteId": "GGPUA",
           "countryId": "UA",
-          "point": 7288.42,
+          "point": 7323.15,
           "prizeValue": 15000,
           "prizeCurrency": "USD",
           "isCorrect": true
@@ -210,11 +210,11 @@
       ],
       "nextAbove": {
         "rank": 4,
-        "nickname": "Caracara",
+        "nickname": "Tom_Poker_BR",
         "brandId": "GGPCOM",
         "siteId": "GGPCW",
-        "countryId": "LU",
-        "point": 7676.53,
+        "countryId": "AT",
+        "point": 7711.96,
         "prizeValue": 20000,
         "prizeCurrency": "USD",
         "isCorrect": true
@@ -225,16 +225,16 @@
         "brandId": "GGPCOM",
         "siteId": "GGPPL",
         "countryId": "PL",
-        "point": 7238.46,
+        "point": 7272.4,
         "prizeValue": 10000,
         "prizeCurrency": "USD",
         "isCorrect": true
       },
       "rowsFetched": 6000,
       "lastRank": 6000,
-      "gapToLeader": -686.26,
-      "gapToNextAbove": -388.11,
-      "gapToNextBelow": -49.96
+      "gapToLeader": -675.92,
+      "gapToNextAbove": -388.81,
+      "gapToNextBelow": -50.75
     },
     {
       "tier": "High",
@@ -247,7 +247,7 @@
         "brandId": "GGPCOM",
         "siteId": "GGPUA",
         "countryId": "UA",
-        "point": 5926.29,
+        "point": 5948.76,
         "prizeValue": 40000,
         "prizeCurrency": "USD",
         "isCorrect": true
@@ -258,7 +258,7 @@
         "brandId": "GGPCOM",
         "siteId": "GGPCW",
         "countryId": "AT",
-        "point": 6615.16,
+        "point": 6641.42,
         "prizeValue": 80000,
         "prizeCurrency": "USD",
         "isCorrect": true
@@ -270,7 +270,7 @@
           "brandId": "GGPCOM",
           "siteId": "GGPCW",
           "countryId": "AT",
-          "point": 6615.16,
+          "point": 6641.42,
           "prizeValue": 80000,
           "prizeCurrency": "USD",
           "isCorrect": true
@@ -281,7 +281,7 @@
           "brandId": "GGPCOM",
           "siteId": "GGPCW",
           "countryId": "NO",
-          "point": 6312.85,
+          "point": 6339.81,
           "prizeValue": 60000,
           "prizeCurrency": "USD",
           "isCorrect": true
@@ -292,7 +292,7 @@
           "brandId": "GGPCOM",
           "siteId": "GGPUA",
           "countryId": "UA",
-          "point": 6216.04,
+          "point": 6253.04,
           "prizeValue": 50000,
           "prizeCurrency": "USD",
           "isCorrect": true
@@ -303,7 +303,7 @@
           "brandId": "GGPCOM",
           "siteId": "GGPUA",
           "countryId": "UA",
-          "point": 5926.29,
+          "point": 5948.76,
           "prizeValue": 40000,
           "prizeCurrency": "USD",
           "isCorrect": true
@@ -314,7 +314,7 @@
           "brandId": "GGPCOM",
           "siteId": "GGPUK",
           "countryId": "GB",
-          "point": 5899.71,
+          "point": 5936.74,
           "prizeValue": 35000,
           "prizeCurrency": "USD",
           "isCorrect": true
@@ -326,7 +326,7 @@
         "brandId": "GGPCOM",
         "siteId": "GGPUA",
         "countryId": "UA",
-        "point": 6216.04,
+        "point": 6253.04,
         "prizeValue": 50000,
         "prizeCurrency": "USD",
         "isCorrect": true
@@ -337,16 +337,16 @@
         "brandId": "GGPCOM",
         "siteId": "GGPUK",
         "countryId": "GB",
-        "point": 5899.71,
+        "point": 5936.74,
         "prizeValue": 35000,
         "prizeCurrency": "USD",
         "isCorrect": true
       },
       "rowsFetched": 6000,
       "lastRank": 6000,
-      "gapToLeader": -688.87,
-      "gapToNextAbove": -289.75,
-      "gapToNextBelow": -26.58
+      "gapToLeader": -692.66,
+      "gapToNextAbove": -304.28,
+      "gapToNextBelow": -12.02
     },
     {
       "tier": "Super",
@@ -359,7 +359,7 @@
         "brandId": "GGPCOM",
         "siteId": "GGPUA",
         "countryId": "UA",
-        "point": 827.03,
+        "point": 839.11,
         "prizeValue": 2500,
         "prizeCurrency": "GCD",
         "isCorrect": true
@@ -370,7 +370,7 @@
         "brandId": "POKEROK",
         "siteId": "GGPOK",
         "countryId": "RU",
-        "point": 3779.11,
+        "point": 3800.16,
         "prizeValue": 100000,
         "prizeCurrency": "USD",
         "isCorrect": true
@@ -382,7 +382,7 @@
           "brandId": "POKEROK",
           "siteId": "GGPOK",
           "countryId": "RU",
-          "point": 3779.11,
+          "point": 3800.16,
           "prizeValue": 100000,
           "prizeCurrency": "USD",
           "isCorrect": true
@@ -438,27 +438,27 @@
         "brandId": "GGPCOM",
         "siteId": "GGPCW",
         "countryId": "AT",
-        "point": 833.47,
+        "point": 842.53,
         "prizeValue": 2500,
         "prizeCurrency": "GCD",
         "isCorrect": true
       },
       "nextBelow": {
         "rank": 68,
-        "nickname": "Ravid Garbi",
-        "brandId": "7XL",
-        "siteId": "7XL",
-        "countryId": "IL",
-        "point": 815.03,
+        "nickname": "Damir Gabdullin",
+        "brandId": "POKEROK",
+        "siteId": "GGPOK",
+        "countryId": "TR",
+        "point": 821.86,
         "prizeValue": 2500,
         "prizeCurrency": "GCD",
         "isCorrect": true
       },
-      "rowsFetched": 1830,
-      "lastRank": 1830,
-      "gapToLeader": -2952.08,
-      "gapToNextAbove": -6.44,
-      "gapToNextBelow": -12
+      "rowsFetched": 1831,
+      "lastRank": 1831,
+      "gapToLeader": -2961.05,
+      "gapToNextAbove": -3.42,
+      "gapToNextBelow": -17.25
     }
   ]
 }
