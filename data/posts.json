@@ -127797,7 +127797,7 @@
     "date": "9 июня, 12:26",
     "timestamp": 1781000819,
     "text": "Day 80:",
-    "likes": 68,
+    "likes": 69,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_06_2026/post-6195-1781000814925a_thumb.webp"
     ],
@@ -127833,7 +127833,7 @@
     "date": "9 июня, 12:39",
     "timestamp": 1781001568,
     "text": "Можно сказать, что и не играл, так чисто пыль с мышки протёр",
-    "likes": 30,
+    "likes": 32,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -127908,7 +127908,7 @@
     "date": "9 июня, 19:37",
     "timestamp": 1781026666,
     "text": "TaveR, так пасаны, тут каая-то  несерьёзная х**** пошла графики, какие-то отчёты, срочно все переезжаем в тему лункина",
-    "likes": 19,
+    "likes": 22,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -127926,7 +127926,7 @@
     "date": "9 июня, 22:50",
     "timestamp": 1781038240,
     "text": "Лидерборды:",
-    "likes": 13,
+    "likes": 19,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_06_2026/post-134495-1781038197dbbd_thumb.webp",
       "https://static-forum.gipsyteam.ru/monthly_06_2026/post-134495-1781038170ef1b_thumb.webp",
@@ -127984,7 +127984,7 @@
     "date": "9 июня, 23:45",
     "timestamp": 1781041540,
     "text": "Anabiaz777, Можно 100к на зеро вгрузить. Все долги будут закрыты",
-    "likes": 9,
+    "likes": 17,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -128020,7 +128020,7 @@
     "date": "10 июня, 05:20",
     "timestamp": 1781061633,
     "text": "Day 81:",
-    "likes": 13,
+    "likes": 18,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_06_2026/post-6195-1781061628a13f_thumb.webp"
     ],
@@ -128045,5 +128045,25 @@
         "lux": 0
       }
     }
+  },
+  {
+    "id": "8246699",
+    "author": "TaveR",
+    "avatar": "https://forum.gipsyteam.com/img/imguser.png",
+    "rating": null,
+    "msgCount": 5,
+    "regData": "8 месяцев на сайте",
+    "date": "10 июня, 07:26",
+    "timestamp": 1781069173,
+    "text": "Последние 100 туров вчерашней сессии\n\n    \n\n \n\nРаздел статистика с учетом проданных долей: из байинов и профита вычитаются выкупленные доли, а Профит (продажа долей) учитывает доход именно с продажи долей (рассчитывается отдельно для каждого турнира с соответствующим кэфом, потом суммируется)",
+    "likes": 1,
+    "images": [
+      "https://static-forum.gipsyteam.ru/monthly_06_2026/post-199699-1781069330f6b9_thumb.webp"
+    ],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8246699"
   }
 ]
