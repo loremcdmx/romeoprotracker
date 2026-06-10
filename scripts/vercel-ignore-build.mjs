@@ -75,11 +75,31 @@ function commitExists(ref) {
   }
 }
 
-function diffBase(env = process.env) {
+function looksLikeGitSha(ref) {
+  return /^[0-9a-f]{7,40}$/i.test(String(ref || '').trim())
+}
+
+function fetchCommit(ref) {
+  if (!looksLikeGitSha(ref)) {
+    return false
+  }
+
+  try {
+    runGit(['fetch', '--depth=1', 'origin', ref])
+    return commitExists(ref)
+  } catch {
+    return false
+  }
+}
+
+export function diffBase(env = process.env, exists = commitExists, fetchMissing = fetchCommit) {
   const previousSha = env.VERCEL_GIT_PREVIOUS_SHA || ''
   if (previousSha) {
-    if (commitExists(previousSha)) {
+    if (exists(previousSha)) {
       return { base: previousSha, source: 'VERCEL_GIT_PREVIOUS_SHA' }
+    }
+    if (fetchMissing(previousSha) && exists(previousSha)) {
+      return { base: previousSha, source: 'fetched VERCEL_GIT_PREVIOUS_SHA' }
     }
     return {
       base: '',
@@ -87,7 +107,7 @@ function diffBase(env = process.env) {
     }
   }
 
-  if (commitExists('HEAD^')) {
+  if (exists('HEAD^')) {
     return { base: 'HEAD^', source: 'HEAD^' }
   }
 

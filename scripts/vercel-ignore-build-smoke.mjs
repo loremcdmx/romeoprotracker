@@ -1,6 +1,7 @@
 import assert from 'assert'
 
 const {
+  diffBase,
   isSkippablePath,
   shouldSkipBuild,
 } = await import('./vercel-ignore-build.mjs')
@@ -35,6 +36,30 @@ assert.equal(
 assert.equal(
   shouldSkipBuild(['data/posts.json'], { RPT_VERCEL_FORCE_BUILD: '1' }).skip,
   false,
+)
+
+const previousSha = 'a'.repeat(40)
+const fetchedRefs = new Set()
+
+assert.deepEqual(
+  diffBase(
+    { VERCEL_GIT_PREVIOUS_SHA: previousSha },
+    (ref) => fetchedRefs.has(ref),
+    (ref) => {
+      fetchedRefs.add(ref)
+      return true
+    },
+  ),
+  { base: previousSha, source: 'fetched VERCEL_GIT_PREVIOUS_SHA' },
+)
+
+assert.deepEqual(
+  diffBase(
+    { VERCEL_GIT_PREVIOUS_SHA: previousSha },
+    () => false,
+    () => false,
+  ),
+  { base: '', source: 'missing VERCEL_GIT_PREVIOUS_SHA in shallow clone' },
 )
 
 console.log('PASS vercel ignore build policy')
