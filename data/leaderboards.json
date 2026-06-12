@@ -9,7 +9,7 @@
   "finishedAt": "2026-06-11T23:59:59.000+00:00",
   "targetNick": "R Romanovskyi",
   "limit": 6000,
-  "fetchedAt": "2026-06-12T01:42:51.609Z",
+  "fetchedAt": "2026-06-12T10:46:39.025Z",
   "warnings": [],
   "leaderboards": [
     {
@@ -230,8 +230,8 @@
         "prizeCurrency": "USD",
         "isCorrect": true
       },
-      "rowsFetched": 6000,
-      "lastRank": 6000,
+      "rowsFetched": 2500,
+      "lastRank": 2500,
       "gapToLeader": -945.59,
       "gapToNextAbove": -377.53,
       "gapToNextBelow": -97.05
@@ -342,8 +342,8 @@
         "prizeCurrency": "USD",
         "isCorrect": true
       },
-      "rowsFetched": 6000,
-      "lastRank": 6000,
+      "rowsFetched": 1000,
+      "lastRank": 1000,
       "gapToLeader": -672.01,
       "gapToNextAbove": -75.34,
       "gapToNextBelow": -11.44
@@ -454,8 +454,8 @@
         "prizeCurrency": "GCD",
         "isCorrect": true
       },
-      "rowsFetched": 1845,
-      "lastRank": 1845,
+      "rowsFetched": 150,
+      "lastRank": 150,
       "gapToLeader": -2989.26,
       "gapToNextAbove": -10.97,
       "gapToNextBelow": -13.51
