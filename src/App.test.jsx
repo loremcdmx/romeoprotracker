@@ -103,6 +103,30 @@ function yOnLinearPath(points, x) {
   return null
 }
 
+function estimatedSvgTextRect(el, fontSize, anchor = 'middle') {
+  const x = Number(el?.getAttribute('x'))
+  const y = Number(el?.getAttribute('y'))
+  const text = el?.textContent || ''
+  const width = text.length * fontSize * .58
+  const height = fontSize + 4
+  let left = x - width / 2
+  if (anchor === 'end') left = x - width
+  if (anchor === 'start') left = x
+  return {
+    left,
+    right:left + width,
+    top:y - height + 3,
+    bottom:y + 4,
+  }
+}
+
+function rectsOverlap(a, b, gap = 0) {
+  return a.left < b.right + gap
+    && a.right > b.left - gap
+    && a.top < b.bottom + gap
+    && a.bottom > b.top - gap
+}
+
 describe('App', () => {
   beforeEach(() => {
     localStorage.clear()
@@ -289,6 +313,49 @@ describe('App', () => {
         expect(Math.abs(labels[i].x - labels[j].x)).toBeGreaterThanOrEqual(30)
       }
     }
+  })
+
+  it('keeps the pace trend label clear of the latest value label and marker', async () => {
+    const now = Math.floor(Date.now() / 1000)
+    const rates = [-35, 12, 18, 22.8]
+    let br = 10000
+    const brHistory = rates.map((rate, i) => {
+      const brPrev = br
+      const tournaments = 2000
+      br += rate * tournaments
+      return {
+        brAfter: br,
+        brPrev,
+        date: `T${i + 1}`,
+        timestamp: now - (rates.length - i) * 86400,
+        sessionResult: rate * tournaments,
+        totalTournaments: (i + 1) * tournaments,
+        tournaments,
+        text: `Pace label overlap session ${i + 1}`,
+      }
+    })
+    fetchPublicData.mockResolvedValue(makeMockData({
+      meta: { ...makeMockData().meta, brHistory, totalTournaments: 8000 },
+    }))
+
+    render(<App />)
+    const widget = await screen.findByTestId('pace-widget')
+    const trendLabel = widget.querySelector('.pace-trend-label')
+    const latestValue = widget.querySelector('.pace-segment.latest .pace-chart-value')
+    const latestDot = widget.querySelector('.pace-segment.latest .pace-dot')
+
+    expect(trendLabel?.closest('.pace-trend')).toHaveClass('shifted')
+    expect(latestValue).toBeInTheDocument()
+    expect(latestDot).toBeInTheDocument()
+
+    const trendRect = estimatedSvgTextRect(trendLabel, 8.6, 'end')
+    const valueRect = estimatedSvgTextRect(latestValue, 10, latestValue.classList.contains('edge') ? 'end' : 'middle')
+    const dotX = Number(latestDot.getAttribute('cx'))
+    const dotY = Number(latestDot.getAttribute('cy'))
+    const dotRect = { left:dotX - 12, right:dotX + 12, top:dotY - 12, bottom:dotY + 12 }
+
+    expect(rectsOverlap(trendRect, valueRect, 3)).toBe(false)
+    expect(rectsOverlap(trendRect, dotRect, 3)).toBe(false)
   })
 
   it('renders the incomplete pace chunk as a muted partial marker', async () => {
