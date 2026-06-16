@@ -307,6 +307,14 @@ function mergeMarathonMarkerCluster(cluster, yAtX = null) {
     profit,
     count,
     sessions,
+    parts:cluster.map(marker => ({
+      start:marker.start,
+      end:marker.end,
+      x:marker.x,
+      y:marker.y,
+      profit:marker.profit,
+      count:marker.count || 1,
+    })),
     compacted:true,
     mixedTone:hasPositive && hasNegative,
   }
@@ -1702,18 +1710,26 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
           } : {}}
         />
         <path d={linePath} fill="none" className="mc-line-highlight" strokeWidth={isMobile ? .9 : .7}/>
-        {markerVisuals.map(({ p, start, end, x, y, profit, count, sessions, compacted, mixedTone, isCrowded }) => {
+        {markerVisuals.map(({ p, start, end, x, y, profit, count, sessions, parts, compacted, mixedTone, isCrowded }) => {
           const i=end
           const isLast = i===points.length-1
           const cx=x, cy=y
           const isHovered = tip?.p === p
           const isGrouped = count > 1
+          const clusterParts = compacted && Array.isArray(parts) && parts.length >= 4 ? parts : null
+          const renderClusterParts = !!clusterParts && count >= 8
           const baseDotR = isMobile
             ? (isHovered ? (isLast ? 8 : 6) : (isLast ? 6 : isGrouped ? 4.5 : 3.4))
             : (isHovered ? (isLast ? 8 : 6) : (isLast ? 6 : isGrouped ? 4.6 : 3.8))
           const dotR = isCrowded
             ? Math.min(baseDotR, isLast ? (isMobile ? 4.8 : 4.6) : (isMobile ? 3.4 : 3.5))
             : baseDotR
+          const clusterPartR = partCount => {
+            const base = isMobile ? 2.2 : 2.05
+            const groupedBoost = partCount > 1 ? .45 : 0
+            const hoverBoost = isHovered ? .35 : 0
+            return base + groupedBoost + hoverBoost
+          }
           const openTip = () => {
             announceHoverPopupOpen()
             openTipState({p,profit,x:cx,y:cy,groupCount:count,sessions})
@@ -1722,15 +1738,32 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
             <g key={`marker-${start}-${end}`} onMouseEnter={!isMobile ? openTip : undefined}
               onClick={!isMobile ? e => { e.stopPropagation(); openTip() } : undefined}
               data-start={start} data-end={end} data-count={count}>
-              {!isMobile && <circle cx={cx} cy={cy} r={isLast?14:10} fill="transparent"
+              {!isMobile && <circle cx={cx} cy={cy} r={renderClusterParts ? 18 : isLast?14:10} fill="transparent"
+                className={renderClusterParts ? 'mc-dot-cluster-hit' : undefined}
                 />}
-              {isGrouped && <circle cx={cx} cy={cy} r={dotR + (compacted ? 3.2 : 2.6)}
-                className={`mc-dot-grouped-ring ${mixedTone ? 'mc-dot-mixed-ring' : ''}`}
-                stroke={profit>=0?'#4caf50':'#e53935'}/>}
-              <circle cx={cx} cy={cy} r={dotR}
-                className={`mc-dot ${isLast && !isCrowded ? 'mc-dot-last' : ''} ${isGrouped?'mc-dot-grouped':''} ${compacted?'mc-dot-compacted':''} ${mixedTone?'mc-dot-mixed':''} ${isCrowded?'mc-dot-crowded':''}`}
-                fill={profit>=0?'#4caf50':'#e53935'}
-                style={{transition:'r .12s', ...(isLast?{color:profit>=0?'#4caf50':'#e53935'}:{})}}/>
+              {renderClusterParts ? (
+                <g className="mc-dot-cluster-parts" data-part-count={clusterParts.length}>
+                  {clusterParts.map((part, partIdx) => {
+                    const partCount = part.count || 1
+                    return (
+                      <circle key={`part-${part.start}-${part.end}-${partIdx}`}
+                        cx={part.x} cy={part.y} r={clusterPartR(partCount)}
+                        className={`mc-dot mc-dot-cluster-part ${partCount > 1 ? 'mc-dot-cluster-part-grouped' : ''}`}
+                        fill={(part.profit || 0) >= 0 ? '#4caf50' : '#e53935'}/>
+                    )
+                  })}
+                </g>
+              ) : (
+                <>
+                  {isGrouped && <circle cx={cx} cy={cy} r={dotR + (compacted ? 3.2 : 2.6)}
+                    className={`mc-dot-grouped-ring ${mixedTone ? 'mc-dot-mixed-ring' : ''}`}
+                    stroke={profit>=0?'#4caf50':'#e53935'}/>}
+                  <circle cx={cx} cy={cy} r={dotR}
+                    className={`mc-dot ${isLast && !isCrowded ? 'mc-dot-last' : ''} ${isGrouped?'mc-dot-grouped':''} ${compacted?'mc-dot-compacted':''} ${mixedTone?'mc-dot-mixed':''} ${isCrowded?'mc-dot-crowded':''}`}
+                    fill={profit>=0?'#4caf50':'#e53935'}
+                    style={{transition:'r .12s', ...(isLast?{color:profit>=0?'#4caf50':'#e53935'}:{})}}/>
+                </>
+              )}
             </g>
           )
         })}

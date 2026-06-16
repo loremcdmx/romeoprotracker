@@ -200,18 +200,25 @@ describe('App', () => {
     const previous = markers[markers.length - 2]
     const latestDot = latest?.querySelector('.mc-dot')
     const previousDot = previous?.querySelector('.mc-dot')
+    const previousAnchor = previous?.querySelector('.mc-dot-cluster-hit') || previousDot
     const latestX = Number(latestDot?.getAttribute('cx'))
     const latestY = Number(latestDot?.getAttribute('cy'))
-    const previousX = Number(previousDot?.getAttribute('cx'))
-    const previousY = Number(previousDot?.getAttribute('cy'))
+    const previousX = Number(previousAnchor?.getAttribute('cx'))
+    const previousY = Number(previousAnchor?.getAttribute('cy'))
+    const previousClusterParts = previous?.querySelectorAll('.mc-dot-cluster-part') || []
 
     expect(markers.length).toBeLessThan(brHistory.length)
     expect(Number(latest?.getAttribute('data-start'))).toBe(brHistory.length - 1)
     expect(Number(latest?.getAttribute('data-end'))).toBe(brHistory.length - 1)
     expect(Number(latest?.getAttribute('data-count'))).toBe(1)
     expect(Number(previous?.getAttribute('data-count'))).toBeGreaterThan(1)
-    expect(previousDot).toHaveClass('mc-dot-compacted')
-    expect(previous?.querySelector('.mc-dot-mixed-ring')).toBeInTheDocument()
+    if (previousClusterParts.length) {
+      expect(previousClusterParts.length).toBeGreaterThan(1)
+      expect(previous?.querySelector('.mc-dot-cluster-hit')).toBeInTheDocument()
+    } else {
+      expect(previousDot).toHaveClass('mc-dot-compacted')
+      expect(previous?.querySelector('.mc-dot-mixed-ring')).toBeInTheDocument()
+    }
     expect(Math.hypot(latestX - previousX, latestY - previousY)).toBeGreaterThanOrEqual(20)
   })
 
@@ -708,27 +715,94 @@ describe('App', () => {
     const previousMarker = markers[markers.length - 2]
     const latestDot = latestMarker?.querySelector('.mc-dot')
     const previousDot = previousMarker?.querySelector('.mc-dot')
+    const previousAnchor = previousMarker?.querySelector('.mc-dot-cluster-hit') || previousMarker?.querySelector('.mc-dot')
+    const previousClusterParts = previousMarker?.querySelectorAll('.mc-dot-cluster-part') || []
     const latestX = Number(latestDot?.getAttribute('cx'))
     const latestY = Number(latestDot?.getAttribute('cy'))
-    const previousX = Number(previousDot?.getAttribute('cx'))
-    const previousY = Number(previousDot?.getAttribute('cy'))
+    const previousX = Number(previousAnchor?.getAttribute('cx'))
+    const previousY = Number(previousAnchor?.getAttribute('cy'))
     expect(Number(latestMarker?.dataset.start)).toBe(brHistory.length - 1)
     expect(Number(latestMarker?.dataset.end)).toBe(brHistory.length - 1)
     expect(Number(latestMarker?.dataset.count)).toBe(1)
     expect(Number(previousMarker?.dataset.count)).toBeGreaterThan(1)
-    expect(previousDot).toHaveClass('mc-dot-grouped')
+    if (previousClusterParts.length) {
+      expect(previousClusterParts.length).toBeGreaterThan(1)
+      expect(previousMarker?.querySelector('.mc-dot-compacted')).not.toBeInTheDocument()
+    } else {
+      expect(previousDot).toHaveClass('mc-dot-grouped')
+    }
     expect(Math.hypot(latestX - previousX, latestY - previousY)).toBeGreaterThanOrEqual(20)
     expect(document.querySelectorAll('.mc-xlabel-bg')).toHaveLength(0)
     expect(document.querySelectorAll('.mc-ylabel-bg')).toHaveLength(0)
     expect(document.querySelectorAll('.mc-xaxis-label-main').length).toBeGreaterThan(0)
     expect(document.querySelectorAll('.mc-yaxis-label').length).toBeGreaterThan(0)
 
-    const groupedRing = document.querySelector('.mc-dot-grouped-ring')
-    const hoverTarget = groupedRing?.parentElement?.querySelector('circle[fill="transparent"]')
+    const hoverTarget = previousMarker?.querySelector('circle[fill="transparent"]')
     expect(hoverTarget).toBeTruthy()
     fireEvent.mouseEnter(hoverTarget)
     expect(document.querySelector('.mc-session-breakdown')).toBeInTheDocument()
     expect(document.querySelectorAll('.mc-session-row').length).toBeGreaterThan(1)
+  })
+
+  it('splits dense mixed marathon clusters into small dots on the line', async () => {
+    const base = makeMockData()
+    const prefix = [
+      [9954, 167], [8710, 385], [47815, 8803], [45727, 8957],
+      [57156, 9274], [74610, 9772], [114175, 10600], [117838, 11335],
+      [175660, 11502], [156363, 11647], [153715, 11799], [141345, 11935],
+    ]
+    const denseTail = [
+      [131689, 12049], [125919, 12214], [122550, 12375], [127045, 12551],
+      [176612, 12672], [190999, 12830], [186336, 12956], [157804, 13119],
+      [173668, 13305], [188341, 13465], [186657, 13617], [175802, 13771],
+      [140614, 13957], [158825, 14165], [135661, 14348], [146784, 14510],
+      [146553, 14697], [145826, 14896], [149216, 15058], [140709, 15058],
+      [155354, 15187], [140161, 15304], [143579, 15516], [152936, 15681],
+      [175235, 15830], [170450, 15929], [156406, 16173], [156521, 16398],
+      [204021, 16573], [203652, 16719], [199923, 16942],
+    ]
+    const rows = [...prefix, ...denseTail]
+    const brHistory = rows.map(([brAfter, totalTournaments], i) => {
+      const brPrev = i === 0 ? 10000 : rows[i - 1][0]
+      return {
+        brAfter,
+        brPrev,
+        date: `D${i + 1}`,
+        timestamp: 1712300000 + i * 86400,
+        sessionResult: brAfter - brPrev,
+        totalTournaments,
+        tournaments: i === 0 ? totalTournaments : Math.max(0, totalTournaments - rows[i - 1][1]),
+        text: `Session ${i + 1}`,
+      }
+    })
+    fetchPublicData.mockResolvedValue(makeMockData({
+      meta: {
+        ...base.meta,
+        brHistory,
+        totalTournaments: rows.at(-1)[1],
+      },
+    }))
+
+    render(<App />)
+    expect(await screen.findByText(new RegExp(translate('ru', 'chart_marathon').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))).toBeInTheDocument()
+
+    const splitCluster = [...document.querySelectorAll('.marathon-chart g[data-start][data-end]')]
+      .find(marker => Number(marker.getAttribute('data-count')) >= 8 && marker.querySelector('.mc-dot-cluster-parts'))
+    const clusterParts = splitCluster?.querySelectorAll('.mc-dot-cluster-part') || []
+    expect(splitCluster).toBeTruthy()
+    expect(clusterParts.length).toBeGreaterThanOrEqual(8)
+    expect([...clusterParts].some(dot => dot.getAttribute('fill') === '#4caf50')).toBe(true)
+    expect([...clusterParts].some(dot => dot.getAttribute('fill') === '#e53935')).toBe(true)
+    expect(splitCluster?.querySelector('.mc-dot-compacted')).not.toBeInTheDocument()
+
+    const mainLinePoints = parseLinearSvgPath(document.querySelector('.mc-line-main')?.getAttribute('d'))
+    for (const dot of clusterParts) {
+      const x = Number(dot.getAttribute('cx'))
+      const y = Number(dot.getAttribute('cy'))
+      const lineY = yOnLinearPath(mainLinePoints, x)
+      expect(lineY).not.toBeNull()
+      expect(Math.abs(y - lineY)).toBeLessThan(0.6)
+    }
   })
 
   it('tones down the crowded last marathon marker so adjacent points stay readable', async () => {
