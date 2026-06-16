@@ -3,7 +3,7 @@ import { Analytics } from '@vercel/analytics/react'
 import {
   timeAgo, fmtBR, fmtNum, fmtInt, fmtExact, fmtDateShort, extractDay, extractBR,
   fk, fkAbs, ROMEO_RE, autoCloseQuotes, stripQuoteTags, extractQuoteBody,
-  makeBezierPath, makeBezierArea, pl, plural,
+  pl, plural,
   warsawDayKey, fmtDateTimeLang,
 } from './utils.js'
 import { createTranslator, DEFAULT_LANG, FORUM_WORD, fmtDateShortLang } from './i18n.js'
@@ -259,7 +259,29 @@ function clampNumber(value, min, max) {
   return Math.min(Math.max(value, min), max)
 }
 
-function mergeMarathonMarkerCluster(cluster) {
+function interpolateLinearChartY(coords, x) {
+  if (!coords?.length || !Number.isFinite(x)) return null
+  if (coords.length === 1) return coords[0].y
+
+  for (let i = 1; i < coords.length; i++) {
+    const a = coords[i - 1]
+    const b = coords[i]
+    const minX = Math.min(a.x, b.x)
+    const maxX = Math.max(a.x, b.x)
+    if (x < minX || x > maxX) continue
+
+    const span = b.x - a.x
+    if (Math.abs(span) < 0.001) return b.y
+    const t = (x - a.x) / span
+    return a.y + (b.y - a.y) * t
+  }
+
+  const first = coords[0]
+  const last = coords[coords.length - 1]
+  return Math.abs(x - first.x) < Math.abs(x - last.x) ? first.y : last.y
+}
+
+function mergeMarathonMarkerCluster(cluster, yAtX = null) {
   if (!cluster.length) return null
   if (cluster.length === 1) return cluster[0]
 
@@ -270,7 +292,9 @@ function mergeMarathonMarkerCluster(cluster) {
   const profit = cluster.reduce((sum, marker) => sum + (marker.profit || 0), 0)
   const weightTotal = cluster.reduce((sum, marker) => sum + Math.max(1, marker.count || 1), 0) || 1
   const x = cluster.reduce((sum, marker) => sum + marker.x * Math.max(1, marker.count || 1), 0) / weightTotal
-  const y = cluster.reduce((sum, marker) => sum + marker.y * Math.max(1, marker.count || 1), 0) / weightTotal
+  const weightedY = cluster.reduce((sum, marker) => sum + marker.y * Math.max(1, marker.count || 1), 0) / weightTotal
+  const projectedY = typeof yAtX === 'function' ? yAtX(x) : null
+  const y = Number.isFinite(projectedY) ? projectedY : weightedY
   const hasPositive = cluster.some(marker => (marker.profit || 0) > 0 || (marker.sessions || []).some(session => session.profit > 0))
   const hasNegative = cluster.some(marker => (marker.profit || 0) < 0 || (marker.sessions || []).some(session => session.profit < 0))
 
@@ -288,7 +312,7 @@ function mergeMarathonMarkerCluster(cluster) {
   }
 }
 
-function compactCrowdedMarathonMarkers(markers, minGap) {
+function compactCrowdedMarathonMarkers(markers, minGap, yAtX = null) {
   if (!markers?.length || markers.length <= 2) return markers || []
 
   const latest = markers[markers.length - 1]
@@ -299,9 +323,12 @@ function compactCrowdedMarathonMarkers(markers, minGap) {
       const beforePrevious = output[output.length - 2]
       const targetX = latest.x - minGap * .95
       const leftLimit = beforePrevious ? beforePrevious.x + minGap * .72 : previous.x - minGap
+      const nextX = clampNumber(targetX, leftLimit, previous.x)
+      const projectedY = typeof yAtX === 'function' ? yAtX(nextX) : null
       output[output.length - 1] = {
         ...previous,
-        x:clampNumber(targetX, leftLimit, previous.x),
+        x:nextX,
+        y:Number.isFinite(projectedY) ? projectedY : previous.y,
       }
     }
     return [...output, latest]
@@ -327,7 +354,7 @@ function compactCrowdedMarathonMarkers(markers, minGap) {
   let cluster = []
 
   const flushCluster = () => {
-    const merged = mergeMarathonMarkerCluster(cluster)
+    const merged = mergeMarathonMarkerCluster(cluster, yAtX)
     if (merged) compacted.push(merged)
     cluster = []
   }
@@ -355,6 +382,16 @@ function compactCrowdedMarathonMarkers(markers, minGap) {
   flushCluster()
 
   return keepLatestReadable([...head, ...compacted, latest])
+}
+
+function makeLinearChartPath(coords) {
+  if (!coords?.length) return ''
+  return `M ${coords.map(point => `${point.x.toFixed(1)} ${point.y.toFixed(1)}`).join(' L ')}`
+}
+
+function makeLinearChartArea(coords, baseline) {
+  if (!coords?.length) return ''
+  return `${makeLinearChartPath(coords)} L ${coords[coords.length - 1].x.toFixed(1)} ${baseline} L ${coords[0].x.toFixed(1)} ${baseline} Z`
 }
 
 function computePaceTrendStats(segments, binSize = PACE_BIN_SIZE) {
@@ -1013,8 +1050,9 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
     return i => pL + (cumMTTX[i] / totalMTTX) * (W - pL - pR)
   })()
   const coords = points.map((p,i) => ({ x:xOf(i), y:yOf(p.br) }))
-  const linePath = makeBezierPath(coords)
-  const areaPath = makeBezierArea(coords, plotBottom)
+  const yAtChartX = x => interpolateLinearChartY(coords, x)
+  const linePath = makeLinearChartPath(coords)
+  const areaPath = makeLinearChartArea(coords, plotBottom)
   const fmtMoneyTick = v => {
     if (v >= 1000) {
       const k = v / 1000
@@ -1160,7 +1198,7 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
         }),
       }))
 
-    return compactCrowdedMarathonMarkers(rawMarkers, isMobile ? 30 : 24)
+    return compactCrowdedMarathonMarkers(rawMarkers, isMobile ? 30 : 24, yAtChartX)
   })()
   const xLabelItems = (() => {
     if (!points.length) return []
@@ -1516,7 +1554,48 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
 
     return stops
   })()
-  const markerVisuals = markerGroups.map((marker, idx, arr) => {
+  const significantMarkerGroups = (() => {
+    if (!points.length) return []
+
+    const indexes = new Set([0, points.length - 1])
+    let peakIdx = 0
+    let troughIdx = 0
+    points.forEach((p, i) => {
+      if (p.br > points[peakIdx].br) peakIdx = i
+      if (p.br < points[troughIdx].br) troughIdx = i
+    })
+    indexes.add(peakIdx)
+    indexes.add(troughIdx)
+    xLabelItems.forEach(item => indexes.add(item.i))
+
+    const bankrollRange = Math.max(1, dataMax - dataMin)
+    const localTurnMoney = Math.max(4500, bankrollRange * .045)
+    const largeSessionMoney = Math.max(7000, bankrollRange * .06)
+    const localTurnPixels = isMobile ? 15 : 11
+
+    points.forEach((point, idx) => {
+      if (Math.abs(sessionProfitAt(idx)) >= largeSessionMoney) indexes.add(idx)
+      if (idx <= 0 || idx >= points.length - 1) return
+
+      const prev = points[idx - 1]
+      const next = points[idx + 1]
+      const isLocalPeak = point.br > prev.br && point.br > next.br
+      const isLocalTrough = point.br < prev.br && point.br < next.br
+      if (!isLocalPeak && !isLocalTrough) return
+
+      const moneySwing = Math.min(Math.abs(point.br - prev.br), Math.abs(point.br - next.br))
+      const pixelSwing = Math.min(
+        Math.abs(coords[idx].y - coords[idx - 1].y),
+        Math.abs(coords[idx].y - coords[idx + 1].y),
+      )
+      if (moneySwing >= localTurnMoney || pixelSwing >= localTurnPixels) indexes.add(idx)
+    })
+
+    return markerGroups.filter(marker =>
+      [...indexes].some(idx => idx >= marker.start && idx <= marker.end)
+    )
+  })()
+  const markerVisuals = significantMarkerGroups.map((marker, idx, arr) => {
     const distances = [
       arr[idx - 1] ? Math.hypot(marker.x - arr[idx - 1].x, marker.y - arr[idx - 1].y) : Infinity,
       arr[idx + 1] ? Math.hypot(marker.x - arr[idx + 1].x, marker.y - arr[idx + 1].y) : Infinity,
@@ -1539,7 +1618,7 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
     const sy = touch.clientY
     longPressTimer.current = setTimeout(() => {
       let nearest=null, minD=Infinity
-      markerGroups.forEach(m => { const d=Math.abs(m.x-tx); if(d<minD){minD=d;nearest=m} })
+      significantMarkerGroups.forEach(m => { const d=Math.abs(m.x-tx); if(d<minD){minD=d;nearest=m} })
       if (!nearest) return
       const p = nearest.p
       announceHoverPopupOpen()
@@ -1613,8 +1692,8 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
         <line x1={pL} y1={plotBottom} x2={W-pR} y2={plotBottom} className="mc-axis-line"/>
         <line x1={pL} y1={pT} x2={pL} y2={plotBottom} className="mc-axis-line mc-axis-line-y"/>
         <path d={areaPath} fill="url(#mcGrad)"/>
-        <path d={linePath} fill="none" stroke="url(#mcLineGrad)" className="mc-line-aura" strokeWidth={isMobile ? 8.5 : 6.5}/>
-        <path ref={pathRef} d={linePath} fill="none" stroke="url(#mcLineGrad)" className="mc-line-main" strokeWidth={isMobile ? 3.1 : 2.6}
+        <path d={linePath} fill="none" stroke="url(#mcLineGrad)" className="mc-line-aura" strokeWidth={isMobile ? 5.8 : 4.2}/>
+        <path ref={pathRef} d={linePath} fill="none" stroke="url(#mcLineGrad)" className="mc-line-main" strokeWidth={isMobile ? 2.8 : 2.2}
           strokeLinecap="round" strokeLinejoin="round" filter="url(#mcGlow)"
           style={pathLen!=null ? {
             strokeDasharray: pathLen,
@@ -1622,7 +1701,7 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
             animation: 'drawLine 1.4s cubic-bezier(.4,0,.2,1) forwards',
           } : {}}
         />
-        <path d={linePath} fill="none" className="mc-line-highlight" strokeWidth={isMobile ? 1.1 : .9}/>
+        <path d={linePath} fill="none" className="mc-line-highlight" strokeWidth={isMobile ? .9 : .7}/>
         {markerVisuals.map(({ p, start, end, x, y, profit, count, sessions, compacted, mixedTone, isCrowded }) => {
           const i=end
           const isLast = i===points.length-1

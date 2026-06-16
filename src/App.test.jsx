@@ -118,6 +118,31 @@ function findPostCardByAuthor(author) {
   ) ?? null
 }
 
+function parseLinearSvgPath(path) {
+  const values = path?.match(/-?\d+(?:\.\d+)?/g)?.map(Number) || []
+  const points = []
+  for (let i = 0; i < values.length - 1; i += 2) {
+    points.push({ x:values[i], y:values[i + 1] })
+  }
+  return points
+}
+
+function yOnLinearPath(points, x) {
+  for (let i = 1; i < points.length; i++) {
+    const a = points[i - 1]
+    const b = points[i]
+    const minX = Math.min(a.x, b.x)
+    const maxX = Math.max(a.x, b.x)
+    if (x < minX || x > maxX) continue
+
+    const span = b.x - a.x
+    if (Math.abs(span) < 0.001) return b.y
+    const t = (x - a.x) / span
+    return a.y + (b.y - a.y) * t
+  }
+  return null
+}
+
 describe('App', () => {
   beforeEach(() => {
     localStorage.clear()
@@ -438,6 +463,9 @@ describe('App', () => {
     expect(document.querySelector('.mc-plot-glow')).toBeInTheDocument()
     expect(document.querySelector('.mc-line-aura')).toBeInTheDocument()
     expect(document.querySelector('.mc-line-highlight')).toBeInTheDocument()
+    const mainLinePath = document.querySelector('.mc-line-main')?.getAttribute('d')
+    expect(mainLinePath).toContain(' L ')
+    expect(mainLinePath).not.toContain(' C ')
     expect(document.querySelectorAll('#mcLineGrad stop').length).toBeGreaterThan(brHistory.length)
   })
 
@@ -688,7 +716,7 @@ describe('App', () => {
     expect(Number(latestMarker?.dataset.end)).toBe(brHistory.length - 1)
     expect(Number(latestMarker?.dataset.count)).toBe(1)
     expect(Number(previousMarker?.dataset.count)).toBeGreaterThan(1)
-    expect(previousDot).toHaveClass('mc-dot-compacted')
+    expect(previousDot).toHaveClass('mc-dot-grouped')
     expect(Math.hypot(latestX - previousX, latestY - previousY)).toBeGreaterThanOrEqual(20)
     expect(document.querySelectorAll('.mc-xlabel-bg')).toHaveLength(0)
     expect(document.querySelectorAll('.mc-ylabel-bg')).toHaveLength(0)
@@ -745,6 +773,15 @@ describe('App', () => {
     expect(lastDot).toHaveClass('mc-dot-last')
     expect(lastDot).not.toHaveClass('mc-dot-crowded')
     expect(Math.hypot(lastX - previousX, lastY - previousY)).toBeGreaterThanOrEqual(20)
+
+    const mainLinePoints = parseLinearSvgPath(document.querySelector('.mc-line-main')?.getAttribute('d'))
+    for (const dot of [previousDot, lastDot]) {
+      const x = Number(dot?.getAttribute('cx'))
+      const y = Number(dot?.getAttribute('cy'))
+      const lineY = yOnLinearPath(mainLinePoints, x)
+      expect(lineY).not.toBeNull()
+      expect(Math.abs(y - lineY)).toBeLessThan(0.6)
+    }
   })
 
   it('renders post cards in feed', async () => {
