@@ -3,7 +3,6 @@ const CACHE_KEY = 'rpt_cache_v7'
 const CACHE_TTL = 60 * 1000
 const IS_TEST = import.meta.env.MODE === 'test'
 const JSON_FETCH_TIMEOUT_MS = IS_TEST ? 300 : 6500
-const OPTIONAL_DATA_SETTLE_MS = IS_TEST ? 0 : 650
 const SOURCE_SETTLE_MS = IS_TEST ? 0 : 1400
 
 function trimTrailingSlash(value) {
@@ -64,7 +63,6 @@ function setCache(payload) {
       compact: payload.compact ?? null,
       posts: payload.posts ?? null,
       meta: payload.meta ?? {},
-      leaderboards: payload.leaderboards ?? null,
       source: payload.source ?? null,
     }))
   } catch {
@@ -145,17 +143,6 @@ function selectFreshestPayload(current, candidate) {
   return hasPayloadAdvanced(candidate, current) ? candidate : current
 }
 
-function selectFreshestLeaderboards(payloads) {
-  return payloads
-    .map((payload) => payload?.leaderboards || null)
-    .filter(Boolean)
-    .sort((a, b) => {
-      const at = Date.parse(a.fetchedAt || '') || 0
-      const bt = Date.parse(b.fetchedAt || '') || 0
-      return bt - at
-    })[0] || null
-}
-
 function normalizeAvatarUrl(value) {
   if (!value) return null
   const src = String(value).trim()
@@ -209,7 +196,6 @@ function inflateCachedPayload(cache) {
   return {
     posts,
     meta: cache.meta || {},
-    leaderboards: cache.leaderboards || null,
     source: cache.source || null,
     stale: Boolean(cache.stale),
   }
@@ -243,7 +229,6 @@ async function fetchFromBase(base) {
   let compact = null
   let posts = null
 
-  const leaderboardsPromise = fetchJson(`${base}/leaderboards.json`).catch(() => null)
   const [metaResult, compactResult] = await Promise.allSettled([
     fetchJson(`${base}/meta.json`),
     fetchJson(`${base}/posts.min.json`),
@@ -261,12 +246,7 @@ async function fetchFromBase(base) {
     posts = await fetchJson(`${base}/posts.json`)
   }
 
-  const leaderboards = await Promise.race([
-    leaderboardsPromise,
-    delay(OPTIONAL_DATA_SETTLE_MS).then(() => null),
-  ])
-
-  return { compact, posts, meta, leaderboards, source: base }
+  return { compact, posts, meta, source: base }
 }
 
 async function collectNetworkPayloads() {
@@ -297,32 +277,25 @@ async function collectNetworkPayloads() {
   return settled
 }
 
-// Cheap freshness probe: pull only the small meta.json (and optional
-// leaderboards) from every base and keep the freshest. Used to decide whether
-// the heavy posts.min.json actually needs to be downloaded again.
+// Cheap freshness probe: pull only the small meta.json from every base and keep
+// the freshest. Used to decide whether the heavy posts.min.json actually needs
+// to be downloaded again.
 async function probeFreshestMeta() {
   const bases = getDataBases()
   const results = await Promise.allSettled(bases.map(async (base) => {
-    const leaderboardsPromise = fetchJson(`${base}/leaderboards.json`).catch(() => null)
     const meta = await fetchJson(`${base}/meta.json`)
-    const leaderboards = await Promise.race([
-      leaderboardsPromise,
-      delay(OPTIONAL_DATA_SETTLE_MS).then(() => null),
-    ])
-    return { meta, leaderboards, source: base }
+    return { meta, source: base }
   }))
 
   let freshest = null
-  const fulfilled = []
   for (const result of results) {
     if (result.status === 'fulfilled') {
-      fulfilled.push(result.value)
       freshest = selectFreshestPayload(freshest, result.value)
     }
   }
 
   if (!freshest) return null
-  return { meta: freshest.meta, leaderboards: selectFreshestLeaderboards(fulfilled) }
+  return { meta: freshest.meta }
 }
 
 export async function fetchPublicData() {
@@ -341,8 +314,6 @@ export async function fetchPublicData() {
         compact: cached.compact ?? null,
         posts: cached.posts ?? null,
         meta: cached.meta,
-        leaderboards: selectFreshestLeaderboards([probe, { leaderboards: cached.leaderboards }])
-          || cached.leaderboards || null,
         source: cached.source ?? null,
       }
       setCache(refreshed)
@@ -352,13 +323,11 @@ export async function fetchPublicData() {
 
   let lastError = null
   let freshestNetworkPayload = null
-  const fulfilledPayloads = []
 
   const results = await collectNetworkPayloads()
 
   for (const result of results) {
     if (result.status === 'fulfilled') {
-      fulfilledPayloads.push(result.value)
       freshestNetworkPayload = selectFreshestPayload(freshestNetworkPayload, result.value)
       continue
     }
@@ -367,17 +336,13 @@ export async function fetchPublicData() {
   }
 
   const freshestPayload = selectFreshestPayload(freshestNetworkPayload, cachedPayload)
-  const leaderboards = selectFreshestLeaderboards([...fulfilledPayloads, cachedPayload])
-  const payloadWithLeaderboards = freshestPayload
-    ? { ...freshestPayload, leaderboards: leaderboards || freshestPayload.leaderboards || null }
-    : null
 
   if (freshestNetworkPayload && freshestPayload === freshestNetworkPayload) {
-    setCache(payloadWithLeaderboards)
-    return inflateCachedPayload(payloadWithLeaderboards)
+    setCache(freshestPayload)
+    return inflateCachedPayload(freshestPayload)
   }
 
-  if (cachedPayload) return payloadWithLeaderboards || cachedPayload
+  if (cachedPayload) return freshestPayload || cachedPayload
 
   throw lastError || new Error('Failed to load tracker data from every configured source')
 }

@@ -147,44 +147,6 @@ describe('fetchPublicData', () => {
     expect(result.posts[0].id).toBe('raw')
   })
 
-  it('keeps leaderboard freshness independent from post freshness', async () => {
-    vi.stubGlobal('fetch', vi.fn((url) => {
-      const href = String(url)
-
-      if (href.includes('localhost') && href.includes('/data/meta.json')) {
-        return jsonResponse({ lastUpdated: '2026-04-19T02:00:00.000Z' })
-      }
-
-      if (href.includes('localhost') && href.includes('/data/posts.min.json')) {
-        return jsonResponse({ avatars: [], posts: [{ i: 'same', a: 'Same origin', t: 1 }] })
-      }
-
-      if (href.includes('localhost') && href.includes('/data/leaderboards.json')) {
-        return jsonResponse({ fetchedAt: '2026-05-14T09:00:00.000Z', leaderboards: [{ tier: 'Low' }] })
-      }
-
-      if (href.includes('raw.githubusercontent.com') && href.includes('/meta.json')) {
-        return jsonResponse({ lastUpdated: '2026-04-19T01:00:00.000Z' })
-      }
-
-      if (href.includes('raw.githubusercontent.com') && href.includes('/posts.min.json')) {
-        return jsonResponse({ avatars: [], posts: [{ i: 'raw', a: 'Raw GitHub', t: 2 }] })
-      }
-
-      if (href.includes('raw.githubusercontent.com') && href.includes('/leaderboards.json')) {
-        return jsonResponse({ fetchedAt: '2026-05-14T10:00:00.000Z', leaderboards: [{ tier: 'High' }] })
-      }
-
-      throw new Error(`Unexpected fetch: ${href}`)
-    }))
-
-    const result = await fetchPublicData()
-
-    expect(result.meta.lastUpdated).toBe('2026-04-19T02:00:00.000Z')
-    expect(result.posts[0].id).toBe('same')
-    expect(result.leaderboards.leaderboards[0].tier).toBe('High')
-  })
-
   it('returns a working source instead of waiting forever for a stalled fallback', async () => {
     vi.stubGlobal('fetch', vi.fn((url) => {
       const href = String(url)
@@ -195,10 +157,6 @@ describe('fetchPublicData', () => {
 
       if (href.includes('localhost') && href.includes('/data/posts.min.json')) {
         return jsonResponse({ avatars: [], posts: [{ i: 'same', a: 'Same origin', t: 1 }] })
-      }
-
-      if (href.includes('localhost') && href.includes('/data/leaderboards.json')) {
-        return jsonResponse({ fetchedAt: '2026-05-14T09:00:00.000Z', leaderboards: [{ tier: 'Low' }] })
       }
 
       if (href.includes('raw.githubusercontent.com')) {
@@ -212,7 +170,6 @@ describe('fetchPublicData', () => {
 
     expect(result.meta.lastUpdated).toBe('2026-04-19T02:00:00.000Z')
     expect(result.posts[0].id).toBe('same')
-    expect(result.leaderboards.leaderboards[0].tier).toBe('Low')
   })
 
   it('keeps a fresher cached payload when the network returns older data', async () => {
@@ -315,7 +272,6 @@ describe('fetchPublicData', () => {
       ts: Date.now() - 5 * 60 * 1000,
       compact: { avatars: [], posts: [{ i: 'cached', a: 'Cached', t: 1 }] },
       meta: { lastUpdated: '2026-04-19T03:00:00.000Z' },
-      leaderboards: { fetchedAt: '2026-05-14T08:00:00.000Z', leaderboards: [{ tier: 'Low' }] },
       source: 'cache',
     }))
 
@@ -323,9 +279,6 @@ describe('fetchPublicData', () => {
       const href = String(url)
       if (href.includes('/meta.json')) {
         return jsonResponse({ lastUpdated: '2026-04-19T03:00:00.000Z' })
-      }
-      if (href.includes('/leaderboards.json')) {
-        return jsonResponse({ fetchedAt: '2026-05-14T11:00:00.000Z', leaderboards: [{ tier: 'High' }] })
       }
       if (href.includes('/posts')) {
         throw new Error(`Should not fetch posts when meta is unchanged: ${href}`)
@@ -338,7 +291,6 @@ describe('fetchPublicData', () => {
 
     expect(result.posts[0].id).toBe('cached')
     expect(result.meta.lastUpdated).toBe('2026-04-19T03:00:00.000Z')
-    expect(result.leaderboards.leaderboards[0].tier).toBe('High')
     const postsFetches = fetchSpy.mock.calls.filter(([url]) => String(url).includes('/posts'))
     expect(postsFetches).toHaveLength(0)
   })
@@ -373,9 +325,6 @@ describe('fetchPublicData', () => {
           ],
         })
       }
-      if (href.includes('/leaderboards.json')) {
-        return jsonResponse({ fetchedAt: '2026-05-14T11:00:00.000Z', leaderboards: [] })
-      }
       if (href.includes('/posts.min.json')) {
         return jsonResponse({ avatars: [], posts: [{ i: 'fresh', a: 'Fresh network', t: 2 }] })
       }
@@ -404,9 +353,6 @@ describe('fetchPublicData', () => {
       const href = String(url)
       if (href.includes('/meta.json')) {
         return jsonResponse({ lastUpdated: '2026-04-19T04:00:00.000Z' })
-      }
-      if (href.includes('/leaderboards.json')) {
-        return jsonResponse({ fetchedAt: '2026-05-14T11:00:00.000Z', leaderboards: [{ tier: 'High' }] })
       }
       if (href.includes('/posts.min.json')) {
         return jsonResponse({ avatars: [], posts: [{ i: 'fresh', a: 'Fresh network', t: 2 }] })

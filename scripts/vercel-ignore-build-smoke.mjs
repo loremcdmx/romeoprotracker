@@ -9,7 +9,6 @@ const {
 assert.equal(isSkippablePath('data/posts.json'), true)
 assert.equal(isSkippablePath('data/posts.min.json'), true)
 assert.equal(isSkippablePath('data/meta.json'), true)
-assert.equal(isSkippablePath('data/leaderboards.json'), true)
 assert.equal(isSkippablePath('public/data/posts.min.json'), true)
 assert.equal(isSkippablePath('.github/workflows/scrape.yml'), true)
 assert.equal(isSkippablePath('README.md'), true)
@@ -23,10 +22,6 @@ assert.equal(isSkippablePath('../data/posts.json'), false)
 
 assert.equal(
   shouldSkipBuild(['data/posts.json', 'data/posts.min.json', 'data/meta.json']).skip,
-  true,
-)
-assert.equal(
-  shouldSkipBuild(['data/leaderboards.json', '.github/workflows/leaderboards.yml']).skip,
   true,
 )
 assert.equal(

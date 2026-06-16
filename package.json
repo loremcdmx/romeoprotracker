@@ -22,9 +22,7 @@
     "scrape:no-push": "node scripts/scrape.mjs --no-push",
     "scrape:full": "node scripts/scrape.mjs --mode=full",
     "scrape:reextract": "node scripts/scrape.mjs --mode=reextract",
-    "scrape:translate": "node scripts/scrape.mjs --mode=translate",
-    "leaderboards:ggwf": "node scripts/fetch-ggwf-leaderboards.mjs",
-    "leaderboards:coin": "node scripts/check-coinpoker-coinmasters.mjs"
+    "scrape:translate": "node scripts/scrape.mjs --mode=translate"
   },
   "dependencies": {
     "@vercel/analytics": "^2.0.1",

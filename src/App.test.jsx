@@ -72,46 +72,6 @@ function makeMockData(overrides = {}) {
   }
 }
 
-function makeMockLeaderboards() {
-  return {
-    source: 'ggpoker-pml',
-    officialPage: 'https://ggpoker.com/tournaments/ggpoker-world-festival/',
-    fetchedAt: '2026-05-14T09:02:14.754Z',
-    finishedAt: '2099-06-11T23:59:59.000+00:00',
-    targetNick: 'R Romanovskyi',
-    leaderboards: [
-      {
-        tier: 'Low',
-        target: { rank: 107, nickname: 'R Romanovskyi', point: 1732.59, prizeValue: 150, prizeCurrency: 'GCD' },
-        top: [
-          { rank: 1, nickname: 'Mala_Ale_Farsa', point: 3370.04, prizeValue: 20000, prizeCurrency: 'USD' },
-          { rank: 2, nickname: 'Anton Ivar', point: 3244.61, prizeValue: 12500, prizeCurrency: 'USD' },
-          { rank: 3, nickname: 'HappyNewFear', point: 2899.71, prizeValue: 8000, prizeCurrency: 'USD' },
-        ],
-      },
-      {
-        tier: 'Medium',
-        target: { rank: 4, nickname: 'R Romanovskyi', point: 2675.44, prizeValue: 20000, prizeCurrency: 'USD' },
-        top: [
-          { rank: 1, nickname: 'ANTON BARDZIYAN', point: 2826.77, prizeValue: 50000, prizeCurrency: 'USD' },
-          { rank: 2, nickname: 'Bowrot-', point: 2801.82, prizeValue: 35000, prizeCurrency: 'USD' },
-          { rank: 3, nickname: 'Armanus', point: 2690.35, prizeValue: 25000, prizeCurrency: 'USD' },
-        ],
-      },
-      {
-        tier: 'High',
-        target: { rank: 1, nickname: 'R Romanovskyi', point: 1956.18, prizeValue: 80000, prizeCurrency: 'USD' },
-        top: [
-          { rank: 1, nickname: 'R Romanovskyi', point: 1956.18, prizeValue: 80000, prizeCurrency: 'USD' },
-          { rank: 2, nickname: 'Tom_Poker_BR', point: 1946.99, prizeValue: 60000, prizeCurrency: 'USD' },
-          { rank: 3, nickname: 'Ronan Sweeney', point: 1935.38, prizeValue: 45000, prizeCurrency: 'USD' },
-          { rank: 4, nickname: 'Patrick Leonard', point: 1879.09, prizeValue: 35000, prizeCurrency: 'USD' },
-        ],
-      },
-    ],
-  }
-}
-
 function findPostCardByAuthor(author) {
   return [...document.querySelectorAll('.post-card')].find((card) =>
     card.querySelector('.pc-author')?.textContent === author,
@@ -220,24 +180,6 @@ describe('App', () => {
       expect(previous?.querySelector('.mc-dot-mixed-ring')).toBeInTheDocument()
     }
     expect(Math.hypot(latestX - previousX, latestY - previousY)).toBeGreaterThanOrEqual(20)
-  })
-
-  it('renders GGWF leaderboard widget with leaders, Romeo, and prizes', async () => {
-    fetchPublicData.mockResolvedValue(makeMockData({ leaderboards: makeMockLeaderboards() }))
-    render(<App />)
-
-    expect(await screen.findByText(translate('ru', 'leaderboards_title'))).toBeInTheDocument()
-    expect(screen.getByText('Mala_Ale_Farsa')).toBeInTheDocument()
-    expect(screen.getAllByText(translate('ru', 'leaderboards_points')).length).toBeGreaterThanOrEqual(1)
-    expect(screen.getAllByText('3,370.04').length).toBeGreaterThanOrEqual(1)
-    expect(screen.queryByText('Romeo #107')).not.toBeInTheDocument()
-    expect(screen.getAllByText('#107').length).toBeGreaterThanOrEqual(1)
-    expect(screen.getByText('до топ-3: 1,167.12 pts')).toBeInTheDocument()
-    expect(screen.queryByText('лидер борда')).not.toBeInTheDocument()
-    expect(screen.getByText('$300K')).toBeInTheDocument()
-    expect(screen.getByText('Patrick Leonard')).toBeInTheDocument()
-    expect(screen.getAllByText('GCD 150').length).toBeGreaterThanOrEqual(1)
-    expect(screen.getByText(translate('ru', 'leaderboards_points_help'))).toBeInTheDocument()
   })
 
   it('renders pace widget and applies the shared date period filters', async () => {

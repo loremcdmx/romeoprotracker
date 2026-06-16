@@ -57,95 +57,6 @@ function Sparkline({ values, width = 64, height = 24, color = '#4caf50' }) {
   )
 }
 
-const LEADERBOARD_TIERS = ['Low', 'Medium', 'High']
-const LEADERBOARD_META = {
-  Low: { label:'Low', pool:'$300K', tone:'low' },
-  Medium: { label:'Medium', pool:'$700K', tone:'medium' },
-  High: { label:'High', pool:'$1M', tone:'high' },
-}
-
-function formatLeaderboardPrize(row) {
-  const value = row?.prizeValue
-  if (value == null) return '—'
-  const rounded = Math.round(value)
-  const currency = row?.prizeCurrency || 'USD'
-  if (currency === 'USD') return `$${fmtInt(rounded)}`
-  if (currency === 'GCD') return `GCD ${fmtInt(rounded)}`
-  return `${currency} ${fmtInt(rounded)}`
-}
-
-function formatLeaderboardPoints(value) {
-  if (value == null) return '—'
-  return Number(value).toLocaleString('en-US', { maximumFractionDigits: 2 })
-}
-
-function LeaderboardPoints({ value, className = '' }) {
-  return (
-    <span className={className}>
-      <b>{formatLeaderboardPoints(value)}</b>
-      <small>pts</small>
-    </span>
-  )
-}
-
-function leaderboardGapText(board, lang) {
-  const target = board?.target
-  if (!target) return ''
-  if (target.rank <= 3) return ''
-  const topThree = (board?.top || []).find(row => row.rank === 3) || board?.top?.[2]
-  if (!topThree?.point || target.point == null) return ''
-  const gap = topThree.point - target.point
-  if (!(gap > 0)) return ''
-  const label = lang === 'ru' ? 'до топ-3' : lang === 'es' ? 'al top 3' : 'to top 3'
-  return `${label}: ${formatLeaderboardPoints(gap)} pts`
-}
-
-function formatLeaderboardTimeLeft(finishedAt, lang) {
-  const end = Date.parse(finishedAt || '')
-  if (!Number.isFinite(end)) return '—'
-  const diff = end - Date.now()
-  if (diff <= 0) return lang === 'ru' ? 'завершён' : lang === 'es' ? 'terminado' : 'finished'
-  const days = Math.floor(diff / 86400000)
-  const hours = Math.floor((diff % 86400000) / 3600000)
-  if (lang === 'ru') return days > 0 ? `${days}д ${hours}ч` : `${hours}ч`
-  if (lang === 'es') return days > 0 ? `${days}d ${hours}h` : `${hours}h`
-  return days > 0 ? `${days}d ${hours}h` : `${hours}h`
-}
-
-function formatLeaderboardUpdated(ts, lang) {
-  const value = Date.parse(ts || '')
-  if (!Number.isFinite(value)) return '—'
-  return fmtDateTimeLang(value / 1000, lang)
-}
-
-function sampleLeaderboardPoints({ pool, place, field }) {
-  return Math.round(Math.log(pool) / Math.sqrt(place / field))
-}
-
-function leaderboardRowsForDisplay(board, targetNick) {
-  const rows = []
-  const seen = new Set()
-  const targetKey = String(targetNick || '').toLowerCase()
-  const add = (row, role = 'leader') => {
-    if (!row?.nickname) return
-    const key = `${row.rank}:${row.nickname}`.toLowerCase()
-    if (seen.has(key)) return
-    seen.add(key)
-    rows.push({
-      ...row,
-      role:String(row.nickname).toLowerCase() === targetKey ? 'romeo' : role,
-    })
-  }
-
-  ;(board?.top || []).slice(0, 3).forEach(row => add(row, 'leader'))
-  if (board?.target) add(board.target, 'romeo')
-  for (const row of (board?.top || []).slice(3)) {
-    if (rows.length >= 4) break
-    add(row, 'leader')
-  }
-  return rows
-}
-
 const MARATHON_TARGET = 10_000_000
 const PACE_PERIOD_SECONDS = { week:7 * 86400, month:30 * 86400 }
 const PACE_BIN_SIZE = 2000
@@ -747,108 +658,6 @@ function PaceMiniChart({ segments, unit, t, binSize = PACE_BIN_SIZE }) {
         </div>
       )}
     </div>
-  )
-}
-
-function LeaderboardsWidget({ snapshot, lang, t }) {
-  const boards = snapshot?.leaderboards || []
-  const byTier = new Map(boards.map(board => [board.tier, board]))
-  const finishedAt = snapshot?.finishedAt
-  const remaining = formatLeaderboardTimeLeft(finishedAt, lang)
-  const fetchedAt = formatLeaderboardUpdated(snapshot?.fetchedAt, lang)
-  const sourceUrl = snapshot?.officialPage || 'https://ggpoker.com/tournaments/ggpoker-world-festival/'
-  const examples = [
-    `$100K · 1/1000 ≈ ${sampleLeaderboardPoints({ pool:100000, place:1, field:1000 })}`,
-    `$100K · 10/1000 ≈ ${sampleLeaderboardPoints({ pool:100000, place:10, field:1000 })}`,
-    `$100K · 100/1000 ≈ ${sampleLeaderboardPoints({ pool:100000, place:100, field:1000 })}`,
-    `$1M · 1/5000 ≈ ${sampleLeaderboardPoints({ pool:1000000, place:1, field:5000 })}`,
-  ]
-
-  return (
-    <section className="leaderboard-widget">
-      <div className="leaderboard-head">
-        <div>
-          <div className="section-title">{t('leaderboards_title')}</div>
-          <div className="leaderboard-sub">
-            {t('leaderboards_updated')}: {fetchedAt}
-          </div>
-        </div>
-        <div className="leaderboard-head-actions">
-          <div className="leaderboard-countdown" title={finishedAt ? new Date(finishedAt).toLocaleString() : undefined}>
-            <span>{t('leaderboards_left')}</span>
-            <b>{remaining}</b>
-          </div>
-          <div className="leaderboard-help-wrap">
-            <button className="leaderboard-help" aria-label={t('leaderboards_points_help')}>?</button>
-            <div className="leaderboard-tooltip" role="tooltip">
-              <b>{t('leaderboards_points_help')}</b>
-              <span>{t('leaderboards_points_formula')}</span>
-              <div className="leaderboard-tooltip-grid">
-                {examples.map(example => <span key={example}>{example}</span>)}
-              </div>
-              <span>{t('leaderboards_points_note')}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {!boards.length ? (
-        <div className="leaderboard-empty">{t('leaderboards_empty')}</div>
-      ) : (
-        <div className="leaderboard-grid">
-          {LEADERBOARD_TIERS.map(tier => {
-            const board = byTier.get(tier)
-            const meta = LEADERBOARD_META[tier]
-            const rows = leaderboardRowsForDisplay(board, snapshot?.targetNick)
-            const chase = leaderboardGapText(board, lang)
-            return (
-              <div key={tier} className={`leaderboard-card ${meta.tone}`}>
-                <div className="leaderboard-card-head">
-                  <div>
-                    <span className="leaderboard-tier">{meta.label}</span>
-                  </div>
-                  <span className="leaderboard-pool">{meta.pool}</span>
-                </div>
-                {board?.target && (
-                  <div className="leaderboard-romeo-panel">
-                    <div className="leaderboard-romeo-main">
-                      <span>Romeo</span>
-                      <b>#{board.target.rank}</b>
-                    </div>
-                    <div className="leaderboard-romeo-metrics">
-                      <LeaderboardPoints value={board.target.point} className="leaderboard-romeo-points"/>
-                      <strong>{formatLeaderboardPrize(board.target)}</strong>
-                    </div>
-                    {chase && <div className="leaderboard-chase">{chase}</div>}
-                  </div>
-                )}
-                <div className="leaderboard-table">
-                  <div className="leaderboard-table-head">
-                    <span>#</span>
-                    <span>{t('leaderboards_player')}</span>
-                    <span>{t('leaderboards_points')}</span>
-                    <span>{t('leaderboards_prize')}</span>
-                  </div>
-                  {rows.map((row, idx) => (
-                    <div key={`${tier}-${row.rank}-${row.nickname}`} className={`leaderboard-row ${row.role === 'romeo' ? 'romeo' : ''} ${row.rank <= 3 ? 'top-leader' : ''} ${idx === 3 ? 'after-top' : ''}`}>
-                      <span className={`leaderboard-rank ${row.rank <= 3 ? `top-${row.rank}` : ''}`}>{row.rank}</span>
-                      <span className="leaderboard-player">
-                        <span className="leaderboard-name">{row.nickname}</span>
-                      </span>
-                      <LeaderboardPoints value={row.point} className="leaderboard-points"/>
-                      <span className="leaderboard-prize">{formatLeaderboardPrize(row)}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )
-          })}
-        </div>
-      )}
-      <a className="leaderboard-source" href={sourceUrl} target="_blank" rel="noreferrer">
-        {t('leaderboards_source')} →
-      </a>
-    </section>
   )
 }
 
@@ -3232,7 +3041,7 @@ function FirstFundBanner({ t }) {
 
 // ─── APP ─────────────────────────────────────────────────────────────────────
 export default function App() {
-  const { posts, meta, leaderboards, loading, error, newPostIds, refresh, clearNewPosts } = usePostsData()
+  const { posts, meta, loading, error, newPostIds, refresh, clearNewPosts } = usePostsData()
   // Below 980px the sidebar is hidden and the FF banner moves into the feed.
   // Render only the visible one so the hidden copy doesn't mount a second chip.
   const isNarrow = useIsMobile(980)
@@ -3859,8 +3668,7 @@ export default function App() {
               )}
               <MarathonChart posts={posts} meta={meta} startBR={stats.startBR} setLightbox={setLightbox}
                 period={chartPeriod} setPeriod={setChartPeriod} lang={lang} t={t}/>
-              <LeaderboardsWidget snapshot={leaderboards} lang={lang} t={t}/>
-              {/* Mobile-only: sidebar is hidden <=980px, so surface the FF banner here, after the leaderboard */}
+              {/* Mobile-only: sidebar is hidden <=980px, so surface the FF banner here in the feed */}
               {isNarrow && <div className="ff-banner-mobile-slot"><FirstFundBanner t={t}/></div>}
               <PaceWidget meta={meta} stats={stats} period={chartPeriod} setPeriod={setChartPeriod} lang={lang} t={t}/>
               {/* Mobile-only top posts */}

@@ -33,25 +33,6 @@ npm run scrape:reextract
 npm run scrape:translate
 ```
 
-Leaderboard probes:
-
-```bash
-npm run leaderboards:ggwf
-npm run leaderboards:coin
-```
-
-`leaderboards:ggwf` fetches the public GGWF leaderboard group and searches the
-default Romeo candidate nick `R Romanovskyi`. `leaderboards:coin` checks the
-public CoinPoker CoinMasters leaderboard page for the known Romeo aliases. Both
-commands are diagnostic only; they do not write app data unless `--write` is
-passed.
-
-For the app widget:
-
-```bash
-npm run leaderboards:ggwf -- --write data/leaderboards.json
-```
-
 `npm run dev` and `npm run build` automatically copy `data/*.json` into `public/data` so local builds work without hitting GitHub raw URLs.
 
 ## Frontend Architecture
@@ -77,7 +58,7 @@ Runtime data is resolved from multiple sources:
 
 The client compares `meta.lastUpdated` across successful sources and keeps the freshest payload instead of trusting the first response. That avoids stale Vercel assets when code deploys and scraper commits move at different cadences.
 
-Vercel uses `scripts/vercel-ignore-build.mjs` as its ignored build step. Data-only scraper and leaderboard commits are skipped on Vercel because the deployed client can read fresher JSON directly from GitHub raw; source, dependency, config, and public asset changes still build normally.
+Vercel uses `scripts/vercel-ignore-build.mjs` as its ignored build step. Data-only scraper commits are skipped on Vercel because the deployed client can read fresher JSON directly from GitHub raw; source, dependency, config, and public asset changes still build normally.
 
 ## Scraper
 
@@ -108,7 +89,6 @@ Translation helpers are isolated in `scripts/lib/translation.mjs` so scraper-spe
 - `data/posts.json` — full post payload
 - `data/posts.min.json` — compact payload used by the client
 - `data/meta.json` — bankroll summary, scraper metadata, bankroll history
-- `data/leaderboards.json` — GGWF leaderboard snapshot used by the leaderboard widget
 
 ## Fork / Deploy Notes
 
