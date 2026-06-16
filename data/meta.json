@@ -2,10 +2,10 @@
   "bankroll": 199923,
   "startBankroll": 10000,
   "targetBankroll": 10000000,
-  "day": 84,
+  "day": 85,
   "status": "active",
-  "lastUpdated": "2026-06-15T05:19:18.673Z",
-  "totalPosts": 6834,
+  "lastUpdated": "2026-06-16T05:25:18.649Z",
+  "totalPosts": 6838,
   "scrapedPages": 0,
   "chronicle": [],
   "authorName": "Romeopro",
@@ -2281,7 +2281,7 @@
     },
     {
       "id": "8248991",
-      "date": "14 июня, 04:26",
+      "date": "14 июня, 06:26",
       "timestamp": 1781403994,
       "brBefore": 204021,
       "brAfter": 203652,
@@ -2335,5 +2335,5 @@
     }
   ],
   "totalTournaments": 16942,
-  "lastScrapeRun": "2026-06-16T02:14:08.564Z"
+  "lastScrapeRun": "2026-06-16T05:25:18.649Z"
 }
