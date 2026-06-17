@@ -302,6 +302,15 @@ function updateLikes(existingPosts, scrapedPosts) {
 
 // ─── CLAUDE VISION (BR extraction) ──────────────────────────────────────────
 
+// Sentinel returned by extractBrFromImages when extraction failed for a
+// transient/recoverable reason (API error, empty response, bad JSON). The post
+// should be retried on a later run rather than permanently marked brChecked.
+// A plain `null` return means "definitively no BR data in these images".
+const BR_EXTRACT_RETRY = Symbol('br-extract-retry')
+// After this many consecutive transient failures, stop retrying a post so a
+// genuinely unreadable screenshot can't trigger an unbounded API spend.
+const BR_MAX_ATTEMPTS = 6
+
 async function extractBrFromImages(post, lastBrHistory) {
   const apiKey = process.env.ANTHROPIC_API_KEY
   if (!apiKey) {
@@ -368,12 +377,12 @@ async function extractBrFromImages(post, lastBrHistory) {
     if (!res.ok) {
       const err = await res.text()
       console.log(`  ⚠ Claude API error ${res.status}: ${err.substring(0, 200)}`)
-      return null
+      return BR_EXTRACT_RETRY
     }
 
     const data = await res.json()
     const text = data.content?.[0]?.text?.trim()
-    if (!text) return null
+    if (!text) return BR_EXTRACT_RETRY
 
     const jsonStr = text.replace(/^```json\n?/, '').replace(/\n?```$/, '')
     const parsed = JSON.parse(jsonStr)
@@ -396,7 +405,7 @@ async function extractBrFromImages(post, lastBrHistory) {
     }
   } catch (e) {
     console.log(`  ⚠ Claude API parse error: ${e.message}`)
-    return null
+    return BR_EXTRACT_RETRY
   }
 }
 
@@ -510,6 +519,12 @@ async function main() {
     for (const p of romeoPosts) {
       console.log(`🎰 [reextract] Romeo post ${p.id} (${p.date}) — ${p.images.length} images...`)
       const brData = await extractBrFromImages(p, meta.brHistory)
+      if (brData === BR_EXTRACT_RETRY) {
+        // Transient failure during full re-extract: leave for a later run, do
+        // not poison the post with a permanent brChecked flag.
+        console.log(`  ↻ BR extraction failed for ${p.id} — leaving unchecked for retry`)
+        continue
+      }
       if (!brData) {
         console.log('  ℹ No BR data — marking as checked')
         p.brChecked = true
@@ -626,6 +641,19 @@ async function main() {
     }
     console.log(`🎰 ${label} Romeo post ${p.id} has ${p.images.length} images — analyzing...`)
     const brData = await extractBrFromImages(p, meta.brHistory)
+    if (brData === BR_EXTRACT_RETRY) {
+      // Transient failure (API error / empty / bad JSON). Leave the post
+      // eligible for retry instead of permanently marking it brChecked, but
+      // bound retries so a genuinely unreadable image can't hammer the API.
+      p.brAttempts = (p.brAttempts || 0) + 1
+      if (p.brAttempts >= BR_MAX_ATTEMPTS) {
+        console.log(`  ⚠ BR extraction failed ${p.brAttempts}× for ${p.id} — giving up, marking as checked`)
+        p.brChecked = true
+      } else {
+        console.log(`  ↻ BR extraction failed (attempt ${p.brAttempts}/${BR_MAX_ATTEMPTS}) for ${p.id} — will retry next run`)
+      }
+      return false
+    }
     if (!brData) {
       console.log('  ℹ No BR data found in images — marking as checked')
       p.brChecked = true
