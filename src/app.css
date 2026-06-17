@@ -625,6 +625,11 @@ html{scroll-behavior:smooth}
 /* ─── FIRSTFUND BANNER ──────────────────────────────────────────────────── */
 .ff-banner{
   position:relative;overflow:hidden;isolation:isolate;
+  /* Hard-clip composited descendants (sweeping .ff-banner-shine + the 3D
+     tumbling chip). Rounded overflow:hidden alone leaks them past the corners
+     during compositing — an intermittent diagonal streak that never shows in a
+     static screenshot. clip-path applies in the compositor too, so it holds. */
+  clip-path:inset(0 round 12px);
   display:flex;flex-direction:column;gap:7px;
   padding:16px 16px 14px;border-radius:12px;margin-bottom:14px;
   text-decoration:none;cursor:pointer;
