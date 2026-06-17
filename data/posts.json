@@ -130088,11 +130088,27 @@
       "https://static-forum.gipsyteam.ru/monthly_06_2026/post-6195-1781577191cdb2_thumb.webp"
     ],
     "videos": [],
-    "brBefore": null,
-    "brAfter": null,
-    "sessionResult": null,
+    "brBefore": 199923,
+    "brAfter": 209582,
+    "sessionResult": 9659,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8250071",
-    "brChecked": false
+    "brChecked": false,
+    "rooms": {
+      "before": {
+        "gg": 198486,
+        "ps": 1188,
+        "king": 232,
+        "coin": 17,
+        "lux": 0
+      },
+      "after": {
+        "gg": 208145,
+        "ps": 1188,
+        "king": 232,
+        "coin": 17,
+        "lux": 0
+      }
+    }
   },
   {
     "id": "8250082",
@@ -131023,11 +131039,27 @@
       "https://static-forum.gipsyteam.ru/monthly_06_2026/post-6195-1781666814fdd4_thumb.webp"
     ],
     "videos": [],
-    "brBefore": null,
-    "brAfter": null,
-    "sessionResult": null,
+    "brBefore": 209582,
+    "brAfter": 201177,
+    "sessionResult": -8405,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8250863",
-    "brChecked": false
+    "brChecked": false,
+    "rooms": {
+      "before": {
+        "gg": 208145,
+        "ps": 1188,
+        "king": 232,
+        "coin": 17,
+        "lux": 0
+      },
+      "after": {
+        "gg": 199740,
+        "ps": 1188,
+        "king": 232,
+        "coin": 17,
+        "lux": 0
+      }
+    }
   },
   {
     "id": "8250864",
@@ -131318,5 +131350,25 @@
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8251200"
+  },
+  {
+    "id": "8251251",
+    "author": "FilosoFF",
+    "avatar": "https://forum.gipsyteam.com/img/imguser.png",
+    "rating": 5215,
+    "msgCount": 534,
+    "regData": "11 лет на сайте",
+    "date": "17 июня, 18:11",
+    "timestamp": 1781712701,
+    "text": "[QUOTE]|\n[/QUOTE]",
+    "likes": 1,
+    "images": [
+      "https://static-forum.gipsyteam.ru/monthly_06_2026/post-51613-1781712675d942_thumb.webp"
+    ],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8251251"
   }
 ]
