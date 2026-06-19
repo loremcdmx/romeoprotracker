@@ -131509,7 +131509,7 @@
     "date": "18 июня, 02:55",
     "timestamp": 1781744138,
     "text": "[QUOTE]Zero07|Zero07 @ 16.06.26\nТрейдер на платформе прогнозов Polymarket под ником betoor619 потерял почти $1 млн из-за неожиданного исхода матча сборных по футболу Испании и Кабо-Верде на чемпионате мира-2026, пишет Bloomberg. Команды сыграли вничью, а трейдер сделал ставку на победу Испании.\n\n \n\nЕсли бы Испания выиграла, то betoor619 заработал бы всего около $85 тыс. на первоначальной ставке почти в $1,1 млн. По данным Polymarket, пользователь открыл счет в октябре 2025 года и до этого матча никогда не выигрывал и не проигрывал более $9 тыс.[/QUOTE]Возможно, чтобы отмазать следующая ставка была на Португалию...",
-    "likes": 15,
+    "likes": 16,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_06_2026/post-134063-1781744095c49d.jpg"
     ],
@@ -131601,7 +131601,7 @@
     "date": "18 июня, 08:32",
     "timestamp": 1781764358,
     "text": "Leo_Manowar, Совмещать можно. Спать будешь мало просто",
-    "likes": 6,
+    "likes": 7,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -131781,7 +131781,7 @@
     "date": "18 июня, 13:13",
     "timestamp": 1781781192,
     "text": "[QUOTE]ixbt|ixbt @ 18.06.26\nПочему марафон последний? Ваши версии, господа.[/QUOTE]Так всем же известно, что покеру 2 года осталось. Он запрыгнул в последний вагон этого поезда. В надежде доехать в нем до конечной станции. И за отведенное время раскидать по долгам. Да - да, нет - нет...",
-    "likes": 7,
+    "likes": 8,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -131916,5 +131916,41 @@
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8252023"
+  },
+  {
+    "id": "8252051",
+    "author": "Romeopro",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/2/6/6/26670.jpg",
+    "rating": 25619,
+    "msgCount": 4161,
+    "regData": "16 лет на сайте",
+    "date": "19 июня, 03:21",
+    "timestamp": 1781832106,
+    "text": "Day 87:",
+    "likes": 3,
+    "images": [
+      "https://static-forum.gipsyteam.ru/monthly_06_2026/post-6195-17818321014b05_thumb.webp"
+    ],
+    "videos": [],
+    "brBefore": 201177,
+    "brAfter": 198224,
+    "sessionResult": -2953,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8252051",
+    "rooms": {
+      "before": {
+        "gg": 199740,
+        "ps": 1188,
+        "king": 232,
+        "coin": 17,
+        "lux": 0
+      },
+      "after": {
+        "gg": 196787,
+        "ps": 1188,
+        "king": 232,
+        "coin": 17,
+        "lux": 0
+      }
+    }
   }
 ]
