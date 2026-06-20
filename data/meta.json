@@ -2,10 +2,10 @@
   "bankroll": 198224,
   "startBankroll": 10000,
   "targetBankroll": 10000000,
-  "day": 87,
+  "day": 88,
   "status": "active",
-  "lastUpdated": "2026-06-19T01:46:33.711Z",
-  "totalPosts": 6935,
+  "lastUpdated": "2026-06-20T00:59:42.923Z",
+  "totalPosts": 6936,
   "scrapedPages": 0,
   "chronicle": [],
   "authorName": "Romeopro",
@@ -2416,5 +2416,5 @@
     }
   ],
   "totalTournaments": 17496,
-  "lastScrapeRun": "2026-06-19T23:59:43.396Z"
+  "lastScrapeRun": "2026-06-20T00:59:42.923Z"
 }
