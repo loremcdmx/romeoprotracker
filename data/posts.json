@@ -131981,7 +131981,7 @@
     "date": "20 июня, 02:35",
     "timestamp": 1781915727,
     "text": "Day 88:",
-    "likes": 44,
+    "likes": 46,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_06_2026/post-6195-17819157207e52_thumb.webp"
     ],
@@ -132060,5 +132060,23 @@
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8252698"
+  },
+  {
+    "id": "8252728",
+    "author": "Luchik",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/1/6/7/4/167441.webp",
+    "rating": 3284,
+    "msgCount": 604,
+    "regData": "2 года на сайте",
+    "date": "20 июня, 17:35",
+    "timestamp": 1781969742,
+    "text": "Боец!",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8252728"
   }
 ]
