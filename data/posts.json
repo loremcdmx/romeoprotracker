@@ -131853,7 +131853,7 @@
     "date": "18 июня, 19:36",
     "timestamp": 1781796965,
     "text": "ResiDentNL, Покер обречен, вечно доживать свои два последних года.",
-    "likes": 3,
+    "likes": 4,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -131981,7 +131981,7 @@
     "date": "20 июня, 02:35",
     "timestamp": 1781915727,
     "text": "Day 88:",
-    "likes": 43,
+    "likes": 44,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_06_2026/post-6195-17819157207e52_thumb.webp"
     ],
@@ -132042,5 +132042,23 @@
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8252580"
+  },
+  {
+    "id": "8252698",
+    "author": "шашист",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/1/0/5/6/105653.jpg",
+    "rating": 10712,
+    "msgCount": 5399,
+    "regData": "14 лет на сайте",
+    "date": "20 июня, 16:42",
+    "timestamp": 1781966554,
+    "text": "rapru, это ожидание не только от катки, но и конюшни.",
+    "likes": 1,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8252698"
   }
 ]
