@@ -131927,7 +131927,7 @@
     "date": "19 июня, 05:21",
     "timestamp": 1781832106,
     "text": "Day 87:",
-    "likes": 83,
+    "likes": 84,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_06_2026/post-6195-17818321014b05_thumb.webp"
     ],
@@ -131981,7 +131981,7 @@
     "date": "20 июня, 04:35",
     "timestamp": 1781915727,
     "text": "Day 88:",
-    "likes": 70,
+    "likes": 72,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_06_2026/post-6195-17819157207e52_thumb.webp"
     ],
@@ -132129,7 +132129,7 @@
     "date": "21 июня, 04:55",
     "timestamp": 1782010536,
     "text": "Я думаю, теперь точно не нужно никому ничего объяснять",
-    "likes": 10,
+    "likes": 13,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_06_2026/post-206781-1782010506e933_thumb.webp"
     ],
@@ -132187,7 +132187,7 @@
     "date": "21 июня, 06:00",
     "timestamp": 1782014456,
     "text": "Day 89:",
-    "likes": 86,
+    "likes": 89,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_06_2026/post-6195-1782014438edaa_thumb.webp"
     ],
@@ -132241,7 +132241,7 @@
     "date": "22 июня, 05:32",
     "timestamp": 1782099144,
     "text": "Day 90:",
-    "likes": 23,
+    "likes": 40,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_06_2026/post-6195-17820991293274_thumb.webp"
     ],
@@ -132277,12 +132277,48 @@
     "date": "22 июня, 06:25",
     "timestamp": 1782102354,
     "text": "Мож легче с 10к до 100к подняться 30 раз? \n\nа то застопорилось все",
-    "likes": 5,
+    "likes": 25,
     "images": [],
     "videos": [],
     "brBefore": null,
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8253466"
+  },
+  {
+    "id": "8253497",
+    "author": "Geras",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/1/3/4/2/134245.jpg",
+    "rating": 166,
+    "msgCount": 315,
+    "regData": "6 лет на сайте",
+    "date": "22 июня, 07:56",
+    "timestamp": 1782107761,
+    "text": "[QUOTE]NasKras|NasKras @ 22.06.26\nМож легче с 10к до 100к подняться 30 раз? \n\nа то застопорилось все[/QUOTE]Судьба МТТшника. 95% времени играть в ноль, потом мегазанос и по новой.",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8253497"
+  },
+  {
+    "id": "8253505",
+    "author": "AvtoVAZ",
+    "avatar": "https://forum.gipsyteam.com/img/imguser.png",
+    "rating": 614,
+    "msgCount": 148,
+    "regData": "10 месяцев на сайте",
+    "date": "22 июня, 08:41",
+    "timestamp": 1782110508,
+    "text": "[QUOTE]Geras|Geras @ 22.06.26\nСудьба МТТшника. 95% времени играть в ноль, потом мегазанос и по новой.[/QUOTE]Надо тогда играть только когда будет занос. Не благодарите)",
+    "likes": 2,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8253505"
   }
 ]
