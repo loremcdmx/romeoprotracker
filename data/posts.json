@@ -132129,7 +132129,7 @@
     "date": "21 июня, 06:55",
     "timestamp": 1782010536,
     "text": "Я думаю, теперь точно не нужно никому ничего объяснять",
-    "likes": 15,
+    "likes": 16,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_06_2026/post-206781-1782010506e933_thumb.webp"
     ],
@@ -132149,7 +132149,7 @@
     "date": "21 июня, 07:04",
     "timestamp": 1782011075,
     "text": "",
-    "likes": 33,
+    "likes": 34,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_06_2026/post-138027-1782011071332a.png"
     ],
@@ -132277,7 +132277,7 @@
     "date": "22 июня, 06:25",
     "timestamp": 1782102354,
     "text": "Мож легче с 10к до 100к подняться 30 раз? \n\nа то застопорилось все",
-    "likes": 130,
+    "likes": 133,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -132295,7 +132295,7 @@
     "date": "22 июня, 07:56",
     "timestamp": 1782107761,
     "text": "[QUOTE]NasKras|NasKras @ 22.06.26\nМож легче с 10к до 100к подняться 30 раз? \n\nа то застопорилось все[/QUOTE]Судьба МТТшника. 95% времени играть в ноль, потом мегазанос и по новой.",
-    "likes": 6,
+    "likes": 7,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -132313,7 +132313,7 @@
     "date": "22 июня, 08:41",
     "timestamp": 1782110508,
     "text": "[QUOTE]Geras|Geras @ 22.06.26\nСудьба МТТшника. 95% времени играть в ноль, потом мегазанос и по новой.[/QUOTE]Надо тогда играть только когда будет занос. Не благодарите)",
-    "likes": 66,
+    "likes": 68,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -132385,7 +132385,7 @@
     "date": "22 июня, 17:00",
     "timestamp": 1782140413,
     "text": "[QUOTE]Geras|Geras @ 22.06.26\nСудьба МТТшника. 95% времени играть в ноль, потом мегазанос и по новой.[/QUOTE]95% играть в ноль? покажи мне этого супер героя.",
-    "likes": 12,
+    "likes": 14,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -132439,7 +132439,7 @@
     "date": "23 июня, 05:26",
     "timestamp": 1782185181,
     "text": "Day 91:",
-    "likes": 4,
+    "likes": 14,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_06_2026/post-6195-1782185171b2c0_thumb.webp"
     ],
@@ -132464,5 +132464,41 @@
         "lux": 0
       }
     }
+  },
+  {
+    "id": "8253955",
+    "author": "SaNn",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/5/5/6/55608.jpg",
+    "rating": 240,
+    "msgCount": 284,
+    "regData": "14 лет на сайте",
+    "date": "23 июня, 06:28",
+    "timestamp": 1782188912,
+    "text": "Как он в таком режиме выживает? Это же уже больше 3х месяцев длится.\n\nКаждый день 200 турниров - это ж пиздец нагрузка.",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8253955"
+  },
+  {
+    "id": "8253963",
+    "author": "Valerich74",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/1/7/3/7/173726.webp",
+    "rating": 7579,
+    "msgCount": 3421,
+    "regData": "14 лет на сайте",
+    "date": "23 июня, 07:01",
+    "timestamp": 1782190902,
+    "text": "[QUOTE]SaNn|SaNn @ 23.06.26\nКак он в таком режиме выживает? Это же уже больше 3х месяцев длится.\n\nКаждый день 200 турниров - это ж пиздец нагрузка.[/QUOTE]Чтобы понять - нужно попробовать. Больше никак.",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8253963"
   }
 ]
