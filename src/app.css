@@ -763,6 +763,8 @@ html{scroll-behavior:smooth}
 .mc-dot-last{animation:pulseDot 2s ease-in-out infinite}
 @media (prefers-reduced-motion:reduce){
   .mc-tooltip{transition:none}
+  .mc-dot-last{animation:none}
+  .post-card.romeo-post,.post-card.romeo-post.faved{animation:none}
 }
 
 /* ─── MOBILE-ONLY COMPONENTS (hidden on desktop) ─────────────────────── */
