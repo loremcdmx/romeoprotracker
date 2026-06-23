@@ -46,6 +46,8 @@ function enrichPosts(posts, meta) {
 export function usePostsData() {
   const knownIdsRef = useRef(null)
   const latestPostsRef = useRef([])
+  const latestMetaRef = useRef(null)
+  const appliedSigRef = useRef(null)
   const [posts, setPosts] = useState([])
   const [meta, setMeta] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -57,6 +59,17 @@ export function usePostsData() {
 
     try {
       const { posts: nextPosts = [], meta: nextMeta = {} } = await fetchPublicData()
+
+      // No-op poll fast path: when the freshness markers are unchanged the payload
+      // is content-identical (the storage layer returns the cached posts), so skip
+      // enrich + setState entirely and avoid re-rendering the whole app every cycle.
+      const signature = `${nextMeta?.lastUpdated || ''}|${nextPosts.length}`
+      if (silent && knownIdsRef.current && appliedSigRef.current === signature) {
+        setError(null)
+        return { posts: latestPostsRef.current, meta: latestMetaRef.current }
+      }
+      appliedSigRef.current = signature
+
       enrichPosts(nextPosts, nextMeta)
 
       if (knownIdsRef.current) {
@@ -69,6 +82,7 @@ export function usePostsData() {
       }
 
       latestPostsRef.current = nextPosts
+      latestMetaRef.current = nextMeta
       setPosts(nextPosts)
       setMeta(nextMeta)
       setError(null)
