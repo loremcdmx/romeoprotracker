@@ -5,10 +5,20 @@ on:
     paths-ignore:
       - 'data/**'
       - 'public/data/**'
+      - 'docs/**'
+      - 'CHANGELOG.md'
+      - 'README.md'
+      - 'CLAUDE.md'
+      - 'IDEAS.md'
   pull_request:
     paths-ignore:
       - 'data/**'
       - 'public/data/**'
+      - 'docs/**'
+      - 'CHANGELOG.md'
+      - 'README.md'
+      - 'CLAUDE.md'
+      - 'IDEAS.md'
 
 jobs:
   check:
