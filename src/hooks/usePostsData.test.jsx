@@ -184,4 +184,33 @@ describe('usePostsData', () => {
     await advancePoll()
     expect(fetchPublicData).toHaveBeenCalledTimes(3)
   })
+
+  it('does not re-render on a no-op poll when the data is unchanged', async () => {
+    vi.useFakeTimers()
+    fetchPublicData.mockResolvedValue(makePayload({
+      posts: [{ id: 'post-1', author: 'Romeopro', timestamp: 10000, brAfter: 11000 }],
+      meta: { lastUpdated: '2026-01-01T00:00:00.000Z' },
+    }))
+
+    let renders = 0
+    function CountingProbe() {
+      renders++
+      const { posts } = usePostsData()
+      return <output data-testid="ids">{posts.map((post) => post.id).join(',')}</output>
+    }
+
+    render(<CountingProbe />)
+    await act(async () => {
+      await flushMicrotasks()
+    })
+    expect(screen.getByTestId('ids')).toHaveTextContent('post-1')
+    const rendersAfterLoad = renders
+
+    await advancePoll()
+    await advancePoll()
+
+    // The polls fetched but returned content-identical data, so no extra render.
+    expect(renders).toBe(rendersAfterLoad)
+    expect(fetchPublicData.mock.calls.length).toBeGreaterThanOrEqual(3)
+  })
 })

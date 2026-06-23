@@ -2766,47 +2766,6 @@ function TempoValue({ target, title, animate = true, suffix = '' }) {
   )
 }
 
-// ─── AUTHORS PANEL ────────────────────────────────────────────────────────────
-function AuthorsPanel({ authors, favorites, onFav, onIgnore, setLightbox, t }) {
-  const [expanded, setExpanded] = useState(null)
-  const tr = t || _t
-  return (
-    <div>
-      {authors.map(a => {
-        const open = expanded === a.name
-        const isFav = favorites?.has(a.name)
-        return (
-          <div key={a.name} className="author-row" style={{marginBottom:6,border:'1px solid var(--border)',borderRadius:8,background:'var(--bg2)'}}>
-            <div style={{display:'flex',alignItems:'center',gap:10,padding:'10px 14px',cursor:'pointer'}}
-              onClick={()=>setExpanded(open ? null : a.name)}>
-              <div data-avatar-initial={a.name[0]?.toUpperCase() || '?'} style={{width:28,height:28,borderRadius:'50%',background:'var(--red)',overflow:'hidden',flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center',fontSize:12,fontWeight:700,color:'#fff'}}>
-                <img src={a.posts[0]?.avatar || GT_DEFAULT_AVATAR} alt="" referrerPolicy="no-referrer" style={{width:'100%',height:'100%',objectFit:'cover'}} onError={avatarError}/>
-              </div>
-              <div style={S_FLEX1}>
-                <div style={{fontWeight:700,color:'var(--white)',fontSize:13}}>{a.name} {isFav && <span title={tr('author_fav_label')}>⭐</span>}</div>
-                <div style={{fontSize:11,color:'var(--dim)',fontFamily:"'Roboto Mono',monospace"}}>
-                  {plPosts(a.count, _lang)} · <span style={{color:'var(--green)'}}>+{a.likes}</span> 👍
-                </div>
-              </div>
-              <button className="pc-action" onClick={e=>{e.stopPropagation();onFav?.(a.name)}} title={tr('author_fav_add')}>⭐</button>
-              <span style={{fontSize:11,color:'var(--dim)',opacity:.7}}>{open ? '▲' : '▼'}</span>
-            </div>
-            {open && (
-              <div style={{borderTop:'1px solid var(--border)',padding:'8px 10px'}}>
-                {a.posts.slice(0, 20).map(p => (
-                  <PostCard key={p.id||p.url} p={p}
-                    favorites={favorites} onFav={onFav}
-                    onIgnore={onIgnore} setLightbox={setLightbox} lang={_lang}/>
-                ))}
-              </div>
-            )}
-          </div>
-        )
-      })}
-    </div>
-  )
-}
-
 // ─── PAGINATOR ────────────────────────────────────────────────────────────────
 function Paginator({ page, totalPages, onPage, perPage, onPerPage, total, lang }) {
   const isMob = useIsMobile()
@@ -3164,7 +3123,7 @@ export default function App() {
     serialize: String,
     deserialize: (raw) => raw || DEFAULT_LANG,
   })
-  const t = createTranslator(lang)
+  const t = useMemo(() => createTranslator(lang), [lang])
   const appVersionLabel = `v${String(__APP_VERSION__).replace(/\.0$/, '')}`
   const [sortBy, setSortBy] = usePersistentState('rpt_sortby', 'date_asc', {
     serialize: String,
