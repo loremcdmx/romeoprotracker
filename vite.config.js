@@ -10,6 +10,17 @@ export default defineConfig({
   define: {
     __APP_VERSION__: JSON.stringify(pkg.version),
   },
+  build: {
+    rollupOptions: {
+      output: {
+        // Split React into its own content-hashed chunk (already immutable-cached)
+        // so returning visitors don't re-download it after an app-code-only deploy.
+        manualChunks(id) {
+          if (/node_modules\/(react|react-dom|scheduler)\//.test(id)) return 'react'
+        },
+      },
+    },
+  },
   test: {
     environment: 'jsdom',
     globals: true,
