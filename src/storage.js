@@ -32,11 +32,6 @@ export function getDataBases() {
   return [...new Set(bases.filter(Boolean))]
 }
 
-function withCacheBust(url) {
-  const separator = url.includes('?') ? '&' : '?'
-  return `${url}${separator}t=${Date.now()}`
-}
-
 function delay(ms) {
   return new Promise((resolve) => {
     const id = setTimeout(resolve, ms)
@@ -213,7 +208,7 @@ async function fetchJson(url, timeoutMs = JSON_FETCH_TIMEOUT_MS) {
   })
 
   const response = await Promise.race([
-    fetch(withCacheBust(url), { cache: 'no-store', signal: controller?.signal }),
+    fetch(url, { cache: 'no-cache', signal: controller?.signal }),
     timeout,
   ]).finally(() => {
     if (timeoutId) clearTimeout(timeoutId)
