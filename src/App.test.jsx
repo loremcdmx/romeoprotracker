@@ -151,6 +151,8 @@ describe('App', () => {
   it('renders marathon chart', async () => {
     render(<App />)
     expect(await screen.findByText(new RegExp(translate('ru', 'chart_marathon').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))).toBeInTheDocument()
+    expect(screen.getByText('2 BR-апдейта')).toBeInTheDocument()
+    expect(screen.queryByText('2 сессии')).not.toBeInTheDocument()
   })
 
   it('compacts crowded marathon tail markers while keeping the latest point readable', async () => {
@@ -393,11 +395,56 @@ describe('App', () => {
     const trendPath = widget.querySelector('.pace-trend-line')?.getAttribute('d')
     const trendCoords = trendPath?.match(/^M ([\d.]+) ([\d.]+) L ([\d.]+) ([\d.]+)/)
     const trendStart = trendPath?.match(/^M ([\d.]+) /)
+    const fullDots = [...widget.querySelectorAll('.pace-segment:not(.partial) .pace-dot')]
+    const lastFullDotX = Number(fullDots[fullDots.length - 1]?.getAttribute('cx'))
     const partialDotX = Number(widget.querySelector('.pace-segment.partial .pace-dot')?.getAttribute('cx'))
     expect(Number(trendStart?.[1])).toBeCloseTo(plotLeft, 1)
-    expect(Number(trendCoords?.[3])).toBeCloseTo(partialDotX, 1)
-    expect(Number(trendCoords?.[4])).toBeGreaterThan(Number(trendCoords?.[2]))
-    expect(widget.querySelector('.pace-trend.falling')).toBeInTheDocument()
+    expect(Number(trendCoords?.[3])).toBeCloseTo(lastFullDotX, 1)
+    expect(Number(trendCoords?.[3])).toBeLessThan(partialDotX)
+    expect(Number(trendCoords?.[4])).toBeLessThan(Number(trendCoords?.[2]))
+    expect(widget.querySelector('.pace-trend.rising')).toBeInTheDocument()
+  })
+
+  it('recalculates the pace trend from full 2k chunks', async () => {
+    const now = Math.floor(Date.now() / 1000)
+    const totals = [2000, 4000, 6000]
+    const buildHistory = brs => brs.map((brAfter, i) => {
+      const brPrev = i === 0 ? 10000 : brs[i - 1]
+      return {
+        brAfter,
+        brPrev,
+        date: `T${i + 1}`,
+        timestamp: now - (3 - i) * 86400,
+        sessionResult: brAfter - brPrev,
+        totalTournaments: totals[i],
+        tournaments: i === 0 ? totals[i] : totals[i] - totals[i - 1],
+        text: `Trend session ${i + 1}`,
+      }
+    })
+
+    fetchPublicData.mockResolvedValue(makeMockData({
+      meta: {
+        ...makeMockData().meta,
+        brHistory: buildHistory([22000, 46000, 82000]),
+        totalTournaments: 6000,
+      },
+    }))
+    const { unmount } = render(<App />)
+    const risingWidget = await screen.findByTestId('pace-widget')
+    expect(risingWidget.querySelector('.pace-trend.rising')).toBeInTheDocument()
+
+    unmount()
+    fetchPublicData.mockReset()
+    fetchPublicData.mockResolvedValue(makeMockData({
+      meta: {
+        ...makeMockData().meta,
+        brHistory: buildHistory([46000, 70000, 82000]),
+        totalTournaments: 6000,
+      },
+    }))
+    render(<App />)
+    const fallingWidget = await screen.findByTestId('pace-widget')
+    expect(fallingWidget.querySelector('.pace-trend.falling')).toBeInTheDocument()
   })
 
   it('anchors activity chart edge labels inside the SVG bounds', async () => {

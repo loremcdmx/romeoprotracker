@@ -13,6 +13,7 @@ import { useExclusiveHoverPopup } from './hooks/useExclusiveHoverPopup.js'
 import { usePersistentState } from './hooks/usePersistentState.js'
 import { usePostsData } from './hooks/usePostsData.js'
 import AnimatedValue, { useTweenValue } from './components/AnimatedValue.jsx'
+import { buildPaceTrend, computePaceTrendStats } from './paceTrend.js'
 
 let _lang = DEFAULT_LANG
 let _translate = createTranslator(DEFAULT_LANG)
@@ -31,6 +32,11 @@ function plSessions(n, lang) {
   if (lang === 'ru') return pl(n, ['сессия','сессии','сессий'])
   if (lang === 'es') return `${n} ${n === 1 ? 'sesión' : 'sesiones'}`
   return `${n} session${n === 1 ? '' : 's'}`
+}
+function plBrUpdates(n, lang) {
+  if (lang === 'ru') return pl(n, ['BR-апдейт','BR-апдейта','BR-апдейтов'])
+  if (lang === 'es') return `${n} ${n === 1 ? 'actualización BR' : 'actualizaciones BR'}`
+  return `${n} BR update${n === 1 ? '' : 's'}`
 }
 
 // ─── HELPERS (imported from utils.js) ────────────────────────────────────────
@@ -313,71 +319,6 @@ function makeLinearChartArea(coords, baseline) {
   return `${makeLinearChartPath(coords)} L ${coords[coords.length - 1].x.toFixed(1)} ${baseline} L ${coords[0].x.toFixed(1)} ${baseline} Z`
 }
 
-function computePaceTrendStats(segments, binSize = PACE_BIN_SIZE) {
-  const trendPoints = (segments || [])
-    .filter(seg => Number.isFinite(seg?.rate) && (seg.full || (seg.tournaments || 0) > 0))
-    .map(seg => {
-      const tournaments = Math.max(0, seg.tournaments || 0)
-      const weight = seg.full ? 1 : clampNumber(tournaments / binSize, 0, 1)
-      return {
-        mtt:seg.endMtt || 0,
-        rate:seg.rate,
-        weight,
-      }
-    })
-    .filter(point => point.weight > 0 && Number.isFinite(point.mtt) && Number.isFinite(point.rate))
-
-  if (trendPoints.length < 2) return null
-
-  const totalWeight = trendPoints.reduce((sum, point) => sum + point.weight, 0)
-  if (!totalWeight) return null
-
-  const meanX = trendPoints.reduce((sum, point) => sum + point.mtt * point.weight, 0) / totalWeight
-  const meanY = trendPoints.reduce((sum, point) => sum + point.rate * point.weight, 0) / totalWeight
-  const denominator = trendPoints.reduce((sum, point) => sum + point.weight * (point.mtt - meanX) ** 2, 0)
-  if (!denominator) return null
-
-  const slope = trendPoints.reduce(
-    (sum, point) => sum + point.weight * (point.mtt - meanX) * (point.rate - meanY),
-    0
-  ) / denominator
-  const intercept = meanY - slope * meanX
-  const endMtt = Math.max(...trendPoints.map(point => point.mtt))
-  const startRate = intercept
-  const endRate = intercept + slope * endMtt
-
-  return {
-    slope,
-    intercept,
-    startRate,
-    endRate,
-    endMtt,
-    rising:endRate >= startRate,
-  }
-}
-
-function buildPaceTrend(segments, { binSize = PACE_BIN_SIZE, maxMtt, maxAbs, xByMtt, y }) {
-  const stats = computePaceTrendStats(segments, binSize)
-  if (!stats) return null
-
-  const trendEndMtt = maxMtt || stats.endMtt
-  const visibleStartRate = clampNumber(stats.startRate, -maxAbs, maxAbs)
-  const visibleEndRate = clampNumber(stats.intercept + stats.slope * trendEndMtt, -maxAbs, maxAbs)
-  const startX = xByMtt(0)
-  const endX = xByMtt(trendEndMtt)
-  const startY = y(visibleStartRate)
-  const endY = y(visibleEndRate)
-
-  return {
-    ...stats,
-    path:`M ${startX.toFixed(1)} ${startY.toFixed(1)} L ${endX.toFixed(1)} ${endY.toFixed(1)}`,
-    startX,
-    endX,
-    startY,
-    endY,
-  }
-}
-
 function estimateSvgTextWidth(text, fontSize) {
   return String(text || '').length * fontSize * .58
 }
@@ -539,7 +480,7 @@ function computePaceMetrics({ meta, stats, period, target = MARATHON_TARGET, now
     current,
     previous,
     segments,
-    trend:computePaceTrendStats(segments, PACE_BIN_SIZE),
+    trend:computePaceTrendStats(segments),
     binSize:PACE_BIN_SIZE,
     rate,
     deltaRate,
@@ -567,7 +508,7 @@ function PaceRateValue({ value, unit, className = '', animate = true }) {
   return <span className={`pace-rate-value ${tone} ${pulse ? 'pulse' : ''} ${className}`}>{formatDollarPerMTT(animated, unit)}</span>
 }
 
-function PaceMiniChart({ segments, unit, t, binSize = PACE_BIN_SIZE }) {
+function PaceMiniChart({ segments, unit, t }) {
   const [hovered, setHovered] = useState(null)
   if (!segments?.length) return <div className="pace-chart-empty">{t('pace_chart_empty')}</div>
 
@@ -608,7 +549,7 @@ function PaceMiniChart({ segments, unit, t, binSize = PACE_BIN_SIZE }) {
   const worstIdx = segments.reduce((worst, seg, idx) => seg.rate < segments[worst].rate ? idx : worst, 0)
   const labelIndexes = new Set([segments.length - 1, bestIdx, worstIdx])
   if (segments.length <= 3) segments.forEach((_, idx) => labelIndexes.add(idx))
-  const trend = buildPaceTrend(segments, { binSize, maxMtt, maxAbs, xByMtt, y })
+  const trend = buildPaceTrend(segments, { maxMtt, maxAbs, xByMtt, y })
   const latestIdx = segments.length - 1
   const latestSeg = segments[latestIdx]
   const latestPoint = points[latestIdx]
@@ -839,7 +780,7 @@ function PaceWidget({ meta, stats, period, setPeriod, lang, t }) {
             <b>{t('pace_chart_step')}: {fmtInt(pace.binSize)} {mttUnit}</b>
           </div>
         </div>
-        <PaceMiniChart segments={pace.segments} unit={mttUnit} t={t} binSize={pace.binSize}/>
+        <PaceMiniChart segments={pace.segments} unit={mttUnit} t={t}/>
       </div>
     </section>
   )
@@ -1573,7 +1514,7 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
             </button>
           ))}
         </div>
-        <span className="section-count">{plSessions(points.length, lang)}</span>
+        <span className="section-count">{plBrUpdates(points.length, lang)}</span>
       </div>
       <svg className="mc-svg" viewBox={`0 0 ${W} ${H+pB+xLabelExtraBottom}`}
         onMouseLeave={(e)=>{
@@ -1779,7 +1720,7 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
             )}
             {tip.groupCount > 1 && (
               <div style={{fontSize:10,color:'var(--dim)',marginBottom:6}}>
-                {lang === 'ru' ? 'точка объединяет' : lang === 'es' ? 'punto agrupado' : 'merged point'}: <b style={{color:'var(--dim2)'}}>{plSessions(tip.groupCount, lang)}</b>
+                {lang === 'ru' ? 'точка объединяет' : lang === 'es' ? 'punto agrupado' : 'merged point'}: <b style={{color:'var(--dim2)'}}>{plBrUpdates(tip.groupCount, lang)}</b>
               </div>
             )}
             {tip.groupCount > 1 && tip.sessions?.length > 0 && (
@@ -3288,6 +3229,8 @@ export default function App() {
     }
   }, [meta, chartPeriod])
 
+  const searchNeedle = useMemo(() => search.trim().toLowerCase(), [search])
+
   const passesLikeRating = (p) => {
     if (favorites.has(p.author)) return true
     if (minLikes  && (p.likes||0)  < minLikes)  return false
@@ -3302,7 +3245,7 @@ export default function App() {
     if (ignored.has(p.author)) return false
     if (romeoOnly && !isRomeoPost) return false
     if (favorites.has(p.author)) return true
-    if (search && !p.text?.toLowerCase().includes(search.toLowerCase())) return false
+    if (searchNeedle && !p.text?.toLowerCase().includes(searchNeedle)) return false
     return passesLikeRating(p)
   }
 
@@ -3333,7 +3276,7 @@ export default function App() {
         if (sortBy==='likes')     return (b.likes||0)-(a.likes||0)
         return 0
       }),
-  [posts, favorites, ignored, lang, minLikes, minRating, romeoOnly, search, sortBy])
+  [posts, favorites, ignored, lang, minLikes, minRating, romeoOnly, searchNeedle, sortBy])
 
   // При смене фильтров — умный сброс страницы
   // Если были в конце — остаёмся в конце, если в начале — в начале
@@ -3358,7 +3301,9 @@ export default function App() {
   }, [feedPosts.length]) // только когда посты впервые появились
 
   const totalPages = Math.max(1, Math.ceil(feedPosts.length / perPage))
-  const pagedPosts = feedPosts.slice((page-1)*perPage, page*perPage)
+  const pagedPosts = useMemo(() =>
+    feedPosts.slice((page-1)*perPage, page*perPage),
+  [feedPosts, page, perPage])
 
   const goPage = p => {
     setPage(p)

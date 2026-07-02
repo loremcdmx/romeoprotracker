@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+## 1.12.0 — 2026-07-02
+
+### UI
+- renamed marathon chart counters from sessions to BR updates so they no longer conflict with Romeo's Day number
+- recalculated the dollar-per-tournament trend from completed 2k-MTT chunks only
+
+### Reliability
+- added marathon data integrity checks for Day, bankroll, MTT totals, and duplicate BR updates
+- hardened client cache versioning and split trend/data helpers into focused tested modules
+
 ## 1.11.0 — 2026-05-23
 
 ### UI

@@ -1,7 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { CACHE_KEY } from './cacheConfig.js'
 import { expandPosts, fetchPublicData } from './storage.js'
-
-const CACHE_KEY = 'rpt_cache_v7'
 
 function jsonResponse(body) {
   return Promise.resolve({

@@ -1,6 +1,6 @@
+import { CACHE_KEY, CACHE_TTL } from './cacheConfig.js'
+
 const DEFAULT_REPO = 'loremcdmx/romeoprotracker'
-const CACHE_KEY = 'rpt_cache_v7'
-const CACHE_TTL = 60 * 1000
 const IS_TEST = import.meta.env.MODE === 'test'
 const JSON_FETCH_TIMEOUT_MS = IS_TEST ? 300 : 6500
 const SOURCE_SETTLE_MS = IS_TEST ? 0 : 1400
