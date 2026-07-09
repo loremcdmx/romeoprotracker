@@ -140576,7 +140576,7 @@
     "date": "8 июля, 10:49",
     "timestamp": 1783500569,
     "text": "[QUOTE]Leo_Manowar|Leo_Manowar @ 07.07.26\nИ не будет.\n\nЯ сидел с Хулио за одним столом в кафе и имею право.\n\nМне кажется, что рамки приличия он перешел.[/QUOTE]Я пропустил, на что ты ответил, уже удалили. Но если на его пост с одобрением решения оставить часы — то ты в очередной продемонстрировал проблемы с чувством юмора, не выкупив сарказм.",
-    "likes": 20,
+    "likes": 21,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -140702,7 +140702,7 @@
     "date": "8 июля, 19:26",
     "timestamp": 1783531589,
     "text": "Полулошадь - полушлюз",
-    "likes": 8,
+    "likes": 9,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -140720,7 +140720,7 @@
     "date": "8 июля, 20:24",
     "timestamp": 1783535099,
     "text": "[QUOTE]Leo_Manowar|Leo_Manowar @ 08.07.26\nЯ наполовину еврей[/QUOTE]Верхнюю или нижнюю?",
-    "likes": 11,
+    "likes": 12,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -140738,7 +140738,7 @@
     "date": "8 июля, 20:32",
     "timestamp": 1783535572,
     "text": "[QUOTE]Leo_Manowar|Leo_Manowar @ 08.07.26\nsurprisefirm, заканчивай алкопостинг. Я наполовину еврей, но твой вызов не принимаю.[/QUOTE]Теряешь хватку ты, конечно. Раньше я еще протрезветь не успевал, а ты уже тут как тут, а сейчас что? Я понимаю, что давно не врывался, но и ты уже не юнец, должен нутром чувствовать, что кто-то лодку раскачивает пока ты не на посту.",
-    "likes": 29,
+    "likes": 36,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -140828,7 +140828,7 @@
     "date": "8 июля, 22:50",
     "timestamp": 1783543821,
     "text": "[QUOTE]Cash_Magnetic|Cash_Magnetic @ 08.07.26\nза что влепили пермабан акку[/QUOTE]На этом сайте либеральная демократия. Захотели въебать, вот и въебали. А ты че возникаешь, тоже в бан захотел?",
-    "likes": 5,
+    "likes": 6,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -140954,7 +140954,7 @@
     "date": "8 июля, 23:51",
     "timestamp": 1783547474,
     "text": "Zatmenie, ого как ты за 2 дня разобрался во всем",
-    "likes": 9,
+    "likes": 11,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -141033,5 +141033,59 @@
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8262816"
+  },
+  {
+    "id": "8262828",
+    "author": "Geras",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/1/3/4/2/134245.jpg",
+    "rating": 186,
+    "msgCount": 332,
+    "regData": "6 лет на сайте",
+    "date": "9 июля, 03:11",
+    "timestamp": 1783559484,
+    "text": "[QUOTE]Cash_Magnetic|Cash_Magnetic @ 08.07.26\nАдминистрация, модераторы, повторю вопрос: за что влепили пермабан акку  https://www.gipsyteam.ru/profile/whiteriver, зареганному 16 лет назад?[/QUOTE]Он пьяный или под веществами писал какую-то ерунду. Её удаляли, он сам снова писал.",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8262828"
+  },
+  {
+    "id": "8262832",
+    "author": "Romeopro",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/2/6/6/26670.jpg",
+    "rating": 26054,
+    "msgCount": 4176,
+    "regData": "16 лет на сайте",
+    "date": "9 июля, 04:06",
+    "timestamp": 1783562798,
+    "text": "Day 102:",
+    "likes": 0,
+    "images": [
+      "https://static-forum.gipsyteam.ru/monthly_07_2026/post-6195-1783562792713b_thumb.webp"
+    ],
+    "videos": [],
+    "brBefore": 249697,
+    "brAfter": 248423,
+    "sessionResult": -1274,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8262832",
+    "rooms": {
+      "before": {
+        "gg": 248260,
+        "ps": 1188,
+        "king": 232,
+        "coin": 17,
+        "lux": 0
+      },
+      "after": {
+        "gg": 246986,
+        "ps": 1188,
+        "king": 232,
+        "coin": 17,
+        "lux": 0
+      }
+    }
   }
 ]
