@@ -925,6 +925,8 @@ describe('App', () => {
     await screen.findAllByText('Romeopro')
     expect(screen.getAllByText(translate('ru', 'tab_feed')).length).toBeGreaterThanOrEqual(1)
     expect(screen.getAllByText(translate('ru', 'tab_settings')).length).toBeGreaterThanOrEqual(1)
+    expect(document.querySelector('.topbar-tabs')?.tagName).toBe('NAV')
+    expect(document.querySelector('main.page')).toBeInTheDocument()
   })
 
   it('does not render the topics section tab', async () => {
@@ -933,11 +935,15 @@ describe('App', () => {
     expect(document.querySelectorAll('.topbar-tab')).toHaveLength(2)
   })
 
-  it('switches to settings tab and shows ignore list', async () => {
+  it('switches to the complete settings screen', async () => {
     render(<App />)
     await screen.findAllByText('Romeopro')
     fireEvent.click(screen.getAllByText(translate('ru', 'tab_settings'))[0])
     expect(screen.getByText(new RegExp(translate('ru', 'settings_ignored_authors')))).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: new RegExp(translate('ru', 'settings_appearance')) })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: new RegExp(translate('ru', 'settings_feed')) })).toBeInTheDocument()
+    expect(screen.getByLabelText(translate('ru', 'settings_sort'))).toHaveValue('date_desc')
+    expect(document.querySelector('.hero')).not.toBeInTheDocument()
   })
 
   it('toggles theme', async () => {
@@ -965,7 +971,7 @@ describe('App', () => {
   it('renders footer with version and changelog', async () => {
     render(<App />)
     await screen.findAllByText('Romeopro')
-    expect(screen.getAllByText('v1.11').length).toBeGreaterThanOrEqual(1)
+    expect(screen.getAllByText('v1.12').length).toBeGreaterThanOrEqual(1)
     expect(screen.getByText(translate('ru', 'footer_changelog'))).toBeInTheDocument()
   })
 
@@ -980,6 +986,21 @@ describe('App', () => {
     render(<App />)
     await screen.findAllByText('Romeopro')
     expect(screen.getAllByText(translate('ru', 'day_romeo')).length).toBeGreaterThan(0)
+    expect(screen.getByLabelText(translate('ru', 'filter_likes_from'))).toBeInTheDocument()
+    expect(screen.getByLabelText(translate('ru', 'filter_reputation_from'))).toBeInTheDocument()
+  })
+
+  it('shows newest posts first by default', async () => {
+    render(<App />)
+    await screen.findAllByText('Romeopro')
+
+    expect(screen.getByLabelText(translate('ru', 'filter_sort_label'))).toHaveValue('date_desc')
+    const visiblePostText = [...document.querySelectorAll('.post-card .pc-body')]
+      .map((node) => node.textContent)
+    expect(visiblePostText.slice(0, 2)).toEqual([
+      'Day #5 marathon. After session: 11000',
+      'Interesting post about poker and Romeo.',
+    ])
   })
 
   it('renders progress bar', async () => {
@@ -1012,7 +1033,7 @@ describe('App', () => {
     render(<App />)
     await screen.findAllByText('Romeopro')
 
-    fireEvent.click(screen.getByRole('button', { name: 'EN' }))
+    fireEvent.click(screen.getAllByRole('button', { name: 'EN' })[0])
 
     await waitFor(() => {
       expect(screen.getAllByText(translate('en', 'tab_feed')).length).toBeGreaterThanOrEqual(1)
@@ -1113,5 +1134,7 @@ describe('App', () => {
     // (previously both the sidebar and the hidden mobile-slot copy rendered).
     expect(container.querySelectorAll('.ff-banner').length).toBe(1)
     expect(container.querySelector('.ff-banner-mobile-slot')).toBeNull()
+    expect(container.querySelector('.topbar-join')).toBeNull()
+    expect(screen.getByText(translate('ru', 'partner_label'))).toBeInTheDocument()
   })
 })

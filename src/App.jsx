@@ -729,11 +729,12 @@ function PaceWidget({ meta, stats, period, setPeriod, lang, t }) {
     <section className={`pace-widget ${isNegative ? 'negative' : currentRate > 0 ? 'positive' : ''}`} data-testid="pace-widget">
       <div className="pace-head">
         <div>
-          <div className="section-title">{t('pace_title')}</div>
+          <h2 className="section-title">{t('pace_title')}</h2>
         </div>
         <div className="pace-periods">
           {[['week', t('period_week')], ['month', t('period_month')], ['all', t('period_all')]].map(([key, label]) => (
-            <button key={key} className={`mc-period ${period === key ? 'active' : ''}`} onClick={() => setPeriod(key)}>
+            <button type="button" key={key} className={`mc-period ${period === key ? 'active' : ''}`}
+              aria-pressed={period === key} onClick={() => setPeriod(key)}>
               {label}
             </button>
           ))}
@@ -1497,7 +1498,7 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
 
   if (!points.length) return (
     <div className="marathon-chart">
-      <div className="section-head"><span className="section-title">{t('chart_marathon')}</span></div>
+      <div className="section-head"><h2 className="section-title">{t('chart_marathon')}</h2></div>
       <div className="empty-state">{t('empty_data_scraper')}</div>
     </div>
   )
@@ -1505,11 +1506,11 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
   return (
     <div className="marathon-chart" ref={chartRef} onClick={tip ? closeTip : undefined}>
       <div className="section-head" style={{marginBottom:6,display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
-        <span className="section-title">{t('chart_marathon')}</span>
+        <h2 className="section-title">{t('chart_marathon')}</h2>
         <div className="mc-periods">
           {[['week',t('period_week')],['month',t('period_month')],['all',t('period_all')]].map(([k,label])=>(
-            <button key={k} onClick={()=>setPeriodPersist(k)}
-              className={`mc-period ${period===k?'active':''}`}>
+            <button type="button" key={k} onClick={()=>setPeriodPersist(k)}
+              className={`mc-period ${period===k?'active':''}`} aria-pressed={period===k}>
               {label}
             </button>
           ))}
@@ -2062,11 +2063,11 @@ function ActivityChart({ posts, favorites, ignored, onFav, onIgnore, onUnignore,
     return (
       <div className="chart-wrap">
         <div className="section-head" style={{marginBottom:8,flexWrap:'wrap',gap:8}}>
-          <span className="section-title">{t('chart_activity')}</span>
+          <h2 className="section-title">{t('chart_activity')}</h2>
           <span className="section-count">{plDays(data.length, lang)}</span>
           <div style={{display:'flex',gap:4,marginLeft:'auto'}}>
             {Object.keys(PERIOD_DAYS).map(k => (
-              <button key={k} onClick={()=>setPeriod(k)}
+              <button type="button" key={k} onClick={()=>setPeriod(k)} aria-pressed={period===k}
                 style={{background:period===k?'var(--red)':'var(--bg3)',border:'1px solid '+(period===k?'var(--red)':'var(--border2)'),borderRadius:4,color:period===k?'#fff':'var(--dim2)',fontSize:10,padding:'4px 8px',cursor:'pointer',fontFamily:'inherit',fontWeight:600}}>
                 {PERIOD_LABELS[k]}
               </button>
@@ -2153,11 +2154,11 @@ function ActivityChart({ posts, favorites, ignored, onFav, onIgnore, onUnignore,
   return (
     <div className="chart-wrap">
       <div className="section-head" style={{marginBottom:8,gap:10}}>
-        <span className="section-title">{t('chart_activity')}</span>
+        <h2 className="section-title">{t('chart_activity')}</h2>
         <span className="section-count">{period==='all' ? `${t('chart_whole_marathon')} · ${plDays(data.length, lang)}` : `${t('chart_last_period')} ${plDays(data.length, lang)}`}</span>
         <div style={{display:'flex',gap:4,marginLeft:'auto'}}>
           {Object.keys(PERIOD_DAYS).map(k => (
-            <button key={k} onClick={()=>setPeriod(k)}
+            <button type="button" key={k} onClick={()=>setPeriod(k)} aria-pressed={period===k}
               style={{background:period===k?'var(--red)':'var(--bg3)',border:'1px solid '+(period===k?'var(--red)':'var(--border2)'),borderRadius:4,color:period===k?'#fff':'var(--dim2)',fontSize:10,padding:'3px 7px',cursor:'pointer',fontFamily:'inherit',fontWeight:600}}>
               {PERIOD_LABELS[k]}
             </button>
@@ -2325,54 +2326,138 @@ function FilterBar({ sortBy, setSortBy, search, setSearch, showSearch, setShowSe
                      romeoOnly, setRomeoOnly, minLikes, setMinLikes,
                      minRating, setMinRating, count, showSort=true, t, lang }) {
   const tr = t || (k => k)
-  const isRu = lang === 'ru' || !lang
   const hasFilters = romeoOnly || minLikes !== 3 || minRating !== 0 || search
   return (
-    <div className="filter-bar">
+    <div className="filter-bar" role="search" aria-label={tr('filter_bar_label')}>
       {showSort && (
-        <select className="feed-select" value={sortBy} onChange={e=>setSortBy(e.target.value)}>
-          <option value="date_asc">{tr('sort_date_asc')}</option>
-          <option value="date_desc">{tr('sort_date_desc')}</option>
-          <option value="likes">{tr('sort_likes')}</option>
-        </select>
+        <label className="filter-field filter-sort" htmlFor="feed-sort">
+          <span>{tr('filter_sort_label')}</span>
+          <select id="feed-sort" className="feed-select" value={sortBy} onChange={e=>setSortBy(e.target.value)}>
+            <option value="date_asc">{tr('sort_date_asc')}</option>
+            <option value="date_desc">{tr('sort_date_desc')}</option>
+            <option value="likes">{tr('sort_likes')}</option>
+          </select>
+        </label>
       )}
-      {isRu && <>
-        <button className={`filter-pill ${romeoOnly?'on':'off'}`} onClick={()=>setRomeoOnly(s=>!s)}
-          title={tr('filter_romeo_title')} style={{display:'flex',alignItems:'center',gap:5}}>
-          <img src={ROMEO_AVATAR} alt="" style={{width:15,height:15,borderRadius:'50%',objectFit:'cover'}}
-            onError={e=>e.target.style.display='none'} />
-          {tr('day_romeo')}
-        </button>
-        <div style={{display:'flex',alignItems:'center',gap:8,flexWrap:'nowrap'}}>
-          <div style={{display:'flex',alignItems:'center',gap:4}}>
-            <label style={{fontSize:11,color:'var(--dim)',whiteSpace:'nowrap'}} title={tr('filter_min_likes')}>👍 мин.</label>
-            <input className="filter-num" type="number" min="0" value={minLikes}
-              onChange={e=>setMinLikes(+e.target.value||0)} onFocus={e=>e.target.select()} title={tr('filter_min_likes')}/>
-          </div>
-          <div style={{display:'flex',alignItems:'center',gap:4}}>
-            <label style={{fontSize:11,color:'var(--dim)',whiteSpace:'nowrap',display:'flex',alignItems:'center',gap:3}} title={tr('filter_min_rep')}>
-              <img src="https://www.gipsyteam.ru/public/style_images/master/reputation_pos.png" alt="rep"
-                referrerPolicy="no-referrer" style={{width:12,height:12,objectFit:'contain'}} onError={e=>{e.target.style.display='none'}}/>
-              {tr('filter_rep_label')}
-            </label>
-            <input className="filter-num" type="number" min="0" step="100" value={minRating}
-              onChange={e=>setMinRating(+e.target.value||0)} onFocus={e=>e.target.select()} title={tr('filter_min_rep')}/>
-          </div>
-        </div>
-      </>}
-      <button className={`filter-pill ${showSearch?'on':'off'}`}
-        onClick={()=>setShowSearch(s=>!s)} title={tr('filter_search_title')}>🔍</button>
+      <button type="button" className={`filter-pill filter-romeo ${romeoOnly?'on':'off'}`}
+        onClick={()=>setRomeoOnly(s=>!s)} title={tr('filter_romeo_title')} aria-pressed={romeoOnly}>
+        <img src={ROMEO_AVATAR} alt="" onError={e=>e.target.style.display='none'} />
+        {tr('day_romeo')}
+      </button>
+      <label className="filter-field" htmlFor="filter-min-likes" title={tr('filter_min_likes')}>
+        <span>{tr('filter_likes_from')}</span>
+        <input id="filter-min-likes" className="filter-num" type="number" min="0" value={minLikes}
+          title={tr('filter_min_likes')}
+          onChange={e=>setMinLikes(+e.target.value||0)} onFocus={e=>e.target.select()}/>
+      </label>
+      <label className="filter-field" htmlFor="filter-min-reputation" title={tr('filter_min_rep')}>
+        <span>{tr('filter_reputation_from')}</span>
+        <input id="filter-min-reputation" className="filter-num" type="number" min="0" step="100" value={minRating}
+          title={tr('filter_min_rep')}
+          onChange={e=>setMinRating(+e.target.value||0)} onFocus={e=>e.target.select()}/>
+      </label>
+      <button type="button" className={`filter-pill filter-search-toggle ${showSearch?'on':'off'}`}
+        onClick={()=>setShowSearch(s=>!s)} title={tr('filter_search_title')}
+        aria-expanded={showSearch} aria-controls="feed-search">
+        <span aria-hidden="true">🔍</span>
+        <span>{tr('filter_search_action')}</span>
+      </button>
       {showSearch && (
-        <input className="feed-search" style={{minWidth:140}} placeholder={tr('filter_search_placeholder')}
-          value={search} onChange={e=>setSearch(e.target.value)} autoFocus/>
+        <input id="feed-search" className="feed-search" placeholder={tr('filter_search_placeholder')}
+          aria-label={tr('filter_search_title')} value={search} onChange={e=>setSearch(e.target.value)} autoFocus/>
       )}
-      {isRu && hasFilters && (
-        <button className="filter-pill off" title={tr('filter_reset')} onClick={()=>{
+      {hasFilters && (
+        <button type="button" className="filter-pill filter-reset off" title={tr('filter_reset')} onClick={()=>{
           setRomeoOnly(false); setMinLikes(3); setMinRating(0); setSearch(''); setShowSearch(false);
-        }}>✕</button>
+        }}>{tr('filter_reset_short')}</button>
       )}
-      <span className="filter-active-count">{plPosts(count, lang || 'ru')}</span>
+      <output className="filter-active-count" aria-live="polite">{plPosts(count, lang || 'ru')}</output>
     </div>
+  )
+}
+
+function SettingsPanel({ theme, setTheme, lang, setLang, sortBy, setSortBy,
+                         ignored, removeIgnore, ignoreInput, setIgnoreInput, addIgnore, t }) {
+  return (
+    <section className="settings-page" aria-labelledby="settings-heading">
+      <div className="settings-heading">
+        <h2 id="settings-heading">{t('tab_settings')}</h2>
+        <p>{t('settings_intro')}</p>
+      </div>
+
+      <div className="settings-grid">
+        <section className="sblock settings-card" aria-labelledby="settings-appearance-heading">
+          <h3 className="sblock-title" id="settings-appearance-heading">◐ {t('settings_appearance')}</h3>
+          <div className="settings-card-body">
+            <div className="settings-row">
+              <span className="settings-label">{t('settings_theme')}</span>
+              <div className="settings-choice-group" role="group" aria-label={t('settings_theme')}>
+                <button type="button" className={theme==='dark'?'active':''}
+                  aria-pressed={theme==='dark'} onClick={()=>setTheme('dark')}>{t('theme_dark')}</button>
+                <button type="button" className={theme==='light'?'active':''}
+                  aria-pressed={theme==='light'} onClick={()=>setTheme('light')}>{t('theme_light')}</button>
+              </div>
+            </div>
+            <div className="settings-row">
+              <span className="settings-label">{t('settings_language')}</span>
+              <div className="settings-choice-group" role="group" aria-label={t('settings_language')}>
+                {['ru','en','es'].map(code => (
+                  <button type="button" key={code} className={lang===code?'active':''}
+                    aria-pressed={lang===code} onClick={()=>setLang(code)}>{code.toUpperCase()}</button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="sblock settings-card" aria-labelledby="settings-feed-heading">
+          <h3 className="sblock-title" id="settings-feed-heading">☷ {t('settings_feed')}</h3>
+          <div className="settings-card-body">
+            <label className="settings-row" htmlFor="settings-feed-sort">
+              <span className="settings-label">{t('settings_sort')}</span>
+              <select id="settings-feed-sort" className="settings-select" value={sortBy}
+                onChange={e=>setSortBy(e.target.value)}>
+                <option value="date_desc">{t('sort_date_desc')}</option>
+                <option value="date_asc">{t('sort_date_asc')}</option>
+                <option value="likes">{t('sort_likes')}</option>
+              </select>
+            </label>
+          </div>
+        </section>
+
+        <section className="sblock settings-card settings-ignored" aria-labelledby="settings-ignored-heading">
+          <h3 className="sblock-title" id="settings-ignored-heading">🚫 {t('settings_ignored_authors')}</h3>
+          {ignored.size===0
+            ? <div className="ignore-empty">{t('settings_ignored_empty')}</div>
+            : <div className="ignore-list">
+                {[...ignored].map(name=>(
+                  <div key={name} className="ignore-item">
+                    <span>{name}</span>
+                    <button type="button" className="ignore-remove" onClick={()=>removeIgnore(name)}
+                      aria-label={`${t('settings_remove_author')}: ${name}`}>✕</button>
+                  </div>
+                ))}
+              </div>
+          }
+          <div className="ignore-add">
+            <label className="sr-only" htmlFor="ignore-author-input">{t('settings_add_author_label')}</label>
+            <input id="ignore-author-input" className="ignore-input" placeholder={t('settings_add_author')}
+              value={ignoreInput} onChange={e=>setIgnoreInput(e.target.value)}
+              onKeyDown={e=>e.key==='Enter'&&addIgnore(ignoreInput)}/>
+            <button type="button" className="btn-sm" disabled={!ignoreInput.trim()}
+              onClick={()=>addIgnore(ignoreInput)}>{t('settings_add_btn')}</button>
+          </div>
+        </section>
+
+        <section className="sblock settings-card settings-links" aria-labelledby="settings-links-heading">
+          <h3 className="sblock-title" id="settings-links-heading">↗ {t('settings_links')}</h3>
+          <div className="settings-links-list">
+            <a href="https://forum.gipsyteam.ru/index.php?viewtopic=181676" target="_blank" rel="noreferrer">{t('settings_forum_thread')}</a>
+            <a href="https://github.com/loremcdmx/romeoprotracker" target="_blank" rel="noreferrer">{t('settings_source')}</a>
+          </div>
+        </section>
+      </div>
+    </section>
   )
 }
 
@@ -2625,8 +2710,11 @@ const PostCard = memo(function PostCard({ p, favorites, ignored, onFav, onIgnore
         </div>
             <div className="pc-date" title={fmtDateTimeLang(p.timestamp, _lang)}>{timeAgo(p.timestamp, _lang) || fmtDateTimeLang(p.timestamp, _lang)}</div>
         <div className="pc-actions">
-          <button className={`pc-action ${isFav?'on':''}`} onClick={()=>onFav(p.author)} title={isFav?_t('pc_fav_remove'):_t('pc_fav_add')}>⭐</button>
-          <button className="pc-action" onClick={()=>onIgnore(p.author)} title={_t('pc_ignore')}>🚫</button>
+          <button type="button" className={`pc-action ${isFav?'on':''}`} onClick={()=>onFav(p.author)}
+            title={isFav?_t('pc_fav_remove'):_t('pc_fav_add')}
+            aria-label={isFav?_t('pc_fav_remove'):_t('pc_fav_add')} aria-pressed={isFav}>⭐</button>
+          <button type="button" className="pc-action" onClick={()=>onIgnore(p.author)}
+            title={_t('pc_ignore')} aria-label={_t('pc_ignore')}>🚫</button>
         </div>
       </div>
       <div ref={bodyRef} className={`pc-body ${!exp && shouldClamp ? 'clamped' : ''}`}>{renderPostText(displayText)}</div>
@@ -2710,6 +2798,7 @@ function TempoValue({ target, title, animate = true, suffix = '' }) {
 // ─── PAGINATOR ────────────────────────────────────────────────────────────────
 function Paginator({ page, totalPages, onPage, perPage, onPerPage, total, lang }) {
   const isMob = useIsMobile()
+  const tr = createTranslator(lang || DEFAULT_LANG)
   const pages = []
   const delta = isMob ? 1 : 2
   for (let i = 1; i <= totalPages; i++) {
@@ -2720,18 +2809,22 @@ function Paginator({ page, totalPages, onPage, perPage, onPerPage, total, lang }
     }
   }
   return (
-    <div className="pagination">
-      <button className="page-btn" disabled={page===1} onClick={()=>onPage(page-1)}>‹</button>
+    <nav className="pagination" aria-label={`${tr('tab_feed')}: ${tr('page_number')}`}>
+      <button type="button" className="page-btn" disabled={page===1} onClick={()=>onPage(page-1)}
+        aria-label={tr('page_previous')}>‹</button>
       {pages.map((p,i) => p === '…'
         ? <span key={`e${i}`} className="page-info">…</span>
-        : <button key={p} className={`page-btn ${p===page?'active':''}`} onClick={()=>onPage(p)}>{p}</button>
+        : <button type="button" key={p} className={`page-btn ${p===page?'active':''}`} onClick={()=>onPage(p)}
+            aria-label={`${tr('page_number')} ${p}`} aria-current={p===page?'page':undefined}>{p}</button>
       )}
-      <button className="page-btn" disabled={page===totalPages} onClick={()=>onPage(page+1)}>›</button>
+      <button type="button" className="page-btn" disabled={page===totalPages} onClick={()=>onPage(page+1)}
+        aria-label={tr('page_next')}>›</button>
       {!isMob && <span className="page-info">{(page-1)*perPage+1}–{Math.min(page*perPage,total)} {lang==='ru'?'из':'/'} {total}</span>}
-      <select className="perpage-select" value={perPage} onChange={e=>{onPerPage(+e.target.value);onPage(1)}}>
+      <select className="perpage-select" aria-label={tr('per_page_label')} value={perPage}
+        onChange={e=>{onPerPage(+e.target.value);onPage(1)}}>
         {[10,20,50,100].map(n=><option key={n} value={n}>{n} {lang==='ru'?'на стр.':lang==='es'?'/ pág.':'/ page'}</option>)}
       </select>
-    </div>
+    </nav>
   )
 }
 
@@ -3032,6 +3125,7 @@ function FirstFundBanner({ t }) {
       <span className="ff-banner-glow" aria-hidden="true"/>
       <span className="ff-banner-shine" aria-hidden="true"/>
       <FirstFundChip/>
+      <span className="ff-banner-partner">{t('partner_label')}</span>
       <span className="ff-banner-kicker">FirstFund</span>
       <span className="ff-banner-headline">{t('ff_headline')}</span>
       <span className="ff-banner-sub">{t('ff_sub')}</span>
@@ -3056,6 +3150,7 @@ export default function App() {
   const isNarrow = useIsMobile(980)
   const [activeTab, setActiveTab] = useState('feed')
   const [lightbox,  setLightbox]  = useState(null)
+  const mobileMenuRef = useRef(null)
   const [theme, setTheme] = usePersistentState('rpt_theme', 'dark', {
     serialize: String,
     deserialize: (raw) => raw || 'dark',
@@ -3066,9 +3161,11 @@ export default function App() {
   })
   const t = useMemo(() => createTranslator(lang), [lang])
   const appVersionLabel = `v${String(__APP_VERSION__).replace(/\.0$/, '')}`
-  const [sortBy, setSortBy] = usePersistentState('rpt_sortby', 'date_asc', {
+  // Version the preference so existing visitors move off the former
+  // "oldest first" default once, while future choices remain persistent.
+  const [sortBy, setSortBy] = usePersistentState('rpt_sortby_v2', 'date_desc', {
     serialize: String,
-    deserialize: (raw) => raw || 'date_asc',
+    deserialize: (raw) => raw || 'date_desc',
   })
   const [search,  setSearch]  = useState('')
   const [showSearch, setShowSearch] = useState(false)
@@ -3109,7 +3206,6 @@ export default function App() {
   }, [theme])
   _lang = lang
   _translate = t
-  useEffect(() => { if (lang !== DEFAULT_LANG && activeTab !== 'feed') setActiveTab('feed') }, [lang, activeTab])
 
   // Auto-fit to screen: scale root so 1500px design fits user's desktop viewport.
   // Clamped so big monitors don't over-inflate and small ones don't shrink past readable.
@@ -3370,6 +3466,7 @@ export default function App() {
   const switchTab = (tab) => {
     setActiveTab(tab)
     setPage(1)
+    mobileMenuRef.current?.removeAttribute('open')
   }
 
   const toggleFav = useCallback(author => {
@@ -3454,7 +3551,7 @@ export default function App() {
       )}
 
 
-      <div className="topbar">
+      <header className="topbar">
         <div className="topbar-inner">
           <div className="logo">
             <div className="logo-badge" style={{padding:0,width:32,height:32,overflow:'hidden',borderRadius:6,display:'flex',alignItems:'center',justifyContent:'center'}}>
@@ -3463,36 +3560,64 @@ export default function App() {
                 onError={e=>{e.target.style.display='none'}}/>
             </div>
             <div>
-              <div className="logo-text">RomeoPro Marathon</div>
+              <h1 className="logo-text">RomeoPro Marathon</h1>
               <div className="logo-sub">{t('marathon_sub')}</div>
             </div>
           </div>
-          <div className="topbar-tabs">
-            {(lang==='ru' ? [['feed',t('tab_feed')],['settings',t('tab_settings')]] : [['feed',t('tab_feed')]]).map(([id,label])=>(
-              <div key={id} className={`topbar-tab ${activeTab===id?'active':''}`} onClick={()=>switchTab(id)}>{label}</div>
+          <nav className="topbar-tabs" aria-label={t('nav_primary')}>
+            {[['feed',t('tab_feed')],['settings',t('tab_settings')]].map(([id,label])=>(
+              <button type="button" key={id} className={`topbar-tab ${activeTab===id?'active':''}`}
+                aria-current={activeTab===id?'page':undefined} onClick={()=>switchTab(id)}>{label}</button>
             ))}
-          </div>
+          </nav>
           <div className="topbar-right">
-            <a className="join-ff-btn" href={FF_URL} target="_blank" rel="noreferrer">
-              <span className="join-ff-label">{t('join_ff')}</span>
-              <span className="join-ff-shine" aria-hidden="true"/>
-            </a>
-            <button className="theme-toggle" onClick={()=>setTheme(tv=>tv==='dark'?'light':'dark')}
-              title={theme==='dark'?t('theme_light'):t('theme_dark')}>
+            <button type="button" className="theme-toggle" onClick={()=>setTheme(tv=>tv==='dark'?'light':'dark')}
+              title={theme==='dark'?t('theme_light'):t('theme_dark')}
+              aria-label={theme==='dark'?t('theme_light'):t('theme_dark')}>
               {theme==='dark'?'☀️':'🌙'}
             </button>
-            <div className="lang-switch" role="group" title={t('lang_title')}>
+            <div className="lang-switch" role="group" aria-label={t('lang_title')}>
               {['ru','en','es'].map(code => (
-                <button key={code}
+                <button type="button" key={code} aria-pressed={lang===code}
                   className={'lang-switch-btn'+(lang===code?' active':'')}
                   onClick={()=>setLang(code)}>
                   {code.toUpperCase()}
                 </button>
               ))}
             </div>
+            <details className="mobile-menu" ref={mobileMenuRef}>
+              <summary aria-label={t('menu')}>
+                <span aria-hidden="true">•••</span>
+                <span className="sr-only">{t('menu')}</span>
+              </summary>
+              <div className="mobile-menu-panel">
+                <nav className="mobile-menu-nav" aria-label={t('nav_primary')}>
+                  {[['feed',t('tab_feed')],['settings',t('tab_settings')]].map(([id,label])=>(
+                    <button type="button" key={id} className={activeTab===id?'active':''}
+                      aria-current={activeTab===id?'page':undefined} onClick={()=>switchTab(id)}>{label}</button>
+                  ))}
+                </nav>
+                <button type="button" className="mobile-menu-action" onClick={()=>{
+                  setTheme(tv=>tv==='dark'?'light':'dark')
+                  mobileMenuRef.current?.removeAttribute('open')
+                }}>
+                  <span aria-hidden="true">{theme==='dark'?'☀️':'🌙'}</span>
+                  {theme==='dark'?t('theme_light'):t('theme_dark')}
+                </button>
+                <div className="mobile-menu-languages" role="group" aria-label={t('lang_title')}>
+                  {['ru','en','es'].map(code => (
+                    <button type="button" key={code} className={lang===code?'active':''} aria-pressed={lang===code}
+                      onClick={()=>{
+                        setLang(code)
+                        mobileMenuRef.current?.removeAttribute('open')
+                      }}>{code.toUpperCase()}</button>
+                  ))}
+                </div>
+              </div>
+            </details>
           </div>
         </div>
-      </div>
+      </header>
 
       {/* PROGRESS BAR */}
       {!loading && stats?.br && (() => {
@@ -3568,10 +3693,10 @@ export default function App() {
         : loading
         ? <div className="loading">{t('loading')}</div>
         : (
-        <div className={`page ${activeTab==='settings'?'wide':''}`}>
+        <main className={`page ${activeTab==='settings'?'wide':''}`}>
           <div>
             {/* HERO */}
-            <div className="hero">
+            {activeTab==='feed' && <div className="hero">
               <div className="hero-top">
                 <div className="hero-avatar" data-avatar-initial="R">
                   <img src="https://www.gipsyteam.ru/upload/Avatar/default/2/6/6/26670.jpg"
@@ -3634,7 +3759,7 @@ export default function App() {
                   <div className="hstat-sub">{t('hs_all_marathon')}</div>
                 </div>
               </div>
-            </div>
+            </div>}
 
             {/* ЛЕНТА */}
             {activeTab==='feed' && <>
@@ -3697,8 +3822,9 @@ export default function App() {
                       <span>{t('mobile_top_label')}</span>
                       <div className="mobile-top-periods">
                         {Object.keys(cutoffs).map(k => (
-                          <button key={k} onClick={()=>setSidebarTopPeriod(k)}
-                            className={`mobile-top-period ${sidebarTopPeriod===k?'active':''}`}>
+                          <button type="button" key={k} onClick={()=>setSidebarTopPeriod(k)}
+                            className={`mobile-top-period ${sidebarTopPeriod===k?'active':''}`}
+                            aria-pressed={sidebarTopPeriod===k}>
                             {labels[k]}
                           </button>
                         ))}
@@ -3760,32 +3886,15 @@ export default function App() {
 
             {/* НАСТРОЙКИ */}
             {activeTab==='settings' && (
-              <div className="sblock">
-                <div className="sblock-title">🚫 {t('settings_ignored_authors')}</div>
-                {ignored.size===0
-                  ? <div className="ignore-empty">{t('settings_ignored_empty')}</div>
-                  : <div className="ignore-list">
-                      {[...ignored].map(n=>(
-                        <div key={n} className="ignore-item">
-                          <span>{n}</span>
-                          <button className="ignore-remove" onClick={()=>removeIgnore(n)}>✕</button>
-                        </div>
-                      ))}
-                    </div>
-                }
-                <div className="ignore-add">
-                  <input className="ignore-input" placeholder={t('settings_add_author')}
-                    value={ignoreInput} onChange={e=>setIgnoreInput(e.target.value)}
-                    onKeyDown={e=>e.key==='Enter'&&addIgnore(ignoreInput)}/>
-                  <button className="btn-sm" onClick={()=>addIgnore(ignoreInput)}>{t('settings_add_btn')}</button>
-                </div>
-              </div>
+              <SettingsPanel theme={theme} setTheme={setTheme} lang={lang} setLang={setLang}
+                sortBy={sortBy} setSortBy={setSortBy} ignored={ignored} removeIgnore={removeIgnore}
+                ignoreInput={ignoreInput} setIgnoreInput={setIgnoreInput} addIgnore={addIgnore} t={t}/>
             )}
           </div>
 
           {/* SIDEBAR */}
           {activeTab!=='settings' && (
-            <div className="sidebar">
+            <aside className="sidebar" aria-label={t('sidebar_label')}>
               <div className="sblock">
                 <div className="sblock-title">📊 {t('stats')}</div>
                 <div className="sblock-body">
@@ -3847,7 +3956,8 @@ export default function App() {
                         <span>{t('top_likes_header')}</span>
                         <div className="forum-top-periods">
                           {Object.keys(cutoffs).map(k => (
-                            <button key={k} onClick={()=>setSidebarTopPeriod(k)}
+                            <button type="button" key={k} onClick={()=>setSidebarTopPeriod(k)}
+                              aria-pressed={sideTopPeriod===k}
                               style={{background:sideTopPeriod===k?'var(--red)':'var(--bg3)',border:'1px solid '+(sideTopPeriod===k?'var(--red)':'var(--border2)'),borderRadius:4,color:sideTopPeriod===k?'#fff':'var(--dim2)',fontSize:10,padding:'3px 7px',cursor:'pointer',fontFamily:'inherit',fontWeight:600}}>
                               {labels[k]}
                             </button>
@@ -3881,9 +3991,9 @@ export default function App() {
                   <a href="https://github.com/loremcdmx/romeoprotracker" target="_blank" rel="noreferrer" style={{fontSize:12}}>→ {t('settings_source')}</a>
                 </div>
               </div>
-            </div>
+            </aside>
           )}
-        </div>
+        </main>
       )}
 
       {/* FOOTER */}
@@ -3906,7 +4016,7 @@ export default function App() {
                   style={{color:'var(--dim2)',textDecoration:'none'}}>LoremCDMX</a>
               </div>
               <div style={{fontSize:10,color:'var(--dim2)'}}>
-                {t('footer_updated')}: 23.05.2026
+                {t('footer_interface_updated')}: 02.07.2026
               </div>
               {(() => {
                 const scrapeTs = meta?.lastScrapeRun
@@ -3954,6 +4064,7 @@ export default function App() {
                 {t('footer_changelog')}
               </div>
               {[
+                ['02.07', 'v1.12', 'BR-апдейты больше не конфликтуют с номером дня, а тренд $/МТТ считается по завершённым отрезкам'],
                 ['23.05', 'v1.11', '«Доллар с турнира» стал чище: точки по 2k МТТ, зелёный тренд, неполный отрезок приглушён, старт от нуля. Починены аватарки, favicon и узкая верстка'],
                 ['15.05', 'v1.10', 'Появился виджет GGWF-лидербордов: три борда Low/Medium/High, лидеры, место Ромео, призы, сколько осталось до конца и тултип с формулой очков'],
                 ['09.05', 'v1.9', 'График марафона стал крупнее и честнее читается на телефоне: точки объединяются по сессиям, попап показывает разбивку, а подписи оси X отмечают важные рубежи — $25k, $100k и крупные доезды'],
