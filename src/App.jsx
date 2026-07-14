@@ -4,7 +4,7 @@ import {
   timeAgo, fmtBR, fmtNum, fmtInt, fmtExact, fmtDateShort, extractDay, extractBR,
   fk, fkAbs, ROMEO_RE, autoCloseQuotes, stripQuoteTags, extractQuoteBody,
   pl, plural,
-  warsawDayKey, fmtDateTimeLang,
+  warsawDayKey, warsawParts, fmtDateTimeLang,
 } from './utils.js'
 import { createTranslator, DEFAULT_LANG, FORUM_WORD, fmtDateShortLang } from './i18n.js'
 import { computeFixedPopupLayout, findHoverListIndexAtPoint } from './floating.js'
@@ -797,6 +797,52 @@ const CHART_ROOMS = [
   { key:'lux',  label:'Lux',   logo:'https://t3.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=http://luxon.com&size=64' },
 ]
 
+const CHART_MONTHS_BY_LANG = {
+  ru:['ЯНВ','ФЕВ','МАР','АПР','МАЙ','ИЮН','ИЮЛ','АВГ','СЕН','ОКТ','НОЯ','ДЕК'],
+  en:['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'],
+  es:['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'],
+}
+
+function MarathonMilestoneCallout({ milestone, type, isMobile, W, pL, pR, pT, plotBottom }) {
+  if (!milestone) return null
+  const { point, p, i, primary, secondary } = milestone
+  const sourceId = p?.id || `point-${i}`
+
+  if (isMobile && type !== 'best') {
+    return (
+      <g className={`mc-milestone-callout ${type} compact`} data-source-id={sourceId} data-source-index={i}>
+        <circle className="mc-milestone-anchor muted" cx={point.x} cy={point.y} r="4.3"/>
+      </g>
+    )
+  }
+
+  const layout = {
+    recovery:{ width:isMobile ? 142 : 106, height:isMobile ? 50 : 34, dx:isMobile ? 4 : -14, dy:isMobile ? -66 : -42 },
+    best:{ width:isMobile ? 112 : 82, height:isMobile ? 50 : 34, dx:isMobile ? -54 : -31, dy:isMobile ? -66 : -43 },
+    twoHundred:{ width:isMobile ? 102 : 72, height:isMobile ? 50 : 34, dx:isMobile ? -44 : -24, dy:isMobile ? -66 : -42 },
+  }[type]
+  const cx = clampNumber(point.x + layout.dx, pL + layout.width / 2 + 5, W - pR - layout.width / 2 - 5)
+  const cy = clampNumber(point.y + layout.dy, pT + layout.height / 2 + 5, plotBottom - layout.height / 2 - 5)
+  const left = cx - layout.width / 2
+  const top = cy - layout.height / 2
+  const leaderX = clampNumber(point.x, left + 8, left + layout.width - 8)
+  const leaderY = top + layout.height
+
+  return (
+    <g className={`mc-milestone-callout ${type}`} data-source-id={sourceId} data-source-index={i}>
+      <line className="mc-milestone-leader" data-role="milestone-leader"
+        x1={point.x} y1={point.y} x2={leaderX} y2={leaderY}/>
+      <circle className="mc-milestone-anchor" cx={point.x} cy={point.y} r={isMobile ? 5.1 : 4.1}/>
+      <rect className="mc-milestone-plate" x={left} y={top}
+        width={layout.width} height={layout.height} rx={isMobile ? 9 : 7}/>
+      <text className="mc-milestone-label" x={cx} y={cy - (isMobile ? 3 : 2)} textAnchor="middle">
+        <tspan className="mc-milestone-primary" x={cx}>{primary}</tspan>
+        <tspan className="mc-milestone-secondary" x={cx} dy={isMobile ? 17 : 12}>{secondary}</tspan>
+      </text>
+    </g>
+  )
+}
+
 function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, lang, t }) {
   const [tip, setTip]     = useState(null)
   const [tipVisible, setTipVisible] = useState(false)
@@ -844,6 +890,7 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
         .slice()
         .sort((a,b) => (a.timestamp||0)-(b.timestamp||0))
         .map((h,i,arr) => ({
+          id:h.id,
           br:h.brAfter, brPrev:i===0?startBR:arr[i-1].brAfter,
           date:h.date, timestamp:h.timestamp, text:h.text||'',
           url:h.url||`https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=${h.id}`,
@@ -855,6 +902,7 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
       .filter(p => ROMEO_RE.test(p.author) && p.brAfter)
       .sort((a,b) => (a.timestamp||0)-(b.timestamp||0))
       .map((p,i,arr) => ({
+        id:p.id,
         br:p.brAfter, brPrev:i===0?startBR:arr[i-1].brAfter,
         date:p.date, timestamp:p.timestamp, text:p.text, url:p.url,
         images:p.images||[], sessionResult:p.sessionResult,
@@ -918,6 +966,53 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
     return i => pL + (cumMTTX[i] / totalMTTX) * (W - pL - pR)
   })()
   const coords = points.map((p,i) => ({ x:xOf(i), y:yOf(p.br) }))
+  const allTimeMonthTicks = (() => {
+    if (period !== 'all') return []
+    const seen = new Set()
+    const months = CHART_MONTHS_BY_LANG[lang] || CHART_MONTHS_BY_LANG.ru
+    return points.flatMap((p, i) => {
+      const parts = warsawParts(p.timestamp)
+      if (!parts) return []
+      const key = `${parts.year}-${parts.month}`
+      if (seen.has(key)) return []
+      seen.add(key)
+      return [{
+        i,
+        p,
+        x:coords[i]?.x,
+        label:months[parts.month - 1],
+        year:parts.year,
+      }]
+    }).filter(tick => Number.isFinite(tick.x))
+  })()
+  const monthTicks = (() => {
+    if (allTimeMonthTicks.length <= 3) return allTimeMonthTicks
+    if (isMobile) {
+      const middle = allTimeMonthTicks[Math.floor(allTimeMonthTicks.length / 2)]
+      return [...new Map([
+        allTimeMonthTicks[0],
+        middle,
+        allTimeMonthTicks[allTimeMonthTicks.length - 1],
+      ].map(tick => [tick.i, tick])).values()]
+    }
+
+    const first = allTimeMonthTicks[0]
+    const latest = allTimeMonthTicks[allTimeMonthTicks.length - 1]
+    const minGap = 68
+    const spaced = [first]
+    for (let i = 1; i < allTimeMonthTicks.length - 1; i++) {
+      const tick = allTimeMonthTicks[i]
+      const previous = spaced[spaced.length - 1]
+      if (tick.x - previous.x >= minGap && latest.x - tick.x >= minGap) spaced.push(tick)
+    }
+    spaced.push(latest)
+    if (spaced.length <= 8) return spaced
+
+    return [...new Map(Array.from({ length:8 }, (_, i) => {
+      const index = Math.round(i * (spaced.length - 1) / 7)
+      return spaced[index]
+    }).map(tick => [tick.i, tick])).values()]
+  })()
   const yAtChartX = x => interpolateLinearChartY(coords, x)
   const linePath = makeLinearChartPath(coords)
   const areaPath = makeLinearChartArea(coords, plotBottom)
@@ -1247,6 +1342,71 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
           .join(' · '),
       }))
   })()
+  const allTimeMilestones = (() => {
+    if (period !== 'all' || !points.length) return []
+
+    let recoveryIndex = -1
+    let dippedBelowStart = false
+    for (let i = 0; i < points.length; i++) {
+      const previousBR = i === 0 ? startBR : points[i - 1].br
+      if (points[i].br < startBR) dippedBelowStart = true
+      if (dippedBelowStart && previousBR < startBR && points[i].br >= startBR) {
+        if (points.slice(i).every(point => point.br >= startBR)) {
+          recoveryIndex = i
+          break
+        }
+      }
+    }
+
+    const dayStats = new Map()
+    points.forEach((p, i) => {
+      const key = warsawDayKey(p.timestamp) || `idx-${i}`
+      const current = dayStats.get(key) || { profit:0, lastIndex:i }
+      current.profit += sessionProfitAt(i)
+      current.lastIndex = i
+      dayStats.set(key, current)
+    })
+    const bestDay = [...dayStats.values()].reduce(
+      (best, current) => !best || current.profit > best.profit ? current : best,
+      null,
+    )
+    const twoHundredIndex = points.findIndex((p, i) => {
+      const previousBR = i === 0 ? startBR : points[i - 1].br
+      return previousBR < 200000 && p.br >= 200000
+    })
+
+    const formatBestDay = value => {
+      const absolute = Math.abs(value)
+      const precision = absolute < 100000 && absolute % 1000 !== 0 ? 1 : 0
+      const amount = absolute >= 1000
+        ? `${(absolute / 1000).toFixed(precision)}k`
+        : `${Math.round(absolute)}`
+      return `${value >= 0 ? '+' : '−'}$${amount}`
+    }
+    const startLabel = `$${Number.isInteger(startBR / 1000) ? startBR / 1000 : (startBR / 1000).toFixed(1)}k`
+    const recoveryLabel = lang === 'en'
+      ? `TURNAROUND ${startLabel}`
+      : lang === 'es'
+        ? `GIRO ${startLabel}`
+        : `ПЕРЕЛОМ ${startLabel}`
+    const create = (type, i, primary) => {
+      if (i < 0 || !points[i] || !coords[i]) return null
+      return {
+        type,
+        i,
+        p:points[i],
+        point:coords[i],
+        primary,
+        secondary:fmtDateShortLang(points[i].timestamp, lang),
+      }
+    }
+
+    return [
+      create('recovery', recoveryIndex, recoveryLabel),
+      create('best', bestDay?.profit > 0 ? bestDay.lastIndex : -1, formatBestDay(bestDay?.profit || 0)),
+      create('twoHundred', twoHundredIndex, '$200k'),
+    ].filter(Boolean)
+  })()
   const peakCallout = (() => {
     if (!points.length) return null
     let peakIdx = 0
@@ -1282,10 +1442,11 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
       { cx:pL + (W - pL - pR) * .46, cy:pT + badgeH / 2 + 18, affinity:-4 },
       { cx:pL + badgeW * 2.2, cy:pT + badgeH / 2 + 16, affinity:-12 },
       { cx:pL + badgeW / 2 + 18, cy:pT + badgeH / 2 + 14, affinity:-42 },
-      { dx:-nearX, dy:nearY, affinity:18 },
-      { dx:-nearX, dy:0, affinity:12 },
-      { dx:-nearX, dy:-nearY, affinity:4 },
-      { dx:-farX, dy:nearY, affinity:7 },
+      { dx:-nearX, dy:-nearY, affinity:160 },
+      { dx:-farX, dy:0, affinity:115 },
+      { dx:-nearX, dy:nearY, affinity:85 },
+      { dx:-nearX, dy:0, affinity:72 },
+      { dx:-farX, dy:nearY, affinity:48 },
       { dx:-farX, dy:farY, affinity:2 },
       { dx:0, dy:farY, affinity:3 },
       { dx:nearX, dy:nearY, affinity:0 },
@@ -1353,6 +1514,15 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
       const overlaps = dangerPoints.filter(p =>
         p.x >= padded.left && p.x <= padded.right && p.y >= padded.top && p.y <= padded.bottom
       ).length
+      const dotBounds = {
+        left:rect.left - 4,
+        right:rect.right + 4,
+        top:rect.top - 4,
+        bottom:rect.bottom + 4,
+      }
+      const dotOverlaps = coords.filter(p =>
+        p.x >= dotBounds.left && p.x <= dotBounds.right && p.y >= dotBounds.top && p.y <= dotBounds.bottom
+      ).length
       const lineIntersections = lineSegments.filter(({ a, b }) => segmentIntersectsRect(a, b, padded)).length
       const anchor = anchorForRect(rect)
       const leaderLength = Math.hypot(cx - point.x, cy - point.y)
@@ -1371,12 +1541,26 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
         cy,
         rect,
         anchor,
+        overlaps,
+        dotOverlaps,
+        lineIntersections,
         score:clearRectScore * 2.4 + clearPaddedScore * 2 + Math.min(leaderDistance, 34) * .8
           + affinity - overlaps * 220 - lineIntersections * 180 - leaderLength * .12
           - farLeaderPenalty * 1.7 - leaderCrowding * 4 - clampPenalty * 1.8 - topAir * .18 - edgePenalty,
       }
     }).sort((a,b) => b.score - a.score)
-    const { cx, cy, anchor } = candidates[0]
+    const preferredCx = clampCx(point.x - nearX)
+    const preferredCy = clampCy(point.y - nearY)
+    const pointSafeCandidates = candidates.filter(candidate => candidate.dotOverlaps === 0)
+    const candidatePool = pointSafeCandidates.length ? pointSafeCandidates : candidates
+    const preferred = candidatePool.reduce((best, candidate) => {
+      const distance = Math.hypot(candidate.cx - preferredCx, candidate.cy - preferredCy)
+      const selectionScore = candidate.score - distance * 30
+      return !best || selectionScore > best.selectionScore
+        ? { ...candidate, distance, selectionScore }
+        : best
+    }, null)
+    const { cx, cy, anchor } = preferred || candidates[0]
     return {
       idx:peakIdx,
       point,
@@ -1518,6 +1702,7 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
         <span className="section-count">{plBrUpdates(points.length, lang)}</span>
       </div>
       <svg className="mc-svg" viewBox={`0 0 ${W} ${H+pB+xLabelExtraBottom}`}
+        role="img" aria-label={`${t('chart_marathon')}: ${plBrUpdates(points.length, lang)}`}
         onMouseLeave={(e)=>{
           // Don't close tooltip if mouse moved to the tooltip itself
           const related = e.relatedTarget
@@ -1559,16 +1744,29 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
         <line x1={pL} y1={yOf(startBR)} x2={W-pR} y2={yOf(startBR)} className="mc-zero"/>
         <line x1={pL} y1={plotBottom} x2={W-pR} y2={plotBottom} className="mc-axis-line"/>
         <line x1={pL} y1={pT} x2={pL} y2={plotBottom} className="mc-axis-line mc-axis-line-y"/>
-        <path d={areaPath} fill="url(#mcGrad)"/>
-        <path d={linePath} fill="none" stroke="url(#mcLineGrad)" className="mc-line-aura" strokeWidth={isMobile ? 5.8 : 4.2}/>
-        <path ref={pathRef} d={linePath} fill="none" stroke="url(#mcLineGrad)" className="mc-line-main" strokeWidth={isMobile ? 2.8 : 2.2}
-          strokeLinecap="round" strokeLinejoin="round" filter="url(#mcGlow)"
+        <path d={areaPath} fill="url(#mcGrad)" className="mc-area"/>
+        <path d={linePath} fill="none" stroke="var(--chart-line-rail)" className="mc-line-aura" strokeWidth="7"
+          vectorEffect="non-scaling-stroke"/>
+        <path ref={pathRef} d={linePath} fill="none" stroke="url(#mcLineGrad)" className="mc-line-main" strokeWidth="3.2"
+          strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke"
           style={pathLen!=null ? {
             strokeDasharray: pathLen,
             strokeDashoffset: 0,
             animation: 'drawLine 1.4s cubic-bezier(.4,0,.2,1) forwards',
           } : {}}
         />
+        {coords.slice(1).map((point, segmentIndex) => {
+          const previous = coords[segmentIndex]
+          const p = points[segmentIndex + 1]
+          const profit = sessionProfits[segmentIndex + 1] ?? 0
+          return (
+            <line key={`line-segment-${p.id || segmentIndex + 1}`}
+              className={`mc-line-segment ${profit >= 0 ? 'positive' : 'negative'}`}
+              data-source-id={p.id || `point-${segmentIndex + 1}`}
+              data-source-index={segmentIndex + 1}
+              x1={previous.x} y1={previous.y} x2={point.x} y2={point.y}/>
+          )
+        })}
         <path d={linePath} fill="none" className="mc-line-highlight" strokeWidth={isMobile ? .9 : .7}/>
         {markerVisuals.map(({ p, start, end, x, y, profit, count, sessions, parts, compacted, mixedTone, isCrowded }) => {
           const i=end
@@ -1595,7 +1793,7 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
             openTipState({p,profit,x:cx,y:cy,groupCount:count,sessions})
           }
           return (
-            <g key={`marker-${start}-${end}`} onMouseEnter={!isMobile ? openTip : undefined}
+            <g key={`marker-${start}-${end}`} className={isHovered ? 'is-hovered' : ''} onMouseEnter={!isMobile ? openTip : undefined}
               onClick={!isMobile ? e => { e.stopPropagation(); openTip() } : undefined}
               data-start={start} data-end={end} data-count={count}>
               {!isMobile && <circle cx={cx} cy={cy} r={renderClusterParts ? 18 : isLast?14:10} fill="transparent"
@@ -1627,8 +1825,13 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
             </g>
           )
         })}
+        {allTimeMilestones.map(milestone => (
+          <MarathonMilestoneCallout key={milestone.type}
+            milestone={milestone} type={milestone.type} isMobile={isMobile}
+            W={W} pL={pL} pR={pR} pT={pT} plotBottom={plotBottom}/>
+        ))}
         {peakCallout && (
-          <g className="mc-peak-callout" data-idx={peakCallout.idx}>
+          <g className="mc-peak-callout" data-idx={peakCallout.idx} data-source-id={points[peakCallout.idx]?.id}>
             <line x1={peakCallout.point.x} y1={peakCallout.point.y}
               x2={peakCallout.anchor.x} y2={peakCallout.anchor.y}
               className="mc-peak-callout-line"/>
@@ -1639,8 +1842,10 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
               <tspan className="mc-peak-callout-kicker">{peakCallout.label}</tspan>
               <tspan dx="5" className="mc-peak-callout-value">{peakCallout.value}</tspan>
             </text>
+            <circle className="mc-peak-anchor" cx={peakCallout.point.x} cy={peakCallout.point.y} r={isMobile ? 6.5 : 5.2}/>
           </g>
         )}
+        <g className={`mc-axis-event-layer ${period === 'all' ? 'is-hidden' : ''}`}>
         {xLabelItems.map(({ i, x, y, main, sub, kind }) => {
           const isLast = i===points.length-1
           const lx = Math.min(Math.max(x,pL),W-pR)
@@ -1673,6 +1878,26 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
                 {sub}
               </text>
               {(isLast || kind.includes('milestone') || kind.includes('recovery')) && <line x1={currentLine.x1} y1={subY + 6} x2={currentLine.x2} y2={subY + 6} className="mc-x-current-line"/>}
+            </g>
+          )
+        })}
+        </g>
+        {period === 'all' && monthTicks.map((tick, index) => {
+          const isFirst = index === 0
+          const isLast = index === monthTicks.length - 1
+          const anchor = isFirst ? 'start' : isLast ? 'end' : 'middle'
+          return (
+            <g key={`month-${tick.year}-${tick.label}`} className={`mc-month-tick ${isLast ? 'latest' : ''}`}
+              data-source-id={tick.p.id || `point-${tick.i}`} data-source-index={tick.i}>
+              <line x1={tick.x} y1={plotBottom} x2={tick.x} y2={xAxisY} className="mc-month-tickmark"/>
+              <text x={tick.x} y={xMainLabelY} textAnchor={anchor} className="mc-month-label-main">
+                {tick.label}
+              </text>
+              {isLast && (
+                <text x={tick.x} y={xSubLabelY + 1} textAnchor="end" className="mc-month-label-sub">
+                  {fmtDateShortLang(points[points.length - 1].timestamp, lang)}
+                </text>
+              )}
             </g>
           )
         })}

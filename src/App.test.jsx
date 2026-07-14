@@ -155,6 +155,98 @@ describe('App', () => {
     expect(screen.queryByText('2 сессии')).not.toBeInTheDocument()
   })
 
+  it('renders clean all-time month ticks and anchors every milestone label to its source point', async () => {
+    const base = makeMockData()
+    const samples = [
+      ['m1', Date.UTC(2026, 2, 2) / 1000, 8000],
+      ['m2', Date.UTC(2026, 2, 18) / 1000, 11000],
+      ['a1', Date.UTC(2026, 3, 4) / 1000, 68800],
+      ['m3', Date.UTC(2026, 4, 7) / 1000, 120000],
+      ['j1', Date.UTC(2026, 5, 8) / 1000, 170000],
+      ['j2', Date.UTC(2026, 6, 9) / 1000, 210000],
+      ['j3', Date.UTC(2026, 6, 11) / 1000, 220000],
+    ]
+    const brHistory = samples.map(([id, timestamp, brAfter], i) => {
+      const brPrev = i === 0 ? 10000 : samples[i - 1][2]
+      return {
+        id,
+        timestamp,
+        brAfter,
+        brPrev,
+        sessionResult:brAfter - brPrev,
+        totalTournaments:(i + 1) * 1000,
+        tournaments:1000,
+        text:`Session ${i + 1}`,
+      }
+    })
+    fetchPublicData.mockResolvedValue(makeMockData({
+      meta:{ ...base.meta, brHistory, totalTournaments:7000 },
+    }))
+
+    render(<App />)
+    expect(await screen.findByText(new RegExp(translate('ru', 'chart_marathon').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))).toBeInTheDocument()
+
+    expect([...document.querySelectorAll('.mc-month-label-main')].map(node => node.textContent))
+      .toEqual(['МАР', 'АПР', 'МАЙ', 'ИЮН', 'ИЮЛ'])
+    expect(document.querySelector('.mc-axis-event-layer')).toHaveClass('is-hidden')
+    expect(document.querySelector('.mc-line-main')).toHaveAttribute('stroke-width', '3.2')
+    expect(document.querySelector('.mc-line-aura')).toHaveAttribute('stroke-width', '7')
+    expect(document.querySelectorAll('.mc-line-segment')).toHaveLength(brHistory.length - 1)
+
+    const best = document.querySelector('.mc-milestone-callout.best')
+    expect(best?.textContent).toContain('+$57.8k')
+    expect(best).toHaveAttribute('data-source-id', 'a1')
+    expect(best?.querySelector('.mc-milestone-plate')).toBeInTheDocument()
+    const bestSegment = document.querySelector('.mc-line-segment[data-source-id="a1"]')
+    expect(Number(bestSegment?.getAttribute('x2'))).toBeCloseTo(
+      Number(best?.querySelector('.mc-milestone-anchor')?.getAttribute('cx')),
+      5,
+    )
+    expect(Number(bestSegment?.getAttribute('y2'))).toBeCloseTo(
+      Number(best?.querySelector('.mc-milestone-anchor')?.getAttribute('cy')),
+      5,
+    )
+
+    const linePoints = parseLinearSvgPath(document.querySelector('.mc-line-main')?.getAttribute('d'))
+    for (const callout of document.querySelectorAll('.mc-milestone-callout:not(.compact)')) {
+      const leader = callout.querySelector('[data-role="milestone-leader"]')
+      const anchor = callout.querySelector('.mc-milestone-anchor')
+      const x = Number(anchor?.getAttribute('cx'))
+      const y = Number(anchor?.getAttribute('cy'))
+      expect(Number(leader?.getAttribute('x1'))).toBeCloseTo(x, 5)
+      expect(Number(leader?.getAttribute('y1'))).toBeCloseTo(y, 5)
+      expect(yOnLinearPath(linePoints, x)).toBeCloseTo(y, 1)
+    }
+  })
+
+  it('thins tournament-weighted month ticks without dropping the first or latest month', async () => {
+    const base = makeMockData()
+    const totals = [1000, 1010, 1020, 1030, 1040, 1050, 1060, 1070, 1080, 10000]
+    const brHistory = totals.map((totalTournaments, i) => ({
+      id:`month-${i}`,
+      timestamp:Date.UTC(2026, i, 5) / 1000,
+      brAfter:11000 + i * 1000,
+      brPrev:10000 + i * 1000,
+      sessionResult:1000,
+      totalTournaments,
+      tournaments:i === 0 ? totalTournaments : totalTournaments - totals[i - 1],
+      text:`Month ${i + 1}`,
+    }))
+    fetchPublicData.mockResolvedValue(makeMockData({
+      meta:{ ...base.meta, brHistory, totalTournaments:totals.at(-1) },
+    }))
+
+    render(<App />)
+    expect(await screen.findByText(new RegExp(translate('ru', 'chart_marathon').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))).toBeInTheDocument()
+
+    const ticks = [...document.querySelectorAll('.mc-month-tick')]
+    expect(ticks.map(tick => tick.querySelector('.mc-month-label-main')?.textContent)).toEqual(['ЯНВ', 'ОКТ'])
+    expect(ticks[0]).toHaveAttribute('data-source-id', 'month-0')
+    expect(ticks.at(-1)).toHaveAttribute('data-source-id', 'month-9')
+    expect(Number(ticks.at(-1)?.querySelector('.mc-month-tickmark')?.getAttribute('x1'))
+      - Number(ticks[0]?.querySelector('.mc-month-tickmark')?.getAttribute('x1'))).toBeGreaterThanOrEqual(68)
+  })
+
   it('compacts crowded marathon tail markers while keeping the latest point readable', async () => {
     const now = Math.floor(Date.now() / 1000)
     const totals = [1000, 2400, 3900, 5400, 6900, 8200, 9000, 9400, 9450, 9500, 9550, 9600, 9650, 9700]
@@ -640,6 +732,8 @@ describe('App', () => {
 
     const peakCallout = document.querySelector('.mc-peak-callout')
     const peakRect = peakCallout?.querySelector('.mc-peak-callout-bg')
+    const peakLine = peakCallout?.querySelector('.mc-peak-callout-line')
+    const peakAnchor = peakCallout?.querySelector('.mc-peak-anchor')
     const axisText = [...document.querySelectorAll('.mc-xaxis-label-main, .mc-xaxis-label-sub')]
       .map(label => label.textContent)
       .join(' ')
@@ -659,6 +753,12 @@ describe('App', () => {
       return x >= peakBounds.left && x <= peakBounds.right && y >= peakBounds.top && y <= peakBounds.bottom
     })
     expect(coveredDots).toHaveLength(0)
+    expect(Number(peakLine?.getAttribute('x1'))).toBeCloseTo(Number(peakAnchor?.getAttribute('cx')), 5)
+    expect(Number(peakLine?.getAttribute('y1'))).toBeCloseTo(Number(peakAnchor?.getAttribute('cy')), 5)
+    expect(Math.hypot(
+      Number(peakLine?.getAttribute('x2')) - Number(peakLine?.getAttribute('x1')),
+      Number(peakLine?.getAttribute('y2')) - Number(peakLine?.getAttribute('y1')),
+    )).toBeLessThan(120)
     expect(axisText).not.toContain('ПИК')
   })
 
