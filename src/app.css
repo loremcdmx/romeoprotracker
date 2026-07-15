@@ -144,8 +144,8 @@ button,select,input,summary{font:inherit}
 .mc-peak-anchor{fill:var(--chart-callout-accent);stroke:var(--chart-callout-bg);stroke-width:2.8;vector-effect:non-scaling-stroke}
 .mc-guide{stroke:var(--chart-grid-strong);stroke-width:1;stroke-dasharray:1 5;opacity:.48}
 .mc-x-tickmark{stroke:var(--chart-grid-strong);stroke-width:1.1;stroke-linecap:round;opacity:.72}
-.mc-xaxis-label-main{font-family:'Roboto Mono',monospace;font-size:11px;font-weight:800;fill:var(--axis-x);font-variant-numeric:tabular-nums;letter-spacing:0;text-shadow:0 1px 8px rgba(0,0,0,.55)}
-.mc-xaxis-label-sub{font-family:'Roboto Mono',monospace;font-size:8.5px;font-weight:700;fill:var(--axis-x-muted);letter-spacing:.03em;text-transform:uppercase;text-shadow:0 1px 6px rgba(0,0,0,.5)}
+.mc-xaxis-label-main{font-family:'Inter',system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:10.5px;font-weight:700;fill:var(--axis-x);font-variant-numeric:tabular-nums;letter-spacing:.01em}
+.mc-xaxis-label-sub{font-family:'Inter',system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:8.3px;font-weight:500;fill:var(--axis-x-muted);font-variant-numeric:tabular-nums;letter-spacing:.04em;text-transform:uppercase}
 .mc-x-tick.last .mc-xaxis-label-main{fill:var(--gold)}
 .mc-x-tick.last .mc-xaxis-label-sub{fill:#f3d88b}
 .mc-x-tick.start .mc-xaxis-label-main{fill:#f3f3f3}
@@ -163,14 +163,15 @@ button,select,input,summary{font:inherit}
 .mc-x-current-line{stroke:var(--gold);stroke-width:1.4;stroke-linecap:round;opacity:.78}
 .mc-axis-event-layer.is-hidden{display:none}
 .mc-month-tickmark{stroke:var(--chart-grid-strong);stroke-width:1.1;stroke-linecap:round;opacity:.72;vector-effect:non-scaling-stroke}
-.mc-month-label-main{font-family:'Roboto Mono',monospace;font-size:10.5px;font-weight:750;fill:var(--axis-y-muted);letter-spacing:.04em}
+.mc-month-label-main{font-family:'Inter',system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:10px;font-weight:600;fill:var(--axis-y-muted);letter-spacing:.075em}
 .mc-month-tick.latest .mc-month-label-main{fill:var(--axis-x)}
-.mc-month-label-sub{font-family:'Roboto Mono',monospace;font-size:8.2px;font-weight:650;fill:var(--axis-x-muted);font-variant-numeric:tabular-nums}
+.mc-month-label-sub{font-family:'Inter',system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:8.2px;font-weight:500;fill:var(--axis-x-muted);font-variant-numeric:tabular-nums;letter-spacing:.015em}
 
 /* ACTIVITY CHART */
 .chart-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:16px;position:relative}
 .chart-svg{width:100%;overflow:visible}
-.chart-label{font-size:9px;fill:var(--axis-y-muted);font-family:'Roboto Mono',monospace;font-weight:700}
+.chart-label{font-size:9px;fill:var(--axis-y-muted);font-family:'Inter',system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-weight:500;font-variant-numeric:tabular-nums;letter-spacing:.01em}
+.activity-mobile-date{font-size:10.5px;font-family:'Inter',system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-weight:500;font-variant-numeric:tabular-nums;letter-spacing:.01em;white-space:nowrap}
 
 /* GLOBAL FILTER BAR */
 .filter-bar{display:flex;gap:8px 10px;align-items:center;flex-wrap:wrap;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:10px 12px;margin-bottom:14px}
@@ -944,10 +945,10 @@ html{scroll-behavior:smooth}
   .chart-wrap{margin:10px 12px 0;border-radius:12px;overflow:hidden;padding:10px 8px}
   .mc-svg{overflow:hidden;display:block;max-width:100%}
   .mc-yaxis-label{font-size:10.6px;font-weight:600;opacity:.84}
-  .mc-xaxis-label-main{font-size:11px}
-  .mc-xaxis-label-sub{font-size:8.8px}
-  .mc-month-label-main{font-size:12px}
-  .mc-month-label-sub{font-size:10px}
+  .mc-xaxis-label-main{font-size:10.5px}
+  .mc-xaxis-label-sub{font-size:8.4px}
+  .mc-month-label-main{font-size:10.5px}
+  .mc-month-label-sub{font-size:8.8px}
   .mc-milestone-label{font-size:11.5px}
   .mc-milestone-secondary{font-size:9.5px}
   .mc-peak-callout-text{font-size:11px}

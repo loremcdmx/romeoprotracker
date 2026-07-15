@@ -2327,7 +2327,7 @@ function ActivityChart({ posts, favorites, ignored, onFav, onIgnore, onUnignore,
                     boxShadow: isSelected?'0 0 8px #e5393580':'none'
                   }}/>
                   {/* Дата под баром */}
-                  <span style={{fontSize:11,color:isSelected?'var(--text)':'var(--dim)',fontFamily:"'Roboto Mono',monospace",whiteSpace:'nowrap'}}>
+                  <span className="activity-mobile-date" style={{color:isSelected?'var(--text)':'var(--dim)'}}>
                     {date.slice(5)}
                   </span>
                 </div>
@@ -2369,12 +2369,40 @@ function ActivityChart({ posts, favorites, ignored, onFav, onIgnore, onUnignore,
   // ── DESKTOP: SVG bar chart ─────────────────────────────────────────────────
   const W=600, H=70, pad=3
   const bw   = (W - pad * (data.length - 1)) / data.length
-  const step = Math.max(1, Math.ceil(36 / (bw + pad)))
-  // Строим индексы лейблов заранее — без принудительного последнего если он слишком близко
-  const labelSet = new Set()
-  for (let i = 0; i < data.length; i += step) labelSet.add(i)
-  const lastShown = [...labelSet].filter(i => i < data.length - 1).at(-1) ?? -Infinity
-  if (data.length - 1 - lastShown >= step * 0.6) labelSet.add(data.length - 1)
+  const labelEdge = 40
+  const labelWidth = 30
+  const labelGap = 8
+  const maxLabels = 9
+  const pitch = bw + pad
+  const densityStep = data.length > 1
+    ? Math.max(1, Math.ceil((data.length - 1) / (maxLabels - 1)))
+    : 1
+  const widthStep = Math.max(1, Math.ceil((labelWidth + labelGap) / pitch))
+  const step = Math.max(densityStep, widthStep)
+  const labelCandidates = []
+  for (let i = 0; i < data.length; i += step) labelCandidates.push(i)
+  const lastIndex = data.length - 1
+  if (labelCandidates.at(-1) !== lastIndex) labelCandidates.push(lastIndex)
+
+  const labelBounds = i => {
+    const x = i * pitch + bw / 2
+    const anchor = x < labelEdge ? 'start' : x > W - labelEdge ? 'end' : 'middle'
+    const left = anchor === 'start' ? x : anchor === 'end' ? x - labelWidth : x - labelWidth / 2
+    const right = anchor === 'start' ? x + labelWidth : anchor === 'end' ? x : x + labelWidth / 2
+    return { i, left, right }
+  }
+  const packedLabels = []
+  for (const i of labelCandidates) {
+    const next = labelBounds(i)
+    if (i === lastIndex) {
+      while (packedLabels.length && next.left < packedLabels.at(-1).right + labelGap) packedLabels.pop()
+      packedLabels.push(next)
+      continue
+    }
+    const previous = packedLabels.at(-1)
+    if (!previous || next.left >= previous.right + labelGap) packedLabels.push(next)
+  }
+  const labelSet = new Set(packedLabels.map(label => label.i))
 
   return (
     <div className="chart-wrap">
@@ -2402,7 +2430,6 @@ function ActivityChart({ posts, favorites, ignored, onFav, onIgnore, onUnignore,
           const bh = Math.max(3, (count / max) * H)
           const isSelected = selected?.date === date
           const labelX = x + bw / 2
-          const labelEdge = 40
           const labelAnchor = labelX < labelEdge ? 'start' : labelX > W - labelEdge ? 'end' : 'middle'
           return (
             <g key={date} className="activity-bar" style={{cursor:'pointer'}}

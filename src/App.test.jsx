@@ -560,10 +560,25 @@ describe('App', () => {
     expect(await screen.findByText(new RegExp(translate('ru', 'chart_activity')))).toBeInTheDocument()
     fireEvent.click(screen.getAllByText(translate('ru', 'period_all_marathon'))[0])
 
-    const labels = document.querySelectorAll('.chart-label')
+    const labels = [...document.querySelectorAll('.chart-label')]
     expect(labels.length).toBeGreaterThan(1)
-    expect([...labels].some(label => label.getAttribute('text-anchor') === 'start')).toBe(true)
-    expect([...labels].some(label => label.getAttribute('text-anchor') === 'end')).toBe(true)
+    expect(labels.length).toBeLessThanOrEqual(9)
+    expect(labels[0].getAttribute('text-anchor')).toBe('start')
+    expect(labels.at(-1).getAttribute('text-anchor')).toBe('end')
+
+    const estimatedLabelWidth = 30
+    const minimumGap = 8
+    const bounds = labels.map(label => {
+      const x = Number(label.getAttribute('x'))
+      const anchor = label.getAttribute('text-anchor')
+      return {
+        left: anchor === 'start' ? x : anchor === 'end' ? x - estimatedLabelWidth : x - estimatedLabelWidth / 2,
+        right: anchor === 'start' ? x + estimatedLabelWidth : anchor === 'end' ? x : x + estimatedLabelWidth / 2,
+      }
+    })
+    for (let i = 1; i < bounds.length; i++) {
+      expect(bounds[i].left - bounds[i - 1].right).toBeGreaterThanOrEqual(minimumGap)
+    }
   })
 
   it('uses semantic event labels on the marathon X axis', async () => {
