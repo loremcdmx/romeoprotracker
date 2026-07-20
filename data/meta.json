@@ -4,7 +4,7 @@
   "targetBankroll": 10000000,
   "day": 110,
   "status": "active",
-  "lastUpdated": "2026-07-20T03:03:33.787Z",
+  "lastUpdated": "2026-07-20T03:04:06.585Z",
   "totalPosts": 7590,
   "scrapedPages": 0,
   "chronicle": [],
@@ -3037,5 +3037,5 @@
     }
   ],
   "totalTournaments": 23460,
-  "lastScrapeRun": "2026-07-20T03:03:33.787Z"
+  "lastScrapeRun": "2026-07-20T03:04:06.585Z"
 }
