@@ -144317,7 +144317,7 @@
     "date": "20 июля, 04:36",
     "timestamp": 1784515002,
     "text": "Day 110:",
-    "likes": 104,
+    "likes": 105,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_07_2026/post-6195-17845149971852_thumb.webp"
     ],
@@ -144600,5 +144600,59 @@
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8268680"
+  },
+  {
+    "id": "8268683",
+    "author": "GoPPs",
+    "avatar": "https://forum.gipsyteam.com/img/imguser.png",
+    "rating": 408,
+    "msgCount": 103,
+    "regData": "6 лет на сайте",
+    "date": "21 июля, 04:07",
+    "timestamp": 1784599670,
+    "text": "[QUOTE]Trosh|Trosh @ 21.07.26\nGoPPs, специально для тебя посчитал, Рома опубликовал 112 отчетов, из них 61 в плюс и 51 в минус. Чисто технически, да большая часть с положительным результатом, но по факту 45% на  55%[/QUOTE]Что ты посчитал? Тут статистика сессий и так ведется, я выше скрин прикрепил)",
+    "likes": 1,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8268683"
+  },
+  {
+    "id": "8268684",
+    "author": "Trosh",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/1/7/0/4/170480.webp",
+    "rating": 599,
+    "msgCount": 133,
+    "regData": "5 лет на сайте",
+    "date": "21 июля, 04:09",
+    "timestamp": 1784599799,
+    "text": "[QUOTE]Trosh|Trosh @ 21.07.26\nGoPPs, специально для тебя посчитал, Рома опубликовал 112 отчетов, из них 61 в плюс и 51 в минус. Чисто технически, да большая часть с положительным результатом, но по факту 45% на  55%[/QUOTE]Наверное поэтому я в покер не выигрываю, вместо того, что бы просто нажать кнопку \"развернуть\" в шапке и увидеть все цифры, я в ручную все отчеты пересчитал и сколько из них плюсовых...",
+    "likes": 1,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8268684"
+  },
+  {
+    "id": "8268685",
+    "author": "GoPPs",
+    "avatar": "https://forum.gipsyteam.com/img/imguser.png",
+    "rating": 408,
+    "msgCount": 103,
+    "regData": "6 лет на сайте",
+    "date": "21 июля, 04:18",
+    "timestamp": 1784600301,
+    "text": "[QUOTE]Trosh|Trosh @ 21.07.26\nНаверное поэтому я в покер не выигрываю, вместо того, что бы просто нажать кнопку \"развернуть\" в шапке и увидеть все цифры, я в ручную все отчеты пересчитал и сколько из них плюсовых...[/QUOTE]Обычно у мтт игроков процентов 30-35 сыгранных сессий в плюс) На гг наверное и того меньше. Так что Роме отлично складывается в рамках текущего марафона",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8268685"
   }
 ]
