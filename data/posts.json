@@ -144870,7 +144870,7 @@
     "date": "23 июля, 05:09",
     "timestamp": 1784776142,
     "text": "Day 112:",
-    "likes": 25,
+    "likes": 27,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_07_2026/post-6195-1784776138a1_thumb.webp"
     ],
@@ -144924,7 +144924,7 @@
     "date": "23 июля, 09:18",
     "timestamp": 1784791099,
     "text": "Будет у Ромы бумага, останется мудаком. Лучше бы подумал кто он и куда он двигается",
-    "likes": 0,
+    "likes": -1,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -144942,12 +144942,30 @@
     "date": "23 июля, 11:46",
     "timestamp": 1784799961,
     "text": "rapru, ебать философ)",
-    "likes": -1,
+    "likes": 0,
     "images": [],
     "videos": [],
     "brBefore": null,
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8269793"
+  },
+  {
+    "id": "8269823",
+    "author": "tommy",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/1/1/9/3/119325.jpg",
+    "rating": 4520,
+    "msgCount": 1840,
+    "regData": "12 лет на сайте",
+    "date": "23 июля, 12:36",
+    "timestamp": 1784802971,
+    "text": "[QUOTE]rapru|rapru @ 23.07.26\nБудет у Ромы бумага, останется мудаком. Лучше бы подумал кто он и куда он двигается[/QUOTE]Будет у Ромы успех, будет няня, а если нет то да.\n\nЛучше бы сразу, отдал, весь. Долг кстати.",
+    "likes": 2,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8269823"
   }
 ]
