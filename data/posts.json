@@ -145034,7 +145034,7 @@
     "date": "23 июля, 22:07",
     "timestamp": 1784837251,
     "text": "jertva,",
-    "likes": 58,
+    "likes": 63,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_07_2026/post-29536-1784837238695e.png"
     ],
@@ -145074,7 +145074,7 @@
     "date": "24 июля, 04:47",
     "timestamp": 1784861258,
     "text": "Day 113:",
-    "likes": 48,
+    "likes": 52,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_07_2026/post-6195-1784861254e4fd_thumb.webp"
     ],
@@ -145171,5 +145171,25 @@
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8270289"
+  },
+  {
+    "id": "8270344",
+    "author": "Catch27",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/1/3/6/7/136711.gif",
+    "rating": 11330,
+    "msgCount": 4857,
+    "regData": "15 лет на сайте",
+    "date": "24 июля, 13:37",
+    "timestamp": 1784893051,
+    "text": "",
+    "likes": 0,
+    "images": [
+      "https://static-forum.gipsyteam.ru/monthly_07_2026/post-14867-1784893044d8f8_thumb.webp"
+    ],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8270344"
   }
 ]
