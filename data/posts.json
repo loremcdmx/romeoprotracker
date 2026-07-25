@@ -145034,7 +145034,7 @@
     "date": "23 июля, 22:07",
     "timestamp": 1784837251,
     "text": "jertva,",
-    "likes": 99,
+    "likes": 100,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_07_2026/post-29536-1784837238695e.png"
     ],
@@ -145202,7 +145202,7 @@
     "date": "25 июля, 00:17",
     "timestamp": 1784931462,
     "text": "Халява подъехала на мистери",
-    "likes": 4,
+    "likes": 6,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_07_2026/post-187091-1784931454fb06_thumb.webp"
     ],
@@ -145222,7 +145222,7 @@
     "date": "25 июля, 05:22",
     "timestamp": 1784949775,
     "text": "Day 114:",
-    "likes": 23,
+    "likes": 27,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_07_2026/post-6195-1784949772412e_thumb.webp"
     ],
@@ -145247,5 +145247,23 @@
         "lux": 0
       }
     }
+  },
+  {
+    "id": "8270770",
+    "author": "Igorke34",
+    "avatar": "https://forum.gipsyteam.com/img/imguser.png",
+    "rating": 522,
+    "msgCount": 926,
+    "regData": "5 лет на сайте",
+    "date": "25 июля, 10:38",
+    "timestamp": 1784968738,
+    "text": "не верю, что хиро столько отыгрывает без какой-либо помощи.",
+    "likes": -1,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8270770"
   }
 ]
