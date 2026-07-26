@@ -1282,3 +1282,11 @@ describe('App', () => {
     expect(card.tabIndex).toBeLessThan(0)
   })
 })
+
+describe('build constants', () => {
+  it('stamps a date-only build marker so the entry chunk hash stays stable', () => {
+    // A full ISO timestamp here changes on every build, which re-hashes the
+    // entry chunk and defeats the immutable Cache-Control on /assets/*.
+    expect(__BUILD_DATE__).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+  })
+})

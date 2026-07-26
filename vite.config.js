@@ -9,7 +9,10 @@ export default defineConfig({
   base: '/',
   define: {
     __APP_VERSION__: JSON.stringify(pkg.version),
-    __BUILD_DATE__: JSON.stringify(new Date().toISOString()),
+    // Date-only on purpose: a full timestamp changed on every build, which
+    // re-hashed the entry chunk and defeated the immutable cache header on
+    // /assets/*. The footer only renders a date, so nothing is lost.
+    __BUILD_DATE__: JSON.stringify(new Date().toISOString().slice(0, 10)),
   },
   build: {
     rollupOptions: {
