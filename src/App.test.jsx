@@ -1252,4 +1252,33 @@ describe('App', () => {
     expect(container.querySelector('.topbar-join')).toBeNull()
     expect(screen.getByText(translate('ru', 'partner_label'))).toBeInTheDocument()
   })
+
+  it('exposes the profile menu triggers as real keyboard-reachable buttons', async () => {
+    fetchPublicData.mockResolvedValue(makeMockData())
+    const { container } = render(<App />)
+    await screen.findByTestId('pace-widget')
+
+    const avatar = container.querySelector('.pc-avatar')
+    const author = container.querySelector('.pc-author')
+    expect(avatar?.tagName).toBe('BUTTON')
+    expect(author?.tagName).toBe('BUTTON')
+    expect(avatar).toHaveAttribute('aria-expanded', 'false')
+
+    fireEvent.click(author)
+    await waitFor(() => {
+      expect(container.querySelector('.pc-author')).toHaveAttribute('aria-expanded', 'true')
+    })
+  })
+
+  it('leaves click-away wrappers unfocusable while real controls stay reachable', async () => {
+    fetchPublicData.mockResolvedValue(makeMockData())
+    const { container } = render(<App />)
+    await screen.findByTestId('pace-widget')
+
+    // the card-level handler only closes an open menu; it must not advertise
+    // itself as a control to keyboard or screen-reader users
+    const card = container.querySelector('.post-card')
+    expect(card.getAttribute('role')).toBeNull()
+    expect(card.tabIndex).toBeLessThan(0)
+  })
 })
