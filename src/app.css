@@ -43,7 +43,9 @@ button,select,input,summary{font:inherit}
 .mobile-menu summary{list-style:none;width:40px;height:40px;border:1px solid var(--border);border-radius:10px;display:flex;align-items:center;justify-content:center;color:var(--text);cursor:pointer;font-size:15px;letter-spacing:2px;background:var(--bg2)}
 .mobile-menu summary::-webkit-details-marker{display:none}
 .mobile-menu[open] summary{border-color:var(--border2);background:var(--bg3)}
-.mobile-menu-panel{position:absolute;right:0;top:calc(100% + 8px);width:min(260px,calc(100vw - 24px));padding:8px;background:var(--bg-popup);border:1px solid var(--border-popup);border-radius:12px;box-shadow:var(--shadow-popup);z-index:220}
+/* max-width:none defeats the global `*{max-width:100%}` mobile guard, which
+   would otherwise clamp this popup to the width of its 40px trigger button. */
+.mobile-menu-panel{position:absolute;right:0;top:calc(100% + 8px);width:min(260px,calc(100vw - 24px));max-width:none;padding:8px;background:var(--bg-popup);border:1px solid var(--border-popup);border-radius:12px;box-shadow:var(--shadow-popup);z-index:220}
 .mobile-menu-nav{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px}
 .mobile-menu-nav button,.mobile-menu-action,.mobile-menu-languages button{min-height:44px;border:1px solid var(--border);border-radius:9px;background:var(--bg2);color:var(--text);cursor:pointer;font-weight:600}
 .mobile-menu-nav button.active,.mobile-menu-languages button.active{background:var(--red);border-color:var(--red);color:#fff}
