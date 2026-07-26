@@ -3430,7 +3430,11 @@ export default function App() {
   // Build date instead of a hand-edited literal, formatted for the active
   // locale (DD.MM.YYYY reads as a different day in en/es).
   const buildDateLabel = useMemo(() => {
-    const d = new Date(__BUILD_DATE__)
+    // Guarded: a missing build-time define must degrade to an empty label,
+    // never throw and take the whole app down with it.
+    const stamp = typeof __BUILD_DATE__ === 'undefined' ? null : __BUILD_DATE__
+    if (!stamp) return ''
+    const d = new Date(stamp)
     if (Number.isNaN(d.getTime())) return ''
     const locale = lang === 'ru' ? 'ru-RU' : lang === 'es' ? 'es-ES' : 'en-US'
     return new Intl.DateTimeFormat(locale, {
