@@ -1,7 +1,7 @@
 import { useState, useEffect, useLayoutEffect, useMemo, useRef, useCallback, memo } from 'react'
 import { Analytics } from '@vercel/analytics/react'
 import {
-  timeAgo, fmtBR, fmtNum, fmtInt, fmtExact, fmtDateShort, extractDay, extractBR,
+  timeAgo, fmtBR, fmtNum, fmtInt, fmtExact, fmtExactSigned, fmtDateShort, extractDay, extractBR,
   fk, fkAbs, ROMEO_RE, autoCloseQuotes, stripQuoteTags, extractQuoteBody,
   pl, plural,
   warsawDayKey, warsawParts, fmtDateTimeLang,
@@ -510,11 +510,20 @@ function PaceRateValue({ value, unit, className = '', animate = true }) {
 
 function PaceMiniChart({ segments, unit, t }) {
   const [hovered, setHovered] = useState(null)
+  // Must stay above the early return so the hook order never changes.
+  const isMobile = useIsMobile()
   if (!segments?.length) return <div className="pace-chart-empty">{t('pace_chart_empty')}</div>
 
-  const width = 920
-  const height = 230
-  const pad = { left:58, right:28, top:32, bottom:42 }
+  // Same reasoning as the marathon chart: a 920-wide canvas rendered into a
+  // ~335px column scaled everything to 0.36, leaving the axis labels at ~3px.
+  // Authoring near the real render width keeps them legible.
+  const width = isMobile ? 340 : 920
+  const height = isMobile ? 220 : 230
+  // left must clear the right-aligned Y tick labels, which are drawn at
+  // gridLeft - 13 and run ~34 units wide at the mobile font size.
+  const pad = isMobile
+    ? { left:54, right:14, top:26, bottom:36 }
+    : { left:58, right:28, top:32, bottom:42 }
   const gridLeft = pad.left
   const gridRight = width - pad.right
   const basePlotW = gridRight - gridLeft
@@ -922,9 +931,14 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
     if (pathRef.current) setPathLen(pathRef.current.getTotalLength())
   }, [points.length, isMobile])
 
-  const W = isMobile ? 520 : 700
-  const H = isMobile ? (period === 'all' ? 520 : 420) : 240
-  const pL = isMobile ? 60 : 58
+  // On mobile the SVG is authored close to the width it actually renders at
+  // (~340px), so one user unit ≈ one CSS px and the axis labels keep their
+  // intended size. A wider canvas (the old 520) got scaled down to ~0.66,
+  // shrinking every label with it. Label collision math is in the same user
+  // units, so a narrower canvas simply thins the labels out on its own.
+  const W = isMobile ? 360 : 700
+  const H = isMobile ? (period === 'all' ? 380 : 310) : 240
+  const pL = isMobile ? 46 : 58
   const pR = isMobile ? 18 : 22
   const pT = isMobile ? 18 : 14
   const pB = isMobile ? 58 : 44
@@ -3413,6 +3427,16 @@ export default function App() {
   })
   const t = useMemo(() => createTranslator(lang), [lang])
   const appVersionLabel = `v${String(__APP_VERSION__).replace(/\.0$/, '')}`
+  // Build date instead of a hand-edited literal, formatted for the active
+  // locale (DD.MM.YYYY reads as a different day in en/es).
+  const buildDateLabel = useMemo(() => {
+    const d = new Date(__BUILD_DATE__)
+    if (Number.isNaN(d.getTime())) return ''
+    const locale = lang === 'ru' ? 'ru-RU' : lang === 'es' ? 'es-ES' : 'en-US'
+    return new Intl.DateTimeFormat(locale, {
+      day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Europe/Warsaw',
+    }).format(d)
+  }, [lang])
   // Version the preference so existing visitors move off the former
   // "oldest first" default once, while future choices remain persistent.
   const [sortBy, setSortBy] = usePersistentState('rpt_sortby_v2', 'date_desc', {
@@ -3997,7 +4021,7 @@ export default function App() {
                 <div className="hstat">
                   <div className="hstat-label">{t('hs_profit')}</div>
                   <div className={`hstat-value ${!stats.profit?'':stats.profit>=0?'green':'red'}`}>
-                    {fmtBR(stats.profit)}
+                    {fmtExactSigned(stats.profit)}
                   </div>
                 </div>
                 <div className="hstat">
@@ -4031,7 +4055,7 @@ export default function App() {
                   (() => {
                     const pv = periodStats?.profit ?? stats.profit
                     return [t('sr_profit') + (periodStats?.profit != null ? '*' : ''),
-                      fmtBR(pv), !pv?'':pv>=0?'green':'red']
+                      fmtExactSigned(pv), !pv?'':pv>=0?'green':'red']
                   })(),
                   [t('sr_day'), `#${stats.day||meta?.day||'—'}`, 'gold'],
                   [t('sr_mtt_short') + (periodStats?.totalMTT != null ? '*' : ''),
@@ -4268,7 +4292,7 @@ export default function App() {
                   style={{color:'var(--dim2)',textDecoration:'none'}}>LoremCDMX</a>
               </div>
               <div style={{fontSize:10,color:'var(--dim2)'}}>
-                {t('footer_interface_updated')}: 02.07.2026
+                {t('footer_interface_updated')}: {buildDateLabel}
               </div>
               {(() => {
                 const scrapeTs = meta?.lastScrapeRun

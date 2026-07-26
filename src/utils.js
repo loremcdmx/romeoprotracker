@@ -66,6 +66,19 @@ export const fmtInt = n => {
   return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, '\u202F')
 }
 
+// Точный формат со знаком — для профита, чтобы он стоял рядом с БР
+// в одном масштабе (258 122$ / +248 122$), а не в сокращённом (+248.1k$).
+export const fmtExactSigned = n => {
+  if (!n && n !== 0) return '—'
+  const rounded = Math.round(n)
+  const sign = rounded < 0 ? '-' : rounded > 0 ? '+' : ''
+  const abs = Math.abs(rounded)
+  const body = abs >= 1000
+    ? Math.floor(abs / 1000) + ' ' + String(abs % 1000).padStart(3, '0')
+    : String(abs)
+  return sign + body + '$'
+}
+
 // Точный формат БР до доллара
 export const fmtExact = n => {
   if (!n && n !== 0) return '—'

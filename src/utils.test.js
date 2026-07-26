@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import {
-  timeAgo, fmtBR, fmtNum, fmtInt, fmtExact, extractDay, extractBR,
+  timeAgo, fmtBR, fmtNum, fmtInt, fmtExact, fmtExactSigned, extractDay, extractBR,
   fk, fkAbs, ROMEO_RE, autoCloseQuotes, stripQuoteTags, extractQuoteBody,
   makeBezierPath, makeBezierArea, dedupBrHistory,
 } from './utils.js'
@@ -385,5 +385,30 @@ describe('makeBezierArea', () => {
     const path = makeBezierArea(coords, 200)
     expect(path).toContain('M 0.0 200')
     expect(path).toContain('L 100.0 200 Z')
+  })
+})
+
+describe('fmtExactSigned', () => {
+  it('matches fmtExact digit grouping so profit lines up with bankroll', () => {
+    // 258 122$ (bankroll) next to +248 122$ (profit), same thin-space grouping
+    expect(fmtExactSigned(248122)).toBe(fmtExact(248122).replace(/^/, '+'))
+    expect(fmtExactSigned(248122)).toBe('+248 122$')
+  })
+
+  it('keeps the sign on losses and stays exact', () => {
+    expect(fmtExactSigned(-248122)).toBe('-248 122$')
+    expect(fmtExactSigned(-1234)).toBe('-1 234$')
+  })
+
+  it('handles small values, zero and empty input', () => {
+    expect(fmtExactSigned(999)).toBe('+999$')
+    expect(fmtExactSigned(-999)).toBe('-999$')
+    expect(fmtExactSigned(0)).toBe('0$')
+    expect(fmtExactSigned(null)).toBe('—')
+  })
+
+  it('does not abbreviate the way fmtBR does', () => {
+    expect(fmtBR(248122)).toBe('+248.1k$')
+    expect(fmtExactSigned(248122)).not.toContain('k')
   })
 })
