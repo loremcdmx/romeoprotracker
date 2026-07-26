@@ -679,7 +679,7 @@ function PaceMiniChart({ segments, unit, t }) {
               onBlur={closeTooltip}
               onClick={(e) => { e.stopPropagation(); openTooltip(seg, idx, cx, rateY) }}
               tabIndex="0" role="button" aria-label={`${seg.label}: ${formatDollarPerMTT(seg.rate, unit)}${isPartial ? `, ${t('pace_tip_partial')}` : ''}`}>
-              <circle className="pace-dot-hit" cx={cx} cy={rateY} r="12"/>
+              <circle className="pace-dot-hit" cx={cx} cy={rateY} r={isMobile ? 16 : 12}/>
               {isPartial && <circle className="pace-dot-partial-ring" cx={cx} cy={rateY} r="8.2"/>}
               {isLatest && <circle className="pace-dot-latest-ring" cx={cx} cy={rateY} r="8.4"/>}
               <circle className="pace-dot" cx={cx} cy={rateY} r={isLatest ? 5 : 3.8}/>
@@ -2328,6 +2328,12 @@ function ActivityChart({ posts, favorites, ignored, onFav, onIgnore, onUnignore,
               const isSelected = selected?.date === date
               return (
                 <div key={date} style={{display:'flex',flexDirection:'column',alignItems:'center',gap:4,cursor:'pointer',minWidth:BAR_W}}
+                  role="button" tabIndex={0} aria-pressed={isSelected} aria-label={`${date}: ${count}`}
+                  onKeyDown={e=>{
+                    if (e.key !== 'Enter' && e.key !== ' ') return
+                    e.preventDefault()
+                    setSelected(selected?.date===date ? null : {date,posts:dp})
+                  }}
                   onClick={()=>setSelected(selected?.date===date ? null : {date,posts:dp})}>
                   {/* Число постов над баром */}
                   <span style={{fontSize:10,color:isSelected?'var(--white)':'var(--dim)',fontFamily:"'Roboto Mono',monospace",fontWeight:isSelected?700:400}}>
@@ -2921,9 +2927,11 @@ const PostCard = memo(function PostCard({ p, favorites, ignored, onFav, onIgnore
   return (
     <div className={`post-card ${isFav?'faved':''} ${isRomeo?'romeo-post':''}`} onClick={()=>menu&&setMenu(false)}>
       <div className="pc-head">
-        <div className="pc-avatar" data-avatar-initial={initial} style={{cursor:'pointer'}} onClick={e=>{e.stopPropagation();setMenu(m=>!m)}}>
-          <img src={p.avatar || GT_DEFAULT_AVATAR} alt={p.author} referrerPolicy="no-referrer" onError={avatarError}/>
-        </div>
+        <button type="button" className="pc-avatar" data-avatar-initial={initial}
+          aria-haspopup="menu" aria-expanded={menu} aria-label={p.author}
+          onClick={e=>{e.stopPropagation();setMenu(m=>!m)}}>
+          <img src={p.avatar || GT_DEFAULT_AVATAR} alt="" referrerPolicy="no-referrer" onError={avatarError}/>
+        </button>
         {/* Dropdown меню профиля */}
         {menu && (
           <div ref={menuRef} style={S_MENU}
@@ -2952,10 +2960,11 @@ const PostCard = memo(function PostCard({ p, favorites, ignored, onFav, onIgnore
           </div>
         )}
         <div style={S_FLEX1}>
-          <div className="pc-author" style={{cursor:'pointer'}}
+          <button type="button" className="pc-author"
+            aria-haspopup="menu" aria-expanded={menu}
             onClick={e=>{e.stopPropagation();setMenu(m=>!m)}}>
             {p.author}
-          </div>
+          </button>
           <div className="pc-author-meta">
             {p.msgCount && <span>{lang==='ru' ? `${fmtInt(p.msgCount)} ${plural(p.msgCount, ['пост','поста','постов'])}` : `${fmtInt(p.msgCount)} ${_t('posts_word')}`}</span>}
             {p.regData  && <span>· {p.regData}</span>}
@@ -3275,8 +3284,15 @@ export function SidebarTopList({ posts, setLightbox }) {
             data-testid={`sidebar-top-item-${i}`}
             style={{display:'flex',gap:10,padding:'9px 0',borderBottom:'1px solid var(--border)',
               alignItems:'flex-start',cursor:'pointer'}}
+            role="link" tabIndex={0} aria-label={`${p.author}: ${(p.text||'').slice(0, 60)}`}
+            onKeyDown={e=>{
+              if (e.key !== 'Enter') return
+              e.preventDefault()
+              if (p.url) window.open(p.url, '_blank', 'noopener')
+            }}
             onClick={()=>p.url&&window.open(p.url,'_blank')}
-            onMouseEnter={e => openItem(i, e.currentTarget)}>
+            onMouseEnter={e => openItem(i, e.currentTarget)}
+            onFocus={e => openItem(i, e.currentTarget)}>
             <span style={{color:'var(--gold)',fontWeight:700,fontSize:11,minWidth:16,flexShrink:0,paddingTop:10}}>{i+1}</span>
             <div data-avatar-initial={initial} style={{width:28,height:28,borderRadius:'50%',background:'var(--red)',flexShrink:0,
               overflow:'hidden',display:'flex',alignItems:'center',justifyContent:'center',
