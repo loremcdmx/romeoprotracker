@@ -145276,7 +145276,7 @@
     "date": "25 июля, 11:30",
     "timestamp": 1784971844,
     "text": "Igorke34, 182 турнира только, похоже херо даже монитор не включал сегодня.",
-    "likes": 53,
+    "likes": 54,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -145330,7 +145330,7 @@
     "date": "25 июля, 20:12",
     "timestamp": 1785003125,
     "text": "Чтобы перепрыгнуть собственные ожидания и подогреть затухающий интерес к ветке, жду, когда ТС сыграет 1 турнир за сутки.",
-    "likes": 0,
+    "likes": -1,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -145427,5 +145427,41 @@
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8271117"
+  },
+  {
+    "id": "8271171",
+    "author": "Romeopro",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/2/6/6/26670.jpg",
+    "rating": 26229,
+    "msgCount": 4189,
+    "regData": "16 лет на сайте",
+    "date": "26 июля, 05:35",
+    "timestamp": 1785036901,
+    "text": "Day 115:",
+    "likes": 1,
+    "images": [
+      "https://static-forum.gipsyteam.ru/monthly_07_2026/post-6195-178503688756ae_thumb.webp"
+    ],
+    "videos": [],
+    "brBefore": 258122,
+    "brAfter": 258640,
+    "sessionResult": 518,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8271171",
+    "rooms": {
+      "before": {
+        "gg": 256685,
+        "ps": 1188,
+        "king": 232,
+        "coin": 17,
+        "lux": 0
+      },
+      "after": {
+        "gg": 257203,
+        "ps": 1188,
+        "king": 232,
+        "coin": 17,
+        "lux": 0
+      }
+    }
   }
 ]
