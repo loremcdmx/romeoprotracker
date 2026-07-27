@@ -145512,7 +145512,7 @@
     "date": "26 июля, 22:39",
     "timestamp": 1785098361,
     "text": "Воскресное * дорого - богато *",
-    "likes": 1,
+    "likes": 2,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_07_2026/post-187091-17850983433870_thumb.webp"
     ],
@@ -145532,7 +145532,7 @@
     "date": "27 июля, 04:53",
     "timestamp": 1785120799,
     "text": "Day 116:",
-    "likes": 35,
+    "likes": 36,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_07_2026/post-6195-17851207928265_thumb.webp"
     ],
@@ -145593,5 +145593,23 @@
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8271706"
+  },
+  {
+    "id": "8271783",
+    "author": "Cash_Magnetic",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/7/0/5/70574.jpg",
+    "rating": 3776,
+    "msgCount": 1046,
+    "regData": "15 лет на сайте",
+    "date": "27 июля, 16:37",
+    "timestamp": 1785163051,
+    "text": "[QUOTE]Prefguru|Prefguru @ 27.07.26\nна коин покер можно сделать кешаут через usdc прямо депозитом в ГГ[/QUOTE]главное - понимать, что за это ещё и бан можно получить",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8271783"
   }
 ]
