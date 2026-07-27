@@ -145276,7 +145276,7 @@
     "date": "25 июля, 13:30",
     "timestamp": 1784971844,
     "text": "Igorke34, 182 турнира только, похоже херо даже монитор не включал сегодня.",
-    "likes": 79,
+    "likes": 80,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -145492,7 +145492,7 @@
     "date": "26 июля, 09:35",
     "timestamp": 1785051344,
     "text": "[QUOTE]NasKras|NasKras @ 26.07.26\nдавай уже хоть табличку чутка измени, 115ый раз смотрим на нее. строку добавь или убавь, может ячейку какую желтым залей. можно как проверка на внимательность, заметят или нет.[/QUOTE]",
-    "likes": 20,
+    "likes": 21,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_07_2026/post-15559-17850513399458.jpg"
     ],
@@ -145512,7 +145512,7 @@
     "date": "26 июля, 22:39",
     "timestamp": 1785098361,
     "text": "Воскресное * дорого - богато *",
-    "likes": 2,
+    "likes": 3,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_07_2026/post-187091-17850983433870_thumb.webp"
     ],
@@ -145532,7 +145532,7 @@
     "date": "27 июля, 04:53",
     "timestamp": 1785120799,
     "text": "Day 116:",
-    "likes": 39,
+    "likes": 40,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_07_2026/post-6195-17851207928265_thumb.webp"
     ],
@@ -145611,5 +145611,61 @@
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8271783"
+  },
+  {
+    "id": "8271867",
+    "author": "pokerpain",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/1/6/9/8/169882.webp",
+    "rating": 1467,
+    "msgCount": 118,
+    "regData": "1 год на сайте",
+    "date": "27 июля, 20:31",
+    "timestamp": 1785177118,
+    "text": "Долгожданный мистери в эфире",
+    "likes": 1,
+    "images": [
+      "https://static-forum.gipsyteam.ru/monthly_07_2026/post-187091-1785177115fe57_thumb.webp"
+    ],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8271867"
+  },
+  {
+    "id": "8271873",
+    "author": "darkmoon311",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/1/5/0/9/150950.jpg",
+    "rating": 3097,
+    "msgCount": 835,
+    "regData": "13 лет на сайте",
+    "date": "27 июля, 20:35",
+    "timestamp": 1785177316,
+    "text": "Довольно странно что Рома не распределяет часть бр для Старзов,  на серии понятно фокус на гг был а сейчас то почему? и дело  тут не в продаже долей😑",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8271873"
+  },
+  {
+    "id": "8271878",
+    "author": "АллЫн",
+    "avatar": "https://forum.gipsyteam.com/img/imguser.png",
+    "rating": 1229,
+    "msgCount": 608,
+    "regData": "9 месяцев на сайте",
+    "date": "27 июля, 20:36",
+    "timestamp": 1785177381,
+    "text": "[QUOTE]pokerpain|pokerpain @ 27.07.26\nДолгожданный мистери в эфире[/QUOTE]Солидно у него бобов, по сравнению с остальными за столом. Он чипак что ли?",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8271878"
   }
 ]
