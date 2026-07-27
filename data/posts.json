@@ -145532,7 +145532,7 @@
     "date": "27 июля, 04:53",
     "timestamp": 1785120799,
     "text": "Day 116:",
-    "likes": 28,
+    "likes": 31,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_07_2026/post-6195-17851207928265_thumb.webp"
     ],
@@ -145575,5 +145575,23 @@
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8271563"
+  },
+  {
+    "id": "8271706",
+    "author": "Prefguru",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/8/4/4/84482.gif",
+    "rating": 10802,
+    "msgCount": 2857,
+    "regData": "11 лет на сайте",
+    "date": "27 июля, 13:52",
+    "timestamp": 1785153140,
+    "text": "Там на коин покер можно сделать кешаут через usdc прямо депозитом в ГГ, чтобы меньше символов было писать.\n\nНадо оптимизировать баланс",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8271706"
   }
 ]
