@@ -145222,7 +145222,7 @@
     "date": "25 июля, 07:22",
     "timestamp": 1784949775,
     "text": "Day 114:",
-    "likes": 53,
+    "likes": 54,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_07_2026/post-6195-1784949772412e_thumb.webp"
     ],
@@ -145276,7 +145276,7 @@
     "date": "25 июля, 13:30",
     "timestamp": 1784971844,
     "text": "Igorke34, 182 турнира только, похоже херо даже монитор не включал сегодня.",
-    "likes": 68,
+    "likes": 70,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -145438,7 +145438,7 @@
     "date": "26 июля, 05:35",
     "timestamp": 1785036901,
     "text": "Day 115:",
-    "likes": 58,
+    "likes": 61,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_07_2026/post-6195-178503688756ae_thumb.webp"
     ],
@@ -145512,7 +145512,7 @@
     "date": "26 июля, 22:39",
     "timestamp": 1785098361,
     "text": "Воскресное * дорого - богато *",
-    "likes": 0,
+    "likes": 1,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_07_2026/post-187091-17850983433870_thumb.webp"
     ],
@@ -145532,7 +145532,7 @@
     "date": "27 июля, 04:53",
     "timestamp": 1785120799,
     "text": "Day 116:",
-    "likes": 1,
+    "likes": 9,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_07_2026/post-6195-17851207928265_thumb.webp"
     ],
@@ -145557,5 +145557,23 @@
         "lux": 0
       }
     }
+  },
+  {
+    "id": "8271563",
+    "author": "Kazimir17",
+    "avatar": "https://forum.gipsyteam.com/img/imguser.png",
+    "rating": 4788,
+    "msgCount": 3259,
+    "regData": "15 лет на сайте",
+    "date": "27 июля, 07:00",
+    "timestamp": 1785128442,
+    "text": "Эх, блин! Опять вниз ))",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8271563"
   }
 ]
