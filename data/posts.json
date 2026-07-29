@@ -145918,7 +145918,7 @@
     "date": "28 июля, 13:10",
     "timestamp": 1785237018,
     "text": "[QUOTE]Foge|Foge @ 28.07.26\nТС прислушался к дельному совету[/QUOTE]Серверы на техобслуживании, решил сам один турнирчик покатать, дабы не забыть)",
-    "likes": 6,
+    "likes": 7,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -145954,7 +145954,7 @@
     "date": "29 июля, 05:46",
     "timestamp": 1785296797,
     "text": "Day 118:",
-    "likes": 12,
+    "likes": 17,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_07_2026/post-6195-1785296792cda_thumb.webp"
     ],
@@ -146015,5 +146015,23 @@
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8272599"
+  },
+  {
+    "id": "8272608",
+    "author": "prom",
+    "avatar": "https://forum.gipsyteam.com/img/imguser.png",
+    "rating": 107,
+    "msgCount": 2057,
+    "regData": "13 лет на сайте",
+    "date": "29 июля, 09:23",
+    "timestamp": 1785309832,
+    "text": "4 месяца 25к турниров. Слабовато ну окэй.",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8272608"
   }
 ]
