@@ -145734,7 +145734,7 @@
     "date": "28 июля, 02:54",
     "timestamp": 1785200094,
     "text": "Day 117:",
-    "likes": 85,
+    "likes": 87,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_07_2026/post-6195-1785200086983f_thumb.webp"
     ],
@@ -145770,7 +145770,7 @@
     "date": "28 июля, 02:59",
     "timestamp": 1785200354,
     "text": "Romeopro, вот уменьшил число турниров до вменяемого и сразу результат)",
-    "likes": 55,
+    "likes": 57,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -145862,7 +145862,7 @@
     "date": "28 июля, 08:28",
     "timestamp": 1785220082,
     "text": "darkmoon311, верит в даунстрик после вывода",
-    "likes": 3,
+    "likes": 4,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -145943,5 +145943,41 @@
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8272338"
+  },
+  {
+    "id": "8272573",
+    "author": "Romeopro",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/2/6/6/26670.jpg",
+    "rating": 26229,
+    "msgCount": 4192,
+    "regData": "16 лет на сайте",
+    "date": "29 июля, 05:46",
+    "timestamp": 1785296797,
+    "text": "Day 118:",
+    "likes": 0,
+    "images": [
+      "https://static-forum.gipsyteam.ru/monthly_07_2026/post-6195-1785296792cda_thumb.webp"
+    ],
+    "videos": [],
+    "brBefore": 254013,
+    "brAfter": 245593,
+    "sessionResult": -8420,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8272573",
+    "rooms": {
+      "before": {
+        "gg": 252576,
+        "ps": 1188,
+        "king": 232,
+        "coin": 17,
+        "lux": 0
+      },
+      "after": {
+        "gg": 244156,
+        "ps": 1188,
+        "king": 232,
+        "coin": 17,
+        "lux": 0
+      }
+    }
   }
 ]
