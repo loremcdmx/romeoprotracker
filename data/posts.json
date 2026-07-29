@@ -145770,7 +145770,7 @@
     "date": "28 июля, 02:59",
     "timestamp": 1785200354,
     "text": "Romeopro, вот уменьшил число турниров до вменяемого и сразу результат)",
-    "likes": 59,
+    "likes": 60,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -145954,7 +145954,7 @@
     "date": "29 июля, 05:46",
     "timestamp": 1785296797,
     "text": "Day 118:",
-    "likes": 17,
+    "likes": 21,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_07_2026/post-6195-1785296792cda_thumb.webp"
     ],
@@ -146008,7 +146008,7 @@
     "date": "29 июля, 09:01",
     "timestamp": 1785308475,
     "text": "А кто следил за ТСа марафонами, он там тоже так много катал?",
-    "likes": 0,
+    "likes": 1,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -146033,5 +146033,25 @@
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8272608"
+  },
+  {
+    "id": "8272650",
+    "author": "Luchik",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/1/6/7/4/167441.webp",
+    "rating": 3612,
+    "msgCount": 659,
+    "regData": "2 года на сайте",
+    "date": "29 июля, 10:50",
+    "timestamp": 1785315028,
+    "text": "[QUOTE]prom|prom @ 29.07.26\n4 месяца 25к турниров. Слабовато ну окэй.[/QUOTE]",
+    "likes": 0,
+    "images": [
+      "https://static-forum.gipsyteam.ru/monthly_07_2026/post-176234-17853150228385_thumb.webp"
+    ],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8272650"
   }
 ]
