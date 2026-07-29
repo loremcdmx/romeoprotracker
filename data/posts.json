@@ -145734,7 +145734,7 @@
     "date": "28 июля, 02:54",
     "timestamp": 1785200094,
     "text": "Day 117:",
-    "likes": 87,
+    "likes": 88,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_07_2026/post-6195-1785200086983f_thumb.webp"
     ],
@@ -145770,7 +145770,7 @@
     "date": "28 июля, 02:59",
     "timestamp": 1785200354,
     "text": "Romeopro, вот уменьшил число турниров до вменяемого и сразу результат)",
-    "likes": 58,
+    "likes": 59,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -145954,7 +145954,7 @@
     "date": "29 июля, 05:46",
     "timestamp": 1785296797,
     "text": "Day 118:",
-    "likes": 4,
+    "likes": 12,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_07_2026/post-6195-1785296792cda_thumb.webp"
     ],
@@ -145979,5 +145979,41 @@
         "lux": 0
       }
     }
+  },
+  {
+    "id": "8272590",
+    "author": "turrrrr",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/6/1/0/61028.gif",
+    "rating": 683,
+    "msgCount": 631,
+    "regData": "12 лет на сайте",
+    "date": "29 июля, 08:34",
+    "timestamp": 1785306852,
+    "text": "[QUOTE]darkmoon311|darkmoon311 @ 27.07.26\nДовольно странно что Рома не распределяет часть бр для Старзов,  на серии понятно фокус на гг был а сейчас то почему? и дело  тут не в продаже долей😑[/QUOTE]На старзах ботов быстро банят, там не получится",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8272590"
+  },
+  {
+    "id": "8272599",
+    "author": "victorwinner",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/1/6/3/0/163021.jpg",
+    "rating": 2583,
+    "msgCount": 2090,
+    "regData": "11 лет на сайте",
+    "date": "29 июля, 09:01",
+    "timestamp": 1785308475,
+    "text": "А кто следил за ТСа марафонами, он там тоже так много катал?",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8272599"
   }
 ]
