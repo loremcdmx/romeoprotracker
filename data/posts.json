@@ -145954,7 +145954,7 @@
     "date": "29 июля, 05:46",
     "timestamp": 1785296797,
     "text": "Day 118:",
-    "likes": 48,
+    "likes": 49,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_07_2026/post-6195-1785296792cda_thumb.webp"
     ],
@@ -146194,7 +146194,7 @@
     "date": "30 июля, 05:09",
     "timestamp": 1785380947,
     "text": "Day 119:",
-    "likes": 61,
+    "likes": 62,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_07_2026/post-6195-1785380943b6f8_thumb.webp"
     ],
@@ -146356,7 +146356,7 @@
     "date": "30 июля, 12:02",
     "timestamp": 1785405752,
     "text": "Рома создал эту тему 10 марта, и его плюс составляет $240K к данному моменту. Это далеко от поставленной цели, но все равно впечатляет.",
-    "likes": 3,
+    "likes": 4,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -146381,5 +146381,23 @@
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8273230"
+  },
+  {
+    "id": "8273280",
+    "author": "regisser",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/1/6/0/3/160310.jpg",
+    "rating": 12208,
+    "msgCount": 1381,
+    "regData": "15 лет на сайте",
+    "date": "30 июля, 17:39",
+    "timestamp": 1785425956,
+    "text": "Бран Старк станет королём.",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8273280"
   }
 ]
