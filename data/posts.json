@@ -146392,7 +146392,7 @@
     "date": "30 июля, 17:39",
     "timestamp": 1785425956,
     "text": "Бран Старк станет королём.",
-    "likes": 14,
+    "likes": 15,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -146410,7 +146410,7 @@
     "date": "30 июля, 18:01",
     "timestamp": 1785427302,
     "text": "убийца дворецкий",
-    "likes": 14,
+    "likes": 15,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -146628,7 +146628,7 @@
     "date": "31 июля, 00:11",
     "timestamp": 1785449488,
     "text": "Запахло 44 финалкой, второй день подряд. Переап или скилл? Смотрим, обсуждаем",
-    "likes": 2,
+    "likes": 3,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_07_2026/post-187091-17854494866cc5_thumb.webp"
     ],
@@ -146666,7 +146666,7 @@
     "date": "31 июля, 02:05",
     "timestamp": 1785456326,
     "text": "[QUOTE]22Olga|22Olga @ 30.07.26\nНаверное, если дуло к виску приставить каждому, то сыграешь 200 мтт в сутки с ситаутами и стопкой столы(еще рабочее место), но захочет такое мало кто.[/QUOTE]Ну и БР зальют  в такой ситуации, чуть больше, чем все :)",
-    "likes": 0,
+    "likes": 1,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -146704,7 +146704,7 @@
     "date": "31 июля, 04:32",
     "timestamp": 1785465163,
     "text": "Day 120:",
-    "likes": 8,
+    "likes": 18,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_07_2026/post-6195-1785465153b10b_thumb.webp"
     ],
@@ -146747,5 +146747,41 @@
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8273461"
+  },
+  {
+    "id": "8273478",
+    "author": "darkmoon311",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/1/5/0/9/150950.jpg",
+    "rating": 3097,
+    "msgCount": 836,
+    "regData": "13 лет на сайте",
+    "date": "31 июля, 07:38",
+    "timestamp": 1785476322,
+    "text": "Играть 20 столов одновременно это не супер тяжело и это могут многие, без стопок каскадов и ситаутов, многие тут видимо больше 6 столов не запускали или играют на 15 дюймовых ноутбуках и думают что это может только избранный, тут дело в другом в  продолжительности а она у Ромы один на миллион",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8273478"
+  },
+  {
+    "id": "8273486",
+    "author": "CaHu4",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/1/3/3/6/133677.jpg",
+    "rating": 9826,
+    "msgCount": 2711,
+    "regData": "8 лет на сайте",
+    "date": "31 июля, 08:00",
+    "timestamp": 1785477600,
+    "text": "[QUOTE]darkmoon311|darkmoon311 @ 31.07.26\nИграть 20 столов одновременно это не супер тяжело и это могут многие, без стопок каскадов и ситаутов, многие тут видимо больше 6 столов не запускали или играют на 15 дюймовых ноутбуках и думают что это может только избранный, тут дело в другом в  продолжительности а она у Ромы один на миллион[/QUOTE]  Абсолютно с тобой не согласен. Если ты имеешь в виду просто сидеть и кнопки нажимать на 20 столах, или играть мега-тайтово, то так сможет любой. А вот чтобы играть 20 столов высокие лимиты с нормальной стратегией — наверное единицы.",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8273486"
   }
 ]
