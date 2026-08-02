@@ -147506,7 +147506,7 @@
     "date": "2 августа, 02:18",
     "timestamp": 1785629921,
     "text": "pokerpain, очень жалко ,что нельзя коэффициент 10 ставить",
-    "likes": 13,
+    "likes": 15,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -147580,7 +147580,7 @@
     "date": "2 августа, 03:39",
     "timestamp": 1785634783,
     "text": "Day 121:",
-    "likes": 44,
+    "likes": 46,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_08_2026/post-6195-178563477348b_thumb.webp"
     ],
@@ -147659,5 +147659,25 @@
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8274636"
+  },
+  {
+    "id": "8274751",
+    "author": "pokerpain",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/1/6/9/8/169882.webp",
+    "rating": 1367,
+    "msgCount": 130,
+    "regData": "1 год на сайте",
+    "date": "2 августа, 15:01",
+    "timestamp": 1785675717,
+    "text": "Пошла вода горячая. Второй день сундуков!",
+    "likes": 1,
+    "images": [
+      "https://static-forum.gipsyteam.ru/monthly_08_2026/post-187091-1785675705634e_thumb.webp"
+    ],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8274751"
   }
 ]
