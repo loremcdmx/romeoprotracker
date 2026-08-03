@@ -147762,7 +147762,7 @@
     "date": "2 августа, 23:49",
     "timestamp": 1785707396,
     "text": "Жирная финалка, с 38% проц проданных долей по 1.19",
-    "likes": 1,
+    "likes": 2,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_08_2026/post-187091-1785707360533c_thumb.webp"
     ],
@@ -147800,12 +147800,48 @@
     "date": "3 августа, 02:56",
     "timestamp": 1785718567,
     "text": "[QUOTE]PovArjuga|PovArjuga @ 03.08.26\nkisakoshka, на овербет ривера и телефона можно убедить выкинуть[/QUOTE]Сомнительная информация.....",
-    "likes": 0,
+    "likes": 1,
     "images": [],
     "videos": [],
     "brBefore": null,
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8275012"
+  },
+  {
+    "id": "8275021",
+    "author": "Romeopro",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/2/6/6/26670.jpg",
+    "rating": 26229,
+    "msgCount": 4196,
+    "regData": "16 лет на сайте",
+    "date": "3 августа, 04:57",
+    "timestamp": 1785725824,
+    "text": "Day 122:",
+    "likes": 1,
+    "images": [
+      "https://static-forum.gipsyteam.ru/monthly_08_2026/post-6195-17857258172b51_thumb.webp"
+    ],
+    "videos": [],
+    "brBefore": 262543,
+    "brAfter": 261091,
+    "sessionResult": -1452,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8275021",
+    "rooms": {
+      "before": {
+        "gg": 261106,
+        "ps": 1188,
+        "king": 232,
+        "coin": 17,
+        "lux": 0
+      },
+      "after": {
+        "gg": 259654,
+        "ps": 1188,
+        "king": 232,
+        "coin": 17,
+        "lux": 0
+      }
+    }
   }
 ]
