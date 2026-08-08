@@ -150514,7 +150514,7 @@
     "date": "7 августа, 08:28",
     "timestamp": 1786084139,
     "text": "Day 125:",
-    "likes": 47,
+    "likes": 48,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_08_2026/post-6195-1786084091dd0e_thumb.webp"
     ],
@@ -150947,5 +150947,59 @@
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8277796"
+  },
+  {
+    "id": "8277828",
+    "author": "Romeopro",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/2/6/6/26670.jpg",
+    "rating": 26054,
+    "msgCount": 4200,
+    "regData": "16 лет на сайте",
+    "date": "8 августа, 11:46",
+    "timestamp": 1786182386,
+    "text": "Day 126:\n\n525",
+    "likes": 4,
+    "images": [
+      "https://static-forum.gipsyteam.ru/monthly_08_2026/post-6195-1786182372f9c6_thumb.webp"
+    ],
+    "videos": [],
+    "brBefore": 259072,
+    "brAfter": 267710,
+    "sessionResult": 8638,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8277828",
+    "rooms": {
+      "before": {
+        "gg": 257635,
+        "ps": 1188,
+        "king": 232,
+        "coin": 17,
+        "lux": 0
+      },
+      "after": {
+        "gg": 266273,
+        "ps": 1188,
+        "king": 232,
+        "coin": 17,
+        "lux": 0
+      }
+    }
+  },
+  {
+    "id": "8277832",
+    "author": "Kazimir17",
+    "avatar": "https://forum.gipsyteam.com/img/imguser.png",
+    "rating": 4788,
+    "msgCount": 3263,
+    "regData": "15 лет на сайте",
+    "date": "8 августа, 11:53",
+    "timestamp": 1786182780,
+    "text": "Лёд тронулся )",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8277832"
   }
 ]
