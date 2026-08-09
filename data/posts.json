@@ -150958,7 +150958,7 @@
     "date": "8 августа, 11:46",
     "timestamp": 1786182386,
     "text": "Day 126:\n\n525",
-    "likes": 83,
+    "likes": 84,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_08_2026/post-6195-1786182372f9c6_thumb.webp"
     ],
@@ -151290,7 +151290,7 @@
     "date": "9 августа, 01:49",
     "timestamp": 1786232987,
     "text": "[QUOTE]Frei-84|Frei-84 @ 08.08.26\nА есть какая-то возможность подсчитать какой сейчас плюс марафона без учета продажи долей?[/QUOTE]есть, но не у всех",
-    "likes": 0,
+    "likes": 1,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -151335,5 +151335,41 @@
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8278256"
+  },
+  {
+    "id": "8278270",
+    "author": "Romeopro",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/2/6/6/26670.jpg",
+    "rating": 26019,
+    "msgCount": 4201,
+    "regData": "16 лет на сайте",
+    "date": "9 августа, 06:00",
+    "timestamp": 1786248022,
+    "text": "Day 127:",
+    "likes": 0,
+    "images": [
+      "https://static-forum.gipsyteam.ru/monthly_08_2026/post-6195-1786248016fbf_thumb.webp"
+    ],
+    "videos": [],
+    "brBefore": 267710,
+    "brAfter": 263920,
+    "sessionResult": -3790,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8278270",
+    "rooms": {
+      "before": {
+        "gg": 266273,
+        "ps": 1188,
+        "king": 232,
+        "coin": 17,
+        "lux": 0
+      },
+      "after": {
+        "gg": 262483,
+        "ps": 1188,
+        "king": 232,
+        "coin": 17,
+        "lux": 0
+      }
+    }
   }
 ]
