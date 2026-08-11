@@ -151724,7 +151724,7 @@
     "date": "10 августа, 04:23",
     "timestamp": 1786328627,
     "text": "Day 128:",
-    "likes": 49,
+    "likes": 50,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_08_2026/post-6195-1786328623bd57_thumb.webp"
     ],
@@ -151814,7 +151814,7 @@
     "date": "10 августа, 09:48",
     "timestamp": 1786348093,
     "text": "[QUOTE]ArtKot|ArtKot @ 09.08.26\nПроблема данной темы в том[/QUOTE]Что человек должен 3.5 ляма и хуярит 24/7 по 200+ турниров день. Но при этом должен ещё отвечать на вопросы зевак.",
-    "likes": 7,
+    "likes": 8,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -152071,7 +152071,7 @@
     "date": "10 августа, 22:48",
     "timestamp": 1786394924,
     "text": "",
-    "likes": 15,
+    "likes": 16,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_08_2026/post-187091-1786394922a075_thumb.webp"
     ],
@@ -152111,12 +152111,48 @@
     "date": "11 августа, 01:26",
     "timestamp": 1786404391,
     "text": "pokerpain,  пока Рома кормит только гавном!",
-    "likes": 1,
+    "likes": 0,
     "images": [],
     "videos": [],
     "brBefore": null,
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8279248"
+  },
+  {
+    "id": "8279272",
+    "author": "Romeopro",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/2/6/6/26670.jpg",
+    "rating": 25820,
+    "msgCount": 4203,
+    "regData": "16 лет на сайте",
+    "date": "11 августа, 05:14",
+    "timestamp": 1786418056,
+    "text": "Day 129:",
+    "likes": 5,
+    "images": [
+      "https://static-forum.gipsyteam.ru/monthly_08_2026/post-6195-17864180519feb_thumb.webp"
+    ],
+    "videos": [],
+    "brBefore": 263047,
+    "brAfter": 271617,
+    "sessionResult": 8570,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8279272",
+    "rooms": {
+      "before": {
+        "gg": 261610,
+        "ps": 1188,
+        "king": 232,
+        "coin": 17,
+        "lux": 0
+      },
+      "after": {
+        "gg": 270180,
+        "ps": 1188,
+        "king": 232,
+        "coin": 17,
+        "lux": 0
+      }
+    }
   }
 ]
