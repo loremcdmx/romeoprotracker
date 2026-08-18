@@ -153554,7 +153554,7 @@
     "date": "16 августа, 14:43",
     "timestamp": 1786876996,
     "text": "Day 131:",
-    "likes": 62,
+    "likes": 63,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_08_2026/post-6195-178687699189e5_thumb.webp"
     ],
@@ -153590,7 +153590,7 @@
     "date": "16 августа, 15:43",
     "timestamp": 1786880589,
     "text": "[QUOTE]Doger|Doger @ 16.08.26\nА 3 миллиона баксов долгов это не скам?[/QUOTE]3 миллиона долгов, хоть баксов, хоть тугриков, это просто 3 миллиона долгов. Это очевидно не самая великая цифра для индустрии гемблинга, в целом... А скам может быть и на 3000 рублей, чуть иное очевидно",
-    "likes": 5,
+    "likes": 6,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -153662,7 +153662,7 @@
     "date": "16 августа, 23:32",
     "timestamp": 1786915935,
     "text": "Воскресная суета. Залетаем кому интересно",
-    "likes": 5,
+    "likes": 6,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_08_2026/post-187091-1786915924926f_thumb.webp"
     ],
@@ -153682,7 +153682,7 @@
     "date": "17 августа, 04:17",
     "timestamp": 1786933075,
     "text": "Day 132",
-    "likes": 64,
+    "likes": 65,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_08_2026/post-6195-17869330701a55_thumb.webp"
     ],
@@ -153826,7 +153826,7 @@
     "date": "17 августа, 20:53",
     "timestamp": 1786992781,
     "text": "Финалочка Омахи",
-    "likes": 4,
+    "likes": 5,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_08_2026/post-187091-1786992769993c_thumb.webp"
     ],
@@ -153853,5 +153853,41 @@
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8282225"
+  },
+  {
+    "id": "8282297",
+    "author": "Romeopro",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/2/6/6/26670.jpg",
+    "rating": 25720,
+    "msgCount": 4207,
+    "regData": "16 лет на сайте",
+    "date": "18 августа, 05:30",
+    "timestamp": 1787023801,
+    "text": "Day 133:",
+    "likes": 4,
+    "images": [
+      "https://static-forum.gipsyteam.ru/monthly_08_2026/post-6195-1787023799ab3b_thumb.webp"
+    ],
+    "videos": [],
+    "brBefore": 268096,
+    "brAfter": 270220,
+    "sessionResult": 2124,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8282297",
+    "rooms": {
+      "before": {
+        "gg": 266659,
+        "ps": 1188,
+        "king": 232,
+        "coin": 17,
+        "lux": 0
+      },
+      "after": {
+        "gg": 268783,
+        "ps": 1188,
+        "king": 232,
+        "coin": 17,
+        "lux": 0
+      }
+    }
   }
 ]
