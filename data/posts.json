@@ -154284,7 +154284,7 @@
     "date": "19 августа, 02:43",
     "timestamp": 1787100190,
     "text": "",
-    "likes": 14,
+    "likes": 15,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_08_2026/post-187091-1787100186e3c4_thumb.webp"
     ],
@@ -154340,7 +154340,7 @@
     "date": "19 августа, 08:36",
     "timestamp": 1787121379,
     "text": "Кто бы что не говорил о тсе лично, но думаю никто не будет спорить, что Роман это какой-то монстр покера.",
-    "likes": 5,
+    "likes": 7,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -154455,5 +154455,41 @@
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8282838"
+  },
+  {
+    "id": "8282846",
+    "author": "DenDobrii",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/7/7/6/77689.jpg",
+    "rating": 5004,
+    "msgCount": 985,
+    "regData": "11 лет на сайте",
+    "date": "19 августа, 11:40",
+    "timestamp": 1787132428,
+    "text": "[QUOTE]Nikituk222|Nikituk222 @ 19.08.26\nПохоже фильм \"области тьмы\" был основан на реальных событиях и Ромео получил доступ к НЗТ.[/QUOTE]Для этой темы ближе сериал Breaking Bad.",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8282846"
+  },
+  {
+    "id": "8282848",
+    "author": "Yak-OFF",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/1/5/8/5/158503.jpg",
+    "rating": 105,
+    "msgCount": 65,
+    "regData": "4 года на сайте",
+    "date": "19 августа, 11:43",
+    "timestamp": 1787132601,
+    "text": "Отчаянные домохозяйки",
+    "likes": 1,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8282848"
   }
 ]
