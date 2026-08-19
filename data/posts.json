@@ -153918,7 +153918,7 @@
     "date": "18 августа, 06:48",
     "timestamp": 1787028487,
     "text": "Romeopro, Роман деньги тебе не помогут, тебе сознание надо менять.",
-    "likes": 110,
+    "likes": 112,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -154293,5 +154293,41 @@
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8282703"
+  },
+  {
+    "id": "8282734",
+    "author": "Romeopro",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/2/6/6/26670.jpg",
+    "rating": 25720,
+    "msgCount": 4208,
+    "regData": "16 лет на сайте",
+    "date": "19 августа, 05:51",
+    "timestamp": 1787111488,
+    "text": "Day 134:",
+    "likes": 7,
+    "images": [
+      "https://static-forum.gipsyteam.ru/monthly_08_2026/post-6195-178711147878a1_thumb.webp"
+    ],
+    "videos": [],
+    "brBefore": 270220,
+    "brAfter": 283986,
+    "sessionResult": 13766,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8282734",
+    "rooms": {
+      "before": {
+        "gg": 268783,
+        "ps": 1188,
+        "king": 232,
+        "coin": 17,
+        "lux": 0
+      },
+      "after": {
+        "gg": 282549,
+        "ps": 1188,
+        "king": 232,
+        "coin": 17,
+        "lux": 0
+      }
+    }
   }
 ]
