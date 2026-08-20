@@ -1378,16 +1378,20 @@ describe('App', () => {
 
     fireEvent.mouseMove(overlay, { clientX: A.cx })
     const hoveredEnd = () => document.querySelector('g[data-start].is-hovered')?.dataset.end
-    const ringX = () => Number(document.querySelector('.mc-hover-ring')?.getAttribute('cx'))
+    const anchorX = () => Number(document.querySelector('.mc-hover-dot')?.getAttribute('cx'))
     expect(hoveredEnd()).toBe(A.end)
-    // the anchor ring marks the hovered point
-    expect(ringX()).toBeCloseTo(A.cx, 1)
+    // the filled anchor dot + halo + axis date tag mark the hovered point
+    expect(anchorX()).toBeCloseTo(A.cx, 1)
+    expect(document.querySelector('.mc-hover-halo')).toBeInTheDocument()
+    const tag = document.querySelector('.mc-hover-tag text')
+    expect(tag).toBeInTheDocument()
+    expect(tag.textContent.length).toBeGreaterThan(2)
 
     // tiny jitter around the same spot must not move the anchor (hysteresis)
     fireEvent.mouseMove(overlay, { clientX: A.cx + 3 })
-    expect(ringX()).toBeCloseTo(A.cx, 1)
+    expect(anchorX()).toBeCloseTo(A.cx, 1)
     fireEvent.mouseMove(overlay, { clientX: A.cx - 3 })
-    expect(ringX()).toBeCloseTo(A.cx, 1)
+    expect(anchorX()).toBeCloseTo(A.cx, 1)
 
     // clearly on B (a rendered dot): anchor switches and highlights it
     fireEvent.mouseMove(overlay, { clientX: B.cx })
@@ -1466,17 +1470,17 @@ describe('App', () => {
     expect(avgTick.textContent).toBe('120')
     expect(Number(avgTick.getAttribute('x'))).toBeLessThan(34)
     expect(widget.querySelector('.smtt-avg-chip').textContent).toContain('120')
-    // uniform bars leave no sky above the covered cluster -> value falls back
-    // to the gold header chip instead of floating over a bar
+    // the gold value is always a labelled header chip (a naked floating number
+    // read as noise), and the X axis carries sparse date ticks
     expect(widget.querySelector('.smtt-last-label')).toBeNull()
     expect(widget.querySelector('.smtt-last-chip').textContent).toContain('120')
+    expect(widget.querySelectorAll('.smtt-x-label').length).toBeGreaterThanOrEqual(3)
     expect(widget.querySelector('.smtt-bar.last')).toBeTruthy()
     expect(widget.querySelector('.smtt-avg-line')).toBeTruthy()
   })
 
-  it('floats the last-session value only when it clears every covered bar', async () => {
+  it('shows a per-day tooltip when hovering the session widget bars', async () => {
     const base = makeMockData()
-    // tall bars early, short tail: the floating gold label has clear sky
     const mtts = [500, 480, 460, 440, 420, 400, 200, 180, 160, 150, 140, 130]
     let total = 0
     const brHistory = mtts.map((mtt, i) => {
@@ -1484,7 +1488,7 @@ describe('App', () => {
       return {
         brAfter: 10000 + (i + 1) * 900, brPrev: 10000 + i * 900,
         date: `D${i + 1}`, timestamp: 1712300000 + i * 86400,
-        sessionResult: 900, totalTournaments: total, tournaments: mtt, text: `S${i}`,
+        sessionResult: i % 2 === 0 ? 900 : -400, totalTournaments: total, tournaments: mtt, text: `S${i}`,
       }
     })
     fetchPublicData.mockResolvedValue(makeMockData({
@@ -1492,21 +1496,25 @@ describe('App', () => {
     }))
     render(<App />)
     const widget = await screen.findByTestId('session-mtt-widget')
-    const label = widget.querySelector('.smtt-last-label')
-    expect(label).toBeTruthy()
-    expect(widget.querySelector('.smtt-last-chip')).toBeNull()
-    // and it must not intersect any bar box
-    const fs = 9
-    const w = label.textContent.length * fs * 0.58
-    const lx = Number(label.getAttribute('x'))
-    const box = { left: lx - w / 2, right: lx + w / 2, top: Number(label.getAttribute('y')) - fs, bottom: Number(label.getAttribute('y')) + 2 }
-    const bars = [...widget.querySelectorAll('.smtt-bar')].map((b) => ({
-      left: +b.getAttribute('x'), right: +b.getAttribute('x') + +b.getAttribute('width'),
-      top: +b.getAttribute('y'), bottom: +b.getAttribute('y') + +b.getAttribute('height'),
-    }))
-    const hit = bars.some((b) => Math.min(box.right, b.right) - Math.max(box.left, b.left) > 0.5
-      && Math.min(box.bottom, b.bottom) - Math.max(box.top, b.top) > 0.5)
-    expect(hit).toBe(false)
+    const capture = widget.querySelector('[data-testid="smtt-hover-capture"]')
+    expect(capture).toBeTruthy()
+
+    // jsdom rects are zero-sized -> clientX is taken as SVG units; aim at bar 3
+    const bar = widget.querySelectorAll('.smtt-bar')[3]
+    const cx = Number(bar.getAttribute('x')) + 1
+    fireEvent.mouseMove(capture, { clientX: cx })
+
+    const tipEl = widget.querySelector('.smtt-tooltip')
+    expect(tipEl).toBeTruthy()
+    expect(tipEl.querySelector('.smtt-tooltip-mtt').textContent).toContain('440')
+    expect(tipEl.querySelector('.smtt-tooltip-date').textContent.length).toBeGreaterThan(2)
+    expect(tipEl.querySelector('.smtt-tooltip-profit')).toBeTruthy()
+    expect(widget.querySelector('.smtt-bar.hover')).toBe(bar)
+
+    // leaving the wrap hides the tooltip and the highlight
+    fireEvent.mouseLeave(widget.querySelector('.pace-chart-wrap'))
+    expect(widget.querySelector('.smtt-tooltip')).toBeNull()
+    expect(widget.querySelector('.smtt-bar.hover')).toBeNull()
   })
 
   it('hides ru-only feed controls in en and keeps search functional', async () => {

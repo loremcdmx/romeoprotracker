@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+## 1.13.1 — 2026-08-20
+
+### Chart hover
+- the hovered point is unmistakable now: a filled profit-coloured anchor dot with a halo, a full-height crosshair, a crosshair cursor, and a date tag pinned to the X axis under the cursor
+
+### «Турниров за сессию»
+- sparse date ticks along the X axis (11 мар … 20 авг style)
+- a real per-day hover tooltip: date, MTTs, deviation from the average, session profit — with the hovered bar highlighted
+- the gold value is always the labelled «последняя: N» header chip; the naked floating number is gone
+
 ## 1.13.0 — 2026-08-20
 
 ### Chart

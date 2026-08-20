@@ -1890,7 +1890,7 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
             you can point (reader/channel feedback). */}
         {!isMobile && markerGroups.length > 0 && (
           <rect x={pL} y={pT} width={Math.max(0, W - pL - pR)} height={Math.max(0, plotBottom - pT)}
-            fill="transparent" data-testid="mc-hover-capture"
+            fill="transparent" className="mc-hover-capture" data-testid="mc-hover-capture"
             onMouseMove={e => {
               const svgRect = e.currentTarget.ownerSVGElement?.getBoundingClientRect?.()
               const scale = svgRect && svgRect.width ? W / svgRect.width : 1
@@ -2043,11 +2043,23 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
             </g>
           )
         })}
-        {tip && <>
-          <line x1={tip.x} y1={pT} x2={tip.x} y2={tip.y - 11} stroke="var(--border2)" strokeWidth="1" strokeDasharray="1 3" opacity="0.55"/>
-          <line x1={tip.x} y1={tip.y + 11} x2={tip.x} y2={H} stroke="var(--border2)" strokeWidth="1" strokeDasharray="1 3" opacity="0.55"/>
-          <circle className="mc-hover-ring" cx={tip.x} cy={tip.y} r="6"/>
-        </>}
+        {tip && (() => {
+          const positive = (tip.profit ?? 0) >= 0
+          const dotFill = positive ? (light ? '#2e8b3a' : '#4caf50') : (light ? '#c8362e' : '#e53935')
+          const tagText = fmtDateShortLang(tip.p.timestamp, lang)
+          const tagW = tagText.length * 5.4 + 12
+          const tagX = clampNumber(tip.x, pL + tagW / 2, W - pR - tagW / 2)
+          return <>
+            <line className="mc-hover-guide" x1={tip.x} y1={pT} x2={tip.x} y2={tip.y - 10}/>
+            <line className="mc-hover-guide" x1={tip.x} y1={tip.y + 10} x2={tip.x} y2={plotBottom}/>
+            <circle className="mc-hover-halo" cx={tip.x} cy={tip.y} r="9.5" style={{ color:dotFill }}/>
+            <circle className="mc-hover-dot" cx={tip.x} cy={tip.y} r="4.7" fill={dotFill}/>
+            <g className="mc-hover-tag">
+              <rect x={tagX - tagW / 2} y={plotBottom + 2} width={tagW} height="14" rx="4"/>
+              <text x={tagX} y={plotBottom + 12}>{tagText}</text>
+            </g>
+          </>
+        })()}
       </svg>
       {tip && (() => {
         const pct=tip.x/W*100, right=pct>60
@@ -3623,12 +3635,13 @@ function FirstFundBanner({ t }) {
 // week/month/all chart period; average as a dashed guide, last session in gold.
 function SessionMttChart({ meta, period, lang, t }) {
   const isMobile = useIsMobile()
+  const [hoverIdx, setHoverIdx] = useState(null)
   const rows = useMemo(() => {
     const hist = [...(meta?.brHistory || [])].sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0))
     const withMtt = hist.map((row, i) => {
       const prevTotal = i > 0 ? hist[i - 1]?.totalTournaments || 0 : 0
       const mtt = row.tournaments ?? (row.totalTournaments ? Math.max(0, row.totalTournaments - prevTotal) : 0)
-      return { timestamp:row.timestamp || 0, mtt }
+      return { timestamp:row.timestamp || 0, mtt, profit:row.sessionResult ?? null }
     }).filter(r => r.mtt > 0)
     if (period === 'all' || !withMtt.length) return withMtt
     const cutoff = Math.floor(Date.now() / 1000) - (period === 'week' ? 7 : 30) * 86400
@@ -3639,30 +3652,28 @@ function SessionMttChart({ meta, period, lang, t }) {
   if (rows.length < 2) return null
 
   const W = isMobile ? 340 : 640
-  const H = isMobile ? 150 : 150
-  const pad = { left:34, right:10, top:18, bottom:20 }
+  const H = 156
+  const pad = { left:34, right:10, top:16, bottom:26 }
   const plotW = W - pad.left - pad.right
   const plotH = H - pad.top - pad.bottom
   const maxMtt = Math.max(...rows.map(r => r.mtt))
   const avg = rows.reduce((sum, r) => sum + r.mtt, 0) / rows.length
   const yOf = v => pad.top + (1 - v / maxMtt) * plotH
   const gap = rows.length > 60 ? .6 : 1.4
-  const barW = Math.max(1.2, plotW / rows.length - gap)
-  const xOf = i => pad.left + (i + .08) * (plotW / rows.length)
+  const step = plotW / rows.length
+  const barW = Math.max(1.2, step - gap)
+  const xOf = i => pad.left + (i + .08) * step
   const avgY = yOf(avg)
   const maxIdx = rows.reduce((best, r, i) => r.mtt > rows[best].mtt ? i : best, 0)
   const lastIdx = rows.length - 1
-  // Floating last-value label: rise above every bar it spans horizontally.
-  // When a covered bar reaches the plot top (no sky left), skip the floating
-  // label and surface the value as a header chip instead.
-  const lastLabelX = Math.min(xOf(lastIdx) + barW / 2, W - pad.right - 14)
-  const lastLabelHalf = String(fmtInt(rows[lastIdx].mtt)).length * 9 * 0.34 + 3
-  const lastCoveredTop = Math.min(yOf(rows[lastIdx].mtt), ...rows
-    .map((r, i) => ({ top:yOf(r.mtt), cx:xOf(i) + barW / 2 }))
-    .filter(b => Math.abs(b.cx - lastLabelX) <= lastLabelHalf + barW)
-    .map(b => b.top))
-  const lastLabelY = lastCoveredTop - 5
-  const lastLabelFloats = lastLabelY >= pad.top + 9
+
+  // Sparse date ticks along the X axis (the per-day detail lives in the tooltip)
+  const tickCount = Math.min(rows.length, isMobile ? 3 : 5)
+  const tickIdx = [...new Set(Array.from({ length: tickCount }, (_, k) =>
+    Math.round(k * (rows.length - 1) / Math.max(1, tickCount - 1))))]
+
+  const hover = hoverIdx != null && rows[hoverIdx] ? { i:hoverIdx, r:rows[hoverIdx] } : null
+  const hoverPct = hover ? (xOf(hover.i) + barW / 2) / W * 100 : 0
 
   return (
     <section className="pace-widget session-mtt-widget" data-testid="session-mtt-widget">
@@ -3670,13 +3681,11 @@ function SessionMttChart({ meta, period, lang, t }) {
         <h2 className="section-title">{t('smtt_title')}</h2>
         <div style={{display:'flex',gap:6,flexShrink:0}}>
           <span className="section-count smtt-avg-chip">{`${t('smtt_avg')}: ${fmtInt(Math.round(avg))}`}</span>
-          {!lastLabelFloats && (
-            <span className="section-count smtt-last-chip">{`${t('smtt_last')}: ${fmtInt(rows[lastIdx].mtt)}`}</span>
-          )}
+          <span className="section-count smtt-last-chip">{`${t('smtt_last')}: ${fmtInt(rows[lastIdx].mtt)}`}</span>
           <span className="section-count">{plSessions ? plSessions(rows.length, lang) : rows.length}</span>
         </div>
       </div>
-      <div className="pace-chart-wrap">
+      <div className="pace-chart-wrap" onMouseLeave={() => setHoverIdx(null)}>
         <svg className="pace-chart smtt-chart" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={t('smtt_title')}>
           <rect x={pad.left} y={pad.top} width={plotW} height={plotH} rx="10" className="pace-plot-bg"/>
           {[maxMtt, Math.round(maxMtt / 2)]
@@ -3689,21 +3698,55 @@ function SessionMttChart({ meta, period, lang, t }) {
           ))}
           {rows.map((r, i) => (
             <rect key={`${r.timestamp}-${i}`}
-              className={`smtt-bar ${i === lastIdx ? 'last' : ''} ${i === maxIdx ? 'max' : ''}`}
-              x={xOf(i)} y={yOf(r.mtt)} width={barW} height={Math.max(1, pad.top + plotH - yOf(r.mtt))} rx={barW > 3 ? 1.2 : 0}>
-              <title>{`${fmtDateShortLang(r.timestamp, lang)} — ${fmtInt(r.mtt)} ${t('sr_mtt_short')}`}</title>
-            </rect>
+              className={`smtt-bar ${i === lastIdx ? 'last' : ''} ${i === maxIdx ? 'max' : ''} ${hover && hover.i === i ? 'hover' : ''}`}
+              x={xOf(i)} y={yOf(r.mtt)} width={barW} height={Math.max(1, pad.top + plotH - yOf(r.mtt))} rx={barW > 3 ? 1.2 : 0}/>
           ))}
           <line className="smtt-avg-line" x1={pad.left} x2={W - pad.right} y1={avgY} y2={avgY}/>
           {/* the average value lives in the axis gutter like the other Y ticks —
               in-plot text kept landing on bars whatever the anchor */}
           <text className="pace-y-label smtt-avg-tick" x={pad.left - 6} y={avgY + 3}>{fmtInt(Math.round(avg))}</text>
-          {lastLabelFloats && (
-            <text className="smtt-last-label" x={lastLabelX} y={lastLabelY}>
-              {fmtInt(rows[lastIdx].mtt)}
-            </text>
+          {tickIdx.map(i => {
+            const cx = xOf(i) + barW / 2
+            const anchor = i === 0 ? 'start' : i === rows.length - 1 ? 'end' : 'middle'
+            const tx = anchor === 'start' ? Math.max(cx - 4, pad.left) : anchor === 'end' ? Math.min(cx + 4, W - pad.right) : cx
+            return (
+              <text key={`tick-${i}`} className="smtt-x-label" x={tx} y={H - 7} textAnchor={anchor}>
+                {fmtDateShortLang(rows[i].timestamp, lang)}
+              </text>
+            )
+          })}
+          {hover && (
+            <line className="mc-hover-guide" x1={xOf(hover.i) + barW / 2} x2={xOf(hover.i) + barW / 2}
+              y1={pad.top} y2={pad.top + plotH}/>
           )}
+          {/* hover capture over the whole plot: nearest bar by X */}
+          <rect x={pad.left} y={pad.top} width={plotW} height={plotH} fill="transparent"
+            className="mc-hover-capture" data-testid="smtt-hover-capture"
+            onMouseMove={e => {
+              const svgRect = e.currentTarget.ownerSVGElement?.getBoundingClientRect?.()
+              const scale = svgRect && svgRect.width ? W / svgRect.width : 1
+              const mx = (e.clientX - (svgRect?.left || 0)) * scale
+              const i = Math.min(rows.length - 1, Math.max(0, Math.floor((mx - pad.left) / step)))
+              if (i !== hoverIdx) setHoverIdx(i)
+            }}/>
         </svg>
+        {hover && (() => {
+          const diff = Math.round(hover.r.mtt - avg)
+          const clampedPct = Math.min(88, Math.max(12, hoverPct))
+          return (
+            <div className="smtt-tooltip" style={{ left:`${clampedPct}%`, bottom:`${H - yOf(hover.r.mtt) + 10}px` }}>
+              <div className="smtt-tooltip-date">{fmtDateShortLang(hover.r.timestamp, lang)}</div>
+              <div className="smtt-tooltip-mtt">{fmtInt(hover.r.mtt)} {t('sr_mtt_short')}
+                <span className={`smtt-tooltip-diff ${diff >= 0 ? 'pos' : 'neg'}`}>
+                  {` ${diff >= 0 ? '+' : ''}${fmtInt(diff)} ${t('smtt_vs_avg')}`}
+                </span>
+              </div>
+              {hover.r.profit != null && (
+                <div className={`smtt-tooltip-profit ${hover.r.profit >= 0 ? 'pos' : 'neg'}`}>{fk(hover.r.profit)}</div>
+              )}
+            </div>
+          )
+        })()}
       </div>
     </section>
   )
