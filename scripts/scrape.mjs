@@ -796,6 +796,13 @@ async function main() {
   const merged = newPosts.length > 0 ? [...posts, ...newPosts] : posts
   meta.totalPosts = merged.length
 
+  // Open tabs gate their heavy refetch on meta freshness; likes/translation-only
+  // runs used to leave lastUpdated untouched, so those changes never reached an
+  // already-open client. Stamp any posts-content change separately.
+  if (newPosts.length > 0 || likesUpdated > 0 || translated > 0) {
+    meta.postsChangedAt = new Date().toISOString()
+  }
+
   // Build commit message
   const parts = []
   if (newPosts.length > 0) parts.push(`+${newPosts.length} posts`)

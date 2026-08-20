@@ -4593,8 +4593,10 @@ export default function App() {
                     : `${w.day}.${w.month} ${t('footer_at')} ${time}`
                 }
                 const mins = Math.round((Date.now() - scrapeTs) / 60000)
-                const fresh = mins < 20
-                const stale = mins > 90
+                // GitHub cron actually fires every ~28 min median — thresholds
+                // sized so the dot isn't yellow a third of the time.
+                const fresh = mins < 35
+                const stale = mins > 120
                 const freshClass = fresh ? 'ok' : stale ? 'stale' : 'warn'
                 return (
                   <>
