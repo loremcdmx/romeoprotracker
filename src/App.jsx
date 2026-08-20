@@ -1950,15 +1950,19 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
               {fk(tip.profit)}
             </div>
             <div style={{fontWeight:700,color:'var(--white)',fontSize:13,marginBottom:5,paddingRight:64}}>{fmtDateTimeLang(tip.p.timestamp, lang)}</div>
-            {/* Cumulative MTT at this point — lets readers measure streak length
-                in tournaments by comparing two hovered points (reader request). */}
-            {tip.totalMTT != null && (
-              <div style={{fontSize:12,marginBottom:4,color:'var(--dim)'}}>
-                {t('tip_mtt_total')}: <b style={{color:'var(--white)',fontVariantNumeric:'tabular-nums'}}>{fmtInt(tip.totalMTT)}</b>
+            {/* Compact stat row (hstat-style): BR and the cumulative MTT total —
+                the counter readers use to measure streak length in tournaments. */}
+            <div style={{display:'flex',gap:14,margin:'1px 0',marginBottom:tip.p.tournaments?5:roomDeltas.length?8:5}}>
+              <div>
+                <div style={{fontSize:9,color:'var(--dim)',textTransform:'uppercase',letterSpacing:'.07em',marginBottom:2}}>{t('tip_br')}</div>
+                <b style={{fontSize:13,color:'var(--white)',fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums'}}>{fkAbs(tip.p.br)}</b>
               </div>
-            )}
-            <div style={{display:'flex',gap:12,fontSize:12,marginBottom:tip.p.tournaments?4:roomDeltas.length?8:4}}>
-              <span style={{color:'var(--dim)'}}>{t('tip_br')}: <b style={{color:'var(--white)'}}>{fkAbs(tip.p.br)}</b></span>
+              {tip.totalMTT != null && (
+                <div style={{borderLeft:'1px solid var(--border)',paddingLeft:14}}>
+                  <div style={{fontSize:9,color:'var(--dim)',textTransform:'uppercase',letterSpacing:'.07em',marginBottom:2}}>{t('tip_mtt_total')}</div>
+                  <b style={{fontSize:13,color:'var(--white)',fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums'}}>{fmtInt(tip.totalMTT)}</b>
+                </div>
+              )}
             </div>
             {tip.p.tournaments && (
               <div style={{fontSize:11,color:'var(--dim)',marginBottom:roomDeltas.length?8:4}}>
