@@ -1072,3 +1072,52 @@ html{scroll-behavior:smooth}
 .toast-error{background:#c62828}
 @keyframes toast-in{from{opacity:0;transform:translateX(-50%) translateY(20px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
 .light .toast-info{background:#555}
+
+/* ─── AUDIT SWEEP FIXES (light theme, focus, motion) ─────────────────────── */
+/* pace drill-down tooltip keeps its dark panel in light theme — re-pin the
+   text vars inside so descendants stay readable on the dark background */
+.light .pace-point-tooltip{--dim:#9a9a9a;--dim2:#c6c6c6;--white:#f2f2f2;--text:#e2e2e2;color:#c6c6c6}
+/* sticky progress bar readability in light theme */
+.light .marathon-progress-label b{color:#8a5b00;text-shadow:none}
+.light .mps-rate-inline{color:#755400}
+/* FF banner stats + peak kicker in light theme */
+.light .ff-banner-stat-label{color:#5d5573}
+.light .ff-banner-stat-val{color:#7a5400}
+.light .mc-peak-callout-kicker{fill:#8a5b00}
+/* marathon x-axis special ticks were near-invisible in light theme */
+.light .mc-x-tick.start .mc-xaxis-label-main{fill:var(--axis-x)}
+.light .mc-x-tick.milestone .mc-xaxis-label-main,.light .mc-x-tick.last .mc-xaxis-label-main{fill:#8a5b00}
+.light .mc-x-tick.last .mc-xaxis-label-sub{fill:#8a6a20}
+.light .mc-x-tick.recovery .mc-xaxis-label-main,.light .mc-x-tick.best .mc-xaxis-label-main{fill:#29752f}
+.light .mc-x-tick.recovery .mc-xaxis-label-sub,.light .mc-x-tick.best .mc-xaxis-label-sub{fill:#4a7a4e}
+.light .mc-x-tick.worst .mc-xaxis-label-main{fill:#b3342c}
+.light .mc-x-tick.worst .mc-xaxis-label-sub{fill:#a5554f}
+.light .pace-zero{stroke:rgba(70,60,45,.30)}
+.light{--axis-y-muted:#6c655a}
+/* marathon tooltip room deltas via theme-aware classes */
+.tip-stat{font-weight:600}
+.tip-stat.pos{color:#66bb6a}
+.tip-stat.neg{color:#ff5252}
+.light .tip-stat.pos{color:#27682c}
+.light .tip-stat.neg{color:#c62828}
+/* footer freshness indicator (was 3:1 inline colors even in dark) */
+.footer-fresh.ok{color:#66bb6a}
+.footer-fresh.warn{color:#b09a6a}
+.footer-fresh.stale{color:#ff6b63}
+.footer-fresh-dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:currentColor;margin-right:5px;vertical-align:middle}
+.light .footer-fresh.ok{color:#27682c}
+.light .footer-fresh.warn{color:#7a5c22}
+.light .footer-fresh.stale{color:#b3342c}
+/* focus: pace segments had outline:none; inputs had sub-3:1 border fallback */
+.pace-segment:focus-visible{outline:2px solid #7bdcff;outline-offset:1px}
+.filter-num:focus-visible,.feed-search:focus-visible,.feed-select:focus-visible,.perpage-select:focus-visible,.ignore-input:focus-visible{outline:2px solid var(--red2);outline-offset:1px}
+/* lightbox close control */
+.lightbox-close{position:absolute;top:14px;right:16px;z-index:2;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.3);color:#fff;font-size:15px;width:36px;height:36px;border-radius:50%;cursor:pointer;line-height:1}
+.lightbox-close:focus-visible{outline:2px solid #fff;outline-offset:2px}
+/* motion: cover the remaining always-on animations */
+@media (prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  .new-posts-bubble{animation:none}
+  .post-highlight{animation:none;outline:2px solid var(--gold)}
+  .join-ff-btn,.ff-banner{transition:none}
+}

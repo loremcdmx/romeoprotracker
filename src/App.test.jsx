@@ -1419,6 +1419,41 @@ describe('App', () => {
     expect(widget.querySelector('.smtt-bar.last')).toBeTruthy()
     expect(widget.querySelector('.smtt-avg-line')).toBeTruthy()
   })
+
+  it('hides ru-only feed controls in en and keeps search functional', async () => {
+    localStorage.setItem('rpt_lang', 'en')
+    fetchPublicData.mockResolvedValue(makeMockData())
+    render(<App />)
+    await screen.findByTestId('pace-widget')
+
+    expect(document.documentElement.lang).toBe('en')
+    // ru-only controls gone
+    expect(document.querySelector('#filter-min-likes')).toBeNull()
+    expect(document.querySelector('#filter-min-reputation')).toBeNull()
+    expect(document.querySelector('.filter-romeo')).toBeNull()
+    // ignore action hidden on cards
+    expect(document.querySelector('.pc-action[aria-label]')).toBeTruthy()
+    expect([...document.querySelectorAll('.pc-action')].some((b) => b.textContent.includes('🚫'))).toBe(false)
+  })
+
+  it('closes the lightbox with Escape and exposes dialog semantics', async () => {
+    fetchPublicData.mockResolvedValue(makeMockData())
+    render(<App />)
+    await screen.findByTestId('pace-widget')
+
+    const thumb = document.querySelector('.pc-img')
+    expect(thumb).toBeTruthy()
+    fireEvent.click(thumb)
+    const dialog = document.querySelector('.lightbox')
+    expect(dialog).toBeTruthy()
+    expect(dialog).toHaveAttribute('role', 'dialog')
+    expect(dialog.querySelector('.lightbox-close')).toBeTruthy()
+
+    fireEvent.keyDown(document, { key: 'Escape' })
+    await waitFor(() => {
+      expect(document.querySelector('.lightbox')).toBeNull()
+    })
+  })
 })
 
 describe('build constants', () => {

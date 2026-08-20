@@ -1238,7 +1238,7 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
     }
     put(points.length - 1, {
       kind:'last',
-      main:cumMTT[points.length - 1] ? fmtInt(cumMTT[points.length - 1]) : 'сейчас',
+      main:cumMTT[points.length - 1] ? fmtInt(cumMTT[points.length - 1]) : ({ ru:'сейчас', es:'ahora' }[lang] || 'now'),
       priority:122,
     })
 
@@ -2047,7 +2047,7 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
                   <span key={r.key} style={{fontSize:11,display:'flex',alignItems:'center',gap:4}}>
                     {r.logo && <img src={r.logo} alt={r.label} style={{width:16,height:16,objectFit:'contain',borderRadius:2}} onError={e=>e.target.style.display='none'}/>}
                     <span style={{color:'var(--dim)'}}>{r.label}:</span>
-                    <span style={{color:r.v>=0?'#66bb6a':'#ff5252',fontWeight:600}}>{fk(r.v)}</span>
+                    <span className={`tip-stat ${r.v>=0?'pos':'neg'}`}>{fk(r.v)}</span>
                   </span>
                 ))}
               </div>
@@ -2112,7 +2112,7 @@ function scrollToPost(p) {
   if (!p?.id) return
   const el = document.getElementById(`post-${p.id}`)
   if (!el) return
-  el.scrollIntoView({ behavior:'smooth', block:'center' })
+  el.scrollIntoView({ behavior:scrollBehavior(), block:'center' })
   el.classList.add('post-highlight')
   setTimeout(() => el.classList.remove('post-highlight'), 1800)
 }
@@ -2661,11 +2661,18 @@ const avatarError = e => {
   img.style.display = 'none'
 }
 
+// Smooth scrolling honors prefers-reduced-motion (rAF-driven scrolls can't be
+// caught by the CSS media query alone).
+const scrollBehavior = () =>
+  (typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+    && window.matchMedia('(prefers-reduced-motion: reduce)').matches) ? 'auto' : 'smooth'
+
 function FilterBar({ sortBy, setSortBy, search, setSearch, showSearch, setShowSearch,
                      romeoOnly, setRomeoOnly, minLikes, setMinLikes,
                      minRating, setMinRating, count, showSort=true, t, lang }) {
   const tr = t || (k => k)
-  const hasFilters = romeoOnly || minLikes !== 3 || minRating !== 0 || search
+  const ruControls = !lang || lang === 'ru'
+  const hasFilters = (ruControls && (romeoOnly || minLikes !== 3 || minRating !== 0)) || search
   return (
     <div className="filter-bar" role="search" aria-label={tr('filter_bar_label')}>
       {showSort && (
@@ -2678,26 +2685,32 @@ function FilterBar({ sortBy, setSortBy, search, setSearch, showSearch, setShowSe
           </select>
         </label>
       )}
+      {ruControls && (
       <button type="button" className={`filter-pill filter-romeo ${romeoOnly?'on':'off'}`}
         onClick={()=>setRomeoOnly(s=>!s)} title={tr('filter_romeo_title')} aria-pressed={romeoOnly}>
         <img src={ROMEO_AVATAR} alt="" onError={e=>e.target.style.display='none'} />
         {tr('day_romeo')}
       </button>
+      )}
+      {ruControls && (
       <label className="filter-field" htmlFor="filter-min-likes" title={tr('filter_min_likes')}>
         <span>{tr('filter_likes_from')}</span>
         <input id="filter-min-likes" className="filter-num" type="number" min="0" value={minLikes}
           title={tr('filter_min_likes')}
           onChange={e=>setMinLikes(+e.target.value||0)} onFocus={e=>e.target.select()}/>
       </label>
+      )}
+      {ruControls && (
       <label className="filter-field" htmlFor="filter-min-reputation" title={tr('filter_min_rep')}>
         <span>{tr('filter_reputation_from')}</span>
         <input id="filter-min-reputation" className="filter-num" type="number" min="0" step="100" value={minRating}
           title={tr('filter_min_rep')}
           onChange={e=>setMinRating(+e.target.value||0)} onFocus={e=>e.target.select()}/>
       </label>
+      )}
       <button type="button" className={`filter-pill filter-search-toggle ${showSearch?'on':'off'}`}
         onClick={()=>setShowSearch(s=>!s)} title={tr('filter_search_title')}
-        aria-expanded={showSearch} aria-controls="feed-search">
+        aria-expanded={showSearch} aria-controls={showSearch ? 'feed-search' : undefined}>
         <span aria-hidden="true">🔍</span>
         <span>{tr('filter_search_action')}</span>
       </button>
@@ -2923,6 +2936,21 @@ const S_TAG = {fontSize:9,color:'var(--dim)',background:'var(--bg3)',borderRadiu
 const S_MONO = {fontFamily:"'Roboto Mono',monospace",fontWeight:700}
 const menuHover = e => e.currentTarget.style.background = 'var(--bg3)'
 const menuLeave = e => e.currentTarget.style.background = ''
+// «16 лет на сайте» comes pre-formatted in Russian from the forum; translate
+// number+unit for en/es, falling back to the raw string when unparseable.
+function formatRegData(raw, lang) {
+  if (!raw || lang === 'ru') return raw
+  const m = String(raw).match(/(\d+)\s*(лет|год|мес|дн|час)/i)
+  if (!m) return raw
+  const n = +m[1]
+  const u = m[2].toLowerCase()
+  const unit = (u === 'лет' || u === 'год') ? ['years', 'años']
+    : u === 'мес' ? ['months', 'meses']
+    : u === 'дн' ? ['days', 'días'] : ['hours', 'horas']
+  const label = lang === 'es' ? unit[1] : unit[0]
+  return lang === 'es' ? `${n} ${label} en el foro` : `${n} ${label} on the site`
+}
+
 const PostCard = memo(function PostCard({ p, favorites, ignored, onFav, onIgnore, onUnignore, setLightbox, noClamp=false, tags=null, lang=_lang }) {
   const [exp, setExp]     = useState(false)
   const [menu, setMenu]   = useState(false)
@@ -2983,8 +3011,8 @@ const PostCard = memo(function PostCard({ p, favorites, ignored, onFav, onIgnore
   }, [isLong, exp, displayText])
 
   // URL профиля на GT (по нику)
-  const profileUrl = `https://forum.gipsyteam.ru/index.php?showuser=${encodeURIComponent(p.author)}`
-  const ratingUrl  = `https://forum.gipsyteam.ru/index.php?showuser=${encodeURIComponent(p.author)}&tab=reputation`
+  const profileUrl = `https://www.gipsyteam.ru/profile/${encodeURIComponent(p.author)}`
+  const ratingUrl  = `https://www.gipsyteam.ru/profile/${encodeURIComponent(p.author)}?tab=reputation`
   // Блог есть только у пользователей с blogId — определяем по наличию /blogs/ в известных ссылках
   // У Romeopro блог точно есть, у остальных определяем по msgCount > 100 как приближение
   // (точно не знаем без запроса к API форума)
@@ -3034,7 +3062,7 @@ const PostCard = memo(function PostCard({ p, favorites, ignored, onFav, onIgnore
           </button>
           <div className="pc-author-meta">
             {p.msgCount && <span>{lang==='ru' ? `${fmtInt(p.msgCount)} ${plural(p.msgCount, ['пост','поста','постов'])}` : `${fmtInt(p.msgCount)} ${_t('posts_word')}`}</span>}
-            {p.regData  && <span>· {p.regData}</span>}
+            {p.regData  && <span>· {formatRegData(p.regData, lang)}</span>}
             {p.rating != null && (
               <><span>·</span><a href={ratingUrl} target="_blank" rel="noreferrer"
                 style={{color:p.rating>=0?'#4caf50':'#ff5252',display:'inline-flex',alignItems:'center',gap:2,textDecoration:'none'}}
@@ -3045,7 +3073,7 @@ const PostCard = memo(function PostCard({ p, favorites, ignored, onFav, onIgnore
                   <rect x="6.4" y="1" width="2.5" height="9"/>
                   <rect x="9.6" y="0" width="2.5" height="10"/>
                 </svg>
-                <span style={S_MONO}>{p.rating.toLocaleString()}</span>
+                <span style={S_MONO}>{fmtInt(p.rating)}</span>
               </a></>
             )}
           </div>
@@ -3055,8 +3083,10 @@ const PostCard = memo(function PostCard({ p, favorites, ignored, onFav, onIgnore
           <button type="button" className={`pc-action ${isFav?'on':''}`} onClick={()=>onFav(p.author)}
             title={isFav?_t('pc_fav_remove'):_t('pc_fav_add')}
             aria-label={isFav?_t('pc_fav_remove'):_t('pc_fav_add')} aria-pressed={isFav}>⭐</button>
-          <button type="button" className="pc-action" onClick={()=>onIgnore(p.author)}
-            title={_t('pc_ignore')} aria-label={_t('pc_ignore')}>🚫</button>
+          {lang === 'ru' && (
+            <button type="button" className="pc-action" onClick={()=>onIgnore(p.author)}
+              title={_t('pc_ignore')} aria-label={_t('pc_ignore')}>🚫</button>
+          )}
         </div>
       </div>
       <div ref={bodyRef} className={`pc-body ${!exp && shouldClamp ? 'clamped' : ''}`}>{renderPostText(displayText)}</div>
@@ -3072,7 +3102,7 @@ const PostCard = memo(function PostCard({ p, favorites, ignored, onFav, onIgnore
         <div className="pc-videos">
           {p.videos.map((src,j)=>(
             <div key={j} className="pc-video">
-              <iframe src={src} loading="lazy" allowFullScreen frameBorder="0"
+              <iframe src={src} title={_t('video_iframe_title')} loading="lazy" allowFullScreen frameBorder="0"
                 style={{width:'100%',aspectRatio:'16/9',border:0,borderRadius:8,background:'#000'}}/>
             </div>
           ))}
@@ -3351,7 +3381,7 @@ export function SidebarTopList({ posts, setLightbox }) {
             data-testid={`sidebar-top-item-${i}`}
             style={{display:'flex',gap:10,padding:'9px 0',borderBottom:'1px solid var(--border)',
               alignItems:'flex-start',cursor:'pointer'}}
-            role="link" tabIndex={0} aria-label={`${p.author}: ${(p.text||'').slice(0, 60)}`}
+            role="link" tabIndex={0} aria-label={preview ? `${p.author}: ${preview.slice(0, 80)}` : (hasQuote && quoteAuthor ? `${p.author} → ${quoteAuthor}` : p.author)}
             onKeyDown={e=>{
               if (e.key !== 'Enter') return
               e.preventDefault()
@@ -3637,6 +3667,17 @@ export default function App() {
   useEffect(() => {
     document.documentElement.classList.toggle('light', theme === 'light')
   }, [theme])
+  // Keep <html lang> in sync so screen readers / auto-translate pick the right voice
+  useEffect(() => {
+    document.documentElement.lang = lang
+  }, [lang])
+  // Esc closes the image lightbox
+  useEffect(() => {
+    if (!lightbox) return
+    const onKey = (e) => { if (e.key === 'Escape') setLightbox(null) }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [lightbox])
   _lang = lang
   _translate = t
 
@@ -3770,7 +3811,14 @@ export default function App() {
   const passesFeedFilters = (p) => {
     const isRomeoPost = ROMEO_RE.test(p.author)
 
-    if (lang !== 'ru') return isRomeoPost
+    if (lang !== 'ru') {
+      if (!isRomeoPost) return false
+      if (searchNeedle) {
+        const haystack = (p.translations?.[lang] || p.text || '').toLowerCase()
+        if (!haystack.includes(searchNeedle)) return false
+      }
+      return true
+    }
     if (ignored.has(p.author)) return false
     if (romeoOnly && !isRomeoPost) return false
     if (favorites.has(p.author)) return true
@@ -3782,10 +3830,10 @@ export default function App() {
   const hotPosts = useMemo(() =>
     posts
       .filter(p => !ignored.has(p.author)) // top list never shows ignored
-      .filter(p => favorites.has(p.author) || (!minRating || (p.rating||0) >= minRating))
-      .filter(p => favorites.has(p.author) || (p.likes||0) >= Math.max(minLikes, 1))
+      .filter(p => lang !== 'ru' || favorites.has(p.author) || (!minRating || (p.rating||0) >= minRating))
+      .filter(p => lang !== 'ru' || favorites.has(p.author) || (p.likes||0) >= Math.max(minLikes, 1))
       .sort((a,b) => (b.likes||0) - (a.likes||0))
-  , [posts, ignored, favorites, minLikes, minRating])
+  , [posts, ignored, favorites, minLikes, minRating, lang])
 
   const forumAuthorCount = useMemo(() => {
     const authors = new Set()
@@ -3839,7 +3887,7 @@ export default function App() {
     const filterBar = document.querySelector('.filter-bar')
     if (filterBar) {
       const top = filterBar.getBoundingClientRect().top + window.scrollY - 60
-      window.scrollTo({ top: Math.max(0, top), behavior: 'smooth' })
+      window.scrollTo({ top: Math.max(0, top), behavior: scrollBehavior() })
     }
   }
 
@@ -3858,7 +3906,7 @@ export default function App() {
       const rect = el.getBoundingClientRect()
       // Place post ~80px from top of viewport (below topbar), not centered
       const target = window.scrollY + rect.top - 80
-      window.scrollTo({ top: target, behavior: 'smooth' })
+      window.scrollTo({ top: target, behavior: scrollBehavior() })
       el.classList.remove('post-highlight')
       void el.offsetWidth // reflow so animation restarts
       el.classList.add('post-highlight')
@@ -3887,7 +3935,7 @@ export default function App() {
       const postId = feedPosts[firstNewIdx].id
       requestAnimationFrame(() => {
         const el = document.getElementById(`post-${postId}`)
-        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        if (el) el.scrollIntoView({ behavior: scrollBehavior(), block: 'center' })
       })
     } else {
       // New posts might be filtered out — just dismiss
@@ -3978,7 +4026,10 @@ export default function App() {
   return (
     <>
       {lightbox && (
-        <div className="lightbox" onClick={()=>setLightbox(null)}>
+        <div className="lightbox" role="dialog" aria-modal="true" aria-label={t('lightbox_label')}
+          onClick={()=>setLightbox(null)}>
+          <button type="button" className="lightbox-close" aria-label={t('close')}
+            onClick={()=>setLightbox(null)}>✕</button>
           <img src={lightbox} alt=""/>
         </div>
       )}
@@ -4101,8 +4152,7 @@ export default function App() {
                       {dollarPerMTT != null && (
                         <span className="mps-rate-inline" title={isLosing ? t('losing_warning') : t('dollar_per_mtt_title')}>
                           {(() => {
-                            const r = Math.round(dollarPerMTT * 2) / 2
-                            return (Number.isInteger(r) ? r : r.toFixed(1)) + `$/${t('sr_mtt_short')}`
+                            return formatDollarPerMTT(dollarPerMTT, t('sr_mtt_short'))
                           })()}
                         </span>
                       )}
@@ -4336,12 +4386,12 @@ export default function App() {
                     [t('sr_day'), <span key="d" className="srow-val gold">#{stats.day||meta?.day||'—'}</span>],
                     [t('sr_tourneys') + (periodStats?.totalMTT != null ? '*' : ''),
                       <span key="mtt" className="srow-val"
-                        title={periodStats?.totalMTT != null ? `${t('for_period')} ${t(chartPeriod==='week'?'period_week':'period_month').toLowerCase()}` : undefined}>
+                        title={periodStats?.totalMTT != null ? t(chartPeriod==='week'?'for_period_week':'for_period_month') : undefined}>
                         {fmtInt(periodStats?.totalMTT ?? meta?.totalTournaments ?? 3565)}
                       </span>],
                     (periodStats?.avgMTT ?? stats.avgMTT) != null && [
                       t('sr_avg') + (periodStats?.avgMTT != null ? '*' : ''),
-                      <span key="avg" className="srow-val" title={periodStats?.avgMTT != null ? `${t('for_period')} ${t(chartPeriod==='week'?'period_week':'period_month').toLowerCase()}` : undefined}>
+                      <span key="avg" className="srow-val" title={periodStats?.avgMTT != null ? t(chartPeriod==='week'?'for_period_week':'for_period_month') : undefined}>
                         {fmtInt(periodStats?.avgMTT ?? stats.avgMTT)}
                       </span>,
                     ],
@@ -4411,7 +4461,7 @@ export default function App() {
                     {[...ignored].map(n=>(
                       <span key={n} style={{background:'var(--bg3)',border:'1px solid var(--border)',borderRadius:12,padding:'2px 8px',fontSize:11,display:'flex',gap:4,alignItems:'center'}}>
                         {n}
-                        <button style={{background:'none',border:'none',cursor:'pointer',color:'var(--dim)',fontSize:11,padding:0}} onClick={()=>removeIgnore(n)}>✕</button>
+                        <button style={{background:'none',border:'none',cursor:'pointer',color:'var(--dim)',fontSize:11,padding:0}} onClick={()=>removeIgnore(n)} aria-label={`${t('settings_remove_author')}: ${n}`}>✕</button>
                       </span>
                     ))}
                   </div>
@@ -4462,28 +4512,31 @@ export default function App() {
                 if (!scrapeTs && !newestPostTs) return null
                 const localeMap = { ru: 'ru-RU', en: 'en-US', es: 'es-ES' }
                 const loc = localeMap[lang] || 'en-US'
+                // Site policy: every timestamp is Europe/Warsaw, footer included
                 const fmt = (ts) => {
-                  const d = new Date(ts)
-                  const sameDay = d.toDateString() === new Date().toDateString()
-                  const time = d.toLocaleTimeString(loc, { hour:'2-digit', minute:'2-digit' })
+                  const w = warsawParts(Math.floor(ts / 1000))
+                  if (!w) return ''
+                  const now = warsawParts(Math.floor(Date.now() / 1000))
+                  const sameDay = now && w.day === now.day && w.month === now.month && w.year === now.year
+                  const time = `${w.hour}:${w.minute}`
                   return sameDay
                     ? `${t('footer_today_at')} ${time}`
-                    : `${d.toLocaleDateString(loc,{day:'2-digit',month:'2-digit'})} ${t('footer_at')} ${time}`
+                    : `${w.day}.${w.month} ${t('footer_at')} ${time}`
                 }
                 const mins = Math.round((Date.now() - scrapeTs) / 60000)
                 const fresh = mins < 20
                 const stale = mins > 90
-                const color = fresh ? '#4caf5099' : stale ? '#ff525299' : '#998866'
+                const freshClass = fresh ? 'ok' : stale ? 'stale' : 'warn'
                 return (
                   <>
-                    <div style={{fontSize:10,color,marginTop:3,fontFamily:"'Roboto Mono',monospace"}}
-                      title={new Date(scrapeTs).toLocaleString(loc)}>
-                      <span style={{display:'inline-block',width:6,height:6,borderRadius:'50%',background:color,marginRight:5,verticalAlign:'middle'}}/>
+                    <div className={`footer-fresh ${freshClass}`} style={{fontSize:10,marginTop:3,fontFamily:"'Roboto Mono',monospace"}}
+                      title={fmtDateTimeLang(Math.floor(scrapeTs / 1000), lang)}>
+                      <span className="footer-fresh-dot"/>
                       {t('footer_scraper_ran')}: {fmt(scrapeTs)}
                     </div>
                     {newestPostTs > 0 && (
                       <div style={{fontSize:10,color:'var(--dim)',marginTop:2,fontFamily:"'Roboto Mono',monospace",paddingLeft:11}}
-                        title={new Date(newestPostTs).toLocaleString(loc)}>
+                        title={fmtDateTimeLang(Math.floor(newestPostTs / 1000), lang)}>
                         {t('footer_freshest_post')}: {fmt(newestPostTs)}
                       </div>
                     )}
