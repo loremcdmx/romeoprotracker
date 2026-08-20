@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 1.13.3 — 2026-08-20
+
+### Chart
+- month labels on the X axis are centred over each month's span (April used to vanish under a boundary-gap filter, and «АВГ» floated over July's air); the boundary ticks stay on each month's first session
+- the current-date label («20 авг») is pinned to the right plot edge instead of the August boundary tick
+
 ## 1.13.2 — 2026-08-20
 
 ### Chart density

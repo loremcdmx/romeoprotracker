@@ -1060,32 +1060,34 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
     }).filter(tick => Number.isFinite(tick.x))
   })()
   const monthTicks = (() => {
-    if (allTimeMonthTicks.length <= 3) return allTimeMonthTicks
-    if (isMobile) {
-      const middle = allTimeMonthTicks[Math.floor(allTimeMonthTicks.length / 2)]
-      return [...new Map([
-        allTimeMonthTicks[0],
-        middle,
-        allTimeMonthTicks[allTimeMonthTicks.length - 1],
-      ].map(tick => [tick.i, tick])).values()]
-    }
-
-    const first = allTimeMonthTicks[0]
-    const latest = allTimeMonthTicks[allTimeMonthTicks.length - 1]
-    const minGap = 68
-    const spaced = [first]
-    for (let i = 1; i < allTimeMonthTicks.length - 1; i++) {
-      const tick = allTimeMonthTicks[i]
-      const previous = spaced[spaced.length - 1]
-      if (tick.x - previous.x >= minGap && latest.x - tick.x >= minGap) spaced.push(tick)
-    }
-    spaced.push(latest)
-    if (spaced.length <= 8) return spaced
-
-    return [...new Map(Array.from({ length:8 }, (_, i) => {
-      const index = Math.round(i * (spaced.length - 1) / 7)
-      return spaced[index]
-    }).map(tick => [tick.i, tick])).values()]
+    if (!allTimeMonthTicks.length) return []
+    // The tick line marks the month boundary (its first session); the LABEL is
+    // centred over the month's span — pinning labels to the boundary made АПР
+    // vanish under a crude gap filter and left «АВГ» floating mid-July's air.
+    const plotRight = W - pR
+    const withSpan = allTimeMonthTicks.map((tick, k) => {
+      const spanEnd = allTimeMonthTicks[k + 1]?.x ?? plotRight
+      return {
+        ...tick,
+        spanEnd,
+        labelX:clampNumber((tick.x + spanEnd) / 2, pL + 14, plotRight - 14),
+      }
+    })
+    const minLabelGap = isMobile ? 58 : 44
+    const minSpan = isMobile ? 30 : 20
+    const kept = []
+    withSpan.forEach((tick, k) => {
+      const isEdge = k === 0 || k === withSpan.length - 1
+      if (!isEdge && tick.spanEnd - tick.x < minSpan) return
+      const prev = kept[kept.length - 1]
+      if (prev && tick.labelX - prev.labelX < minLabelGap) {
+        if (isEdge && kept.length > 1) kept.pop()
+        else if (!isEdge) return
+        else return
+      }
+      kept.push(tick)
+    })
+    return kept
   })()
   const yAtChartX = x => interpolateLinearChartY(coords, x)
   const linePath = makeLinearChartPath(coords)
@@ -2064,24 +2066,22 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
         })}
         </g>
         {period === 'all' && monthTicks.map((tick, index) => {
-          const isFirst = index === 0
           const isLast = index === monthTicks.length - 1
-          const anchor = isFirst ? 'start' : isLast ? 'end' : 'middle'
           return (
             <g key={`month-${tick.year}-${tick.label}`} className={`mc-month-tick ${isLast ? 'latest' : ''}`}
               data-source-id={tick.p.id || `point-${tick.i}`} data-source-index={tick.i}>
               <line x1={tick.x} y1={plotBottom} x2={tick.x} y2={xAxisY} className="mc-month-tickmark"/>
-              <text x={tick.x} y={xMainLabelY} textAnchor={anchor} className="mc-month-label-main">
+              <text x={tick.labelX} y={xMainLabelY} textAnchor="middle" className="mc-month-label-main">
                 {tick.label}
               </text>
-              {isLast && (
-                <text x={tick.x} y={xSubLabelY + 1} textAnchor="end" className="mc-month-label-sub">
-                  {fmtDateShortLang(points[points.length - 1].timestamp, lang)}
-                </text>
-              )}
             </g>
           )
         })}
+        {period === 'all' && monthTicks.length > 0 && (
+          <text x={W - pR} y={xSubLabelY + 1} textAnchor="end" className="mc-month-label-sub">
+            {fmtDateShortLang(points[points.length - 1].timestamp, lang)}
+          </text>
+        )}
         {tip && (() => {
           const positive = (tip.profit ?? 0) >= 0
           const dotFill = positive ? (light ? '#2e8b3a' : '#4caf50') : (light ? '#c8362e' : '#e53935')
