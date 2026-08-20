@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- removed the «20 авг» current-date sub-label from the marathon X axis (the hover date tag covers it)
+
 ## 1.13.3 — 2026-08-20
 
 ### Chart

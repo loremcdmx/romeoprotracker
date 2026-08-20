@@ -2077,11 +2077,6 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
             </g>
           )
         })}
-        {period === 'all' && monthTicks.length > 0 && (
-          <text x={W - pR} y={xSubLabelY + 1} textAnchor="end" className="mc-month-label-sub">
-            {fmtDateShortLang(points[points.length - 1].timestamp, lang)}
-          </text>
-        )}
         {tip && (() => {
           const positive = (tip.profit ?? 0) >= 0
           const dotFill = positive ? (light ? '#2e8b3a' : '#4caf50') : (light ? '#c8362e' : '#e53935')
