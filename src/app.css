@@ -817,6 +817,23 @@ html{scroll-behavior:smooth}
 .light .ff-banner-glow{background:radial-gradient(circle,rgba(255,200,60,.18),transparent 70%)}
 .light .ff-banner-shine{background:linear-gradient(100deg,transparent 0%,rgba(255,255,255,.5) 50%,transparent 100%)}
 
+/* ─── SESSION MTT WIDGET ────────────────────────────────────────────────── */
+.session-mtt-widget{margin-top:10px}
+.smtt-bar{fill:rgba(123,220,255,.55);transition:fill .15s}
+.smtt-bar:hover{fill:rgba(123,220,255,.9)}
+.smtt-bar.max{fill:rgba(126,231,135,.75)}
+.smtt-bar.last{fill:var(--gold,#ffd24d)}
+.smtt-avg-line{stroke:rgba(255,255,255,.38);stroke-width:1;stroke-dasharray:4 4;vector-effect:non-scaling-stroke}
+.smtt-avg-label{fill:rgba(230,230,230,.62);font-size:8.6px;text-anchor:end;font-family:'Roboto Mono',monospace;font-variant-numeric:tabular-nums}
+.smtt-last-label{fill:var(--gold,#ffd24d);font-size:9px;text-anchor:middle;font-weight:700;font-family:'Roboto Mono',monospace;font-variant-numeric:tabular-nums}
+.light .smtt-bar{fill:rgba(37,99,155,.45)}
+.light .smtt-bar:hover{fill:rgba(37,99,155,.75)}
+.light .smtt-bar.max{fill:rgba(46,125,50,.6)}
+.light .smtt-bar.last{fill:#b8860b}
+.light .smtt-avg-line{stroke:rgba(0,0,0,.3)}
+.light .smtt-avg-label{fill:#70695f}
+.light .smtt-last-label{fill:#9a6a00}
+
 /* ─── THEME TOGGLE ──────────────────────────────────────────────────────── */
 .theme-toggle{width:32px;height:32px;background:none;border:1px solid var(--border);border-radius:10px;cursor:pointer;color:var(--dim2);font-size:13px;padding:0;transition:all .2s;line-height:1}
 .theme-toggle:hover{border-color:var(--border2);color:var(--text)}

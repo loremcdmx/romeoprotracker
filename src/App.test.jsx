@@ -1324,6 +1324,101 @@ describe('App', () => {
     expect(card.getAttribute('role')).toBeNull()
     expect(card.tabIndex).toBeLessThan(0)
   })
+
+  it('opens the tooltip when hovering anywhere along the marathon line', async () => {
+    const base = makeMockData()
+    const brHistory = Array.from({ length:60 }, (_, i) => ({
+      brAfter: 10000 + (i + 1) * 900,
+      brPrev: 10000 + i * 900,
+      date: `D${i + 1}`,
+      timestamp: 1712300000 + i * 3600,
+      sessionResult: 900,
+      totalTournaments: (i + 1) * 100,
+      tournaments: 100,
+      text: `Session ${i + 1}`,
+    }))
+    fetchPublicData.mockResolvedValue(makeMockData({
+      meta: { ...base.meta, brHistory, totalTournaments: 6000 },
+    }))
+    render(<App />)
+    await screen.findByTestId('pace-widget')
+
+    const overlay = document.querySelector('[data-testid="mc-hover-capture"]')
+    expect(overlay).toBeTruthy()
+    // jsdom rects are zero-sized, so the overlay treats clientX as SVG units;
+    // aim between markers to prove gaps are hoverable too.
+    const markers = [...document.querySelectorAll('g[data-start][data-end]')]
+    const cx = Number(markers[2].querySelector('.mc-dot').getAttribute('cx'))
+    fireEvent.mouseMove(overlay, { clientX: cx + 5 })
+    expect(document.querySelector('.mc-tooltip')).toBeInTheDocument()
+  })
+
+  it('keeps the peak callout short and clear of milestone plates', async () => {
+    const base = makeMockData()
+    // dip below start (recovery), cross $200k, peak at the last point — the
+    // crowded top-right shape from the live chart that used to push the peak
+    // badge onto the $200k plate with a very long leader.
+    const rows = []
+    let br = 10000
+    for (let i = 0; i < 40; i++) {
+      br = i < 3 ? br - 700 : Math.min(298000, br + (i < 10 ? 4000 : 12000))
+      rows.push({
+        brAfter: br,
+        brPrev: rows[i - 1]?.brAfter ?? 10000,
+        date: `D${i + 1}`,
+        timestamp: 1712300000 + i * 86400,
+        sessionResult: br - (rows[i - 1]?.brAfter ?? 10000),
+        totalTournaments: (i + 1) * 150,
+        tournaments: 150,
+        text: `Session ${i + 1}`,
+      })
+    }
+    fetchPublicData.mockResolvedValue(makeMockData({
+      meta: { ...base.meta, brHistory: rows, totalTournaments: 6000 },
+    }))
+    render(<App />)
+    await screen.findByTestId('pace-widget')
+
+    const line = document.querySelector('.mc-peak-callout-line')
+    expect(line).toBeTruthy()
+    const [x1, y1, x2, y2] = ['x1', 'y1', 'x2', 'y2'].map((a) => Number(line.getAttribute(a)))
+    expect(Math.hypot(x2 - x1, y2 - y1)).toBeLessThan(150)
+
+    const bg = document.querySelector('.mc-peak-callout-bg')
+    const badge = { x:+bg.getAttribute('x'), y:+bg.getAttribute('y'), w:+bg.getAttribute('width'), h:+bg.getAttribute('height') }
+    const plates = [...document.querySelectorAll('.mc-milestone-plate')].map((r) => ({
+      x:+r.getAttribute('x'), y:+r.getAttribute('y'), w:+r.getAttribute('width'), h:+r.getAttribute('height'),
+    }))
+    expect(plates.length).toBeGreaterThan(0)
+    const overlap = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h
+    expect(plates.filter((r) => overlap(badge, r))).toHaveLength(0)
+    // desktop plates are compact now
+    plates.forEach((r) => expect(r.h).toBeLessThanOrEqual(28))
+  })
+
+  it('renders the per-session MTT widget with bars, average and last labels', async () => {
+    const base = makeMockData()
+    const brHistory = Array.from({ length:12 }, (_, i) => ({
+      brAfter: 10000 + (i + 1) * 900,
+      brPrev: 10000 + i * 900,
+      date: `D${i + 1}`,
+      timestamp: 1712300000 + i * 86400,
+      sessionResult: 900,
+      totalTournaments: (i + 1) * 120,
+      tournaments: 120,
+      text: `Session ${i + 1}`,
+    }))
+    fetchPublicData.mockResolvedValue(makeMockData({
+      meta: { ...base.meta, brHistory, totalTournaments: 1440 },
+    }))
+    render(<App />)
+    const widget = await screen.findByTestId('session-mtt-widget')
+    expect(within(widget).getByText(translate('ru', 'smtt_title'))).toBeInTheDocument()
+    expect(widget.querySelectorAll('.smtt-bar')).toHaveLength(12)
+    expect(widget.querySelector('.smtt-avg-label').textContent).toContain('120')
+    expect(widget.querySelector('.smtt-bar.last')).toBeTruthy()
+    expect(widget.querySelector('.smtt-avg-line')).toBeTruthy()
+  })
 })
 
 describe('build constants', () => {

@@ -812,6 +812,26 @@ const CHART_MONTHS_BY_LANG = {
   es:['ENE','FEB','MAR','ABR','MAY','JUN','JUL','AGO','SEP','OCT','NOV','DIC'],
 }
 
+// Milestone plate geometry — shared with the peak-callout scorer so the peak
+// leader can steer around these plates. Sizes kept compact on purpose.
+const MILESTONE_PLATE_LAYOUTS = {
+  recovery:{ desktop:{ width:92, height:28, dx:-14, dy:-36 }, mobile:{ width:116, height:40, dx:4, dy:-56 } },
+  best:{ desktop:{ width:72, height:28, dx:-31, dy:-36 }, mobile:{ width:94, height:40, dx:-54, dy:-56 } },
+  twoHundred:{ desktop:{ width:64, height:28, dx:-24, dy:-36 }, mobile:{ width:86, height:40, dx:-44, dy:-56 } },
+}
+function milestonePlateRect(type, point, isMobile, frame) {
+  const layout = MILESTONE_PLATE_LAYOUTS[type]?.[isMobile ? 'mobile' : 'desktop']
+  if (!layout || !point) return null
+  const { W, pL, pR, pT, plotBottom } = frame
+  const cx = clampNumber(point.x + layout.dx, pL + layout.width / 2 + 5, W - pR - layout.width / 2 - 5)
+  const cy = clampNumber(point.y + layout.dy, pT + layout.height / 2 + 5, plotBottom - layout.height / 2 - 5)
+  return {
+    layout, cx, cy,
+    left:cx - layout.width / 2, right:cx + layout.width / 2,
+    top:cy - layout.height / 2, bottom:cy + layout.height / 2,
+  }
+}
+
 function MarathonMilestoneCallout({ milestone, type, isMobile, W, pL, pR, pT, plotBottom }) {
   if (!milestone) return null
   const { point, p, i, primary, secondary } = milestone
@@ -825,15 +845,9 @@ function MarathonMilestoneCallout({ milestone, type, isMobile, W, pL, pR, pT, pl
     )
   }
 
-  const layout = {
-    recovery:{ width:isMobile ? 142 : 106, height:isMobile ? 50 : 34, dx:isMobile ? 4 : -14, dy:isMobile ? -66 : -42 },
-    best:{ width:isMobile ? 112 : 82, height:isMobile ? 50 : 34, dx:isMobile ? -54 : -31, dy:isMobile ? -66 : -43 },
-    twoHundred:{ width:isMobile ? 102 : 72, height:isMobile ? 50 : 34, dx:isMobile ? -44 : -24, dy:isMobile ? -66 : -42 },
-  }[type]
-  const cx = clampNumber(point.x + layout.dx, pL + layout.width / 2 + 5, W - pR - layout.width / 2 - 5)
-  const cy = clampNumber(point.y + layout.dy, pT + layout.height / 2 + 5, plotBottom - layout.height / 2 - 5)
-  const left = cx - layout.width / 2
-  const top = cy - layout.height / 2
+  const plate = milestonePlateRect(type, point, isMobile, { W, pL, pR, pT, plotBottom })
+  if (!plate) return null
+  const { layout, cx, cy, left, top } = plate
   const leaderX = clampNumber(point.x, left + 8, left + layout.width - 8)
   const leaderY = top + layout.height
 
@@ -843,7 +857,7 @@ function MarathonMilestoneCallout({ milestone, type, isMobile, W, pL, pR, pT, pl
         x1={point.x} y1={point.y} x2={leaderX} y2={leaderY}/>
       <circle className="mc-milestone-anchor" cx={point.x} cy={point.y} r={isMobile ? 5.1 : 4.1}/>
       <rect className="mc-milestone-plate" x={left} y={top}
-        width={layout.width} height={layout.height} rx={isMobile ? 9 : 7}/>
+        width={layout.width} height={layout.height} rx={isMobile ? 8 : 6}/>
       <text className="mc-milestone-label" x={cx} y={cy - (isMobile ? 3 : 2)} textAnchor="middle">
         <tspan className="mc-milestone-primary" x={cx}>{primary}</tspan>
         <tspan className="mc-milestone-secondary" x={cx} dy={isMobile ? 17 : 12}>{secondary}</tspan>
@@ -1443,6 +1457,12 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
       ] : [coord]
     })
     const leaderDangerPoints = coords.filter((_, i) => Math.abs(i - peakIdx) > 1)
+    const chartFrame = { W, pL, pR, pT, plotBottom }
+    const milestonePlates = allTimeMilestones
+      .map(m => milestonePlateRect(m.type, m.point, isMobile, chartFrame))
+      .filter(Boolean)
+    const rectsOverlap = (a, b) =>
+      a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom
     const nearX = badgeW / 2 + (isMobile ? 12 : 14)
     const farX = badgeW + (isMobile ? 20 : 22)
     const nearY = badgeH / 2 + (isMobile ? 13 : 12)
@@ -1465,6 +1485,10 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
       { dx:0, dy:farY, affinity:3 },
       { dx:nearX, dy:nearY, affinity:0 },
       { dx:nearX, dy:-nearY, affinity:-4 },
+      { dx:-nearX, dy:farY * 1.7, affinity:26 },
+      { dx:-farX, dy:farY * 1.9, affinity:22 },
+      { dx:-badgeW * 1.3, dy:farY * 2.3, affinity:14 },
+      { dx:-badgeW * 1.9, dy:farY * 2.8, affinity:6 },
     ]
     const distanceToRect = (p, rect) => {
       const dx = Math.max(rect.left - p.x, 0, p.x - rect.right)
@@ -1540,13 +1564,17 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
       const lineIntersections = lineSegments.filter(({ a, b }) => segmentIntersectsRect(a, b, padded)).length
       const anchor = anchorForRect(rect)
       const leaderLength = Math.hypot(cx - point.x, cy - point.y)
+      const plateLeaderHits = milestonePlates.filter(r => segmentIntersectsRect(point, anchor,
+        { left:r.left - 3, right:r.right + 3, top:r.top - 3, bottom:r.bottom + 3 })).length
+      const tightRect = { left:rect.left - 2, right:rect.right + 2, top:rect.top - 2, bottom:rect.bottom + 2 }
+      const plateOverlaps = milestonePlates.filter(r => rectsOverlap(tightRect, r)).length
       const leaderDistance = leaderDangerPoints.length
         ? Math.min(...leaderDangerPoints.map(p => distanceToSegment(p, point, anchor)))
         : 32
       const leaderCrowding = Math.max(0, 14 - leaderDistance)
       const clampPenalty = Math.hypot(cx - targetCx, cy - targetCy)
       const topAir = Math.max(0, rect.top - pT)
-      const farLeaderPenalty = Math.max(0, leaderLength - (isMobile ? 230 : 210))
+      const farLeaderPenalty = Math.max(0, leaderLength - (isMobile ? 150 : 130))
       const clearRectScore = Math.min(minDistance, isMobile ? 96 : 110)
       const clearPaddedScore = Math.min(minPaddedDistance, isMobile ? 74 : 84)
       const edgePenalty = rect.top < pT + 7 || rect.right > W - pR - 7 || rect.left < pL + 7 ? 8 : 0
@@ -1558,18 +1586,28 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
         overlaps,
         dotOverlaps,
         lineIntersections,
+        plateOverlaps,
+        plateLeaderHits,
         score:clearRectScore * 2.4 + clearPaddedScore * 2 + Math.min(leaderDistance, 34) * .8
-          + affinity - overlaps * 220 - lineIntersections * 180 - leaderLength * .12
-          - farLeaderPenalty * 1.7 - leaderCrowding * 4 - clampPenalty * 1.8 - topAir * .18 - edgePenalty,
+          + affinity - overlaps * 220 - lineIntersections * 180 - leaderLength * .38
+          - plateLeaderHits * 260 - plateOverlaps * 300
+          - farLeaderPenalty * 2.4 - leaderCrowding * 4 - clampPenalty * 1.8 - topAir * .18 - edgePenalty,
       }
     }).sort((a,b) => b.score - a.score)
     const preferredCx = clampCx(point.x - nearX)
     const preferredCy = clampCy(point.y - nearY)
     const pointSafeCandidates = candidates.filter(candidate => candidate.dotOverlaps === 0)
-    const candidatePool = pointSafeCandidates.length ? pointSafeCandidates : candidates
+    // Never sit on (or run the leader through) a milestone plate if any clean
+    // spot exists — overlapping "$200k"-style plates was the visible defect.
+    const plateSafeCandidates = pointSafeCandidates.filter(
+      candidate => candidate.plateOverlaps === 0 && candidate.plateLeaderHits === 0,
+    )
+    const candidatePool = plateSafeCandidates.length
+      ? plateSafeCandidates
+      : (pointSafeCandidates.length ? pointSafeCandidates : candidates)
     const preferred = candidatePool.reduce((best, candidate) => {
       const distance = Math.hypot(candidate.cx - preferredCx, candidate.cy - preferredCy)
-      const selectionScore = candidate.score - distance * 30
+      const selectionScore = candidate.score - distance * 8
       return !best || selectionScore > best.selectionScore
         ? { ...candidate, distance, selectionScore }
         : best
@@ -1782,6 +1820,24 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
           )
         })}
         <path d={linePath} fill="none" className="mc-line-highlight" strokeWidth={isMobile ? .9 : .7}/>
+        {/* Desktop: the whole plot is hoverable — the tooltip follows the nearest
+            session group, so the sparse visible markers no longer limit where
+            you can point (reader/channel feedback). */}
+        {!isMobile && markerGroups.length > 0 && (
+          <rect x={pL} y={pT} width={Math.max(0, W - pL - pR)} height={Math.max(0, plotBottom - pT)}
+            fill="transparent" data-testid="mc-hover-capture"
+            onMouseMove={e => {
+              const svgRect = e.currentTarget.ownerSVGElement?.getBoundingClientRect?.()
+              const scale = svgRect && svgRect.width ? W / svgRect.width : 1
+              const mx = (e.clientX - (svgRect?.left || 0)) * scale
+              let nearest = null, minD = Infinity
+              markerGroups.forEach(m => { const d = Math.abs(m.x - mx); if (d < minD) { minD = d; nearest = m } })
+              if (!nearest || tip?.p === nearest.p) return
+              announceHoverPopupOpen()
+              openTipState({ p:nearest.p, profit:nearest.profit, x:nearest.x, y:nearest.y,
+                groupCount:nearest.count, sessions:nearest.sessions, totalMTT:cumMTT[nearest.end] || null })
+            }}/>
+        )}
         {markerVisuals.map(({ p, start, end, x, y, profit, count, sessions, parts, compacted, mixedTone, isCrowded }) => {
           const i=end
           const isLast = i===points.length-1
@@ -3435,6 +3491,76 @@ function FirstFundBanner({ t }) {
   )
 }
 
+// ─── SESSION MTT WIDGET ──────────────────────────────────────────────────────
+// Bars of tournaments played per session (channel request). Follows the shared
+// week/month/all chart period; average as a dashed guide, last session in gold.
+function SessionMttChart({ meta, period, lang, t }) {
+  const isMobile = useIsMobile()
+  const rows = useMemo(() => {
+    const hist = [...(meta?.brHistory || [])].sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0))
+    const withMtt = hist.map((row, i) => {
+      const prevTotal = i > 0 ? hist[i - 1]?.totalTournaments || 0 : 0
+      const mtt = row.tournaments ?? (row.totalTournaments ? Math.max(0, row.totalTournaments - prevTotal) : 0)
+      return { timestamp:row.timestamp || 0, mtt }
+    }).filter(r => r.mtt > 0)
+    if (period === 'all' || !withMtt.length) return withMtt
+    const cutoff = Math.floor(Date.now() / 1000) - (period === 'week' ? 7 : 30) * 86400
+    const filtered = withMtt.filter(r => r.timestamp >= cutoff)
+    return filtered.length >= 2 ? filtered : withMtt
+  }, [meta, period])
+
+  if (rows.length < 2) return null
+
+  const W = isMobile ? 340 : 640
+  const H = isMobile ? 150 : 150
+  const pad = { left:34, right:10, top:18, bottom:20 }
+  const plotW = W - pad.left - pad.right
+  const plotH = H - pad.top - pad.bottom
+  const maxMtt = Math.max(...rows.map(r => r.mtt))
+  const avg = rows.reduce((sum, r) => sum + r.mtt, 0) / rows.length
+  const yOf = v => pad.top + (1 - v / maxMtt) * plotH
+  const gap = rows.length > 60 ? .6 : 1.4
+  const barW = Math.max(1.2, plotW / rows.length - gap)
+  const xOf = i => pad.left + (i + .08) * (plotW / rows.length)
+  const avgY = yOf(avg)
+  const maxIdx = rows.reduce((best, r, i) => r.mtt > rows[best].mtt ? i : best, 0)
+  const lastIdx = rows.length - 1
+
+  return (
+    <section className="pace-widget session-mtt-widget" data-testid="session-mtt-widget">
+      <div className="pace-head">
+        <h2 className="section-title">{t('smtt_title')}</h2>
+        <span className="section-count">{plSessions ? plSessions(rows.length, lang) : rows.length}</span>
+      </div>
+      <div className="pace-chart-wrap">
+        <svg className="pace-chart smtt-chart" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={t('smtt_title')}>
+          <rect x={pad.left} y={pad.top} width={plotW} height={plotH} rx="10" className="pace-plot-bg"/>
+          {[maxMtt, Math.round(maxMtt / 2)].map(v => (
+            <g key={v}>
+              <line className="pace-grid-line" x1={pad.left} x2={W - pad.right} y1={yOf(v)} y2={yOf(v)}/>
+              <text className="pace-y-label" x={pad.left - 6} y={yOf(v) + 3}>{fmtInt(v)}</text>
+            </g>
+          ))}
+          {rows.map((r, i) => (
+            <rect key={`${r.timestamp}-${i}`}
+              className={`smtt-bar ${i === lastIdx ? 'last' : ''} ${i === maxIdx ? 'max' : ''}`}
+              x={xOf(i)} y={yOf(r.mtt)} width={barW} height={Math.max(1, pad.top + plotH - yOf(r.mtt))} rx={barW > 3 ? 1.2 : 0}>
+              <title>{`${fmtDateShortLang(r.timestamp, lang)} — ${fmtInt(r.mtt)} ${t('sr_mtt_short')}`}</title>
+            </rect>
+          ))}
+          <line className="smtt-avg-line" x1={pad.left} x2={W - pad.right} y1={avgY} y2={avgY}/>
+          <text className="smtt-avg-label" x={W - pad.right - 2} y={avgY - 4}>
+            {`${t('smtt_avg')}: ${fmtInt(Math.round(avg))}`}
+          </text>
+          <text className="smtt-last-label" x={Math.min(xOf(lastIdx) + barW / 2, W - pad.right - 14)} y={yOf(rows[lastIdx].mtt) - 5}>
+            {fmtInt(rows[lastIdx].mtt)}
+          </text>
+        </svg>
+      </div>
+    </section>
+  )
+}
+
 // ─── APP ─────────────────────────────────────────────────────────────────────
 export default function App() {
   const { posts, meta, loading, error, newPostIds, refresh, clearNewPosts } = usePostsData()
@@ -4116,6 +4242,7 @@ export default function App() {
               {/* Mobile-only: sidebar is hidden <=980px, so surface the FF banner here in the feed */}
               {isNarrow && <div className="ff-banner-mobile-slot"><FirstFundBanner t={t}/></div>}
               <PaceWidget meta={meta} stats={stats} period={chartPeriod} setPeriod={setChartPeriod} lang={lang} t={t}/>
+              <SessionMttChart meta={meta} period={chartPeriod} lang={lang} t={t}/>
               {/* Mobile-only top posts */}
               {lang==='ru' && hotPosts.length > 0 && (() => {
                 const now = Date.now() / 1000
