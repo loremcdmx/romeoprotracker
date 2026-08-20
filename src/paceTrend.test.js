@@ -16,7 +16,7 @@ describe('pace trend helpers', () => {
     expect(stats.endRate).toBeCloseTo(12)
   })
 
-  it('builds a visible SVG path from zero to the last full bin', () => {
+  it('builds a visible SVG path from zero to the plot edge (fit on full bins only)', () => {
     const trend = buildPaceTrend([
       { endMtt:2000, rate:6, full:true },
       { endMtt:4000, rate:12, full:true },
@@ -28,7 +28,9 @@ describe('pace trend helpers', () => {
       y:rate => 100 - rate,
     })
 
-    expect(trend.path).toBe('M 0.0 100.0 L 400.0 88.0')
-    expect(trend.endX).toBe(400)
+    // slope fitted on the two full bins (0.003 $/MTT), drawn to maxMtt=4500;
+    // the extrapolated rate (13.5) clamps to maxAbs=12
+    expect(trend.path).toBe('M 0.0 100.0 L 450.0 88.0')
+    expect(trend.endX).toBe(450)
   })
 })

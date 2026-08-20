@@ -529,8 +529,10 @@ describe('App', () => {
     const lastFullDotX = Number(fullDots[fullDots.length - 1]?.getAttribute('cx'))
     const partialDotX = Number(widget.querySelector('.pace-segment.partial .pace-dot')?.getAttribute('cx'))
     expect(Number(trendStart?.[1])).toBeCloseTo(plotLeft, 1)
-    expect(Number(trendCoords?.[3])).toBeCloseTo(lastFullDotX, 1)
-    expect(Number(trendCoords?.[3])).toBeLessThan(partialDotX)
+    // fitted on full chunks, drawn to the plot edge — the dashes must reach
+    // the partial tail instead of stopping short (channel report)
+    expect(Number(trendCoords?.[3])).toBeCloseTo(partialDotX, 1)
+    expect(Number(trendCoords?.[3])).toBeGreaterThan(lastFullDotX)
     expect(Number(trendCoords?.[4])).toBeLessThan(Number(trendCoords?.[2]))
     expect(widget.querySelector('.pace-trend.rising')).toBeInTheDocument()
   })
