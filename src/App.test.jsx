@@ -248,10 +248,8 @@ describe('App', () => {
     // centred labels never overlap
     const xs = ticks.map(t => Number(t.querySelector('.mc-month-label-main').getAttribute('x')))
     xs.slice(1).forEach((x, i) => expect(x - xs[i]).toBeGreaterThanOrEqual(40))
-    // the current date is pinned to the right plot edge, not to a month boundary
-    const sub = document.querySelector('.mc-month-label-sub')
-    expect(sub).toBeInTheDocument()
-    expect(Number(sub.getAttribute('x'))).toBeGreaterThan(670)
+    // no stray current-date sub-label on the axis (channel: «просто убери 20 авг»)
+    expect(document.querySelector('.mc-month-label-sub')).toBeNull()
   })
 
   it('labels a month whose boundary crowds its neighbour but whose span is wide', async () => {
