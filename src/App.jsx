@@ -1688,7 +1688,7 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
       if (!nearest) return
       const p = nearest.p
       announceHoverPopupOpen()
-      openTipState({ p, profit:nearest.profit, x:nearest.x, y:nearest.y, screenY: sy, groupCount:nearest.count, sessions:nearest.sessions })
+      openTipState({ p, profit:nearest.profit, x:nearest.x, y:nearest.y, screenY: sy, groupCount:nearest.count, sessions:nearest.sessions, totalMTT:cumMTT[nearest.end] || null })
     }, 300)
   }
   const handleTouchEnd = () => { clearTimeout(longPressTimer.current) }
@@ -1804,7 +1804,7 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
           }
           const openTip = () => {
             announceHoverPopupOpen()
-            openTipState({p,profit,x:cx,y:cy,groupCount:count,sessions})
+            openTipState({p,profit,x:cx,y:cy,groupCount:count,sessions,totalMTT:cumMTT[end] || null})
           }
           return (
             <g key={`marker-${start}-${end}`} className={isHovered ? 'is-hovered' : ''} onMouseEnter={!isMobile ? openTip : undefined}
@@ -1950,6 +1950,13 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
               {fk(tip.profit)}
             </div>
             <div style={{fontWeight:700,color:'var(--white)',fontSize:13,marginBottom:5,paddingRight:64}}>{fmtDateTimeLang(tip.p.timestamp, lang)}</div>
+            {/* Cumulative MTT at this point — lets readers measure streak length
+                in tournaments by comparing two hovered points (reader request). */}
+            {tip.totalMTT != null && (
+              <div style={{fontSize:12,marginBottom:4,color:'var(--dim)'}}>
+                {t('tip_mtt_total')}: <b style={{color:'var(--white)',fontVariantNumeric:'tabular-nums'}}>{fmtInt(tip.totalMTT)}</b>
+              </div>
+            )}
             <div style={{display:'flex',gap:12,fontSize:12,marginBottom:tip.p.tournaments?4:roomDeltas.length?8:4}}>
               <span style={{color:'var(--dim)'}}>{t('tip_br')}: <b style={{color:'var(--white)'}}>{fkAbs(tip.p.br)}</b></span>
             </div>
