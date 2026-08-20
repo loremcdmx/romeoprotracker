@@ -1171,3 +1171,8 @@ html{scroll-behavior:smooth}
 .smtt-tooltip-profit.pos{color:#7ee787}.smtt-tooltip-profit.neg{color:#ff8a80}
 .light .smtt-tooltip-diff.pos,.light .smtt-tooltip-profit.pos{color:#2e7d32}
 .light .smtt-tooltip-diff.neg,.light .smtt-tooltip-profit.neg{color:#c62828}
+
+/* minor session dots: present but quiet until hovered */
+.mc-dot-minor{opacity:.78;stroke:none}
+.mc-dot-hidden{opacity:0}
+.light .mc-dot-minor{opacity:.85}
