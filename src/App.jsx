@@ -95,7 +95,7 @@ function computePaceWindow(sorted, predicate, startBR, fallbackTotal = null) {
 
   const profit = indexed.reduce((sum, { row, idx }) =>
     sum + historySessionProfit(row, sorted, idx, startBR), 0)
-  let tournaments = indexed.reduce((sum, { row }) => sum + (row.tournaments || 0), 0)
+  let tournaments = indexed.reduce((sum, { row, idx }) => sum + historySessionTournaments(row, sorted, idx), 0)
 
   if (!tournaments) {
     const firstIdx = indexed[0].idx
@@ -115,11 +115,24 @@ function computePaceWindow(sorted, predicate, startBR, fallbackTotal = null) {
   }
 }
 
+// Cumulative totals are the authoritative MTT source (same one the hero counter
+// shows), so every widget sums to the same number. Per-session reported counts
+// are only trusted when no cumulative context exists.
 function historySessionTournaments(row, sorted, idx) {
-  if (row?.tournaments) return row.tournaments
-  const prevTotal = idx === 0 ? 0 : sorted[idx - 1]?.totalTournaments || 0
   const total = row?.totalTournaments || 0
-  return Math.max(0, total - prevTotal)
+  let prevTotal = 0
+  for (let i = idx - 1; i >= 0; i--) {
+    const t = sorted[i]?.totalTournaments
+    if (t) { prevTotal = t; break }
+  }
+  if (total && prevTotal) return Math.max(0, total - prevTotal)
+  if (total) return row?.tournaments || total
+  // No cumulative on this row: if a later row has one, its delta will absorb
+  // this session — counting the reported number here would double it.
+  for (let i = idx + 1; i < sorted.length; i++) {
+    if (sorted[i]?.totalTournaments) return 0
+  }
+  return row?.tournaments || 0
 }
 
 function buildPaceSegments(sorted, predicate, startBR, binSize = PACE_BIN_SIZE) {
@@ -142,10 +155,15 @@ function buildPaceSegments(sorted, predicate, startBR, binSize = PACE_BIN_SIZE) 
   sorted.forEach((row, idx) => {
     if (!predicate(row)) return
     const tournaments = historySessionTournaments(row, sorted, idx)
-    if (!tournaments) return
+    const profit = historySessionProfit(row, sorted, idx, startBR)
+    if (!tournaments) {
+      // Zero-MTT report (cumulative unchanged): keep the money in the open bin
+      // instead of dropping it from the rate.
+      active.profit += profit
+      return
+    }
 
     // Reports are session-level, so split session profit proportionally when it crosses a bin.
-    const profit = historySessionProfit(row, sorted, idx, startBR)
     let left = tournaments
     while (left > 0) {
       const room = binSize - active.tournaments
@@ -957,10 +975,21 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
   const pT = isMobile ? 18 : 14
   const pB = isMobile ? 58 : 44
   const plotBottom = H - pB
-  const dataMin = Math.min(...points.map(p=>p.br), startBR)
-  const dataMax = Math.max(...points.map(p=>p.br), startBR)
-  const minV = Math.max(0, Math.floor(dataMin * 0.7 / 1000) * 1000)
-  const maxV = dataMax * 1.05
+  // 'all' keeps the legacy absolute scale (start anchored); week/month zoom the
+  // Y domain to the visible points — previously the line used 10-17% of the
+  // plot height because the $10k start stayed pinned into the domain.
+  const isZoomedView = period !== 'all' && points.length < allPoints.length
+  const dataMin = isZoomedView
+    ? Math.min(...points.map(p=>p.br))
+    : Math.min(...points.map(p=>p.br), startBR)
+  const dataMax = isZoomedView
+    ? Math.max(...points.map(p=>p.br))
+    : Math.max(...points.map(p=>p.br), startBR)
+  const rangePad = Math.max((dataMax - dataMin) * 0.12, 400)
+  const minV = isZoomedView
+    ? Math.max(0, Math.floor((dataMin - rangePad) / 1000) * 1000)
+    : Math.max(0, Math.floor(dataMin * 0.7 / 1000) * 1000)
+  const maxV = isZoomedView ? dataMax + rangePad : dataMax * 1.05
   const yOf = v => pT + (1-(v-minV)/(maxV-minV)) * (plotBottom-pT)
 
   // Two arrays: cumMTT (absolute totals, used for display labels) and cumMTTX
@@ -979,8 +1008,19 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
     const norm = raw.map(c => c - base)
     // Anti-overlap nudge: only for data anomalies (duplicate/decreasing totalTournaments).
     // Strict proportionality otherwise. ~0.8% of total range = visible gap.
+    // Nudge sized below the typical real step: 0.8% of range used to exceed the
+    // dense tail's session deltas, so every later point got re-nudged and the
+    // "MTT-proportional" axis degenerated into uniform spacing.
+    const deltas = []
+    for (let i = 1; i < norm.length; i++) {
+      const d = norm[i] - norm[i-1]
+      if (d > 0) deltas.push(d)
+    }
+    const medianDelta = deltas.length
+      ? deltas.slice().sort((a, b) => a - b)[Math.floor(deltas.length / 2)]
+      : 0
     const maxSoFar = norm[norm.length - 1] || 1
-    const nudge = Math.max(1, maxSoFar * 0.008)
+    const nudge = Math.max(1, Math.min(maxSoFar * 0.008, medianDelta ? medianDelta * 0.5 : maxSoFar * 0.008))
     for (let i = 1; i < norm.length; i++) {
       if (norm[i] <= norm[i-1]) norm[i] = norm[i-1] + nudge
     }
@@ -1311,19 +1351,46 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
 
     let selected = []
     const maxLabels = isMobile ? 7 : 9
-    const minGap = isMobile ? 78 : 68
-    const labelWidth = item => {
+    // The solver used to compare nominal centres while the renderer clamps
+    // edge labels to the plot bounds and joins notes+date into one sub line —
+    // so clamped labels could land on top of each other (month view). Model
+    // the exact rendered interval instead.
+    const buildSub = item => uniq(item.notes || [])
+      .filter(note => note !== item.main)
+      .filter(note => !(String(item.kind || '').includes('best') && String(note).trim().startsWith('$')))
+      .slice(0, String(item.kind || '').includes('range-start') ? 2 : 1)
+      .concat(fmtDateShortLang(item.p.timestamp, lang))
+      .join(' · ')
+    const intervalFor = item => {
+      const mainWidth = String(item.main || '').length * (isMobile ? 7.4 : 7.1)
+      const subWidth = buildSub(item).length * (isMobile ? 4.9 : 4.7)
+      const textWidth = Math.min(isMobile ? 138 : 176, Math.max(48, mainWidth, subWidth))
+      const lx = Math.min(Math.max(item.x, pL), W - pR)
+      const leftBound = pL + xLabelEdgePad
+      const rightBound = W - pR - xLabelEdgePad
+      const anchor = lx - textWidth / 2 < leftBound ? 'start' : lx + textWidth / 2 > rightBound ? 'end' : 'middle'
+      const left = anchor === 'start' ? leftBound : anchor === 'end' ? rightBound - textWidth : lx - textWidth / 2
+      return { left, right:left + textWidth }
+    }
+    // Legacy centre-distance test kept for the 'all' view, whose label layer is
+    // display:none — there the solver only feeds marker significance, and the
+    // rendered-interval test would change which markers show for no visual gain.
+    const legacyWidth = item => {
       const notes = uniq(item.notes || [])
       const mainWidth = String(item.main || '').length * (isMobile ? 7.4 : 7.1)
       const noteWidth = notes.reduce((max, note) => Math.max(max, String(note || '').length * (isMobile ? 4.9 : 4.7)), 0)
       return Math.min(isMobile ? 138 : 176, Math.max(48, mainWidth, noteWidth))
     }
-    const gapFor = (a, b) => Math.max(minGap, (labelWidth(a) + labelWidth(b)) / 2 + (isMobile ? 16 : 14))
+    const legacyGap = (a, b) => Math.max(isMobile ? 78 : 68, (legacyWidth(a) + legacyWidth(b)) / 2 + (isMobile ? 16 : 14))
+    const labelsCollide = (a, b) => {
+      if (period === 'all') return Math.abs(a.x - b.x) < legacyGap(a, b)
+      const ia = intervalFor(a)
+      const ib = intervalFor(b)
+      return Math.min(ia.right, ib.right) - Math.max(ia.left, ib.left) > -(isMobile ? 12 : 10)
+    }
     const candidates = [...byIndex.values()].sort((a,b) => b.priority - a.priority)
     for (const candidate of candidates) {
-      const conflicts = selected.filter(item =>
-        Math.abs(item.x - candidate.x) < gapFor(item, candidate)
-      )
+      const conflicts = selected.filter(item => labelsCollide(item, candidate))
       if (!conflicts.length && selected.length < maxLabels) {
         selected.push(candidate)
         continue
@@ -1338,9 +1405,7 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
       if (!conflicts.length && selected.length >= maxLabels) {
         const weakest = selected.slice().sort((a,b) => a.priority - b.priority)[0]
         const withoutWeakest = selected.filter(item => item !== weakest)
-        const stillFits = withoutWeakest.every(item =>
-          Math.abs(item.x - candidate.x) >= gapFor(item, candidate)
-        )
+        const stillFits = withoutWeakest.every(item => !labelsCollide(item, candidate))
         if (weakest && candidate.priority > weakest.priority && stillFits) {
           selected = [...withoutWeakest, candidate]
         }
@@ -1351,10 +1416,9 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
       .sort((a,b) => a.x - b.x)
       .map(item => ({
         ...item,
-        sub:uniq(item.notes || [])
-          .filter(note => note !== item.main)
-          .filter(note => !(item.kind.includes('best') && String(note).trim().startsWith('$')))
-          .sort((a, b) => {
+        sub:buildSub({
+          ...item,
+          notes:uniq(item.notes || []).sort((a, b) => {
             const rank = note => {
               const lower = String(note).toLowerCase()
               if (lower.includes('пик') || lower.includes('peak') || lower.includes('pico')) return 0
@@ -1364,10 +1428,8 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
               return 3
             }
             return rank(a) - rank(b)
-          })
-          .slice(0, item.kind.includes('range-start') ? 2 : 1)
-          .concat(fmtDateShortLang(item.p.timestamp, lang))
-          .join(' · '),
+          }),
+        }),
       }))
   })()
   const allTimeMilestones = (() => {
@@ -1793,7 +1855,7 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
             <text x={pL-12} y={y+3.5} className="mc-yaxis-label">{fmtMoneyTick(v)}</text>
           </g>
         ))}
-        <line x1={pL} y1={yOf(startBR)} x2={W-pR} y2={yOf(startBR)} className="mc-zero"/>
+        {startBR >= minV && startBR <= maxV && <line x1={pL} y1={yOf(startBR)} x2={W-pR} y2={yOf(startBR)} className="mc-zero"/>}
         <line x1={pL} y1={plotBottom} x2={W-pR} y2={plotBottom} className="mc-axis-line"/>
         <line x1={pL} y1={pT} x2={pL} y2={plotBottom} className="mc-axis-line mc-axis-line-y"/>
         <path d={areaPath} fill="url(#mcGrad)" className="mc-area"/>
@@ -2032,7 +2094,14 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
             )}
             {tip.groupCount > 1 && tip.sessions?.length > 0 && (
               <div className="mc-session-breakdown">
-                {tip.sessions.map((s, idx) => (
+                {tip.sessions.length > 12 && (
+                  <div className="mc-session-more">
+                    {lang === 'ru' ? `… ещё ${tip.sessions.length - 11} сессий раньше`
+                      : lang === 'es' ? `… ${tip.sessions.length - 11} sesiones anteriores`
+                      : `… ${tip.sessions.length - 11} earlier sessions`}
+                  </div>
+                )}
+                {(tip.sessions.length > 12 ? tip.sessions.slice(-11) : tip.sessions).map((s, idx) => (
                   <div key={`${s.p.timestamp || idx}-${idx}`} className="mc-session-row">
                     <span className="mc-session-date">{fmtDateShortLang(s.p.timestamp, lang)}</span>
                     <span className={s.profit >= 0 ? 'mc-session-profit pos' : 'mc-session-profit neg'}>{fk(s.profit)}</span>

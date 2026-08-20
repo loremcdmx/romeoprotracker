@@ -1454,6 +1454,132 @@ describe('App', () => {
       expect(document.querySelector('.lightbox')).toBeNull()
     })
   })
+
+  describe('chart correctness sweep', () => {
+    const now = Math.floor(Date.now() / 1000)
+    // old history + a recent 30-day window with an early loss — the shape that
+    // used to collide «СТАРТ …» with the next label in month view
+    const mixedHistory = () => {
+      const rows = []
+      let br = 10000
+      let total = 0
+      const add = (daysAgo, delta, mtt) => {
+        br += delta
+        total += mtt
+        rows.push({
+          brAfter: br, brPrev: br - delta, date: `D${rows.length + 1}`,
+          timestamp: now - daysAgo * 86400, sessionResult: delta,
+          totalTournaments: total, tournaments: mtt, text: `S${rows.length + 1}`,
+        })
+      }
+      add(60, 120000, 8000); add(50, 60000, 5000); add(40, 68200, 6000)
+      add(25, -9300, 300); add(20, 4000, 250); add(15, -2000, 260)
+      add(10, 6000, 240); add(5, 2000, 230); add(1, 13800, 220)
+      return rows
+    }
+
+    it('month view rescales the Y axis to the visible range', async () => {
+      fetchPublicData.mockResolvedValue(makeMockData({
+        meta: { ...makeMockData().meta, brHistory: mixedHistory(), totalTournaments: 20500 },
+      }))
+      render(<App />)
+      await screen.findByTestId('pace-widget')
+      const chart = document.querySelector('.marathon-chart')
+      fireEvent.click(within(chart).getByText(translate('ru', 'period_month')))
+      await waitFor(() => {
+        const ys = [...document.querySelectorAll('.marathon-chart g[data-start] .mc-dot')]
+          .map((d) => +d.getAttribute('cy'))
+        expect(ys.length).toBeGreaterThan(2)
+        const span = Math.max(...ys) - Math.min(...ys)
+        // plot height is ~182 units on desktop; before the fix the line used <18%
+        expect(span).toBeGreaterThan(182 * 0.4)
+      })
+      // $10k start is far outside the zoomed domain — its line must be hidden
+      expect(document.querySelector('.mc-zero')).toBeNull()
+    })
+
+    it('keeps visible month/week x-labels from overlapping', async () => {
+      fetchPublicData.mockResolvedValue(makeMockData({
+        meta: { ...makeMockData().meta, brHistory: mixedHistory(), totalTournaments: 20500 },
+      }))
+      render(<App />)
+      await screen.findByTestId('pace-widget')
+      const chart = document.querySelector('.marathon-chart')
+      for (const period of ['period_month', 'period_week']) {
+        fireEvent.click(within(chart).getByText(translate('ru', period)))
+        await waitFor(() => {
+          expect(document.querySelectorAll('.mc-x-tick').length).toBeGreaterThan(0)
+        })
+        const boxes = [...document.querySelectorAll('.mc-x-tick')].flatMap((g) => {
+          const measure = (el, fs) => {
+            if (!el) return []
+            const x = +el.getAttribute('x')
+            const w = (el.textContent || '').length * fs * 0.58
+            const a = el.getAttribute('text-anchor') || 'middle'
+            const left = a === 'start' ? x : a === 'end' ? x - w : x - w / 2
+            return [{ left, right: left + w, row: fs }]
+          }
+          return [
+            ...measure(g.querySelector('.mc-xaxis-label-main'), 10.5),
+            ...measure(g.querySelector('.mc-xaxis-label-sub'), 8.3),
+          ]
+        })
+        for (let i = 0; i < boxes.length; i++) {
+          for (let j = i + 1; j < boxes.length; j++) {
+            if (boxes[i].row !== boxes[j].row) continue
+            const ov = Math.min(boxes[i].right, boxes[j].right) - Math.max(boxes[i].left, boxes[j].left)
+            expect(ov).toBeLessThanOrEqual(2)
+          }
+        }
+      }
+    })
+
+    it('sums pace MTT from cumulative totals even with null and zero-delta rows', async () => {
+      const rows = mixedHistory()
+      // Diverge the two historical code paths: a row with no cumulative (its
+      // play is absorbed by the next delta) and a zero-delta row whose
+      // *reported* count is phantom (cumulative unchanged) — summing reported
+      // numbers now disagrees with the authoritative cumulative total.
+      rows[4] = { ...rows[4], totalTournaments: null }
+      rows[5] = { ...rows[5], totalTournaments: rows[3].totalTournaments + rows[4].tournaments, tournaments: 260 }
+      for (let i = 6; i < rows.length; i++) {
+        rows[i] = { ...rows[i], totalTournaments: rows[i].totalTournaments - 260 }
+      }
+      const last = rows[rows.length - 1].totalTournaments
+      fetchPublicData.mockResolvedValue(makeMockData({
+        meta: { ...makeMockData().meta, brHistory: rows, totalTournaments: last },
+      }))
+      render(<App />)
+      const widget = await screen.findByTestId('pace-widget')
+      const note = widget.querySelector('.pace-summary-note')?.textContent || ''
+      // "+288.2k$ / 28 987 МТТ" — compare the MTT figure exactly
+      const mtt = (note.match(/\/\s*([\d\s\u202F]+)\s*МТТ/)?.[1] || '').replace(/\D/g, '')
+      expect(mtt).toBe(String(last))
+    })
+
+    it('caps the merged-point session breakdown list', async () => {
+      const rows = []
+      let br = 10000
+      let total = 0
+      for (let i = 0; i < 10; i++) { br += 5000; total += 2000; rows.push({ brAfter: br, brPrev: br - 5000, date: `A${i}`, timestamp: now - (90 - i) * 86400, sessionResult: 5000, totalTournaments: total, tournaments: 2000, text: `A${i}` }) }
+      for (let i = 0; i < 20; i++) {
+        const delta = i === 10 ? 6000 : 100 // best day lives inside the dense run
+        br += delta; total += 1
+        rows.push({ brAfter: br, brPrev: br - delta, date: `B${i}`, timestamp: now - (30 - i) * 86400, sessionResult: delta, totalTournaments: total, tournaments: 1, text: `B${i}` })
+      }
+      fetchPublicData.mockResolvedValue(makeMockData({
+        meta: { ...makeMockData().meta, brHistory: rows, totalTournaments: total },
+      }))
+      render(<App />)
+      await screen.findByTestId('mc-hover-capture')
+      const markers = [...document.querySelectorAll('g[data-start][data-end]')]
+      const biggest = markers.reduce((b, m) => +m.dataset.count > +(b?.dataset.count || 0) ? m : b, null)
+      expect(+biggest.dataset.count).toBeGreaterThan(12)
+      fireEvent.mouseEnter(biggest.querySelector('circle[fill="transparent"]'))
+      expect(document.querySelectorAll('.mc-session-row').length).toBeLessThanOrEqual(11)
+      expect(document.querySelector('.mc-session-more')).toBeInTheDocument()
+    })
+  })
 })
 
 describe('build constants', () => {
