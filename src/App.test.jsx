@@ -240,11 +240,43 @@ describe('App', () => {
     expect(await screen.findByText(new RegExp(translate('ru', 'chart_marathon').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))).toBeInTheDocument()
 
     const ticks = [...document.querySelectorAll('.mc-month-tick')]
-    expect(ticks.map(tick => tick.querySelector('.mc-month-label-main')?.textContent)).toEqual(['ЯНВ', 'ОКТ'])
+    // labels are centred over month spans now, so September (whose span is
+    // wide even though its boundary crowds October's) earns a label too
+    expect(ticks.map(tick => tick.querySelector('.mc-month-label-main')?.textContent)).toEqual(['ЯНВ', 'СЕН', 'ОКТ'])
     expect(ticks[0]).toHaveAttribute('data-source-id', 'month-0')
     expect(ticks.at(-1)).toHaveAttribute('data-source-id', 'month-9')
-    expect(Number(ticks.at(-1)?.querySelector('.mc-month-tickmark')?.getAttribute('x1'))
-      - Number(ticks[0]?.querySelector('.mc-month-tickmark')?.getAttribute('x1'))).toBeGreaterThanOrEqual(68)
+    // centred labels never overlap
+    const xs = ticks.map(t => Number(t.querySelector('.mc-month-label-main').getAttribute('x')))
+    xs.slice(1).forEach((x, i) => expect(x - xs[i]).toBeGreaterThanOrEqual(40))
+    // the current date is pinned to the right plot edge, not to a month boundary
+    const sub = document.querySelector('.mc-month-label-sub')
+    expect(sub).toBeInTheDocument()
+    expect(Number(sub.getAttribute('x'))).toBeGreaterThan(670)
+  })
+
+  it('labels a month whose boundary crowds its neighbour but whose span is wide', async () => {
+    const base = makeMockData()
+    // the real «АПР» case: April starts a few px after March's tick, but the
+    // month itself owns a wide stretch of the MTT axis
+    const rows = [
+      { m:2, total:1000 }, { m:3, total:1100 }, { m:4, total:9000 }, { m:5, total:10000 },
+    ].map(({ m, total }, i) => ({
+      id:`mm-${i}`,
+      timestamp:Date.UTC(2026, m, 5) / 1000,
+      brAfter:11000 + i * 1000,
+      brPrev:10000 + i * 1000,
+      sessionResult:1000,
+      totalTournaments:total,
+      tournaments:i === 0 ? total : total - [1000, 1100, 9000][i - 1],
+      text:`M${i}`,
+    }))
+    fetchPublicData.mockResolvedValue(makeMockData({
+      meta:{ ...base.meta, brHistory:rows, totalTournaments:10000 },
+    }))
+    render(<App />)
+    expect(await screen.findByText(new RegExp(translate('ru', 'chart_marathon').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))).toBeInTheDocument()
+    const labels = [...document.querySelectorAll('.mc-month-label-main')].map(t => t.textContent)
+    expect(labels).toContain('АПР')
   })
 
   it('compacts crowded marathon tail markers while keeping the latest point readable', async () => {
