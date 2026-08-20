@@ -1121,3 +1121,6 @@ html{scroll-behavior:smooth}
   .post-highlight{animation:none;outline:2px solid var(--gold)}
   .join-ff-btn,.ff-banner{transition:none}
 }
+
+/* merged-point breakdown: capped list header */
+.mc-session-more{font-size:10px;color:var(--dim);padding:1px 0 4px;font-style:italic}
