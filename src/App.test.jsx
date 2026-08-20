@@ -1420,12 +1420,47 @@ describe('App', () => {
     expect(avgTick.textContent).toBe('120')
     expect(Number(avgTick.getAttribute('x'))).toBeLessThan(34)
     expect(widget.querySelector('.smtt-avg-chip').textContent).toContain('120')
-    // gold last label clears the tallest bar of the local tail cluster
-    const lastLabel = widget.querySelector('.smtt-last-label')
-    const barTops = [...widget.querySelectorAll('.smtt-bar')].slice(-4).map((b) => Number(b.getAttribute('y')))
-    expect(Number(lastLabel.getAttribute('y'))).toBeLessThan(Math.min(...barTops))
+    // uniform bars leave no sky above the covered cluster -> value falls back
+    // to the gold header chip instead of floating over a bar
+    expect(widget.querySelector('.smtt-last-label')).toBeNull()
+    expect(widget.querySelector('.smtt-last-chip').textContent).toContain('120')
     expect(widget.querySelector('.smtt-bar.last')).toBeTruthy()
     expect(widget.querySelector('.smtt-avg-line')).toBeTruthy()
+  })
+
+  it('floats the last-session value only when it clears every covered bar', async () => {
+    const base = makeMockData()
+    // tall bars early, short tail: the floating gold label has clear sky
+    const mtts = [500, 480, 460, 440, 420, 400, 200, 180, 160, 150, 140, 130]
+    let total = 0
+    const brHistory = mtts.map((mtt, i) => {
+      total += mtt
+      return {
+        brAfter: 10000 + (i + 1) * 900, brPrev: 10000 + i * 900,
+        date: `D${i + 1}`, timestamp: 1712300000 + i * 86400,
+        sessionResult: 900, totalTournaments: total, tournaments: mtt, text: `S${i}`,
+      }
+    })
+    fetchPublicData.mockResolvedValue(makeMockData({
+      meta: { ...base.meta, brHistory, totalTournaments: total },
+    }))
+    render(<App />)
+    const widget = await screen.findByTestId('session-mtt-widget')
+    const label = widget.querySelector('.smtt-last-label')
+    expect(label).toBeTruthy()
+    expect(widget.querySelector('.smtt-last-chip')).toBeNull()
+    // and it must not intersect any bar box
+    const fs = 9
+    const w = label.textContent.length * fs * 0.58
+    const lx = Number(label.getAttribute('x'))
+    const box = { left: lx - w / 2, right: lx + w / 2, top: Number(label.getAttribute('y')) - fs, bottom: Number(label.getAttribute('y')) + 2 }
+    const bars = [...widget.querySelectorAll('.smtt-bar')].map((b) => ({
+      left: +b.getAttribute('x'), right: +b.getAttribute('x') + +b.getAttribute('width'),
+      top: +b.getAttribute('y'), bottom: +b.getAttribute('y') + +b.getAttribute('height'),
+    }))
+    const hit = bars.some((b) => Math.min(box.right, b.right) - Math.max(box.left, b.left) > 0.5
+      && Math.min(box.bottom, b.bottom) - Math.max(box.top, b.top) > 0.5)
+    expect(hit).toBe(false)
   })
 
   it('hides ru-only feed controls in en and keeps search functional', async () => {

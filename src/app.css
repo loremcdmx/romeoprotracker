@@ -826,6 +826,8 @@ html{scroll-behavior:smooth}
 .smtt-avg-line{stroke:rgba(255,255,255,.38);stroke-width:1;stroke-dasharray:4 4;vector-effect:non-scaling-stroke}
 .smtt-avg-tick{fill:rgba(240,240,240,.85)}
 .smtt-avg-chip{color:var(--dim2)}
+.smtt-last-chip{color:var(--gold,#ffd24d);border-color:rgba(255,210,77,.35)}
+.light .smtt-last-chip{color:#8a5b00;border-color:rgba(138,91,0,.3)}
 .smtt-last-label{fill:var(--gold,#ffd24d);font-size:9px;text-anchor:middle;font-weight:700;font-family:'Roboto Mono',monospace;font-variant-numeric:tabular-nums}
 .light .smtt-bar{fill:rgba(37,99,155,.45)}
 .light .smtt-bar:hover{fill:rgba(37,99,155,.75)}
