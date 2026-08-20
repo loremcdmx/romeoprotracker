@@ -915,6 +915,43 @@ describe('App', () => {
     expect(document.querySelectorAll('.mc-session-row').length).toBeGreaterThan(1)
   })
 
+  it('shows the cumulative MTT total in the marathon point tooltip', async () => {
+    const base = makeMockData()
+    const brHistory = Array.from({ length:80 }, (_, i) => ({
+      brAfter: 10000 + (i + 1) * 900,
+      brPrev: 10000 + i * 900,
+      date: `D${i + 1}`,
+      timestamp: 1712300000 + i * 3600,
+      sessionResult: 900,
+      totalTournaments: (i + 1) * 100,
+      tournaments: 100,
+      text: `Session ${i + 1}`,
+    }))
+    fetchPublicData.mockResolvedValue(makeMockData({
+      meta: { ...base.meta, brHistory, totalTournaments: 8000 },
+    }))
+
+    render(<App />)
+    expect(await screen.findByText(new RegExp(translate('ru', 'chart_marathon').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))).toBeInTheDocument()
+
+    const totalLine = () => [...document.querySelectorAll('.mc-tooltip div')]
+      .find((d) => d.textContent.includes(translate('ru', 'tip_mtt_total')))
+    const digits = (node) => (node?.textContent || '').replace(/\D/g, '')
+
+    // latest point: cumulative total = 80 sessions x 100 MTT
+    const markers = [...document.querySelectorAll('g[data-start][data-end]')]
+    const latestMarker = markers[markers.length - 1]
+    fireEvent.mouseEnter(latestMarker.querySelector('circle[fill="transparent"]'))
+    expect(digits(totalLine())).toBe('8000')
+
+    // a grouped marker reports the cumulative total at its last merged session
+    const previousMarker = markers[markers.length - 2]
+    expect(Number(previousMarker.dataset.count)).toBeGreaterThan(1)
+    fireEvent.mouseEnter(previousMarker.querySelector('circle[fill="transparent"]'))
+    const expected = (Number(previousMarker.dataset.end) + 1) * 100
+    expect(digits(totalLine())).toBe(String(expected))
+  })
+
   it('splits dense mixed marathon clusters into small dots on the line', async () => {
     const base = makeMockData()
     const prefix = [
