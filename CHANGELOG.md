@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 1.13.2 — 2026-08-20
+
+### Chart density
+- every session group renders a dot now (69 visible dots on live data instead of 19 — 43 groups used to be invisible); minor groups draw as small muted dots that grow on hover
+- a winning/losing streak can no longer collapse into one blob: hard cap of 6 sessions per marker in both the run grouping and the compactor (the record was a 24-session dot)
+- marker gaps loosened (18→12px, compactor 24→16), while the latest gold dot keeps a guaranteed quiet zone — nearby dots hide instead of crowding it
+- fully-overlapping minor dots thin themselves out; hover, tooltips and totals still cover every session
+
 ## 1.13.1 — 2026-08-20
 
 ### Chart hover

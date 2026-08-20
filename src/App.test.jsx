@@ -275,29 +275,37 @@ describe('App', () => {
 
     const markers = [...document.querySelectorAll('.marathon-chart g[data-start][data-end]')]
     const latest = markers[markers.length - 1]
-    const previous = markers[markers.length - 2]
+    const adjacent = markers[markers.length - 2]
     const latestDot = latest?.querySelector('.mc-dot')
-    const previousDot = previous?.querySelector('.mc-dot')
-    const previousAnchor = previous?.querySelector('.mc-dot-cluster-hit') || previousDot
+    const adjacentAnchor = adjacent?.querySelector('.mc-dot-cluster-hit') || adjacent?.querySelector('.mc-dot')
     const latestX = Number(latestDot?.getAttribute('cx'))
     const latestY = Number(latestDot?.getAttribute('cy'))
-    const previousX = Number(previousAnchor?.getAttribute('cx'))
-    const previousY = Number(previousAnchor?.getAttribute('cy'))
-    const previousClusterParts = previous?.querySelectorAll('.mc-dot-cluster-part') || []
+    const adjacentX = Number(adjacentAnchor?.getAttribute('cx'))
+    const adjacentY = Number(adjacentAnchor?.getAttribute('cy'))
+    // groups may no longer sit right next to the latest point — find one
+    const grouped = [...markers].reverse().find(m => Number(m.getAttribute('data-count')) > 1)
+    const groupedDot = grouped?.querySelector('.mc-dot')
+    const groupedClusterParts = grouped?.querySelectorAll('.mc-dot-cluster-part') || []
 
     expect(markers.length).toBeLessThan(brHistory.length)
     expect(Number(latest?.getAttribute('data-start'))).toBe(brHistory.length - 1)
     expect(Number(latest?.getAttribute('data-end'))).toBe(brHistory.length - 1)
     expect(Number(latest?.getAttribute('data-count'))).toBe(1)
-    expect(Number(previous?.getAttribute('data-count'))).toBeGreaterThan(1)
-    if (previousClusterParts.length) {
-      expect(previousClusterParts.length).toBeGreaterThan(1)
-      expect(previous?.querySelector('.mc-dot-cluster-hit')).toBeInTheDocument()
+    expect(grouped).toBeTruthy()
+    // hard cap: no marker may swallow more than 6 sessions
+    markers.forEach(m => expect(Number(m.getAttribute('data-count'))).toBeLessThanOrEqual(6))
+    if (groupedClusterParts.length) {
+      expect(groupedClusterParts.length).toBeGreaterThan(1)
+      expect(grouped?.querySelector('.mc-dot-cluster-hit')).toBeInTheDocument()
     } else {
-      expect(previousDot).toHaveClass('mc-dot-compacted')
-      expect(previous?.querySelector('.mc-dot-mixed-ring')).toBeInTheDocument()
+      expect(groupedDot?.classList.contains('mc-dot-grouped') || groupedDot?.classList.contains('mc-dot-compacted')).toBe(true)
     }
-    expect(Math.hypot(latestX - previousX, latestY - previousY)).toBeGreaterThanOrEqual(20)
+    // the latest point keeps a visible quiet zone: no drawn dot within 13px
+    const visibleXs = [...document.querySelectorAll('.marathon-chart .mc-dot:not(.mc-dot-hidden)')]
+      .filter((d) => d !== latestDot)
+      .map((d) => Number(d.getAttribute('cx')))
+    expect(Math.min(...visibleXs.map((x) => Math.abs(x - latestX)))).toBeGreaterThanOrEqual(13)
+    expect(adjacentAnchor).toBeTruthy()
   })
 
   it('renders pace widget and applies the shared date period filters', async () => {
@@ -883,32 +891,37 @@ describe('App', () => {
     expect(document.querySelectorAll('.mc-dot-grouped-ring').length).toBeGreaterThan(0)
     const markers = [...document.querySelectorAll('g[data-start][data-end]')]
     const latestMarker = markers[markers.length - 1]
-    const previousMarker = markers[markers.length - 2]
+    const adjacentMarker = markers[markers.length - 2]
     const latestDot = latestMarker?.querySelector('.mc-dot')
-    const previousDot = previousMarker?.querySelector('.mc-dot')
-    const previousAnchor = previousMarker?.querySelector('.mc-dot-cluster-hit') || previousMarker?.querySelector('.mc-dot')
-    const previousClusterParts = previousMarker?.querySelectorAll('.mc-dot-cluster-part') || []
+    const adjacentAnchor = adjacentMarker?.querySelector('.mc-dot-cluster-hit') || adjacentMarker?.querySelector('.mc-dot')
+    const groupedMarker = [...markers].reverse().find(m => Number(m.dataset.count) > 1)
+    const groupedDot = groupedMarker?.querySelector('.mc-dot')
+    const groupedClusterParts = groupedMarker?.querySelectorAll('.mc-dot-cluster-part') || []
     const latestX = Number(latestDot?.getAttribute('cx'))
     const latestY = Number(latestDot?.getAttribute('cy'))
-    const previousX = Number(previousAnchor?.getAttribute('cx'))
-    const previousY = Number(previousAnchor?.getAttribute('cy'))
+    const adjacentX = Number(adjacentAnchor?.getAttribute('cx'))
+    const adjacentY = Number(adjacentAnchor?.getAttribute('cy'))
     expect(Number(latestMarker?.dataset.start)).toBe(brHistory.length - 1)
     expect(Number(latestMarker?.dataset.end)).toBe(brHistory.length - 1)
     expect(Number(latestMarker?.dataset.count)).toBe(1)
-    expect(Number(previousMarker?.dataset.count)).toBeGreaterThan(1)
-    if (previousClusterParts.length) {
-      expect(previousClusterParts.length).toBeGreaterThan(1)
-      expect(previousMarker?.querySelector('.mc-dot-compacted')).not.toBeInTheDocument()
+    expect(groupedMarker).toBeTruthy()
+    markers.forEach(m => expect(Number(m.dataset.count)).toBeLessThanOrEqual(6))
+    if (groupedClusterParts.length) {
+      expect(groupedClusterParts.length).toBeGreaterThan(1)
     } else {
-      expect(previousDot).toHaveClass('mc-dot-grouped')
+      expect(groupedDot?.classList.contains('mc-dot-grouped') || groupedDot?.classList.contains('mc-dot-compacted')).toBe(true)
     }
-    expect(Math.hypot(latestX - previousX, latestY - previousY)).toBeGreaterThanOrEqual(20)
+    const visibleXs = [...document.querySelectorAll('.marathon-chart .mc-dot:not(.mc-dot-hidden)')]
+      .filter((d) => d !== latestDot)
+      .map((d) => Number(d.getAttribute('cx')))
+    expect(Math.min(...visibleXs.map((x) => Math.abs(x - latestX)))).toBeGreaterThanOrEqual(13)
+    expect(adjacentAnchor).toBeTruthy()
     expect(document.querySelectorAll('.mc-xlabel-bg')).toHaveLength(0)
     expect(document.querySelectorAll('.mc-ylabel-bg')).toHaveLength(0)
     expect(document.querySelectorAll('.mc-xaxis-label-main').length).toBeGreaterThan(0)
     expect(document.querySelectorAll('.mc-yaxis-label').length).toBeGreaterThan(0)
 
-    const hoverTarget = previousMarker?.querySelector('circle[fill="transparent"]')
+    const hoverTarget = groupedMarker?.querySelector('circle[fill="transparent"]')
     expect(hoverTarget).toBeTruthy()
     fireEvent.mouseEnter(hoverTarget)
     expect(document.querySelector('.mc-session-breakdown')).toBeInTheDocument()
@@ -951,10 +964,10 @@ describe('App', () => {
     expect(digits(totalLine())).toBe('8000')
 
     // a grouped marker reports the cumulative total at its last merged session
-    const previousMarker = markers[markers.length - 2]
-    expect(Number(previousMarker.dataset.count)).toBeGreaterThan(1)
-    fireEvent.mouseEnter(previousMarker.querySelector('circle[fill="transparent"]'))
-    const expected = (Number(previousMarker.dataset.end) + 1) * 100
+    const groupedMarker = [...markers].reverse().find(m => Number(m.dataset.count) > 1)
+    expect(groupedMarker).toBeTruthy()
+    fireEvent.mouseEnter(groupedMarker.querySelector('circle[fill="transparent"]'))
+    const expected = (Number(groupedMarker.dataset.end) + 1) * 100
     expect(digits(totalLine())).toBe(String(expected))
   })
 
@@ -1001,10 +1014,10 @@ describe('App', () => {
     expect(await screen.findByText(new RegExp(translate('ru', 'chart_marathon').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))).toBeInTheDocument()
 
     const splitCluster = [...document.querySelectorAll('.marathon-chart g[data-start][data-end]')]
-      .find(marker => Number(marker.getAttribute('data-count')) >= 8 && marker.querySelector('.mc-dot-cluster-parts'))
+      .find(marker => Number(marker.getAttribute('data-count')) >= 5 && marker.querySelector('.mc-dot-cluster-parts'))
     const clusterParts = splitCluster?.querySelectorAll('.mc-dot-cluster-part') || []
     expect(splitCluster).toBeTruthy()
-    expect(clusterParts.length).toBeGreaterThanOrEqual(8)
+    expect(clusterParts.length).toBeGreaterThanOrEqual(4)
     expect([...clusterParts].some(dot => dot.getAttribute('fill') === '#4caf50')).toBe(true)
     expect([...clusterParts].some(dot => dot.getAttribute('fill') === '#e53935')).toBe(true)
     expect(splitCluster?.querySelector('.mc-dot-compacted')).not.toBeInTheDocument()
@@ -1654,7 +1667,7 @@ describe('App', () => {
       expect(mtt).toBe(String(last))
     })
 
-    it('caps the merged-point session breakdown list', async () => {
+    it('never merges more than 6 sessions into one marker', async () => {
       const rows = []
       let br = 10000
       let total = 0
@@ -1671,10 +1684,13 @@ describe('App', () => {
       await screen.findByTestId('mc-hover-capture')
       const markers = [...document.querySelectorAll('g[data-start][data-end]')]
       const biggest = markers.reduce((b, m) => +m.dataset.count > +(b?.dataset.count || 0) ? m : b, null)
-      expect(+biggest.dataset.count).toBeGreaterThan(12)
+      // the old 20-session blob is impossible now — 6 is the hard ceiling
+      markers.forEach(m => expect(+m.dataset.count).toBeLessThanOrEqual(6))
+      expect(+biggest.dataset.count).toBeGreaterThan(1)
       fireEvent.mouseEnter(biggest.querySelector('circle[fill="transparent"]'))
-      expect(document.querySelectorAll('.mc-session-row').length).toBeLessThanOrEqual(11)
-      expect(document.querySelector('.mc-session-more')).toBeInTheDocument()
+      const breakdownRows = document.querySelectorAll('.mc-session-row').length
+      expect(breakdownRows).toBe(+biggest.dataset.count)
+      expect(document.querySelector('.mc-session-more')).toBeNull()
     })
   })
 
