@@ -459,8 +459,10 @@ button,select,input,summary{font:inherit}
   box-shadow:0 8px 32px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,0.06);
   opacity:0;
   transform:translate3d(var(--mc-tooltip-x,0),6px,0);
-  transition:opacity .16s ease-out,transform .18s cubic-bezier(.2,.8,.2,1),left .14s ease-out,bottom .14s ease-out;
-  will-change:opacity,transform,left,bottom;
+  /* position snaps (a hover-follow tooltip must not chase the cursor);
+     only the open/close fade animates */
+  transition:opacity .16s ease-out,transform .18s cubic-bezier(.2,.8,.2,1);
+  will-change:opacity,transform;
 }
 .mc-tooltip.is-visible{opacity:1;transform:translate3d(var(--mc-tooltip-x,0),0,0)}
 .light .mc-tooltip{background:rgba(255,255,255,0.80);border-color:rgba(0,0,0,0.08);box-shadow:0 8px 32px rgba(0,0,0,.12)}
@@ -1137,3 +1139,8 @@ html{scroll-behavior:smooth}
 /* keyboard focus for zoomable images and activity bars */
 .pc-img:focus-visible,.day-event-thumb:focus-visible{outline:2px solid var(--red2);outline-offset:2px}
 .activity-bar:focus-visible{outline:2px solid var(--red2);outline-offset:1px}
+
+/* anchor ring for the hovered marathon point (also covers groups without a
+   rendered dot of their own) */
+.mc-hover-ring{fill:none;stroke:rgba(255,255,255,.9);stroke-width:1.7;pointer-events:none;filter:drop-shadow(0 1px 3px rgba(0,0,0,.5))}
+.light .mc-hover-ring{stroke:rgba(30,26,20,.75);filter:none}

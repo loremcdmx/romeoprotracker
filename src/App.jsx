@@ -1819,11 +1819,13 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
       <svg className="mc-svg" viewBox={`0 0 ${W} ${H+pB+xLabelExtraBottom}`}
         role="img" aria-label={`${t('chart_marathon')}: ${plBrUpdates(points.length, lang)}`}
         onMouseLeave={(e)=>{
-          // Don't close tooltip if mouse moved to the tooltip itself
-          const related = e.relatedTarget
-          if (related && chartRef.current?.contains(related)) return
+          // Desktop tooltip is pointer-events:none, so it can never be the
+          // relatedTarget — close unconditionally. The old "stay open when
+          // moving into the card header" guard was the source of tooltips
+          // stuck open after the cursor left through the top of the card.
           closeTip()
         }}
+        onMouseEnter={() => { clearTimeout(tipCloseTimer.current); if (tip) setTipVisible(true) }}
         onTouchStart={handleTouchStart} onTouchMove={handleTouchMove} onTouchEnd={handleTouchEnd}
         style={{touchAction:'pan-y',WebkitUserSelect:'none',userSelect:'none',WebkitTouchCallout:'none'}}>
         <defs>
@@ -1895,8 +1897,15 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
               const mx = (e.clientX - (svgRect?.left || 0)) * scale
               let nearest = null, minD = Infinity
               markerGroups.forEach(m => { const d = Math.abs(m.x - mx); if (d < minD) { minD = d; nearest = m } })
-              if (!nearest || tip?.p === nearest.p) return
-              announceHoverPopupOpen()
+              if (!nearest) return
+              if (tip?.p === nearest.p) {
+                if (!tipVisible) setTipVisible(true) // re-entered during the close fade
+                return
+              }
+              // Hysteresis: switch anchors only once the cursor is clearly past
+              // the midpoint, otherwise the tooltip chatters on the boundary.
+              if (tip && Number.isFinite(tip.x) && minD >= Math.abs(tip.x - mx) - 7) return
+              if (!tip) announceHoverPopupOpen()
               openTipState({ p:nearest.p, profit:nearest.profit, x:nearest.x, y:nearest.y,
                 groupCount:nearest.count, sessions:nearest.sessions, totalMTT:cumMTT[nearest.end] || null })
             }}/>
@@ -2037,6 +2046,7 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
         {tip && <>
           <line x1={tip.x} y1={pT} x2={tip.x} y2={tip.y - 11} stroke="var(--border2)" strokeWidth="1" strokeDasharray="1 3" opacity="0.55"/>
           <line x1={tip.x} y1={tip.y + 11} x2={tip.x} y2={H} stroke="var(--border2)" strokeWidth="1" strokeDasharray="1 3" opacity="0.55"/>
+          <circle className="mc-hover-ring" cx={tip.x} cy={tip.y} r="6"/>
         </>}
       </svg>
       {tip && (() => {
@@ -4661,6 +4671,7 @@ export default function App() {
                 {t('footer_changelog')}
               </div>
               {[
+                ['20.08', 'v1.13', 'Тултип показывает сыгранные МТТ, наведение работает в любом месте графика и стало плавным, у пика короткая выноска. Неделя и месяц масштабируются крупно, счётчики МТТ сведены к одному числу. Новый виджет «Турниров за сессию». Подтянуты светлая тема, клавиатура и англ/исп версии'],
                 ['02.07', 'v1.12', 'BR-апдейты больше не конфликтуют с номером дня, а тренд $/МТТ считается по завершённым отрезкам'],
                 ['23.05', 'v1.11', '«Доллар с турнира» стал чище: точки по 2k МТТ, зелёный тренд, неполный отрезок приглушён, старт от нуля. Починены аватарки, favicon и узкая верстка'],
                 ['15.05', 'v1.10', 'Появился виджет GGWF-лидербордов: три борда Low/Medium/High, лидеры, место Ромео, призы, сколько осталось до конца и тултип с формулой очков'],

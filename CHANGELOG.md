@@ -2,6 +2,37 @@
 
 ## Unreleased
 
+## 1.13.0 — 2026-08-20
+
+### Chart
+- marathon tooltip shows the cumulative MTT total at every point (channel request), with BR and the counter as a compact stat row
+- the whole plot is hoverable on desktop: the tooltip follows the nearest session group with an anchor ring, boundary hysteresis, and it now reliably closes when the cursor leaves the chart
+- the peak callout no longer sits on milestone plates at the end of a long leader (187.7 → 61.4 units on live data); milestone plates are ~20% smaller
+- week/month views zoom the Y axis to the visible range (the line used 17% of the plot height, now ~80%) and no longer collapse sessions into mega marker groups
+- month-view x-axis labels stopped overlapping (the solver now models the exact rendered intervals); the dense-tail x spacing is proportional again
+- merged-point tooltips cap the session breakdown at 11 rows with an "… ещё N" line
+- every MTT counter now derives from the same cumulative totals — the pace widget, its axis, and the hero counter show one number
+
+### New
+- «Турниров за сессию» widget: per-session tournament bars with an average guide and the last session in gold, honoring the shared week/month/all filter; labels never sit on the bars (average lives on the axis, the last value moves to a header chip when there is no sky above the cluster)
+
+### Localization & themes
+- en/es: the ru-only feed controls are hidden, search works over translations, the ignore action can no longer silently hide posts; `<html lang>` follows the language switch; dates, regData and ratings localized
+- light theme: chart line colors, pace drill-down tooltip, progress percent, special x-axis ticks, FF-banner stats and footer freshness all pass contrast now
+
+### Accessibility
+- lightbox is a dialog with a close button and Escape; zoomable images and desktop activity bars are keyboard-reachable; the profile menu closes on Escape; reduced-motion also covers smooth scrolling
+
+### Data & network
+- likes/translation-only scraper runs now reach already-open tabs (postsChangedAt freshness stamp)
+- cold load stopped double-downloading the posts payload from every source (~2.9MB → ~1.5MB)
+- missing files under /assets/ and /data/ return honest 404s instead of a year-cached HTML fallback
+- footer times follow the site-wide Europe/Warsaw policy; freshness thresholds match the real scraper cadence
+
+### Reliability
+- the scraper no longer swallows rejected git pushes (retries after a rebase, then alerts); commit messages are argv-safe
+- undici and postcss bumped; four stale branches removed
+
 ## 1.12.0 — 2026-07-02
 
 ### UI

@@ -1353,6 +1353,52 @@ describe('App', () => {
     expect(document.querySelector('.mc-tooltip')).toBeInTheDocument()
   })
 
+  it('keeps the hover anchor steady near boundaries and closes on chart leave', async () => {
+    const base = makeMockData()
+    const brHistory = Array.from({ length:60 }, (_, i) => ({
+      brAfter: 10000 + (i + 1) * 900,
+      brPrev: 10000 + i * 900,
+      date: `D${i + 1}`,
+      timestamp: 1712300000 + i * 3600,
+      sessionResult: 900,
+      totalTournaments: (i + 1) * 100,
+      tournaments: 100,
+      text: `Session ${i + 1}`,
+    }))
+    fetchPublicData.mockResolvedValue(makeMockData({
+      meta: { ...base.meta, brHistory, totalTournaments: 6000 },
+    }))
+    render(<App />)
+    await screen.findByTestId('pace-widget')
+    const overlay = document.querySelector('[data-testid="mc-hover-capture"]')
+    const dots = [...document.querySelectorAll('g[data-start][data-end]')]
+      .map((g) => ({ end: g.dataset.end, cx: Number(g.querySelector('.mc-dot').getAttribute('cx')) }))
+      .sort((a, b) => a.cx - b.cx)
+    const [A, B] = [dots[2], dots[3]]
+
+    fireEvent.mouseMove(overlay, { clientX: A.cx })
+    const hoveredEnd = () => document.querySelector('g[data-start].is-hovered')?.dataset.end
+    const ringX = () => Number(document.querySelector('.mc-hover-ring')?.getAttribute('cx'))
+    expect(hoveredEnd()).toBe(A.end)
+    // the anchor ring marks the hovered point
+    expect(ringX()).toBeCloseTo(A.cx, 1)
+
+    // tiny jitter around the same spot must not move the anchor (hysteresis)
+    fireEvent.mouseMove(overlay, { clientX: A.cx + 3 })
+    expect(ringX()).toBeCloseTo(A.cx, 1)
+    fireEvent.mouseMove(overlay, { clientX: A.cx - 3 })
+    expect(ringX()).toBeCloseTo(A.cx, 1)
+
+    // clearly on B (a rendered dot): anchor switches and highlights it
+    fireEvent.mouseMove(overlay, { clientX: B.cx })
+    expect(hoveredEnd()).toBe(B.end)
+
+    // leaving the chart releases the tooltip (React synthesizes mouseleave
+    // from mouseout with an outside relatedTarget)
+    fireEvent.mouseOut(document.querySelector('.mc-svg'), { relatedTarget: document.body })
+    await waitFor(() => expect(document.querySelector('.mc-tooltip')).toBeNull())
+  })
+
   it('keeps the peak callout short and clear of milestone plates', async () => {
     const base = makeMockData()
     // dip below start (recovery), cross $200k, peak at the last point — the
