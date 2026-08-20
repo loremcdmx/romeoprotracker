@@ -19,7 +19,7 @@
  */
 
 import { readFile, writeFile } from 'fs/promises'
-import { execSync } from 'child_process'
+import { execSync, execFileSync } from 'child_process'
 import * as cheerio from 'cheerio'
 import { computeMarathonDay, extractMarathonDay } from './lib/marathon-integrity.mjs'
 import { needsTranslation, translatePost } from './lib/translation.mjs'
@@ -65,14 +65,25 @@ async function persistScrapeOutputs({
     return
   }
 
-  execSync(`git add ${gitFiles.join(' ')}`)
-  try {
-    execSync(`git commit -m "${commitMessage}"`)
-    execSync('git push')
-    console.log(`✅ Pushed: ${commitMessage}`)
-  } catch (e) {
-    console.log('ℹ Nothing to commit or push failed:', e.message)
+  execFileSync('git', ['add', ...gitFiles])
+  // Distinguish "nothing changed" (fine) from a real commit/push failure: the
+  // old single catch swallowed rejected pushes, so a persistent failure looked
+  // like a healthy run and notifyFailure never fired.
+  let hasStagedChanges = false
+  try { execSync('git diff --cached --quiet') } catch { hasStagedChanges = true }
+  if (!hasStagedChanges) {
+    console.log('ℹ Nothing to commit')
+    return
   }
+  execFileSync('git', ['commit', '-m', commitMessage])
+  try {
+    execSync('git push')
+  } catch (e) {
+    console.log('⚠ push rejected, retrying after rebase:', e.message)
+    execSync('git pull --rebase origin main')
+    execSync('git push')
+  }
+  console.log(`✅ Pushed: ${commitMessage}`)
 }
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)) }
