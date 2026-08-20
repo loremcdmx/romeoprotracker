@@ -340,6 +340,31 @@ describe('fetchPublicData', () => {
     expect(postsFetches.length).toBeGreaterThan(0)
   })
 
+  it('treats a likes-only postsChangedAt bump as fresh data', async () => {
+    localStorage.setItem(CACHE_KEY, JSON.stringify({
+      ts: Date.now() - 5 * 60 * 1000,
+      compact: { avatars: [], posts: [{ i: 'cached', a: 'Cached', t: 1, l: 1 }] },
+      meta: { lastUpdated: '2026-08-19T03:00:00.000Z' },
+      source: 'cache',
+    }))
+
+    vi.stubGlobal('fetch', vi.fn((url) => {
+      const href = String(url)
+      if (href.includes('/meta.json')) {
+        // lastUpdated unchanged — only the likes revision moved
+        return jsonResponse({ lastUpdated: '2026-08-19T03:00:00.000Z', postsChangedAt: '2026-08-19T04:00:00.000Z' })
+      }
+      if (href.includes('/posts.min.json')) {
+        return jsonResponse({ avatars: [], posts: [{ i: 'cached', a: 'Cached', t: 1, l: 99 }] })
+      }
+      if (href.includes('/leaderboards.json')) return jsonResponse(null)
+      throw new Error(`Unexpected fetch: ${href}`)
+    }))
+
+    const result = await fetchPublicData()
+    expect(result.posts[0].likes).toBe(99)
+  })
+
   it('downloads fresh posts when upstream meta advances', async () => {
     localStorage.setItem(CACHE_KEY, JSON.stringify({
       ts: Date.now() - 5 * 60 * 1000,

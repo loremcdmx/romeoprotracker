@@ -66,10 +66,14 @@ function setCache(payload) {
 }
 
 function getPayloadUpdatedAt(payload) {
-  const value = payload?.meta?.lastUpdated
-  if (!value) return 0
-  const timestamp = Date.parse(value)
-  return Number.isFinite(timestamp) ? timestamp : 0
+  const parse = (value) => {
+    if (!value) return 0
+    const ts = Date.parse(value)
+    return Number.isFinite(ts) ? ts : 0
+  }
+  // postsChangedAt moves on likes/translation-only scraper runs, which leave
+  // lastUpdated untouched — both must count as freshness.
+  return Math.max(parse(payload?.meta?.lastUpdated), parse(payload?.meta?.postsChangedAt))
 }
 
 function getPayloadTrendSignature(payload) {
@@ -196,8 +200,12 @@ function inflateCachedPayload(cache) {
   }
 }
 
-async function fetchJson(url, timeoutMs = JSON_FETCH_TIMEOUT_MS) {
+async function fetchJson(url, timeoutMs = JSON_FETCH_TIMEOUT_MS, externalSignal = null) {
   const controller = typeof AbortController === 'undefined' ? null : new AbortController()
+  if (externalSignal) {
+    if (externalSignal.aborted) controller?.abort()
+    else externalSignal.addEventListener?.('abort', () => controller?.abort(), { once: true })
+  }
   let timeoutId = null
   const timeout = new Promise((_, reject) => {
     timeoutId = setTimeout(() => {
@@ -220,13 +228,13 @@ async function fetchJson(url, timeoutMs = JSON_FETCH_TIMEOUT_MS) {
   return response.json()
 }
 
-async function fetchFromBase(base) {
+async function fetchFromBase(base, signal = null) {
   let compact = null
   let posts = null
 
   const [metaResult, compactResult] = await Promise.allSettled([
-    fetchJson(`${base}/meta.json`),
-    fetchJson(`${base}/posts.min.json`),
+    fetchJson(`${base}/meta.json`, JSON_FETCH_TIMEOUT_MS, signal),
+    fetchJson(`${base}/posts.min.json`, JSON_FETCH_TIMEOUT_MS, signal),
   ])
 
   if (metaResult.status !== 'fulfilled') {
@@ -238,15 +246,17 @@ async function fetchFromBase(base) {
   if (compactResult.status === 'fulfilled') {
     compact = compactResult.value
   } else {
-    posts = await fetchJson(`${base}/posts.json`)
+    posts = await fetchJson(`${base}/posts.json`, JSON_FETCH_TIMEOUT_MS, signal)
   }
 
   return { compact, posts, meta, source: base }
 }
 
 async function collectNetworkPayloads() {
-  const pending = getDataBases().map((base) => (
-    fetchFromBase(base)
+  const bases = getDataBases()
+  const controllers = bases.map(() => (typeof AbortController === 'undefined' ? null : new AbortController()))
+  const pending = bases.map((base, i) => (
+    fetchFromBase(base, controllers[i]?.signal || null)
       .then((value) => ({ status: 'fulfilled', value }))
       .catch((reason) => ({ status: 'rejected', reason }))
   ))
@@ -265,6 +275,9 @@ async function collectNetworkPayloads() {
         delay(SOURCE_SETTLE_MS).then(() => []),
       ])
       settled.push(...extra)
+      // A winner is in hand — losing bases would each finish a multi-MB
+      // download for nothing (cold load paid ~2.9MB instead of ~1.5MB).
+      controllers.forEach((c) => c?.abort())
       break
     }
   }

@@ -63,7 +63,7 @@ export function usePostsData() {
       // No-op poll fast path: when the freshness markers are unchanged the payload
       // is content-identical (the storage layer returns the cached posts), so skip
       // enrich + setState entirely and avoid re-rendering the whole app every cycle.
-      const signature = `${nextMeta?.lastUpdated || ''}|${nextPosts.length}`
+      const signature = `${nextMeta?.lastUpdated || ''}|${nextMeta?.postsChangedAt || ''}|${nextPosts.length}`
       if (silent && knownIdsRef.current && appliedSigRef.current === signature) {
         setError(null)
         return { posts: latestPostsRef.current, meta: latestMetaRef.current }

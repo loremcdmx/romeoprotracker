@@ -185,6 +185,32 @@ describe('usePostsData', () => {
     expect(fetchPublicData).toHaveBeenCalledTimes(3)
   })
 
+  it('re-renders when only postsChangedAt moves (likes-only scraper run)', async () => {
+    vi.useFakeTimers()
+    fetchPublicData
+      .mockResolvedValueOnce(makePayload({
+        posts: [{ id: 'post-1', author: 'Romeopro', timestamp: 10000, brAfter: 11000, likes: 1 }],
+        meta: { lastUpdated: '2026-08-19T00:00:00.000Z' },
+      }))
+      .mockResolvedValue(makePayload({
+        posts: [{ id: 'post-1', author: 'Romeopro', timestamp: 10000, brAfter: 11000, likes: 42 }],
+        meta: { lastUpdated: '2026-08-19T00:00:00.000Z', postsChangedAt: '2026-08-19T00:30:00.000Z' },
+      }))
+
+    let seenLikes = 0
+    function Probe() {
+      const { posts } = usePostsData()
+      seenLikes = posts[0]?.likes ?? 0
+      return null
+    }
+    render(<Probe />)
+    await act(async () => { await flushMicrotasks() })
+    expect(seenLikes).toBe(1)
+
+    await advancePoll()
+    expect(seenLikes).toBe(42)
+  })
+
   it('does not re-render on a no-op poll when the data is unchanged', async () => {
     vi.useFakeTimers()
     fetchPublicData.mockResolvedValue(makePayload({
