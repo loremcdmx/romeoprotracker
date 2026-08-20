@@ -1415,7 +1415,10 @@ describe('App', () => {
     const widget = await screen.findByTestId('session-mtt-widget')
     expect(within(widget).getByText(translate('ru', 'smtt_title'))).toBeInTheDocument()
     expect(widget.querySelectorAll('.smtt-bar')).toHaveLength(12)
-    expect(widget.querySelector('.smtt-avg-label').textContent).toContain('120')
+    const avgLabel = widget.querySelector('.smtt-avg-label')
+    expect(avgLabel.textContent).toContain('120')
+    // left-anchored so it can't collide with the gold last-session label on the right
+    expect(Number(avgLabel.getAttribute('x'))).toBeLessThan(320)
     expect(widget.querySelector('.smtt-bar.last')).toBeTruthy()
     expect(widget.querySelector('.smtt-avg-line')).toBeTruthy()
   })
@@ -1578,6 +1581,55 @@ describe('App', () => {
       fireEvent.mouseEnter(biggest.querySelector('circle[fill="transparent"]'))
       expect(document.querySelectorAll('.mc-session-row').length).toBeLessThanOrEqual(11)
       expect(document.querySelector('.mc-session-more')).toBeInTheDocument()
+    })
+  })
+
+  describe('a11y + theme sweep', () => {
+    it('opens the lightbox from a post image with the keyboard', async () => {
+      fetchPublicData.mockResolvedValue(makeMockData())
+      render(<App />)
+      await screen.findByTestId('pace-widget')
+      const img = document.querySelector('.pc-img')
+      expect(img).toHaveAttribute('role', 'button')
+      expect(img.tabIndex).toBe(0)
+      fireEvent.keyDown(img, { key: 'Enter' })
+      expect(document.querySelector('.lightbox')).toBeInTheDocument()
+      fireEvent.keyDown(document, { key: 'Escape' })
+      await waitFor(() => expect(document.querySelector('.lightbox')).toBeNull())
+    })
+
+    it('closes the profile menu with Escape and drops fake menu semantics', async () => {
+      fetchPublicData.mockResolvedValue(makeMockData())
+      render(<App />)
+      await screen.findByTestId('pace-widget')
+      const avatar = document.querySelector('.pc-avatar')
+      expect(avatar).not.toHaveAttribute('aria-haspopup')
+      fireEvent.click(avatar)
+      await waitFor(() => expect(avatar).toHaveAttribute('aria-expanded', 'true'))
+      fireEvent.keyDown(document, { key: 'Escape' })
+      await waitFor(() => expect(document.querySelector('.pc-avatar')).toHaveAttribute('aria-expanded', 'false'))
+    })
+
+    it('toggles activity-day selection from the keyboard on desktop bars', async () => {
+      fetchPublicData.mockResolvedValue(makeMockData())
+      render(<App />)
+      await screen.findByTestId('pace-widget')
+      const bar = document.querySelector('.activity-bar')
+      expect(bar).toBeTruthy()
+      expect(bar).toHaveAttribute('role', 'button')
+      fireEvent.keyDown(bar, { key: 'Enter' })
+      await waitFor(() => expect(document.querySelector('.activity-bar[aria-pressed="true"], .activity-bar-rect.active')).toBeTruthy())
+    })
+
+    it('uses darker chart line colors in the light theme', async () => {
+      localStorage.setItem('rpt_theme', 'light')
+      fetchPublicData.mockResolvedValue(makeMockData())
+      render(<App />)
+      await screen.findByTestId('pace-widget')
+      const stopColors = [...document.querySelectorAll('.marathon-chart defs stop, .pace-chart defs stop')]
+        .map((st) => st.getAttribute('stop-color') || st.getAttribute('stopColor'))
+      expect(stopColors.some((c) => c === '#2e8b3a' || c === '#c8362e')).toBe(true)
+      expect(stopColors).not.toContain('#76d982')
     })
   })
 })

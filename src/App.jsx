@@ -526,7 +526,7 @@ function PaceRateValue({ value, unit, className = '', animate = true }) {
   return <span className={`pace-rate-value ${tone} ${pulse ? 'pulse' : ''} ${className}`}>{formatDollarPerMTT(animated, unit)}</span>
 }
 
-function PaceMiniChart({ segments, unit, t }) {
+function PaceMiniChart({ segments, unit, t, light = false }) {
   const [hovered, setHovered] = useState(null)
   // Must stay above the early return so the hook order never changes.
   const isMobile = useIsMobile()
@@ -613,12 +613,13 @@ function PaceMiniChart({ segments, unit, t }) {
   for (const idx of [...xLabelIndexes]) {
     if (idx !== lastLabelIdx && Math.abs(x(idx) - lastLabelX) < 30) xLabelIndexes.delete(idx)
   }
-  const firstTone = segments[0]?.rate >= 0 ? '#78d984' : '#f0756d'
+  const paceTone = ok => ok ? (light ? '#2e8b3a' : '#78d984') : (light ? '#c8362e' : '#f0756d')
+  const firstTone = paceTone(segments[0]?.rate >= 0)
   const lineStops = [
     { offset:'0%', color:firstTone },
     ...segments.map(seg => ({
       offset:`${(seg.endMtt || 0) / maxMtt * 100}%`,
-      color:seg.rate >= 0 ? '#78d984' : '#f0756d',
+      color:paceTone(seg.rate >= 0),
     })),
   ]
   const openTooltip = (seg, idx, cx, cy) => {
@@ -738,7 +739,7 @@ function PaceMiniChart({ segments, unit, t }) {
   )
 }
 
-function PaceWidget({ meta, stats, period, setPeriod, lang, t }) {
+function PaceWidget({ meta, stats, period, setPeriod, lang, t, light = false }) {
   const pace = useMemo(() => computePaceMetrics({ meta, stats, period }), [meta, stats, period])
   if (!pace?.current) return null
 
@@ -808,7 +809,7 @@ function PaceWidget({ meta, stats, period, setPeriod, lang, t }) {
             <b>{t('pace_chart_step')}: {fmtInt(pace.binSize)} {mttUnit}</b>
           </div>
         </div>
-        <PaceMiniChart segments={pace.segments} unit={mttUnit} t={t}/>
+        <PaceMiniChart segments={pace.segments} unit={mttUnit} t={t} light={light}/>
       </div>
     </section>
   )
@@ -884,7 +885,7 @@ function MarathonMilestoneCallout({ milestone, type, isMobile, W, pL, pR, pT, pl
   )
 }
 
-function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, lang, t }) {
+function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, lang, t, light = false }) {
   const [tip, setTip]     = useState(null)
   const [tipVisible, setTipVisible] = useState(false)
   const [pathLen, setPathLen] = useState(null)
@@ -1692,7 +1693,7 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
   const lineStops = (() => {
     if (!coords.length) return []
     const pctOfX = x => Math.max(0, Math.min(100, ((x - pL) / Math.max(W - pL - pR, 1)) * 100))
-    const colorFor = profit => profit >= 0 ? '#76d982' : '#ff665d'
+    const colorFor = profit => profit >= 0 ? (light ? '#2e8b3a' : '#76d982') : (light ? '#c8362e' : '#ff665d')
     const stops = []
     const pushStop = (offset, color) => {
       const clamped = Math.max(0, Math.min(100, offset))
@@ -2210,6 +2211,8 @@ function DayEventsList({ events, compact, onPostClick, setLightbox, lang = _lang
   }
   const thumb = (src) => (
     <img src={src} alt="" className="day-event-thumb" loading="lazy"
+      role="button" tabIndex={0} aria-label={_t('lightbox_label')}
+      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); setLightbox?.(src) } }}
       onClick={e => { e.stopPropagation(); setLightbox?.(src) }}/>
   )
   return (
@@ -2589,6 +2592,14 @@ function ActivityChart({ posts, favorites, ignored, onFav, onIgnore, onUnignore,
           const labelAnchor = labelX < labelEdge ? 'start' : labelX > W - labelEdge ? 'end' : 'middle'
           return (
             <g key={date} className="activity-bar" style={{cursor:'pointer'}}
+              role="button" tabIndex={0} aria-pressed={isSelected}
+              aria-label={`${date}: ${count}`}
+              onKeyDown={(e)=>{
+                if (e.key !== 'Enter' && e.key !== ' ') return
+                e.preventDefault()
+                closeTip()
+                setSelected(selected?.date===date ? null : {date,posts:dp})
+              }}
               onMouseEnter={(e)=>{
                 const rect = e.currentTarget.getBoundingClientRect()
                 requestTip({
@@ -3051,8 +3062,13 @@ const PostCard = memo(function PostCard({ p, favorites, ignored, onFav, onIgnore
     const handler = e => {
       if (menuRef.current && !menuRef.current.contains(e.target)) setMenu(false)
     }
+    const onKey = e => { if (e.key === 'Escape') setMenu(false) }
     document.addEventListener('mousedown', handler)
-    return () => document.removeEventListener('mousedown', handler)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', handler)
+      document.removeEventListener('keydown', onKey)
+    }
   }, [menu])
   const likes  = p.likes || 0
   const initial = (p.author||'?')[0].toUpperCase()
@@ -3092,7 +3108,7 @@ const PostCard = memo(function PostCard({ p, favorites, ignored, onFav, onIgnore
     <div className={`post-card ${isFav?'faved':''} ${isRomeo?'romeo-post':''}`} onClick={()=>menu&&setMenu(false)}>
       <div className="pc-head">
         <button type="button" className="pc-avatar" data-avatar-initial={initial}
-          aria-haspopup="menu" aria-expanded={menu} aria-label={p.author}
+          aria-expanded={menu} aria-label={p.author}
           onClick={e=>{e.stopPropagation();setMenu(m=>!m)}}>
           <img src={p.avatar || GT_DEFAULT_AVATAR} alt="" referrerPolicy="no-referrer" onError={avatarError}/>
         </button>
@@ -3101,7 +3117,7 @@ const PostCard = memo(function PostCard({ p, favorites, ignored, onFav, onIgnore
           <div ref={menuRef} style={S_MENU}
             onClick={e=>e.stopPropagation()}>
             {ROMEO_RE.test(p.author) && (
-              <a href="https://forum.gipsyteam.ru/index.php?showforum=141" target="_blank" rel="noreferrer"
+              <a href="https://forum.gipsyteam.ru/bitva-blogov" target="_blank" rel="noreferrer"
                 style={S_MENU_ITEM}
                 onMouseEnter={menuHover}
                 onMouseLeave={menuLeave}>
@@ -3125,7 +3141,7 @@ const PostCard = memo(function PostCard({ p, favorites, ignored, onFav, onIgnore
         )}
         <div style={S_FLEX1}>
           <button type="button" className="pc-author"
-            aria-haspopup="menu" aria-expanded={menu}
+            aria-expanded={menu}
             onClick={e=>{e.stopPropagation();setMenu(m=>!m)}}>
             {p.author}
           </button>
@@ -3163,6 +3179,8 @@ const PostCard = memo(function PostCard({ p, favorites, ignored, onFav, onIgnore
         <div className="pc-images">
           {p.images.map((src,j)=>(
             <img key={j} className="pc-img" src={src} alt="" loading="lazy"
+              role="button" tabIndex={0} aria-label={_t('lightbox_label')}
+              onKeyDown={e=>{ if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setLightbox(src) } }}
               onClick={()=>setLightbox(src)} onError={e=>e.target.style.display='none'}/>
           ))}
         </div>
@@ -3648,7 +3666,9 @@ function SessionMttChart({ meta, period, lang, t }) {
             </rect>
           ))}
           <line className="smtt-avg-line" x1={pad.left} x2={W - pad.right} y1={avgY} y2={avgY}/>
-          <text className="smtt-avg-label" x={W - pad.right - 2} y={avgY - 4}>
+          {/* left-anchored: the right edge belongs to the gold last-session
+              label, they collided when the last bar sat near the average */}
+          <text className="smtt-avg-label" x={pad.left + 6} y={avgY - 5}>
             {`${t('smtt_avg')}: ${fmtInt(Math.round(avg))}`}
           </text>
           <text className="smtt-last-label" x={Math.min(xOf(lastIdx) + barW / 2, W - pad.right - 14)} y={yOf(rows[lastIdx].mtt) - 5}>
@@ -4357,10 +4377,10 @@ export default function App() {
                 <div className="mobile-stats-note">{t('stats_note_filter')} ({t(chartPeriod==='week'?'period_week':'period_month')})</div>
               )}
               <MarathonChart posts={posts} meta={meta} startBR={stats.startBR} setLightbox={setLightbox}
-                period={chartPeriod} setPeriod={setChartPeriod} lang={lang} t={t}/>
+                period={chartPeriod} setPeriod={setChartPeriod} lang={lang} t={t} light={theme === 'light'}/>
               {/* Mobile-only: sidebar is hidden <=980px, so surface the FF banner here in the feed */}
               {isNarrow && <div className="ff-banner-mobile-slot"><FirstFundBanner t={t}/></div>}
-              <PaceWidget meta={meta} stats={stats} period={chartPeriod} setPeriod={setChartPeriod} lang={lang} t={t}/>
+              <PaceWidget meta={meta} stats={stats} period={chartPeriod} setPeriod={setChartPeriod} lang={lang} t={t} light={theme === 'light'}/>
               <SessionMttChart meta={meta} period={chartPeriod} lang={lang} t={t}/>
               {/* Mobile-only top posts */}
               {lang==='ru' && hotPosts.length > 0 && (() => {
