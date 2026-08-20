@@ -3642,6 +3642,17 @@ function SessionMttChart({ meta, period, lang, t }) {
   const avgY = yOf(avg)
   const maxIdx = rows.reduce((best, r, i) => r.mtt > rows[best].mtt ? i : best, 0)
   const lastIdx = rows.length - 1
+  // Floating last-value label: rise above every bar it spans horizontally.
+  // When a covered bar reaches the plot top (no sky left), skip the floating
+  // label and surface the value as a header chip instead.
+  const lastLabelX = Math.min(xOf(lastIdx) + barW / 2, W - pad.right - 14)
+  const lastLabelHalf = String(fmtInt(rows[lastIdx].mtt)).length * 9 * 0.34 + 3
+  const lastCoveredTop = Math.min(yOf(rows[lastIdx].mtt), ...rows
+    .map((r, i) => ({ top:yOf(r.mtt), cx:xOf(i) + barW / 2 }))
+    .filter(b => Math.abs(b.cx - lastLabelX) <= lastLabelHalf + barW)
+    .map(b => b.top))
+  const lastLabelY = lastCoveredTop - 5
+  const lastLabelFloats = lastLabelY >= pad.top + 9
 
   return (
     <section className="pace-widget session-mtt-widget" data-testid="session-mtt-widget">
@@ -3649,6 +3660,9 @@ function SessionMttChart({ meta, period, lang, t }) {
         <h2 className="section-title">{t('smtt_title')}</h2>
         <div style={{display:'flex',gap:6,flexShrink:0}}>
           <span className="section-count smtt-avg-chip">{`${t('smtt_avg')}: ${fmtInt(Math.round(avg))}`}</span>
+          {!lastLabelFloats && (
+            <span className="section-count smtt-last-chip">{`${t('smtt_last')}: ${fmtInt(rows[lastIdx].mtt)}`}</span>
+          )}
           <span className="section-count">{plSessions ? plSessions(rows.length, lang) : rows.length}</span>
         </div>
       </div>
@@ -3674,11 +3688,11 @@ function SessionMttChart({ meta, period, lang, t }) {
           {/* the average value lives in the axis gutter like the other Y ticks —
               in-plot text kept landing on bars whatever the anchor */}
           <text className="pace-y-label smtt-avg-tick" x={pad.left - 6} y={avgY + 3}>{fmtInt(Math.round(avg))}</text>
-          <text className="smtt-last-label"
-            x={Math.min(xOf(lastIdx) + barW / 2, W - pad.right - 14)}
-            y={Math.min(...rows.slice(-4).map(r => yOf(r.mtt))) - 5}>
-            {fmtInt(rows[lastIdx].mtt)}
-          </text>
+          {lastLabelFloats && (
+            <text className="smtt-last-label" x={lastLabelX} y={lastLabelY}>
+              {fmtInt(rows[lastIdx].mtt)}
+            </text>
+          )}
         </svg>
       </div>
     </section>
