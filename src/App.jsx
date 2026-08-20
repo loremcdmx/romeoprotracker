@@ -3647,12 +3647,17 @@ function SessionMttChart({ meta, period, lang, t }) {
     <section className="pace-widget session-mtt-widget" data-testid="session-mtt-widget">
       <div className="pace-head">
         <h2 className="section-title">{t('smtt_title')}</h2>
-        <span className="section-count">{plSessions ? plSessions(rows.length, lang) : rows.length}</span>
+        <div style={{display:'flex',gap:6,flexShrink:0}}>
+          <span className="section-count smtt-avg-chip">{`${t('smtt_avg')}: ${fmtInt(Math.round(avg))}`}</span>
+          <span className="section-count">{plSessions ? plSessions(rows.length, lang) : rows.length}</span>
+        </div>
       </div>
       <div className="pace-chart-wrap">
         <svg className="pace-chart smtt-chart" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={t('smtt_title')}>
           <rect x={pad.left} y={pad.top} width={plotW} height={plotH} rx="10" className="pace-plot-bg"/>
-          {[maxMtt, Math.round(maxMtt / 2)].map(v => (
+          {[maxMtt, Math.round(maxMtt / 2)]
+            .filter(v => Math.abs(yOf(v) - avgY) >= 12)
+            .map(v => (
             <g key={v}>
               <line className="pace-grid-line" x1={pad.left} x2={W - pad.right} y1={yOf(v)} y2={yOf(v)}/>
               <text className="pace-y-label" x={pad.left - 6} y={yOf(v) + 3}>{fmtInt(v)}</text>
@@ -3666,12 +3671,12 @@ function SessionMttChart({ meta, period, lang, t }) {
             </rect>
           ))}
           <line className="smtt-avg-line" x1={pad.left} x2={W - pad.right} y1={avgY} y2={avgY}/>
-          {/* left-anchored: the right edge belongs to the gold last-session
-              label, they collided when the last bar sat near the average */}
-          <text className="smtt-avg-label" x={pad.left + 6} y={avgY - 5}>
-            {`${t('smtt_avg')}: ${fmtInt(Math.round(avg))}`}
-          </text>
-          <text className="smtt-last-label" x={Math.min(xOf(lastIdx) + barW / 2, W - pad.right - 14)} y={yOf(rows[lastIdx].mtt) - 5}>
+          {/* the average value lives in the axis gutter like the other Y ticks —
+              in-plot text kept landing on bars whatever the anchor */}
+          <text className="pace-y-label smtt-avg-tick" x={pad.left - 6} y={avgY + 3}>{fmtInt(Math.round(avg))}</text>
+          <text className="smtt-last-label"
+            x={Math.min(xOf(lastIdx) + barW / 2, W - pad.right - 14)}
+            y={Math.min(...rows.slice(-4).map(r => yOf(r.mtt))) - 5}>
             {fmtInt(rows[lastIdx].mtt)}
           </text>
         </svg>

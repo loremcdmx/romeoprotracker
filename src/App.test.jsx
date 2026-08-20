@@ -1415,10 +1415,15 @@ describe('App', () => {
     const widget = await screen.findByTestId('session-mtt-widget')
     expect(within(widget).getByText(translate('ru', 'smtt_title'))).toBeInTheDocument()
     expect(widget.querySelectorAll('.smtt-bar')).toHaveLength(12)
-    const avgLabel = widget.querySelector('.smtt-avg-label')
-    expect(avgLabel.textContent).toContain('120')
-    // left-anchored so it can't collide with the gold last-session label on the right
-    expect(Number(avgLabel.getAttribute('x'))).toBeLessThan(320)
+    // average value sits in the axis gutter (left of the plot), full text in a header chip
+    const avgTick = widget.querySelector('.smtt-avg-tick')
+    expect(avgTick.textContent).toBe('120')
+    expect(Number(avgTick.getAttribute('x'))).toBeLessThan(34)
+    expect(widget.querySelector('.smtt-avg-chip').textContent).toContain('120')
+    // gold last label clears the tallest bar of the local tail cluster
+    const lastLabel = widget.querySelector('.smtt-last-label')
+    const barTops = [...widget.querySelectorAll('.smtt-bar')].slice(-4).map((b) => Number(b.getAttribute('y')))
+    expect(Number(lastLabel.getAttribute('y'))).toBeLessThan(Math.min(...barTops))
     expect(widget.querySelector('.smtt-bar.last')).toBeTruthy()
     expect(widget.querySelector('.smtt-avg-line')).toBeTruthy()
   })

@@ -824,14 +824,15 @@ html{scroll-behavior:smooth}
 .smtt-bar.max{fill:rgba(126,231,135,.75)}
 .smtt-bar.last{fill:var(--gold,#ffd24d)}
 .smtt-avg-line{stroke:rgba(255,255,255,.38);stroke-width:1;stroke-dasharray:4 4;vector-effect:non-scaling-stroke}
-.smtt-avg-label{fill:rgba(240,240,240,.92);font-size:8.6px;text-anchor:start;font-family:'Roboto Mono',monospace;font-variant-numeric:tabular-nums;paint-order:stroke;stroke:rgba(10,10,10,.65);stroke-width:2.4px;stroke-linejoin:round}
+.smtt-avg-tick{fill:rgba(240,240,240,.85)}
+.smtt-avg-chip{color:var(--dim2)}
 .smtt-last-label{fill:var(--gold,#ffd24d);font-size:9px;text-anchor:middle;font-weight:700;font-family:'Roboto Mono',monospace;font-variant-numeric:tabular-nums}
 .light .smtt-bar{fill:rgba(37,99,155,.45)}
 .light .smtt-bar:hover{fill:rgba(37,99,155,.75)}
 .light .smtt-bar.max{fill:rgba(46,125,50,.6)}
 .light .smtt-bar.last{fill:#b8860b}
 .light .smtt-avg-line{stroke:rgba(0,0,0,.3)}
-.light .smtt-avg-label{fill:#3f3a33;stroke:rgba(255,255,255,.78)}
+.light .smtt-avg-tick{fill:#3f3a33}
 .light .smtt-last-label{fill:#9a6a00}
 
 /* ─── THEME TOGGLE ──────────────────────────────────────────────────────── */
