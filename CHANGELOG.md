@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- the pace trend line is drawn across the whole plot again (still fitted on completed 2k-MTT chunks only) — it used to stop at the last full chunk and read as broken once a partial tail extended the axis
+
 - removed the «20 авг» current-date sub-label from the marathon X axis (the hover date tag covers it)
 
 ## 1.13.3 — 2026-08-20

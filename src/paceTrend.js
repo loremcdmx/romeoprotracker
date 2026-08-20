@@ -44,7 +44,10 @@ export function buildPaceTrend(segments, { maxMtt, maxAbs, xByMtt, y }) {
   const stats = computePaceTrendStats(segments)
   if (!stats) return null
 
-  const trendEndMtt = stats.endMtt || maxMtt
+  // Fit on completed chunks only, but DRAW across the whole plot — cutting the
+  // dashes at the last full chunk read as a broken line once a partial tail
+  // extended the axis past it.
+  const trendEndMtt = maxMtt || stats.endMtt
   const visibleStartRate = clampNumber(stats.startRate, -maxAbs, maxAbs)
   const visibleEndRate = clampNumber(stats.intercept + stats.slope * trendEndMtt, -maxAbs, maxAbs)
   const startX = xByMtt(0)
