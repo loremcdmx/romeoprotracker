@@ -934,8 +934,14 @@ describe('App', () => {
     render(<App />)
     expect(await screen.findByText(new RegExp(translate('ru', 'chart_marathon').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))).toBeInTheDocument()
 
+    // innermost matching div = the stat cell (label + value). Exclude the
+    // per-session line, whose label starts with the same prefix, and the
+    // digit-less label div nested inside the cell.
     const totalLine = () => [...document.querySelectorAll('.mc-tooltip div')]
-      .find((d) => d.textContent.includes(translate('ru', 'tip_mtt_total')))
+      .filter((d) => d.textContent.includes(translate('ru', 'tip_mtt_total'))
+        && !d.textContent.includes(translate('ru', 'tip_mtt_since'))
+        && /\d/.test(d.textContent))
+      .pop()
     const digits = (node) => (node?.textContent || '').replace(/\D/g, '')
 
     // latest point: cumulative total = 80 sessions x 100 MTT
