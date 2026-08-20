@@ -1142,5 +1142,32 @@ html{scroll-behavior:smooth}
 
 /* anchor ring for the hovered marathon point (also covers groups without a
    rendered dot of their own) */
-.mc-hover-ring{fill:none;stroke:rgba(255,255,255,.9);stroke-width:1.7;pointer-events:none;filter:drop-shadow(0 1px 3px rgba(0,0,0,.5))}
-.light .mc-hover-ring{stroke:rgba(30,26,20,.75);filter:none}
+/* hover state: crosshair + filled anchor dot + axis date tag */
+.mc-hover-capture{cursor:crosshair}
+.mc-hover-guide{stroke:rgba(255,255,255,.30);stroke-width:1;pointer-events:none}
+.light .mc-hover-guide{stroke:rgba(40,34,26,.38)}
+.mc-hover-halo{fill:currentColor;opacity:.20;pointer-events:none}
+.mc-hover-dot{stroke:#fff;stroke-width:1.7;pointer-events:none;filter:drop-shadow(0 1px 3px rgba(0,0,0,.5))}
+.light .mc-hover-dot{stroke:rgba(255,255,255,.92);filter:drop-shadow(0 1px 2px rgba(0,0,0,.25))}
+.mc-hover-tag rect{fill:var(--chart-callout-bg);stroke:var(--chart-callout-stroke);stroke-width:1;pointer-events:none}
+.mc-hover-tag text{fill:var(--white);font-size:8.6px;font-weight:700;text-anchor:middle;font-family:'Roboto Mono',monospace;font-variant-numeric:tabular-nums;pointer-events:none}
+
+/* session widget: x-axis date ticks + hover tooltip */
+.smtt-x-label{fill:rgba(220,220,220,.6);font-size:8.4px;font-family:'Roboto Mono',monospace;font-variant-numeric:tabular-nums}
+.light .smtt-x-label{fill:#6a6459}
+.smtt-bar.hover{fill:rgba(170,230,255,.95)}
+.light .smtt-bar.hover{fill:rgba(25,80,120,.9)}
+.smtt-bar.last.hover{fill:#ffe08a}
+.smtt-bar.max.hover{fill:rgba(150,240,160,.95)}
+.smtt-tooltip{position:absolute;transform:translate(-50%,0);z-index:25;pointer-events:none;
+  background:var(--chart-callout-bg);border:1px solid var(--chart-callout-stroke);border-radius:8px;
+  padding:7px 9px;font-family:'Roboto Mono',monospace;white-space:nowrap;
+  box-shadow:0 6px 18px rgba(0,0,0,.4)}
+.smtt-tooltip-date{font-size:10px;font-weight:700;color:var(--white);margin-bottom:2px}
+.smtt-tooltip-mtt{font-size:10px;color:var(--dim2)}
+.smtt-tooltip-diff{font-size:9px}
+.smtt-tooltip-diff.pos{color:#7ee787}.smtt-tooltip-diff.neg{color:#ff8a80}
+.smtt-tooltip-profit{font-size:10px;font-weight:700;margin-top:2px}
+.smtt-tooltip-profit.pos{color:#7ee787}.smtt-tooltip-profit.neg{color:#ff8a80}
+.light .smtt-tooltip-diff.pos,.light .smtt-tooltip-profit.pos{color:#2e7d32}
+.light .smtt-tooltip-diff.neg,.light .smtt-tooltip-profit.neg{color:#c62828}
