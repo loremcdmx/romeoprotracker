@@ -154924,7 +154924,7 @@
     "date": "21 августа, 05:29",
     "timestamp": 1787282953,
     "text": "Day 136:",
-    "likes": 55,
+    "likes": 56,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_08_2026/post-6195-178728294883a0_thumb.webp"
     ],
@@ -155062,5 +155062,43 @@
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8284384"
+  },
+  {
+    "id": "8284488",
+    "author": "pokerpain",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/1/6/9/8/169882.webp",
+    "rating": 1367,
+    "msgCount": 145,
+    "regData": "1 год на сайте",
+    "date": "22 августа, 19:23",
+    "timestamp": 1787419412,
+    "text": "",
+    "likes": 0,
+    "images": [
+      "https://static-forum.gipsyteam.ru/monthly_08_2026/post-187091-178741941041f0_thumb.webp"
+    ],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8284488"
+  },
+  {
+    "id": "8284496",
+    "author": "Zhorik",
+    "avatar": "https://forum.gipsyteam.com/img/imguser.png",
+    "rating": 153,
+    "msgCount": 108,
+    "regData": "10 лет на сайте",
+    "date": "22 августа, 19:33",
+    "timestamp": 1787419986,
+    "text": "pokerpain, слабенько",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8284496"
   }
 ]
