@@ -155014,7 +155014,7 @@
     "date": "21 августа, 20:30",
     "timestamp": 1787329809,
     "text": "и чтоб у Гната не долг был, а новые ВОДы по DoN-ам",
-    "likes": 12,
+    "likes": 13,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -155093,7 +155093,7 @@
     "date": "22 августа, 19:33",
     "timestamp": 1787419986,
     "text": "pokerpain, слабенько",
-    "likes": 7,
+    "likes": 8,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -155136,5 +155136,41 @@
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8284678"
+  },
+  {
+    "id": "8284708",
+    "author": "Romeopro",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/2/6/6/26670.jpg",
+    "rating": 25520,
+    "msgCount": 4211,
+    "regData": "16 лет на сайте",
+    "date": "23 августа, 05:52",
+    "timestamp": 1787457157,
+    "text": "Day 137:",
+    "likes": 4,
+    "images": [
+      "https://static-forum.gipsyteam.ru/monthly_08_2026/post-6195-17874571498b68_thumb.webp"
+    ],
+    "videos": [],
+    "brBefore": 283663,
+    "brAfter": 287656,
+    "sessionResult": 3993,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8284708",
+    "rooms": {
+      "before": {
+        "gg": 282226,
+        "ps": 1188,
+        "king": 232,
+        "coin": 17,
+        "lux": 0
+      },
+      "after": {
+        "gg": 286219,
+        "ps": 1188,
+        "king": 232,
+        "coin": 17,
+        "lux": 0
+      }
+    }
   }
 ]
