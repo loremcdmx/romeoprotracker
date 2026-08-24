@@ -155183,7 +155183,7 @@
     "date": "24 августа, 06:24",
     "timestamp": 1787545461,
     "text": "",
-    "likes": 29,
+    "likes": 30,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_08_2026/post-187091-17875454598c_thumb.webp"
     ],
@@ -155203,7 +155203,7 @@
     "date": "24 августа, 06:50",
     "timestamp": 1787547036,
     "text": "Day 138:",
-    "likes": 105,
+    "likes": 108,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_08_2026/post-6195-1787547029b06f_thumb.webp"
     ],
@@ -155239,7 +155239,7 @@
     "date": "24 августа, 08:03",
     "timestamp": 1787551398,
     "text": "",
-    "likes": 120,
+    "likes": 121,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_08_2026/post-13546-178755139137e0_thumb.webp"
     ],
@@ -155428,5 +155428,41 @@
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8285550"
+  },
+  {
+    "id": "8285617",
+    "author": "EqualGods",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/1/2/3/6/123694.jpg",
+    "rating": 88,
+    "msgCount": 22,
+    "regData": "8 лет на сайте",
+    "date": "25 августа, 00:24",
+    "timestamp": 1787610288,
+    "text": "Всем привет! подскажите пожайлуста, как это возможно играть по 250 турниров в сессию??? \n\nКак он это делает???",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8285617"
+  },
+  {
+    "id": "8285621",
+    "author": "SNABGENEZ",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/1/1/0/8/110881.jpg",
+    "rating": 1389,
+    "msgCount": 947,
+    "regData": "13 лет на сайте",
+    "date": "25 августа, 00:32",
+    "timestamp": 1787610738,
+    "text": "[QUOTE]EqualGods|EqualGods @ 25.08.26\nКак он это делает???[/QUOTE]правой рукой!",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8285621"
   }
 ]
