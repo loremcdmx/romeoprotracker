@@ -155239,7 +155239,7 @@
     "date": "24 августа, 08:03",
     "timestamp": 1787551398,
     "text": "",
-    "likes": 125,
+    "likes": 126,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_08_2026/post-13546-178755139137e0_thumb.webp"
     ],
@@ -155493,7 +155493,7 @@
     "date": "25 августа, 02:33",
     "timestamp": 1787618038,
     "text": "",
-    "likes": 6,
+    "likes": 7,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_08_2026/post-92628-1787618036d667_thumb.webp"
     ],
@@ -155513,7 +155513,7 @@
     "date": "25 августа, 02:35",
     "timestamp": 1787618139,
     "text": "[QUOTE]h8autumn|h8autumn @ 25.08.26\n[/QUOTE]",
-    "likes": 4,
+    "likes": 5,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_08_2026/post-40-17876181358060.jpg"
     ],
@@ -155522,5 +155522,23 @@
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8285647"
+  },
+  {
+    "id": "8285662",
+    "author": "doubting",
+    "avatar": "https://forum.gipsyteam.com/img/imguser.png",
+    "rating": 696,
+    "msgCount": 173,
+    "regData": "13 лет на сайте",
+    "date": "25 августа, 04:31",
+    "timestamp": 1787625117,
+    "text": "h8autumn, Что показали?",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8285662"
   }
 ]
