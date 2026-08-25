@@ -155203,7 +155203,7 @@
     "date": "24 августа, 06:50",
     "timestamp": 1787547036,
     "text": "Day 138:",
-    "likes": 111,
+    "likes": 112,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_08_2026/post-6195-1787547029b06f_thumb.webp"
     ],
@@ -155239,7 +155239,7 @@
     "date": "24 августа, 08:03",
     "timestamp": 1787551398,
     "text": "",
-    "likes": 126,
+    "likes": 128,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_08_2026/post-13546-178755139137e0_thumb.webp"
     ],
@@ -155259,7 +155259,7 @@
     "date": "24 августа, 08:20",
     "timestamp": 1787552447,
     "text": "10 баксов с турнира. Солидно.",
-    "likes": 5,
+    "likes": 6,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -155457,7 +155457,7 @@
     "date": "25 августа, 00:32",
     "timestamp": 1787610738,
     "text": "[QUOTE]EqualGods|EqualGods @ 25.08.26\nКак он это делает???[/QUOTE]правой рукой!",
-    "likes": 0,
+    "likes": 1,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -155493,7 +155493,7 @@
     "date": "25 августа, 02:33",
     "timestamp": 1787618038,
     "text": "",
-    "likes": 7,
+    "likes": 11,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_08_2026/post-92628-1787618036d667_thumb.webp"
     ],
@@ -155540,5 +155540,59 @@
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8285662"
+  },
+  {
+    "id": "8285672",
+    "author": "Romeopro",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/2/6/6/26670.jpg",
+    "rating": 25520,
+    "msgCount": 4213,
+    "regData": "16 лет на сайте",
+    "date": "25 августа, 05:22",
+    "timestamp": 1787628174,
+    "text": "Day 139:",
+    "likes": 9,
+    "images": [
+      "https://static-forum.gipsyteam.ru/monthly_08_2026/post-6195-1787628169ea4c_thumb.webp"
+    ],
+    "videos": [],
+    "brBefore": 299942,
+    "brAfter": 300629,
+    "sessionResult": 687,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8285672",
+    "rooms": {
+      "before": {
+        "gg": 298505,
+        "ps": 1188,
+        "king": 232,
+        "coin": 17,
+        "lux": 0
+      },
+      "after": {
+        "gg": 299192,
+        "ps": 1188,
+        "king": 232,
+        "coin": 17,
+        "lux": 0
+      }
+    }
+  },
+  {
+    "id": "8285675",
+    "author": "Kazimir17",
+    "avatar": "https://forum.gipsyteam.com/img/imguser.png",
+    "rating": 4688,
+    "msgCount": 3268,
+    "regData": "15 лет на сайте",
+    "date": "25 августа, 05:50",
+    "timestamp": 1787629856,
+    "text": "Заноси капусту ))",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8285675"
   }
 ]
