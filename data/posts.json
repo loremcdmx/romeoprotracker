@@ -155551,7 +155551,7 @@
     "date": "25 августа, 05:22",
     "timestamp": 1787628174,
     "text": "Day 139:",
-    "likes": 127,
+    "likes": 128,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_08_2026/post-6195-1787628169ea4c_thumb.webp"
     ],
@@ -155897,7 +155897,7 @@
     "date": "26 августа, 05:51",
     "timestamp": 1787716305,
     "text": "Day 140:",
-    "likes": 52,
+    "likes": 59,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_08_2026/post-6195-17877162954f76_thumb.webp"
     ],
@@ -155994,5 +155994,23 @@
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8286345"
+  },
+  {
+    "id": "8286410",
+    "author": "Jessler",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/1/7/4/8/174815.webp",
+    "rating": 185,
+    "msgCount": 86,
+    "regData": "7 лет на сайте",
+    "date": "26 августа, 16:07",
+    "timestamp": 1787753264,
+    "text": "Достаточно посмотреть в табличку:\n\nЕсли плюсовая сессия — играть. Минусовая — берём заслуженный выходной",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8286410"
   }
 ]
