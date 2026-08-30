@@ -156385,7 +156385,7 @@
     "date": "28 августа, 07:56",
     "timestamp": 1787889369,
     "text": "",
-    "likes": 59,
+    "likes": 60,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_08_2026/post-146099-178788936484ad_thumb.webp"
     ],
@@ -156535,7 +156535,7 @@
     "date": "29 августа, 05:54",
     "timestamp": 1787975680,
     "text": "Day 142:",
-    "likes": 44,
+    "likes": 45,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_08_2026/post-6195-1787975674ac51_thumb.webp"
     ],
@@ -156775,7 +156775,7 @@
     "date": "30 августа, 05:16",
     "timestamp": 1788059774,
     "text": "Day 143:",
-    "likes": 5,
+    "likes": 12,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_08_2026/post-6195-17880597673003_thumb.webp"
     ],
@@ -156811,7 +156811,7 @@
     "date": "30 августа, 05:35",
     "timestamp": 1788060918,
     "text": "",
-    "likes": 4,
+    "likes": 7,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_08_2026/post-146047-1788060915f252_thumb.webp"
     ],
@@ -156840,5 +156840,27 @@
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8288246"
+  },
+  {
+    "id": "8288263",
+    "author": "Asthma",
+    "avatar": "https://forum.gipsyteam.com/img/imguser.png",
+    "rating": 4162,
+    "msgCount": 1023,
+    "regData": "12 лет на сайте",
+    "date": "30 августа, 08:12",
+    "timestamp": 1788070351,
+    "text": "",
+    "likes": 2,
+    "images": [
+      "https://static-forum.gipsyteam.ru/monthly_08_2026/post-42813-17880702804af0.jpg",
+      "https://static-forum.gipsyteam.ru/monthly_08_2026/post-42813-178807029484d3.jpg",
+      "https://static-forum.gipsyteam.ru/monthly_08_2026/post-42813-1788070310ab7c.jpg"
+    ],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8288263"
   }
 ]
