@@ -156775,7 +156775,7 @@
     "date": "30 августа, 05:16",
     "timestamp": 1788059774,
     "text": "Day 143:",
-    "likes": 48,
+    "likes": 49,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_08_2026/post-6195-17880597673003_thumb.webp"
     ],
@@ -156891,7 +156891,7 @@
     "date": "30 августа, 12:04",
     "timestamp": 1788084251,
     "text": "[QUOTE]Rob31|Rob31 @ 29.08.26\nКак-то несправедливо, что в ответ на 300 радуется только тракторист, а все гармонисты и окулисты остаются за бортом.[/QUOTE] \n\nПокерист тоже грустит.",
-    "likes": 1,
+    "likes": 2,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -157095,7 +157095,7 @@
     "date": "31 августа, 07:13",
     "timestamp": 1788153211,
     "text": "Day 144:",
-    "likes": 6,
+    "likes": 10,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_08_2026/post-6195-17881532056931_thumb.webp"
     ],
@@ -157120,5 +157120,41 @@
         "lux": 0
       }
     }
+  },
+  {
+    "id": "8288785",
+    "author": "Jonnius_",
+    "avatar": "https://forum.gipsyteam.com/img/imguser.png",
+    "rating": 53,
+    "msgCount": 104,
+    "regData": "9 лет на сайте",
+    "date": "31 августа, 07:19",
+    "timestamp": 1788153596,
+    "text": "pokerpain, Судя по табличке,ты где-то скрин с заносом проебал. Плохой ты сталкер.",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8288785"
+  },
+  {
+    "id": "8288786",
+    "author": "Vespucci",
+    "avatar": "https://forum.gipsyteam.com/img/imguser.png",
+    "rating": 8,
+    "msgCount": 29,
+    "regData": "11 лет на сайте",
+    "date": "31 августа, 07:21",
+    "timestamp": 1788153712,
+    "text": "Билет наверное",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8288786"
   }
 ]
