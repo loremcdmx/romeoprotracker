@@ -276,7 +276,7 @@ button,select,input,summary{font:inherit}
 .pace-summary-panel .mps-label{font-size:14px;color:rgba(220,220,220,.72);font-weight:800;letter-spacing:0;text-transform:none;white-space:nowrap}
 .pace-summary-panel .pace-rate-item .mps-label,.pace-summary-panel .pace-projection-item .mps-label{color:rgba(255,212,121,.78)}
 .pace-summary-panel .pace-trend-item .mps-label{color:color-mix(in srgb,var(--pace-blue) 78%,var(--dim2))}
-.pace-summary-panel .mps-value{font-size:16px;font-weight:800;color:var(--white);line-height:1;white-space:nowrap;font-variant-numeric:tabular-nums;letter-spacing:0;text-shadow:0 1px 2px rgba(0,0,0,.30)}
+.pace-summary-panel .mps-value{font-size:16px;font-weight:700;color:var(--white);line-height:1;white-space:nowrap;font-variant-numeric:tabular-nums;letter-spacing:0;text-shadow:0 1px 2px rgba(0,0,0,.30)}
 .pace-summary-panel .pace-rate-value{font-size:16px;letter-spacing:0;text-shadow:0 1px 2px rgba(0,0,0,.32)}
 .pace-summary-panel .pace-rate-value.pulse,.pace-summary-panel .tempo-val.pulse{transform:none;color:var(--pace-gold);text-shadow:0 0 12px rgba(255,212,121,.28),0 1px 2px rgba(0,0,0,.40)}
 .pace-summary-panel .pace-rate-value.pos{color:var(--pace-green)}
@@ -695,7 +695,7 @@ html{scroll-behavior:smooth}
   font-family:'Roboto Mono',monospace;font-size:10px;line-height:1.35;
 }
 .mc-session-date{color:var(--dim2);min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.mc-session-profit{font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}
+.mc-session-profit{font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
 .mc-session-profit.pos{color:#66bb6a}
 .mc-session-profit.neg{color:#ff5252}
 .mc-session-mtt{color:var(--dim);font-variant-numeric:tabular-nums;white-space:nowrap}

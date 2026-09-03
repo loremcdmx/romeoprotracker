@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 1.13.10 — 2026-09-03
+
+- the tempo panel values and tooltip session profits asked Roboto Mono for weight 800 (not loaded) — capped at 700; no faux-bold monospace text remains on the page
+
 ## 1.13.9 — 2026-09-03
 
 - last two faux-bold spots (progress percent, $/MTT rate chips) capped at the loaded 700 weight; crowded loud dots trimmed so no two visible dots touch on the mobile canvas
