@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+## 1.13.5 — 2026-09-02
+
+### Reliability
+- Vercel ignore-build step no longer fails open on shallow clones without `VERCEL_GIT_PREVIOUS_SHA`: a `scraper:` commit subject now skips the build (production was being rebuilt from every ~10th data commit)
+- the scraper syncs with `origin/main` before reading `data/*.json` (a data commit pulled in later was silently overwritten by the in-memory copy)
+- `postsChangedAt` is now driven by a content hash of the published posts, so rating/image/date-only syncs reach open tabs too
+- the no-op poll path no longer triggers a spurious re-render on the first poll (same-value `setError`)
+
+### Housekeeping
+- removed dead code (Sparkline, makeDaySummary, passesIgnored, the unreachable 11-row tooltip cap) and dead CSS; CI gets `permissions`/`concurrency` and drops the nonexistent `docs/**` ignore; README/CLAUDE.md sentences about freshness, cadence and `npm run check` match the code again
+
 ## 1.13.4 — 2026-09-02
 
 ### Fixed

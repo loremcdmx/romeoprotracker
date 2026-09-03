@@ -42,26 +42,6 @@ function plBrUpdates(n, lang) {
 // ─── HELPERS (imported from utils.js) ────────────────────────────────────────
 
 // ─── SPARKLINE ────────────────────────────────────────────────────────────────
-function Sparkline({ values, width = 64, height = 24, color = '#4caf50' }) {
-  if (!values || values.length < 2) return null
-  const min = Math.min(...values)
-  const max = Math.max(...values)
-  const range = max - min || 1
-  const pts = values.map((v, i) => {
-    const x = (i / (values.length - 1)) * width
-    const y = height - ((v - min) / range) * height
-    return `${x.toFixed(1)},${y.toFixed(1)}`
-  }).join(' ')
-  return (
-    <svg width={width} height={height} style={{overflow:'visible',flexShrink:0,opacity:.85}}>
-      <polyline points={pts} fill="none" stroke={color} strokeWidth="1.5"
-        strokeLinejoin="round" strokeLinecap="round"/>
-      {/* last dot */}
-      <circle cx={(width).toFixed(1)} cy={(height-((values[values.length-1]-min)/range)*height).toFixed(1)}
-        r="2.5" fill={color}/>
-    </svg>
-  )
-}
 
 const MARATHON_TARGET = 10_000_000
 const PACE_PERIOD_SECONDS = { week:7 * 86400, month:30 * 86400 }
@@ -2151,14 +2131,7 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
             )}
             {tip.groupCount > 1 && tip.sessions?.length > 0 && (
               <div className="mc-session-breakdown">
-                {tip.sessions.length > 12 && (
-                  <div className="mc-session-more">
-                    {lang === 'ru' ? `… ещё ${tip.sessions.length - 11} сессий раньше`
-                      : lang === 'es' ? `… ${tip.sessions.length - 11} sesiones anteriores`
-                      : `… ${tip.sessions.length - 11} earlier sessions`}
-                  </div>
-                )}
-                {(tip.sessions.length > 12 ? tip.sessions.slice(-11) : tip.sessions).map((s, idx) => (
+                {tip.sessions.map((s, idx) => (
                   <div key={`${s.p.timestamp || idx}-${idx}`} className="mc-session-row">
                     <span className="mc-session-date">{fmtDateShortLang(s.p.timestamp, lang)}</span>
                     <span className={s.profit >= 0 ? 'mc-session-profit pos' : 'mc-session-profit neg'}>{fk(s.profit)}</span>
@@ -2243,18 +2216,6 @@ function scrollToPost(p) {
   setTimeout(() => el.classList.remove('post-highlight'), 1800)
 }
 
-function makeDaySummary(ps, lang = _lang) {
-  const events = makeDayEvents(ps)
-  const romeo = _t('day_romeo')
-  const brLbl = _t('day_br_label')
-  if (!events.length) return `${plPosts(ps.length, lang)}.`
-  return events.map(e => {
-    if (e.kind === 'session') return `${romeo} ${_t('day_reports_session')}: ${fmtBR(e.result)}${e.brAfter ? ` (${brLbl} ${fmtNum(e.brAfter)})` : ''}`
-    if (e.kind === 'romeo') return `${romeo}: «${e.text}»`
-    if (e.kind === 'romeo-empty') return `${romeo} ${_t('day_romeo_write_verb')} ${plPosts(e.count, lang)}`
-    return `${e.author} (+${e.likes} 👍): «${e.text}»`
-  }).join(' · ')
-}
 
 function DayEventsList({ events, compact, onPostClick, setLightbox, lang = _lang }) {
   if (!events.length) return null
@@ -3999,7 +3960,6 @@ export default function App() {
     if (minRating && (p.rating||0) < minRating) return false
     return true
   }
-  const passesIgnored = (p) => !ignored.has(p.author)
   const passesFeedFilters = (p) => {
     const isRomeoPost = ROMEO_RE.test(p.author)
 

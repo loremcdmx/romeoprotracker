@@ -309,9 +309,6 @@ describe('App', () => {
     const latestDot = latest?.querySelector('.mc-dot')
     const adjacentAnchor = adjacent?.querySelector('.mc-dot-cluster-hit') || adjacent?.querySelector('.mc-dot')
     const latestX = Number(latestDot?.getAttribute('cx'))
-    const latestY = Number(latestDot?.getAttribute('cy'))
-    const adjacentX = Number(adjacentAnchor?.getAttribute('cx'))
-    const adjacentY = Number(adjacentAnchor?.getAttribute('cy'))
     // groups may no longer sit right next to the latest point — find one
     const grouped = [...markers].reverse().find(m => Number(m.getAttribute('data-count')) > 1)
     const groupedDot = grouped?.querySelector('.mc-dot')
@@ -930,9 +927,6 @@ describe('App', () => {
     const groupedDot = groupedMarker?.querySelector('.mc-dot')
     const groupedClusterParts = groupedMarker?.querySelectorAll('.mc-dot-cluster-part') || []
     const latestX = Number(latestDot?.getAttribute('cx'))
-    const latestY = Number(latestDot?.getAttribute('cy'))
-    const adjacentX = Number(adjacentAnchor?.getAttribute('cx'))
-    const adjacentY = Number(adjacentAnchor?.getAttribute('cy'))
     expect(Number(latestMarker?.dataset.start)).toBe(brHistory.length - 1)
     expect(Number(latestMarker?.dataset.end)).toBe(brHistory.length - 1)
     expect(Number(latestMarker?.dataset.count)).toBe(1)
@@ -1174,7 +1168,8 @@ describe('App', () => {
   it('renders footer with version and changelog', async () => {
     render(<App />)
     await screen.findAllByText('Romeopro')
-    expect(screen.getAllByText('v1.12').length).toBeGreaterThanOrEqual(1)
+    const pkgVersion = require('../package.json').version.replace(/\.0$/, '')
+    expect(screen.getByText(`v${pkgVersion}`)).toBeInTheDocument()
     expect(screen.getByText(translate('ru', 'footer_changelog'))).toBeInTheDocument()
   })
 

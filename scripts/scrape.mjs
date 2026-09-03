@@ -20,6 +20,7 @@
 
 import { readFile, writeFile } from 'fs/promises'
 import { execSync, execFileSync } from 'child_process'
+import { createHash } from 'crypto'
 import * as cheerio from 'cheerio'
 import { computeMarathonDay, extractMarathonDay } from './lib/marathon-integrity.mjs'
 import { needsTranslation, translatePost } from './lib/translation.mjs'
@@ -454,6 +455,13 @@ async function main() {
     console.log('📝 Execution mode: local-only (write files, skip git pull / commit / push)')
   }
 
+  // Sync BEFORE reading: the old order read data/*.json first and pulled
+  // right before writing, so any data commit pulled in was overwritten by the
+  // in-memory copy (lost update).
+  if (!DRY_RUN && !NO_PUSH) {
+    try { execSync('git pull --rebase origin main', { stdio: 'ignore' }) } catch {}
+  }
+
   // Load existing data
   const posts = JSON.parse(await readFile('data/posts.json', 'utf-8'))
   const meta = JSON.parse(await readFile('data/meta.json', 'utf-8'))
@@ -796,10 +804,14 @@ async function main() {
   const merged = newPosts.length > 0 ? [...posts, ...newPosts] : posts
   meta.totalPosts = merged.length
 
-  // Open tabs gate their heavy refetch on meta freshness; likes/translation-only
-  // runs used to leave lastUpdated untouched, so those changes never reached an
-  // already-open client. Stamp any posts-content change separately.
-  if (newPosts.length > 0 || likesUpdated > 0 || translated > 0) {
+  // Open tabs gate their heavy refetch on meta freshness. Stamp whenever the
+  // published posts CONTENT changes — hashing catches rating/image/date syncs
+  // that the likes/new-post counters missed (audit: 2 of 291 commits).
+  const postsHash = createHash('sha1')
+    .update(JSON.stringify(merged.map(p => [p.id, p.likes, p.rating, p.text, p.translations, p.images, p.videos, p.date, p.brAfter])))
+    .digest('hex')
+  if (postsHash !== meta.postsHash) {
+    meta.postsHash = postsHash
     meta.postsChangedAt = new Date().toISOString()
   }
 

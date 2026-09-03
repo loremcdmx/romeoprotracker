@@ -39,7 +39,7 @@ npm run scrape:translate
 
 Main application files:
 
-- `src/App.jsx` — primary UI composition, charts, feed, and topic views
+- `src/App.jsx` — primary UI composition, charts, and feed
 - `src/hooks/usePostsData.js` — loading, polling, new-post detection, refresh flow
 - `src/hooks/usePersistentState.js` — typed `localStorage` persistence wrapper
 - `src/storage.js` — public data loader, cache, compact payload expansion
@@ -56,7 +56,7 @@ Runtime data is resolved from multiple sources:
 2. Same-origin `/data/*` files generated during local builds
 3. `raw.githubusercontent.com/<repo>/main/data/*`
 
-The client compares `meta.lastUpdated` across successful sources and keeps the freshest payload instead of trusting the first response. That avoids stale Vercel assets when code deploys and scraper commits move at different cadences.
+The client compares freshness (`max(meta.lastUpdated, meta.postsChangedAt)`) across successful sources and keeps the freshest payload instead of trusting the first response. That avoids stale Vercel assets when code deploys and scraper commits move at different cadences.
 
 Vercel uses `scripts/vercel-ignore-build.mjs` as its ignored build step. Data-only scraper commits are skipped on Vercel because the deployed client can read fresher JSON directly from GitHub raw; source, dependency, config, and public asset changes still build normally.
 
@@ -78,7 +78,7 @@ Safety switches:
 
 GitHub Actions:
 
-- every 5 minutes: `normal`
+- scheduled every 5 minutes: `normal` (GitHub delivers cron best-effort — observed anywhere from ~60 to 4 runs/day)
 - every 12 hours: `full`
 - manual dispatch: `normal`, `full`, `reextract`, or `translate`
 

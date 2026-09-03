@@ -230,6 +230,12 @@ describe('usePostsData', () => {
       await flushMicrotasks()
     })
     expect(screen.getByTestId('ids')).toHaveTextContent('post-1')
+    // let the post-load effects (new-post ids, refs) settle before counting —
+    // otherwise the baseline depends on what earlier tests left warm
+    await act(async () => {
+      await flushMicrotasks()
+      await flushMicrotasks()
+    })
     const rendersAfterLoad = renders
 
     await advancePoll()
