@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 1.13.7 — 2026-09-03
+
+### Chart legibility
+- pace trend label («тренд +N$») now avoids every dot and value label (it used to sit across a mid-line dot with a digit hidden behind it) and sits on a small plate; the x-axis drops a tick that crowds the partial-tail label
+- chart typography pass: pace/marathon/session-widget axis labels and values are larger (8.4–10px → 9.5–11px), weight 900 → 700, blurry text-shadows removed, axis label contrast raised; hover date tag 9.5px; minor session dots slightly larger and brighter
+
 ## 1.13.6 — 2026-09-03
 
 ### Reverted

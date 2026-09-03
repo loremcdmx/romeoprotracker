@@ -348,10 +348,10 @@ function rectsOverlap(a, b, gap = 0) {
     && a.bottom > b.top - gap
 }
 
-function resolvePaceTrendLabelLayout({ trend, text, latestValue, latestPoint, gridLeft, gridRight, plotTop, plotBottom }) {
+function resolvePaceTrendLabelLayout({ trend, text, latestValue, latestPoint, gridLeft, gridRight, plotTop, plotBottom, dots = [], valueLabels = [] }) {
   if (!trend) return null
 
-  const fontSize = 8.6
+  const fontSize = 10
   const minX = gridLeft + 92
   const maxX = gridRight - 18
   const minY = plotTop + 13
@@ -378,6 +378,10 @@ function resolvePaceTrendLabelLayout({ trend, text, latestValue, latestPoint, gr
       bottom:latestPoint.y + 12,
     })
   }
+  // Every data dot and every rendered value label blocks the trend label —
+  // it used to sit across a mid-line dot with a digit hidden behind it.
+  for (const d of dots) blockers.push({ left:d.x - 9, right:d.x + 9, top:d.y - 9, bottom:d.y + 9 })
+  for (const v of valueLabels) blockers.push(svgTextRect({ x:v.x, y:v.y, text:v.text, fontSize:10.5, anchor:v.anchor }))
 
   const makeLayout = (x, y, shifted = false) => {
     const next = { x, y, shifted }
@@ -389,6 +393,19 @@ function resolvePaceTrendLabelLayout({ trend, text, latestValue, latestPoint, gr
 
   let layout = makeLayout(primaryX, primaryY)
   if (!blockers.some(blocker => rectsOverlap(layout.rect, blocker, 3))) return layout
+
+  // Walk back along the trend line and try above/below it before resorting
+  // to the shifted fallbacks — the middle of the plot is usually empty air.
+  const dx = trend.endX - trend.startX
+  const dy = trend.endY - trend.startY
+  for (const frac of [0.72, 0.55, 0.4, 0.86, 0.25]) {
+    const lx = clampNumber(trend.startX + dx * frac, minX, maxX)
+    const ly = trend.startY + dy * frac
+    for (const off of [-11, 15, -19, 23]) {
+      const candidate = makeLayout(lx, clampNumber(ly + off, minY, maxY), true)
+      if (!blockers.some(blocker => rectsOverlap(candidate.rect, blocker, 3))) return candidate
+    }
+  }
 
   const shiftedX = blockers.reduce((nextX, blocker) => (
     rectsOverlap(layout.rect, blocker, 3) ? Math.min(nextX, blocker.left - 6) : nextX
@@ -576,6 +593,14 @@ function PaceMiniChart({ segments, unit, t, light = false }) {
     anchor:latestValueIsEdge ? 'end' : 'middle',
   } : null
   const trendLabelText = trend ? `${t('pace_trend_label')} ${formatPaceAxisTick(trend.endRate, unit)}` : ''
+  const valueLabelLayouts = segments.flatMap((seg, idx) => {
+    const show = labelIndexes.has(idx) && (idx === segments.length - 1 || Math.abs(seg.rate) >= Math.max(1, maxAbs * .08))
+    if (!show) return []
+    const cx = x(idx)
+    const edge = idx === segments.length - 1 && cx > gridRight - 42
+    return [{ x:edge ? cx - 10 : cx, y:y(seg.rate) + (seg.rate >= 0 ? -11 : 17), anchor:edge ? 'end' : 'middle',
+      text:formatDollarPerMTT(seg.rate, unit).replace(`/${unit}`, '') }]
+  })
   const trendLabel = trend ? resolvePaceTrendLabelLayout({
     trend,
     text:trendLabelText,
@@ -585,6 +610,8 @@ function PaceMiniChart({ segments, unit, t, light = false }) {
     gridRight,
     plotTop:pad.top,
     plotBottom:pad.top + plotH,
+    dots:points,
+    valueLabels:valueLabelLayouts,
   }) : null
   const xLabelIndexes = new Set()
   segments.forEach((_, idx) => {
@@ -596,7 +623,7 @@ function PaceMiniChart({ segments, unit, t, light = false }) {
   const lastLabelIdx = segments.length - 1
   const lastLabelX = x(lastLabelIdx)
   for (const idx of [...xLabelIndexes]) {
-    if (idx !== lastLabelIdx && Math.abs(x(idx) - lastLabelX) < 30) xLabelIndexes.delete(idx)
+    if (idx !== lastLabelIdx && Math.abs(x(idx) - lastLabelX) < 40) xLabelIndexes.delete(idx)
   }
   const paceTone = ok => ok ? (light ? '#2e8b3a' : '#78d984') : (light ? '#c8362e' : '#f0756d')
   const firstTone = paceTone(segments[0]?.rate >= 0)
@@ -653,6 +680,10 @@ function PaceMiniChart({ segments, unit, t, light = false }) {
         {trend && (
           <g className={`pace-trend ${trend.rising ? 'rising' : 'falling'} ${trendLabel?.shifted ? 'shifted' : ''}`} aria-hidden="true">
             <path className="pace-trend-line" d={trend.path}/>
+            {trendLabel?.rect && (
+              <rect className="pace-trend-plate" x={trendLabel.rect.left - 4} y={trendLabel.rect.top - 1}
+                width={trendLabel.rect.right - trendLabel.rect.left + 8} height={trendLabel.rect.bottom - trendLabel.rect.top + 2} rx="4"/>
+            )}
             <text className={`pace-trend-label ${trend.rising ? 'rising' : 'falling'}`} x={trendLabel?.x} y={trendLabel?.y}>
               {trendLabelText}
             </text>
@@ -1937,7 +1968,7 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
           const loudDotR = isMobile
             ? (isHovered ? (isLast ? 8 : 6) : (isLast ? 6 : isGrouped ? 4.5 : 3.4))
             : (isHovered ? (isLast ? 8 : 6) : (isLast ? 6 : isGrouped ? 4.6 : 3.8))
-          const baseDotR = significant || isHovered ? loudDotR : (isMobile ? 2.5 : 2.7)
+          const baseDotR = significant || isHovered ? loudDotR : (isMobile ? 3 : 3.2)
           const dotR = isCrowded
             ? Math.min(baseDotR, isLast ? (isMobile ? 4.8 : 4.6) : (isMobile ? 3.4 : 3.5))
             : baseDotR
