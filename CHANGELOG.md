@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 1.13.11 — 2026-09-03
+
+- pace-widget titles/pills used Inter weights 760/720 that no loaded face provides (synthesised); normalised to 700 — no synthesised weights remain on the page
+
 ## 1.13.10 — 2026-09-03
 
 - the tempo panel values and tooltip session profits asked Roboto Mono for weight 800 (not loaded) — capped at 700; no faux-bold monospace text remains on the page
