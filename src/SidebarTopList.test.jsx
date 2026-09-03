@@ -38,6 +38,23 @@ describe('SidebarTopList', () => {
     Object.defineProperty(window, 'innerHeight', { value: 1000, writable: true })
   })
 
+  it('defers below-fold avatars and thumbnails while preserving lightbox interaction', () => {
+    const setLightbox = vi.fn()
+    const posts = makePosts()
+    posts[0].images = ['https://example.com/sidebar-photo.jpg']
+    render(<SidebarTopList posts={posts} setLightbox={setLightbox} />)
+
+    const firstRow = screen.getByTestId('sidebar-top-item-0')
+    const images = firstRow.querySelectorAll('img')
+    expect(images).toHaveLength(2)
+    for (const image of images) {
+      expect(image).toHaveAttribute('loading', 'lazy')
+      expect(image).toHaveAttribute('decoding', 'async')
+    }
+    fireEvent.click(images[1])
+    expect(setLightbox).toHaveBeenCalledWith(posts[0].images[0])
+  })
+
   it('opens the correct popup from wrapper mouse movement even if row mouseenter is missed', async () => {
     render(<SidebarTopList posts={makePosts()} setLightbox={vi.fn()} />)
 

@@ -182,6 +182,19 @@ button,select,input,summary{font:inherit}
 .activity-mobile-date{font-size:10.5px;font-family:'Inter',system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-weight:500;font-variant-numeric:tabular-nums;letter-spacing:.01em;white-space:nowrap}
 
 /* GLOBAL FILTER BAR */
+.lite-feed-notice{display:flex;flex-wrap:wrap;align-items:center;gap:12px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:16px;margin:0 0 14px}
+.lite-feed-copy{flex:1;min-width:0}
+.lite-feed-title{display:block;color:var(--text);font-size:13px;font-weight:600;line-height:1.4}
+.lite-feed-count{display:block;color:var(--dim2);font-size:12px;line-height:1.5;margin-top:3px;font-variant-numeric:tabular-nums}
+.lite-feed-copy p,.lite-history-footer p{color:var(--dim);font-size:12px;line-height:1.5;margin:6px 0 0}
+.lite-load-button{min-height:42px;padding:9px 13px;border:1px solid var(--border2);border-radius:9px;background:var(--bg3);color:var(--text);font:600 12px/1.4 'Inter',system-ui,sans-serif;cursor:pointer}
+.lite-load-button:hover{border-color:var(--gold)}
+.lite-load-button:disabled{cursor:wait;opacity:.65}
+.lite-feed-error{flex-basis:100%;color:var(--red2);font-size:12px;line-height:1.5;margin:0}
+.lite-history-footer{text-align:center;margin:16px 0;padding:14px}
+.lite-history-footer .lite-load-button{margin-top:10px}
+.feed-scope-note{flex-basis:100%;margin:0;color:var(--dim2);font-size:11px;line-height:1.5}
+@media(max-width:720px){.lite-feed-notice{margin:12px 8px;padding:14px;gap:10px;border-radius:14px}.lite-feed-copy{flex-basis:100%}.lite-load-button{width:100%;min-height:44px}.lite-feed-title{font-size:14px}}
 .filter-bar{display:flex;gap:8px 10px;align-items:center;flex-wrap:wrap;background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:10px 12px;margin-bottom:14px}
 .filter-field{display:inline-flex;align-items:center;gap:6px;color:var(--dim2);font-size:11px;font-weight:600;white-space:nowrap}
 .filter-num{width:48px;min-height:32px;background:var(--bg3);border:1px solid var(--border);border-radius:9px;color:var(--text);font-family:'Roboto Mono',monospace;font-size:11px;padding:5px 7px;outline:none;text-align:center;-moz-appearance:textfield}
@@ -827,6 +840,19 @@ html{scroll-behavior:smooth}
 
 /* ─── SESSION MTT WIDGET ────────────────────────────────────────────────── */
 .session-mtt-widget{margin-top:10px}
+.session-mtt-widget .pace-head{flex-wrap:wrap;align-items:center;gap:10px;margin-bottom:12px}
+.smtt-stats{display:flex;flex-wrap:wrap;gap:6px;min-width:0}
+.smtt-toolbar{display:flex;align-items:center;justify-content:space-between;gap:10px 16px;flex-wrap:wrap;margin-bottom:12px}
+.smtt-grouping{padding:3px;background:var(--bg);border:1px solid var(--border);border-radius:10px;max-width:100%}
+.smtt-grouping .mc-period{min-height:32px;white-space:nowrap}
+.smtt-group-note{font-size:11px;color:var(--dim2);line-height:1.45}
+.smtt-chart .mc-hover-capture:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+@media(max-width:600px){
+  .smtt-toolbar{gap:8px}
+  .smtt-grouping{width:100%;display:grid;grid-template-columns:1.55fr 1fr 1fr;gap:3px}
+  .smtt-grouping .mc-period{min-height:40px;padding:5px 8px}
+  .smtt-group-note{font-size:11px}
+}
 .smtt-bar{fill:rgba(123,220,255,.55);transition:fill .15s}
 .smtt-bar:hover{fill:rgba(123,220,255,.9)}
 .smtt-bar.max{fill:rgba(126,231,135,.75)}
@@ -1155,16 +1181,17 @@ html{scroll-behavior:smooth}
 .mc-hover-tag text{fill:var(--white);font-size:8.6px;font-weight:700;text-anchor:middle;font-family:'Roboto Mono',monospace;font-variant-numeric:tabular-nums;pointer-events:none}
 
 /* session widget: x-axis date ticks + hover tooltip */
-.smtt-x-label{fill:rgba(220,220,220,.6);font-size:8.4px;font-family:'Roboto Mono',monospace;font-variant-numeric:tabular-nums}
+.smtt-x-label{fill:var(--axis-x-muted);font-size:9.4px;font-family:'Inter',system-ui,sans-serif;font-weight:500;font-variant-numeric:tabular-nums}
 .light .smtt-x-label{fill:#6a6459}
 .smtt-bar.hover{fill:rgba(170,230,255,.95)}
 .light .smtt-bar.hover{fill:rgba(25,80,120,.9)}
 .smtt-bar.last.hover{fill:#ffe08a}
 .smtt-bar.max.hover{fill:rgba(150,240,160,.95)}
-.smtt-tooltip{position:absolute;transform:translate(-50%,0);z-index:25;pointer-events:none;
+.smtt-tooltip{position:absolute;z-index:25;pointer-events:none;max-width:calc(100% - 20px);
   background:var(--chart-callout-bg);border:1px solid var(--chart-callout-stroke);border-radius:8px;
-  padding:7px 9px;font-family:'Roboto Mono',monospace;white-space:nowrap;
+  padding:7px 9px;font-family:'Inter',system-ui,sans-serif;
   box-shadow:0 6px 18px rgba(0,0,0,.4)}
+.smtt-tooltip-summary{font-size:10px;color:var(--dim2);margin-top:5px}
 .smtt-tooltip-date{font-size:10px;font-weight:700;color:var(--white);margin-bottom:2px}
 .smtt-tooltip-mtt{font-size:10px;color:var(--dim2)}
 .smtt-tooltip-diff{font-size:9px}

@@ -33,7 +33,7 @@ npm run scrape:reextract
 npm run scrape:translate
 ```
 
-`npm run dev` and `npm run build` automatically copy `data/*.json` into `public/data` so local builds work without hitting GitHub raw URLs.
+`npm run dev` and `npm run build` regenerate the recent snapshot and copy the deployable JSON files into `public/data`, providing a same-origin source alongside GitHub raw.
 
 ## Frontend Architecture
 
@@ -56,7 +56,11 @@ Runtime data is resolved from multiple sources:
 2. Same-origin `/data/*` files generated during local builds
 3. `raw.githubusercontent.com/<repo>/main/data/*`
 
-The client compares freshness (`max(meta.lastUpdated, meta.postsChangedAt)`) across successful sources and keeps the freshest payload instead of trusting the first response. That avoids stale Vercel assets when code deploys and scraper commits move at different cadences.
+Full-feed loads compare small metadata responses first, then normally download only the freshest source's compact posts file. Freshness includes `lastUpdated`, `postsChangedAt`, and history/tournament markers. Slower metadata remains eligible during the selected body download and its grace window. Failed compact files retain the full-file and alternate-source fallbacks; inactive streams time out without cutting off downloads that are still progressing.
+
+At entry widths up to 980px, the app instead loads only `posts.recent.min.json`: the latest 300 posts with remapped avatars, explicit coverage, and complete marathon metadata. Session/bankroll charts retain their full history. Search, filters, and top posts are labelled as recent-only; full forum activity appears after the user selects **Load full history**. Polling stays in recent mode, and resizing never silently downloads or discards history. Recent and full caches/requests are separate; an explicit upgrade cannot replace newer recent data with an older full snapshot.
+
+The scraper publishes the recent snapshot in the same commit as its source data. `node scripts/generate-recent-data.mjs` regenerates it locally; the data integrity check verifies exact agreement with `posts.min.json` and `meta.json`.
 
 Vercel uses `scripts/vercel-ignore-build.mjs` as its ignored build step. Data-only scraper commits are skipped on Vercel because the deployed client can read fresher JSON directly from GitHub raw; source, dependency, config, and public asset changes still build normally.
 
@@ -88,6 +92,7 @@ Translation helpers are isolated in `scripts/lib/translation.mjs` so scraper-spe
 
 - `data/posts.json` — full post payload
 - `data/posts.min.json` — compact payload used by the client
+- `data/posts.recent.min.json` — latest 300 compact posts, complete metadata, and coverage for the light mobile feed
 - `data/meta.json` — bankroll summary, scraper metadata, bankroll history
 
 ## Fork / Deploy Notes

@@ -1557,6 +1557,198 @@ describe('App', () => {
     expect(widget.querySelector('.smtt-bar.hover')).toBeNull()
   })
 
+  it('preserves the first touch selection on focus and supports keyboard browsing of session bars', async () => {
+    const base = makeMockData()
+    const brHistory = [100, 200, 300].map((tournaments, i) => ({
+      brAfter: 10000 + (i + 1) * 900,
+      brPrev: 10000 + i * 900,
+      timestamp: Date.UTC(2026, 0, 12 + i, 12) / 1000,
+      sessionResult: 900,
+      totalTournaments: [100, 300, 600][i],
+      tournaments,
+      text: `Session ${i + 1}`,
+    }))
+    fetchPublicData.mockResolvedValue(makeMockData({
+      meta: { ...base.meta, brHistory, totalTournaments: 600 },
+    }))
+    render(<App />)
+    const widget = await screen.findByTestId('session-mtt-widget')
+    const slider = within(widget).getByRole('slider', { name: translate('ru', 'smtt_browse') })
+    const svg = widget.querySelector('.smtt-chart')
+    expect(svg).toHaveAttribute('role', 'group')
+    expect(slider).toHaveAttribute('tabindex', '0')
+    expect(slider).toHaveAttribute('aria-valuemin', '1')
+    expect(slider).toHaveAttribute('aria-valuemax', '3')
+    svg.getBoundingClientRect = () => ({ left:100, top:0, right:740, bottom:156, width:640, height:156 })
+
+    const firstBar = widget.querySelector('.smtt-bar')
+    const touchDown = new Event('pointerdown', { bubbles:true, cancelable:true })
+    Object.defineProperties(touchDown, {
+      pointerType: { value:'touch' },
+      clientX: { value:100 + Number(firstBar.getAttribute('x')) + Number(firstBar.getAttribute('width')) / 2 },
+    })
+    fireEvent(slider, touchDown)
+    expect(slider).toHaveAttribute('aria-valuenow', '1')
+    expect(widget.querySelector('.smtt-tooltip-mtt')).toHaveTextContent('100')
+    // Touch selection precedes native focus: focus must keep the touched first
+    // bar rather than replace it with the default last-session selection.
+    fireEvent.focus(slider)
+    expect(slider).toHaveAttribute('aria-valuenow', '1')
+    expect(widget.querySelector('.smtt-bar.hover')).toBe(firstBar)
+
+    fireEvent.keyDown(slider, { key:'End' })
+    expect(slider).toHaveAttribute('aria-valuenow', '3')
+    expect(widget.querySelector('.smtt-tooltip-mtt')).toHaveTextContent('300')
+    fireEvent.keyDown(slider, { key:'Home' })
+    expect(slider).toHaveAttribute('aria-valuenow', '1')
+    fireEvent.keyDown(slider, { key:'ArrowRight' })
+    expect(slider).toHaveAttribute('aria-valuenow', '2')
+    expect(slider.getAttribute('aria-valuetext')).toContain('200')
+    expect(widget.querySelector('.smtt-tooltip-mtt')).toHaveTextContent('200')
+    fireEvent.keyDown(slider, { key:'End' })
+    expect(slider).toHaveAttribute('aria-valuenow', '3')
+    fireEvent.keyDown(slider, { key:'ArrowRight' })
+    expect(slider).toHaveAttribute('aria-valuenow', '3')
+  })
+
+  it('groups session MTT by calendar week and month without changing the shared chart period', async () => {
+    const base = makeMockData()
+    const samples = [
+      ['2026-01-27T12:00:00Z', 100],
+      ['2026-01-28T12:00:00Z', 200],
+      ['2026-01-30T12:00:00Z', 300],
+      ['2026-01-31T12:00:00Z', 400],
+      ['2026-02-01T12:00:00Z', 500],
+      ['2026-02-02T12:00:00Z', 900],
+    ]
+    let total = 0
+    const brHistory = samples.map(([date, tournaments], i) => {
+      total += tournaments
+      return {
+        brAfter: 10000 + (i + 1) * 900,
+        brPrev: 10000 + i * 900,
+        timestamp: Date.parse(date) / 1000,
+        sessionResult: 900,
+        totalTournaments: total,
+        tournaments,
+        text: `Session ${i + 1}`,
+      }
+    })
+    fetchPublicData.mockResolvedValue(makeMockData({
+      meta: { ...base.meta, brHistory, totalTournaments: total },
+    }))
+    render(<App />)
+    const widget = await screen.findByTestId('session-mtt-widget')
+    const controls = within(widget).getByRole('group', { name: translate('ru', 'smtt_group_label') })
+    const sessionButton = within(controls).getByRole('button', { name: translate('ru', 'smtt_group_session') })
+    const weekButton = within(controls).getByRole('button', { name: translate('ru', 'smtt_group_week') })
+    const monthButton = within(controls).getByRole('button', { name: translate('ru', 'smtt_group_month') })
+    const mainPeriods = document.querySelector('.marathon-chart .mc-periods')
+    const allTimeButton = within(mainPeriods).getByRole('button', { name: translate('ru', 'period_all') })
+    const initialMainPath = document.querySelector('.mc-line-main').getAttribute('d')
+    const initialPeriodStorage = localStorage.getItem('rpt_chart_period')
+    const barValues = () => [...widget.querySelectorAll('.smtt-bar')].map(bar => ({
+      mtt: Number(bar.dataset.mtt),
+      sessions: Number(bar.dataset.sessionCount),
+      total: Number(bar.dataset.totalMtt),
+    }))
+    const hoverBar = index => {
+      const bar = widget.querySelectorAll('.smtt-bar')[index]
+      fireEvent.mouseMove(widget.querySelector('[data-testid="smtt-hover-capture"]'), {
+        clientX: Number(bar.getAttribute('x')) + 1,
+      })
+    }
+    const expectStableTotals = () => {
+      expect(widget.querySelector('.smtt-avg-chip')).toHaveTextContent('400')
+      expect(widget.querySelector('.smtt-avg-tick')).toHaveTextContent('400')
+      expect(within(widget).getByText('6 сессий')).toBeInTheDocument()
+      expect(allTimeButton).toHaveAttribute('aria-pressed', 'true')
+      expect(document.querySelector('.mc-line-main')).toHaveAttribute('d', initialMainPath)
+      expect(localStorage.getItem('rpt_chart_period')).toBe(initialPeriodStorage)
+    }
+
+    expect(sessionButton).toHaveAttribute('aria-pressed', 'true')
+    expect(weekButton).toHaveAttribute('aria-pressed', 'false')
+    expect(monthButton).toHaveAttribute('aria-pressed', 'false')
+    expect(barValues().map(bar => bar.mtt)).toEqual(samples.map(([, mtt]) => mtt))
+    expectStableTotals()
+    hoverBar(0)
+    expect(widget.querySelector('.smtt-tooltip')).toBeInTheDocument()
+
+    fireEvent.click(weekButton)
+    expect(weekButton).toHaveAttribute('aria-pressed', 'true')
+    expect(sessionButton).toHaveAttribute('aria-pressed', 'false')
+    expect(widget.querySelector('.smtt-tooltip')).toBeNull()
+    // Sunday remains in the preceding Monday-based week. Unequal bucket sizes
+    // must not turn the overall average into the mean of weekly averages (600).
+    expect(barValues()).toEqual([
+      { mtt: 300, sessions: 5, total: 1500 },
+      { mtt: 900, sessions: 1, total: 900 },
+    ])
+    expect(widget.querySelector('.smtt-group-note').textContent.length).toBeGreaterThan(0)
+    expectStableTotals()
+    hoverBar(0)
+    expect(widget.querySelector('.smtt-tooltip-mtt')).toHaveTextContent('300')
+    const weeklySummary = widget.querySelector('.smtt-tooltip-summary').textContent.replace(/\s/g, '')
+    expect(weeklySummary).toContain('1500')
+    expect(weeklySummary).toContain('5')
+
+    fireEvent.click(monthButton)
+    expect(monthButton).toHaveAttribute('aria-pressed', 'true')
+    expect(weekButton).toHaveAttribute('aria-pressed', 'false')
+    expect(widget.querySelector('.smtt-tooltip')).toBeNull()
+    expect(barValues()).toEqual([
+      { mtt: 250, sessions: 4, total: 1000 },
+      { mtt: 700, sessions: 2, total: 1400 },
+    ])
+    expectStableTotals()
+    hoverBar(1)
+    expect(widget.querySelector('.smtt-tooltip-mtt')).toHaveTextContent('700')
+    const monthlySummary = widget.querySelector('.smtt-tooltip-summary').textContent.replace(/\s/g, '')
+    expect(monthlySummary).toContain('1400')
+    expect(monthlySummary).toContain('2')
+
+    fireEvent.click(sessionButton)
+    expect(sessionButton).toHaveAttribute('aria-pressed', 'true')
+    expect(monthButton).toHaveAttribute('aria-pressed', 'false')
+    expect(widget.querySelector('.smtt-tooltip')).toBeNull()
+    expect(widget.querySelector('.smtt-bar.hover')).toBeNull()
+    expect(barValues().map(bar => bar.mtt)).toEqual(samples.map(([, mtt]) => mtt))
+    expectStableTotals()
+  })
+
+  it('keeps the session widget visible when monthly grouping produces one bar', async () => {
+    const base = makeMockData()
+    const brHistory = [100, 200, 300].map((tournaments, i) => ({
+      brAfter: 10000 + (i + 1) * 900,
+      brPrev: 10000 + i * 900,
+      timestamp: Date.UTC(2026, 0, 12 + i, 12) / 1000,
+      sessionResult: 900,
+      totalTournaments: [100, 300, 600][i],
+      tournaments,
+      text: `Session ${i + 1}`,
+    }))
+    fetchPublicData.mockResolvedValue(makeMockData({
+      meta: { ...base.meta, brHistory, totalTournaments: 600 },
+    }))
+    render(<App />)
+    const widget = await screen.findByTestId('session-mtt-widget')
+    fireEvent.click(within(widget).getByRole('button', { name: translate('ru', 'smtt_group_month') }))
+
+    expect(widget).toBeInTheDocument()
+    const bars = widget.querySelectorAll('.smtt-bar')
+    expect(bars).toHaveLength(1)
+    expect(bars[0]).toHaveAttribute('data-mtt', '200')
+    expect(bars[0]).toHaveAttribute('data-session-count', '3')
+    expect(bars[0]).toHaveAttribute('data-total-mtt', '600')
+    expect(widget.querySelector('.smtt-avg-chip')).toHaveTextContent('200')
+    expect(within(widget).getByText('3 сессии')).toBeInTheDocument()
+    expect(widget.querySelectorAll('.smtt-x-label')).toHaveLength(1)
+    for (const attribute of ['x', 'y', 'width', 'height']) {
+      expect(Number.isFinite(Number(bars[0].getAttribute(attribute)))).toBe(true)
+    }
+  })
+
   it('hides ru-only feed controls in en and keeps search functional', async () => {
     localStorage.setItem('rpt_lang', 'en')
     fetchPublicData.mockResolvedValue(makeMockData())

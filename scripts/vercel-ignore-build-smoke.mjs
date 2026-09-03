@@ -8,6 +8,7 @@ const {
 
 assert.equal(isSkippablePath('data/posts.json'), true)
 assert.equal(isSkippablePath('data/posts.min.json'), true)
+assert.equal(isSkippablePath('data/posts.recent.min.json'), true)
 assert.equal(isSkippablePath('data/meta.json'), true)
 assert.equal(isSkippablePath('public/data/posts.min.json'), true)
 assert.equal(isSkippablePath('.github/workflows/scrape.yml'), true)

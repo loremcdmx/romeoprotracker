@@ -25,6 +25,7 @@ import * as cheerio from 'cheerio'
 import { computeMarathonDay, extractMarathonDay } from './lib/marathon-integrity.mjs'
 import { needsTranslation, translatePost } from './lib/translation.mjs'
 import { parseScrapeOptions } from './lib/scrape-options.mjs'
+import { generateRecentData } from './generate-recent-data.mjs'
 
 const FORUM_URL = 'https://forum.gipsyteam.ru/index.php?viewtopic=181676'
 const ROMEO_RE  = /romeopro/i
@@ -44,7 +45,8 @@ async function persistScrapeOutputs({
   gitFiles = [],
   commitMessage,
 }) {
-  const filesLabel = gitFiles.length ? gitFiles.join(', ') : 'data files'
+  const outputGitFiles = [...new Set([...gitFiles, 'data/posts.recent.min.json'])]
+  const filesLabel = outputGitFiles.join(', ')
 
   if (DRY_RUN) {
     console.log(`🧪 Dry run: would write ${filesLabel}${commitMessage ? ` and publish "${commitMessage}"` : ''}`)
@@ -60,13 +62,16 @@ async function persistScrapeOutputs({
   await writeJson('data/posts.json', posts)
   if (meta) await writeJson('data/meta.json', meta)
   if (writeCompact) await writeCompactPosts(posts)
+  // Publish recent feed and embedded full history in the same commit as source
+  // data, including data-only runs that intentionally skip a Vercel deployment.
+  await generateRecentData()
 
   if (NO_PUSH) {
     console.log(`📝 Local-only mode: updated ${filesLabel}, skipped git pull / commit / push`)
     return
   }
 
-  execFileSync('git', ['add', ...gitFiles])
+  execFileSync('git', ['add', ...outputGitFiles])
   // Distinguish "nothing changed" (fine) from a real commit/push failure: the
   // old single catch swallowed rejected pushes, so a persistent failure looked
   // like a healthy run and notifyFailure never fired.
@@ -487,10 +492,12 @@ async function main() {
       console.log('✅ Nothing translated')
       return
     }
+    meta.postsChangedAt = new Date().toISOString()
     await persistScrapeOutputs({
       posts,
+      meta,
       writeCompact: true,
-      gitFiles: ['data/posts.json', 'data/posts.min.json'],
+      gitFiles: ['data/posts.json', 'data/posts.min.json', 'data/meta.json'],
       commitMessage: `scraper: translate ${done} Romeo posts to en/es`,
     })
     return

@@ -14,6 +14,8 @@ import { usePersistentState } from './hooks/usePersistentState.js'
 import { usePostsData } from './hooks/usePostsData.js'
 import AnimatedValue, { useTweenValue } from './components/AnimatedValue.jsx'
 import { buildPaceTrend, computePaceTrendStats } from './paceTrend.js'
+import { groupSessionMttRows } from './sessionMtt.js'
+import { ACTIVITY_PERIOD_DAYS, countActivityAuthors, groupActivityDays, pickTopActivityAuthors, selectActivityDays } from './activitySummary.js'
 
 let _lang = DEFAULT_LANG
 let _translate = createTranslator(DEFAULT_LANG)
@@ -2293,34 +2295,6 @@ function DayEventsList({ events, compact, onPostClick, setLightbox, lang = _lang
   )
 }
 
-function pickTopAuthors(dayPosts, allPosts) {
-  const MIN_RATING = 15000
-  const VIP_RATING = 25000
-  const byAuthor = {}
-  dayPosts.filter(p => p.author && !ROMEO_RE.test(p.author)).forEach(p => {
-    const a = p.author
-    if (!byAuthor[a]) byAuthor[a] = { rating: p.rating||0, bestLikes: 0, count: 0 }
-    byAuthor[a].count++
-    if ((p.likes||0) > byAuthor[a].bestLikes) byAuthor[a].bestLikes = p.likes||0
-    if ((p.rating||0) > byAuthor[a].rating) byAuthor[a].rating = p.rating||0
-  })
-  const globalCounts = {}
-  allPosts?.forEach(p => { if (p.author) globalCounts[p.author] = (globalCounts[p.author]||0)+1 })
-  return Object.entries(byAuthor)
-    .filter(([, {rating}]) => rating >= MIN_RATING)
-    .map(([name, {rating, bestLikes, count}]) => {
-      const gc = globalCounts[name] || count
-      const uniqueBonus = gc <= 3 ? 10 : gc <= 10 ? 4 : 0
-      const authority = Math.log10(rating + 1) * 20
-      const likeScore = (bestLikes || 0) * 2
-      const vipBoost = (rating >= VIP_RATING && bestLikes > 5) ? 80 : 0
-      const score = authority + likeScore + vipBoost + uniqueBonus
-      return { name, rating, score, bestLikes }
-    })
-    .sort((a,b) => b.score - a.score)
-    .slice(0, 5)
-}
-
 function smartSortPosts(ps) {
   if (ps.length < 2) return ps
   const sorted = [...ps].sort((a,b) => (a.timestamp||0) - (b.timestamp||0))
@@ -2375,25 +2349,14 @@ function ActivityChart({ posts, favorites, ignored, onFav, onIgnore, onUnignore,
     clearTimeout(tipShowTimer.current)
   }, [])
 
-  const PERIOD_DAYS = { week: 7, month: 30, all: null }
+  const PERIOD_DAYS = ACTIVITY_PERIOD_DAYS
   const PERIOD_LABELS = { week: t('period_week'), month: t('period_month'), all: t('period_all_marathon') }
 
-  const data = useMemo(() => {
-    const byDate = {}
-    posts.forEach(p => {
-      if (!p.timestamp) return
-      const k = warsawDayKey(p.timestamp)
-      if (!k) return
-      if (!byDate[k]) byDate[k] = { count:0, posts:[] }
-      byDate[k].count++
-      byDate[k].posts.push(p)
-    })
-    const sorted = Object.entries(byDate).sort((a,b)=>a[0]>b[0]?1:-1)
-    const days = PERIOD_DAYS[period]
-    return days ? sorted.slice(-days) : sorted
-  }, [posts, period])
+  const allDays = useMemo(() => groupActivityDays(posts), [posts])
+  const authorCounts = useMemo(() => countActivityAuthors(posts), [posts])
+  const data = useMemo(() => selectActivityDays(allDays, period), [allDays, period])
 
-  // Precompute tooltip payload per date — avoids re-running makeDayEvents / pickTopAuthors
+  // Precompute tooltip payload per date — avoids re-running events / author scoring
   // on every hover frame. Building this once per `data/posts` change is much cheaper
   // than doing it inside the render path of the hover tooltip.
   const dayMeta = useMemo(() => {
@@ -2402,12 +2365,12 @@ function ActivityChart({ posts, favorites, ignored, onFav, onIgnore, onUnignore,
       const romeoCount = dp.reduce((n, p) => n + (ROMEO_RE.test(p.author) ? 1 : 0), 0)
       meta.set(date, {
         events: makeDayEvents(dp),
-        topAuthors: pickTopAuthors(dp, posts).slice(0, 3),
+        topAuthors: pickTopActivityAuthors(dp, authorCounts).slice(0, 3),
         romeoCount,
       })
     }
     return meta
-  }, [data, posts])
+  }, [data, authorCounts])
 
   useLayoutEffect(() => {
     if (!tip || selected || !tip.anchorRect || !tipRef.current) {
@@ -2766,7 +2729,7 @@ const scrollBehavior = () =>
 
 function FilterBar({ sortBy, setSortBy, search, setSearch, showSearch, setShowSearch,
                      romeoOnly, setRomeoOnly, minLikes, setMinLikes,
-                     minRating, setMinRating, count, showSort=true, t, lang }) {
+                     minRating, setMinRating, count, showSort=true, t, lang, limited = false }) {
   const tr = t || (k => k)
   const ruControls = !lang || lang === 'ru'
   const hasFilters = (ruControls && (romeoOnly || minLikes !== 3 || minRating !== 0)) || search
@@ -2813,7 +2776,8 @@ function FilterBar({ sortBy, setSortBy, search, setSearch, showSearch, setShowSe
       </button>
       {showSearch && (
         <input id="feed-search" className="feed-search" placeholder={tr('filter_search_placeholder')}
-          aria-label={tr('filter_search_title')} value={search} onChange={e=>setSearch(e.target.value)} autoFocus/>
+          aria-label={tr('filter_search_title')} aria-describedby={limited ? 'feed-search-scope' : undefined}
+          value={search} onChange={e=>setSearch(e.target.value)} autoFocus/>
       )}
       {hasFilters && (
         <button type="button" className="filter-pill filter-reset off" title={tr('filter_reset')} onClick={()=>{
@@ -2821,6 +2785,7 @@ function FilterBar({ sortBy, setSortBy, search, setSearch, showSearch, setShowSe
         }}>{tr('filter_reset_short')}</button>
       )}
       <output className="filter-active-count" aria-live="polite">{plPosts(count, lang || 'ru')}</output>
+      {limited && <p className="feed-scope-note" id="feed-search-scope">{tr('lite_search_scope')}</p>}
     </div>
   )
 }
@@ -3129,7 +3094,7 @@ const PostCard = memo(function PostCard({ p, favorites, ignored, onFav, onIgnore
         <button type="button" className="pc-avatar" data-avatar-initial={initial}
           aria-expanded={menu} aria-label={p.author}
           onClick={e=>{e.stopPropagation();setMenu(m=>!m)}}>
-          <img src={p.avatar || GT_DEFAULT_AVATAR} alt="" referrerPolicy="no-referrer" onError={avatarError}/>
+          <img src={p.avatar || GT_DEFAULT_AVATAR} alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={avatarError}/>
         </button>
         {/* Dropdown меню профиля */}
         {menu && (
@@ -3500,12 +3465,12 @@ export function SidebarTopList({ posts, setLightbox }) {
             <div data-avatar-initial={initial} style={{width:28,height:28,borderRadius:'50%',background:'var(--red)',flexShrink:0,
               overflow:'hidden',display:'flex',alignItems:'center',justifyContent:'center',
               fontSize:11,fontWeight:700,color:'#fff',marginTop:2}}>
-              <img src={p.avatar || GT_DEFAULT_AVATAR} alt="" referrerPolicy="no-referrer" style={{width:'100%',height:'100%',objectFit:'cover'}} onError={avatarError}/>
+              <img src={p.avatar || GT_DEFAULT_AVATAR} alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer" style={{width:'100%',height:'100%',objectFit:'cover'}} onError={avatarError}/>
             </div>
             <div style={S_FLEX1}>
               <div style={{fontSize:10,color:'var(--dim2)',fontWeight:600,marginBottom:2}}>{p.author}</div>
               {showImage && (
-                <img src={p.images[0]} alt=""
+                <img src={p.images[0]} alt="" loading="lazy" decoding="async"
                   style={{width:'100%',height:'auto',borderRadius:4,marginBottom:6,display:'block',cursor:'zoom-in'}}
                   onClick={e=>{e.stopPropagation();setLightbox(p.images[0])}}
                   onError={e=>e.target.style.display='none'}/>
@@ -3628,12 +3593,13 @@ function FirstFundBanner({ t }) {
 }
 
 // ─── SESSION MTT WIDGET ──────────────────────────────────────────────────────
-// Bars of tournaments played per session (channel request). Follows the shared
-// week/month/all chart period; average as a dashed guide, last session in gold.
+// The shared period controls the date range; the local grouping only changes
+// granularity. Grouped bars and the guide both measure tournaments per session.
 function SessionMttChart({ meta, period, lang, t }) {
   const isMobile = useIsMobile()
   const [hoverIdx, setHoverIdx] = useState(null)
-  const rows = useMemo(() => {
+  const [grouping, setGrouping] = useState('session')
+  const sessions = useMemo(() => {
     const hist = [...(meta?.brHistory || [])].sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0))
     const withMtt = hist.map((row, i) => ({
       timestamp:row.timestamp || 0,
@@ -3646,8 +3612,10 @@ function SessionMttChart({ meta, period, lang, t }) {
     const filtered = withMtt.filter(r => r.timestamp >= cutoff)
     return filtered.length >= 2 ? filtered : withMtt
   }, [meta, period])
+  const rows = useMemo(() => groupSessionMttRows(sessions, grouping), [sessions, grouping])
+  useEffect(() => setHoverIdx(null), [period, grouping, meta])
 
-  if (rows.length < 2) return null
+  if (!rows.length) return null
 
   const W = isMobile ? 340 : 640
   const H = 156
@@ -3655,36 +3623,62 @@ function SessionMttChart({ meta, period, lang, t }) {
   const plotW = W - pad.left - pad.right
   const plotH = H - pad.top - pad.bottom
   const maxMtt = Math.max(...rows.map(r => r.mtt))
-  const avg = rows.reduce((sum, r) => sum + r.mtt, 0) / rows.length
+  const avg = rows.reduce((sum, r) => sum + r.totalMtt, 0)
+    / rows.reduce((sum, r) => sum + r.sessionCount, 0)
   const yOf = v => pad.top + (1 - v / maxMtt) * plotH
   const gap = rows.length > 60 ? .6 : 1.4
   const step = plotW / rows.length
-  const barW = Math.max(1.2, step - gap)
-  const xOf = i => pad.left + (i + .08) * step
+  const barW = Math.min(grouping === 'session' ? 28 : 34, Math.max(.6, step - gap))
+  const xOf = i => pad.left + i * step + (step - barW) / 2
   const avgY = yOf(avg)
   const maxIdx = rows.reduce((best, r, i) => r.mtt > rows[best].mtt ? i : best, 0)
   const lastIdx = rows.length - 1
 
   // Sparse date ticks along the X axis (the per-day detail lives in the tooltip)
-  const tickCount = Math.min(rows.length, isMobile ? 3 : 5)
+  const tickCount = Math.min(rows.length, grouping === 'month' ? (isMobile ? 6 : 10) : (isMobile ? 3 : 5))
   const tickIdx = [...new Set(Array.from({ length: tickCount }, (_, k) =>
     Math.round(k * (rows.length - 1) / Math.max(1, tickCount - 1))))]
 
   const hover = hoverIdx != null && rows[hoverIdx] ? { i:hoverIdx, r:rows[hoverIdx] } : null
-  const hoverPct = hover ? (xOf(hover.i) + barW / 2) / W * 100 : 0
+  const locale = lang === 'ru' ? 'ru-RU' : lang === 'es' ? 'es-ES' : 'en-US'
+  const formatKey = key => fmtDateShortLang(Date.parse(`${key}T12:00:00Z`) / 1000, lang)
+  const monthLabel = row => {
+    const month = new Intl.DateTimeFormat(locale, { month:'short', timeZone:'UTC' })
+      .format(new Date(`${row.periodStartKey}T12:00:00Z`)).replace(/\.$/, '')
+    return `${month} ${row.periodStartKey.slice(2, 4)}`
+  }
+  const rowLabel = row => grouping === 'month' ? monthLabel(row)
+    : grouping === 'week' ? `${formatKey(row.periodStartKey)} – ${formatKey(row.periodEndKey)}`
+    : fmtDateShortLang(row.timestamp, lang)
+  const selectGrouping = value => {
+    setHoverIdx(null)
+    setGrouping(value)
+  }
 
   return (
-    <section className="pace-widget session-mtt-widget" data-testid="session-mtt-widget">
+    <section className="pace-widget session-mtt-widget" data-testid="session-mtt-widget" data-grouping={grouping}>
       <div className="pace-head">
         <h2 className="section-title">{t('smtt_title')}</h2>
-        <div style={{display:'flex',gap:6,flexShrink:0}}>
+        <div className="smtt-stats">
           <span className="section-count smtt-avg-chip">{`${t('smtt_avg')}: ${fmtInt(Math.round(avg))}`}</span>
-          <span className="section-count smtt-last-chip">{`${t('smtt_last')}: ${fmtInt(rows[lastIdx].mtt)}`}</span>
-          <span className="section-count">{plSessions ? plSessions(rows.length, lang) : rows.length}</span>
+          <span className="section-count smtt-last-chip">{`${t(grouping === 'session' ? 'smtt_last' : 'smtt_last_period')}: ${fmtInt(Math.round(rows[lastIdx].mtt))}`}</span>
+          <span className="section-count">{plSessions(sessions.length, lang)}</span>
         </div>
       </div>
+      <div className="smtt-toolbar">
+        <div className="pace-periods smtt-grouping" role="group" aria-label={t('smtt_group_label')}>
+          {['session', 'week', 'month'].map(value => (
+            <button key={value} type="button" className={`mc-period ${grouping === value ? 'active' : ''}`}
+              aria-pressed={grouping === value} onClick={() => selectGrouping(value)}>
+              {t(`smtt_group_${value}`)}
+            </button>
+          ))}
+        </div>
+        <span className="smtt-group-note">{t(`smtt_note_${grouping}`)}</span>
+      </div>
       <div className="pace-chart-wrap" onMouseLeave={() => setHoverIdx(null)}>
-        <svg className="pace-chart smtt-chart" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={t('smtt_title')}>
+        <svg className="pace-chart smtt-chart" viewBox={`0 0 ${W} ${H}`} role="group"
+          aria-label={`${t('smtt_title')} — ${t(`smtt_group_${grouping}`)}`}>
           <rect x={pad.left} y={pad.top} width={plotW} height={plotH} rx="10" className="pace-plot-bg"/>
           {[maxMtt, Math.round(maxMtt / 2)]
             .filter(v => Math.abs(yOf(v) - avgY) >= 12)
@@ -3695,7 +3689,7 @@ function SessionMttChart({ meta, period, lang, t }) {
             </g>
           ))}
           {rows.map((r, i) => (
-            <rect key={`${r.timestamp}-${i}`}
+            <rect key={r.key} data-mtt={r.mtt} data-total-mtt={r.totalMtt} data-session-count={r.sessionCount}
               className={`smtt-bar ${i === lastIdx ? 'last' : ''} ${i === maxIdx ? 'max' : ''} ${hover && hover.i === i ? 'hover' : ''}`}
               x={xOf(i)} y={yOf(r.mtt)} width={barW} height={Math.max(1, pad.top + plotH - yOf(r.mtt))} rx={barW > 3 ? 1.2 : 0}/>
           ))}
@@ -3705,11 +3699,11 @@ function SessionMttChart({ meta, period, lang, t }) {
           <text className="pace-y-label smtt-avg-tick" x={pad.left - 6} y={avgY + 3}>{fmtInt(Math.round(avg))}</text>
           {tickIdx.map(i => {
             const cx = xOf(i) + barW / 2
-            const anchor = i === 0 ? 'start' : i === rows.length - 1 ? 'end' : 'middle'
+            const anchor = grouping === 'month' || rows.length === 1 ? 'middle' : i === 0 ? 'start' : i === rows.length - 1 ? 'end' : 'middle'
             const tx = anchor === 'start' ? Math.max(cx - 4, pad.left) : anchor === 'end' ? Math.min(cx + 4, W - pad.right) : cx
             return (
               <text key={`tick-${i}`} className="smtt-x-label" x={tx} y={H - 7} textAnchor={anchor}>
-                {fmtDateShortLang(rows[i].timestamp, lang)}
+                {grouping === 'month' ? monthLabel(rows[i]) : grouping === 'week' ? formatKey(rows[i].periodStartKey) : fmtDateShortLang(rows[i].timestamp, lang)}
               </text>
             )
           })}
@@ -3720,6 +3714,22 @@ function SessionMttChart({ meta, period, lang, t }) {
           {/* hover capture over the whole plot: nearest bar by X */}
           <rect x={pad.left} y={pad.top} width={plotW} height={plotH} fill="transparent"
             className="mc-hover-capture" data-testid="smtt-hover-capture"
+            tabIndex={0} role="slider" aria-label={t('smtt_browse')}
+            aria-valuemin={1} aria-valuemax={rows.length} aria-valuenow={(hover?.i ?? lastIdx) + 1}
+            aria-valuetext={`${rowLabel(rows[hover?.i ?? lastIdx])}: ${fmtInt(Math.round(rows[hover?.i ?? lastIdx].mtt))} ${t(grouping === 'session' ? 'sr_mtt_short' : 'sr_avg')}`}
+            onFocus={() => setHoverIdx(current => current ?? lastIdx)} onBlur={() => setHoverIdx(null)}
+            onKeyDown={e => {
+              const current = hoverIdx ?? lastIdx
+              const next = { ArrowLeft:Math.max(0, current - 1), ArrowRight:Math.min(lastIdx, current + 1), Home:0, End:lastIdx }[e.key]
+              if (next != null) { e.preventDefault(); setHoverIdx(next) }
+              if (e.key === 'Escape') setHoverIdx(null)
+            }}
+            onPointerDown={e => {
+              if (e.pointerType === 'mouse') return
+              const rect = e.currentTarget.ownerSVGElement.getBoundingClientRect()
+              const mx = (e.clientX - rect.left) * W / rect.width
+              setHoverIdx(Math.min(lastIdx, Math.max(0, Math.floor((mx - pad.left) / step))))
+            }}
             onMouseMove={e => {
               const svgRect = e.currentTarget.ownerSVGElement?.getBoundingClientRect?.()
               const scale = svgRect && svgRect.width ? W / svgRect.width : 1
@@ -3730,15 +3740,19 @@ function SessionMttChart({ meta, period, lang, t }) {
         </svg>
         {hover && (() => {
           const diff = Math.round(hover.r.mtt - avg)
-          const clampedPct = Math.min(88, Math.max(12, hoverPct))
           return (
-            <div className="smtt-tooltip" style={{ left:`${clampedPct}%`, bottom:`${H - yOf(hover.r.mtt) + 10}px` }}>
-              <div className="smtt-tooltip-date">{fmtDateShortLang(hover.r.timestamp, lang)}</div>
-              <div className="smtt-tooltip-mtt">{fmtInt(hover.r.mtt)} {t('sr_mtt_short')}
+            <div className="smtt-tooltip" style={{ [hover.i < rows.length / 2 ? 'right' : 'left']:10, top:8 }}>
+              <div className="smtt-tooltip-date">{rowLabel(hover.r)}</div>
+              <div className="smtt-tooltip-mtt">{fmtInt(Math.round(hover.r.mtt))} {t(grouping === 'session' ? 'sr_mtt_short' : 'sr_avg')}
                 <span className={`smtt-tooltip-diff ${diff >= 0 ? 'pos' : 'neg'}`}>
                   {` ${diff >= 0 ? '+' : ''}${fmtInt(diff)} ${t('smtt_vs_avg')}`}
                 </span>
               </div>
+              {grouping !== 'session' && (
+                <div className="smtt-tooltip-summary">
+                  {`${t('smtt_total')}: ${fmtInt(hover.r.totalMtt)} ${t('sr_mtt_short')} · ${plSessions(hover.r.sessionCount, lang)}`}
+                </div>
+              )}
               {hover.r.profit != null && (
                 <div className={`smtt-tooltip-profit ${hover.r.profit >= 0 ? 'pos' : 'neg'}`}>{fk(hover.r.profit)}</div>
               )}
@@ -3752,10 +3766,14 @@ function SessionMttChart({ meta, period, lang, t }) {
 
 // ─── APP ─────────────────────────────────────────────────────────────────────
 export default function App() {
-  const { posts, meta, loading, error, newPostIds, refresh, clearNewPosts } = usePostsData()
+  // Match the narrow layout, including phones in landscape. The data hook
+  // captures this only on entry; resizing never downloads or discards history.
+  const isNarrow = useIsMobile(980)
+  const { posts, meta, loading, error, newPostIds, refresh, clearNewPosts,
+    coverage, loadingFullHistory, fullHistoryError, loadFullHistory } = usePostsData({ initialMode:isNarrow ? 'recent' : 'full' })
+  const isLite = coverage?.mode === 'recent'
   // Below 980px the sidebar is hidden and the FF banner moves into the feed.
   // Render only the visible one so the hidden copy doesn't mount a second chip.
-  const isNarrow = useIsMobile(980)
   const [activeTab, setActiveTab] = useState('feed')
   const [lightbox,  setLightbox]  = useState(null)
   const mobileMenuRef = useRef(null)
@@ -3768,6 +3786,10 @@ export default function App() {
     deserialize: (raw) => raw || DEFAULT_LANG,
   })
   const t = useMemo(() => createTranslator(lang), [lang])
+  const liteCountLabel = t('lite_count')
+    .replace('{loaded}', fmtInt(coverage?.loadedPosts ?? posts.length))
+    .replace('{total}', fmtInt(coverage?.totalPosts ?? meta?.totalPosts ?? posts.length))
+  const requestFullHistory = () => loadFullHistory().catch(() => {})
   const appVersionLabel = `v${String(__APP_VERSION__).replace(/\.0$/, '')}`
   // Build date instead of a hand-edited literal, formatted for the active
   // locale (DD.MM.YYYY reads as a different day in en/es).
@@ -3897,7 +3919,7 @@ export default function App() {
       const romeoByDate = posts.filter(p => ROMEO_RE.test(p.author)).sort((a,b) => (b.timestamp||0)-(a.timestamp||0))
       let day = null
       for (const p of romeoByDate) { day = extractDay(p.text); if (day) break }
-      if (!day) day = brHistory.length
+      if (!day) day = meta?.day || brHistory.length
 
       return { br, profit, startBR, day, lastTs: last.timestamp, totalTourneys, sessionsCount, winRate, avgMTT }
     }
@@ -4445,18 +4467,32 @@ export default function App() {
               {isNarrow && <div className="ff-banner-mobile-slot"><FirstFundBanner t={t}/></div>}
               <PaceWidget meta={meta} stats={stats} period={chartPeriod} setPeriod={setChartPeriod} lang={lang} t={t} light={theme === 'light'}/>
               <SessionMttChart meta={meta} period={chartPeriod} lang={lang} t={t}/>
+              {isLite && (
+                <section className="lite-feed-notice" aria-label={t('lite_title')} data-testid="lite-feed-notice">
+                  <div className="lite-feed-copy">
+                    <span className="lite-feed-title">{t('lite_title')}</span>
+                    <span className="lite-feed-count">{liteCountLabel}</span>
+                    <p>{t('lite_description')}</p>
+                  </div>
+                  <button type="button" className="lite-load-button" disabled={loadingFullHistory}
+                    onClick={requestFullHistory}>
+                    {t(loadingFullHistory ? 'lite_loading_full' : 'lite_load_full')}
+                  </button>
+                  {fullHistoryError && <p className="lite-feed-error" role="alert">{t('lite_load_error')}</p>}
+                </section>
+              )}
               {/* Mobile-only top posts */}
               {lang==='ru' && hotPosts.length > 0 && (() => {
                 const now = Date.now() / 1000
                 const cutoffs = { day: now-86400, week: now-604800, month: now-2592000, all: 0 }
                 const labels = { day:t('filter_day'), week:t('filter_week'), month:t('filter_month'), all:t('filter_all_short') }
-                const filtered = hotPosts.filter(p => (p.timestamp||0) >= cutoffs[sidebarTopPeriod])
+                const filtered = isLite ? hotPosts : hotPosts.filter(p => (p.timestamp||0) >= cutoffs[sidebarTopPeriod])
                 const topList = (filtered.length ? filtered : hotPosts).slice(0,7)
                 return (
                   <div className="mobile-top-posts">
                     <div className="mobile-top-header">
-                      <span>{t('mobile_top_label')}</span>
-                      <div className="mobile-top-periods">
+                      <span>{t(isLite ? 'lite_top_label' : 'mobile_top_label')}</span>
+                      {!isLite && <div className="mobile-top-periods">
                         {Object.keys(cutoffs).map(k => (
                           <button type="button" key={k} onClick={()=>setSidebarTopPeriod(k)}
                             className={`mobile-top-period ${sidebarTopPeriod===k?'active':''}`}
@@ -4464,7 +4500,7 @@ export default function App() {
                             {labels[k]}
                           </button>
                         ))}
-                      </div>
+                      </div>}
                     </div>
                     <div className="mobile-top-list">
                       {topList.map((p, i) => (
@@ -4488,7 +4524,7 @@ export default function App() {
                 romeoOnly={romeoOnly} setRomeoOnly={setRomeoOnly}
                 minLikes={minLikes} setMinLikes={setMinLikes}
                 minRating={minRating} setMinRating={setMinRating}
-                count={feedPosts.length} showSort={true} t={t} lang={lang}
+                count={feedPosts.length} showSort={true} t={t} lang={lang} limited={isLite}
               />
               {newPostIds.length > 0 && activeTab === 'feed' && (
                 <button className="new-posts-bubble" onClick={goToNewPosts}>
@@ -4496,7 +4532,7 @@ export default function App() {
                 </button>
               )}
               {feedPosts.length===0
-                ? <div className="empty-state">{t('empty_no_posts_filters')}</div>
+                ? <div className="empty-state">{t(isLite ? 'lite_empty' : 'empty_no_posts_filters')}</div>
                 : <>
                   <Paginator page={page} totalPages={totalPages} onPage={goPage}
                     perPage={perPage} onPerPage={setPerPage} total={feedPosts.length} lang={lang} />
@@ -4510,7 +4546,7 @@ export default function App() {
                   ))}
                   <Paginator page={page} totalPages={totalPages} onPage={goPage}
                     perPage={perPage} onPerPage={setPerPage} total={feedPosts.length} lang={lang} />
-                  {lang==='ru' && <ActivityChart posts={posts}
+                  {lang==='ru' && !isLite && <ActivityChart posts={posts}
                     favorites={favorites} ignored={ignored} onFav={toggleFav}
                     onIgnore={addIgnore} onUnignore={removeIgnore} setLightbox={setLightbox}
                     minLikes={minLikes}
@@ -4518,6 +4554,13 @@ export default function App() {
                     search={search} onPostClick={goToPost} lang={lang} t={t}/>}
                 </>
               }
+              {isLite && (
+                <div className="lite-history-footer">
+                  <p>{t('lite_history_hint')}</p>
+                  <button type="button" className="lite-load-button" disabled={loadingFullHistory}
+                    onClick={requestFullHistory}>{t(loadingFullHistory ? 'lite_loading_full' : 'lite_load_full')}</button>
+                </div>
+              )}
             </>}
 
             {/* НАСТРОЙКИ */}
@@ -4568,7 +4611,7 @@ export default function App() {
               {!isNarrow && <FirstFundBanner t={t}/>}
 
               <div className="sblock">
-                <div className="sblock-title">🧵 {t('forum_stats')}</div>
+                <div className="sblock-title">🧵 {t(isLite ? 'lite_forum_stats' : 'forum_stats')}</div>
                 <div className="sblock-body">
                   {[
                     [t('sr_posts'), <span key="p" className="srow-val">{fmtInt(posts.length)}</span>],
@@ -4584,13 +4627,13 @@ export default function App() {
                   const now = Date.now() / 1000
                   const cutoffs = { day: now-86400, week: now-604800, month: now-2592000, all: 0 }
                   const labels = { day:t('filter_day'), week:t('filter_week'), month:t('filter_month'), all:t('filter_always') }
-                  const filtered = hotPosts.filter(p => (p.timestamp||0) >= cutoffs[sideTopPeriod])
+                  const filtered = isLite ? hotPosts : hotPosts.filter(p => (p.timestamp||0) >= cutoffs[sideTopPeriod])
                   const topList = (filtered.length ? filtered : hotPosts).slice(0,10)
                   return (
                     <>
                       <div className="forum-top-head">
-                        <span>{t('top_likes_header')}</span>
-                        <div className="forum-top-periods">
+                        <span>{t(isLite ? 'lite_top_label' : 'top_likes_header')}</span>
+                        {!isLite && <div className="forum-top-periods">
                           {Object.keys(cutoffs).map(k => (
                             <button type="button" key={k} onClick={()=>setSidebarTopPeriod(k)}
                               aria-pressed={sideTopPeriod===k}
@@ -4598,7 +4641,7 @@ export default function App() {
                               {labels[k]}
                             </button>
                           ))}
-                        </div>
+                        </div>}
                       </div>
                       <SidebarTopList posts={topList} setLightbox={setLightbox}/>
                     </>
