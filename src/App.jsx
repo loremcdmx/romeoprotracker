@@ -1974,7 +1974,7 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
             : (isHovered ? (isLast ? 8 : 6) : (isLast ? 6 : isGrouped ? 4.6 : 3.8))
           const baseDotR = significant || isHovered ? loudDotR : (isMobile ? 2.8 : 3)
           const dotR = isCrowded
-            ? Math.min(baseDotR, isLast ? (isMobile ? 4.8 : 4.6) : (isMobile ? 3.4 : 3.5))
+            ? Math.min(baseDotR, isLast ? (isMobile ? 4.8 : 4.6) : (isMobile ? 2.7 : 2.8))
             : baseDotR
           const clusterPartR = partCount => {
             const base = isMobile ? 2.2 : 2.05
