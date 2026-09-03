@@ -477,7 +477,7 @@ describe('App', () => {
     expect(latestValue).toBeInTheDocument()
     expect(latestDot).toBeInTheDocument()
 
-    const trendRect = estimatedSvgTextRect(trendLabel, 8.6, 'end')
+    const trendRect = estimatedSvgTextRect(trendLabel, 10, 'end')
     const valueRect = estimatedSvgTextRect(latestValue, 10, latestValue.classList.contains('edge') ? 'end' : 'middle')
     const dotX = Number(latestDot.getAttribute('cx'))
     const dotY = Number(latestDot.getAttribute('cy'))
