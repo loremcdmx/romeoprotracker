@@ -8,7 +8,7 @@ This repository hosts the RomeoPro Tracker frontend and the scraper that produce
 - `npm run build` — build production assets
 - `npm run preview` — preview the production build
 - `npm run test` — run Vitest once
-- `npm run check` — production build plus tests
+- `npm run check` — production build, tests, data-integrity smoke and vercel-ignore-build smoke
 - `npm run scrape` — normal scraper pass
 - `npm run scrape:dry-run` — network + parse validation without writing files or touching git
 - `npm run scrape:no-push` — update local scraper outputs without git pull / commit / push
@@ -38,7 +38,7 @@ Scraper:
 
 1. The scraper updates `data/posts.json`, `data/posts.min.json`, and `data/meta.json`.
 2. Local dev/build runs sync those files into `public/data`.
-3. The client loads data from configured public sources and picks the freshest payload by `meta.lastUpdated`.
+3. The client loads data from configured public sources and picks the freshest payload by `max(meta.lastUpdated, meta.postsChangedAt)`.
 4. Client cache is short-lived and falls back to stale cached data only when every network source fails or is older.
 
 ## Deployment Notes

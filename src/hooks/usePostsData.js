@@ -48,6 +48,10 @@ export function usePostsData() {
   const latestPostsRef = useRef([])
   const latestMetaRef = useRef(null)
   const appliedSigRef = useRef(null)
+  // Mirror of `error` so no-op polls never call setError(null) on an already
+  // null state — React 18 may still render once for a same-value update, which
+  // defeated the no-op fast path on the first poll.
+  const errorRef = useRef(null)
   const [posts, setPosts] = useState([])
   const [meta, setMeta] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -55,7 +59,7 @@ export function usePostsData() {
   const [newPostIds, setNewPostIds] = useState([])
 
   const loadData = useCallback(async ({ silent = false } = {}) => {
-    if (!silent) setError(null)
+    if (!silent && errorRef.current) { errorRef.current = null; setError(null) }
 
     try {
       const { posts: nextPosts = [], meta: nextMeta = {} } = await fetchPublicData()
@@ -65,7 +69,7 @@ export function usePostsData() {
       // enrich + setState entirely and avoid re-rendering the whole app every cycle.
       const signature = `${nextMeta?.lastUpdated || ''}|${nextMeta?.postsChangedAt || ''}|${nextPosts.length}`
       if (silent && knownIdsRef.current && appliedSigRef.current === signature) {
-        setError(null)
+        if (errorRef.current) { errorRef.current = null; setError(null) }
         return { posts: latestPostsRef.current, meta: latestMetaRef.current }
       }
       appliedSigRef.current = signature
@@ -85,11 +89,12 @@ export function usePostsData() {
       latestMetaRef.current = nextMeta
       setPosts(nextPosts)
       setMeta(nextMeta)
-      setError(null)
+      if (errorRef.current) { errorRef.current = null; setError(null) }
       return { posts: nextPosts, meta: nextMeta }
     } catch (err) {
       const nextError = err instanceof Error ? err : new Error('Failed to load tracker data')
       if (!silent || latestPostsRef.current.length === 0) {
+        errorRef.current = nextError
         setError(nextError)
       }
       throw nextError

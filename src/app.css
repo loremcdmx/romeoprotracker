@@ -174,7 +174,6 @@ button,select,input,summary{font:inherit}
 .mc-month-tickmark{stroke:var(--chart-grid-strong);stroke-width:1.1;stroke-linecap:round;opacity:.72;vector-effect:non-scaling-stroke}
 .mc-month-label-main{font-family:'Inter',system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:10px;font-weight:600;fill:var(--axis-y-muted);letter-spacing:.075em}
 .mc-month-tick.latest .mc-month-label-main{fill:var(--axis-x)}
-.mc-month-label-sub{font-family:'Inter',system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:8.2px;font-weight:500;fill:var(--axis-x-muted);font-variant-numeric:tabular-nums;letter-spacing:.015em}
 
 /* ACTIVITY CHART */
 .chart-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:16px;position:relative}
@@ -837,14 +836,12 @@ html{scroll-behavior:smooth}
 .smtt-avg-chip{color:var(--dim2)}
 .smtt-last-chip{color:var(--gold,#ffd24d);border-color:rgba(255,210,77,.35)}
 .light .smtt-last-chip{color:#8a5b00;border-color:rgba(138,91,0,.3)}
-.smtt-last-label{fill:var(--gold,#ffd24d);font-size:9px;text-anchor:middle;font-weight:700;font-family:'Roboto Mono',monospace;font-variant-numeric:tabular-nums}
 .light .smtt-bar{fill:rgba(37,99,155,.45)}
 .light .smtt-bar:hover{fill:rgba(37,99,155,.75)}
 .light .smtt-bar.max{fill:rgba(46,125,50,.6)}
 .light .smtt-bar.last{fill:#b8860b}
 .light .smtt-avg-line{stroke:rgba(0,0,0,.3)}
 .light .smtt-avg-tick{fill:#3f3a33}
-.light .smtt-last-label{fill:#9a6a00}
 
 /* ─── THEME TOGGLE ──────────────────────────────────────────────────────── */
 .theme-toggle{width:32px;height:32px;background:none;border:1px solid var(--border);border-radius:10px;cursor:pointer;color:var(--dim2);font-size:13px;padding:0;transition:all .2s;line-height:1}
@@ -986,7 +983,6 @@ html{scroll-behavior:smooth}
   .mc-xaxis-label-main{font-size:10.5px}
   .mc-xaxis-label-sub{font-size:8.4px}
   .mc-month-label-main{font-size:10.5px}
-  .mc-month-label-sub{font-size:8.8px}
   .mc-milestone-label{font-size:11.5px}
   .mc-milestone-secondary{font-size:9.5px}
   .mc-peak-callout-text{font-size:11px}
@@ -1131,11 +1127,10 @@ html{scroll-behavior:smooth}
   html{scroll-behavior:auto}
   .new-posts-bubble{animation:none}
   .post-highlight{animation:none;outline:2px solid var(--gold)}
-  .join-ff-btn,.ff-banner{transition:none}
+  .ff-banner{transition:none}
 }
 
 /* merged-point breakdown: capped list header */
-.mc-session-more{font-size:10px;color:var(--dim);padding:1px 0 4px;font-style:italic}
 
 /* light theme: non-text chart strokes at >=3:1 (lines themselves come from a
    theme prop; these are the supporting rails/overlays) */
