@@ -609,7 +609,7 @@ html{scroll-behavior:smooth}
   line-height:1;margin-bottom:8px;
 }
 .marathon-progress-label span{text-transform:uppercase;letter-spacing:.075em;font-size:12px;color:var(--white)}
-.marathon-progress-label b{color:var(--gold);font-weight:800;font-variant-numeric:tabular-nums;font-size:14px;text-shadow:0 0 14px rgba(255,179,0,.18)}
+.marathon-progress-label b{color:var(--gold);font-weight:700;font-variant-numeric:tabular-nums;font-size:14px;text-shadow:0 0 14px rgba(255,179,0,.18)}
 .marathon-progress-track{
   position:relative;height:12px;background:linear-gradient(180deg,#121212,#242424);
   border:1px solid rgba(255,255,255,.09);border-radius:999px;overflow:hidden;

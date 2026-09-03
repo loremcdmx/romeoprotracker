@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 1.13.9 — 2026-09-03
+
+- last two faux-bold spots (progress percent, $/MTT rate chips) capped at the loaded 700 weight; crowded loud dots trimmed so no two visible dots touch on the mobile canvas
+
 ## 1.13.8 — 2026-09-03
 
 ### Fonts & dots
