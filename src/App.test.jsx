@@ -1697,6 +1697,10 @@ describe('App', () => {
       // "+288.2k$ / 28 987 МТТ" — compare the MTT figure exactly
       const mtt = (note.match(/\/\s*([\d\s\u202F]+)\s*МТТ/)?.[1] || '').replace(/\D/g, '')
       expect(mtt).toBe(String(last))
+      // the session widget follows the same cumulative-first rule: the
+      // zero-delta report contributes no bar (reported 260 is phantom)
+      const smtt = await screen.findByTestId('session-mtt-widget')
+      expect(smtt.querySelectorAll('.smtt-bar').length).toBe(rows.length - 1)
     })
 
     it('never merges more than 6 sessions into one marker', async () => {
@@ -1723,6 +1727,46 @@ describe('App', () => {
       const breakdownRows = document.querySelectorAll('.mc-session-row').length
       expect(breakdownRows).toBe(+biggest.dataset.count)
       expect(document.querySelector('.mc-session-more')).toBeNull()
+    })
+  })
+
+  describe('review round 3', () => {
+    it('revealing an ignored post inside a day popup does not crash the app', async () => {
+      const base = makeMockData()
+      const now = Math.floor(Date.now() / 1000)
+      const dayTs = now - 3 * 86400
+      const posts = [
+        ...base.posts,
+        { id: 'troll-1', author: 'Troll', text: 'ignored body text here', likes: 5, timestamp: dayTs,
+          date: '30.08.26', avatar: null, rating: 1, msgCount: 3, regData: '2025', images: [], url: 'https://e/t' },
+      ]
+      localStorage.setItem('rpt_ignored', JSON.stringify(['Troll']))
+      fetchPublicData.mockResolvedValue({ ...base, posts })
+      render(<App />)
+      await screen.findByTestId('pace-widget')
+      // open the activity day that holds the ignored author's post — its bar is
+      // labelled "<warsaw day key>: <count>"
+      const findStub = () => [...document.querySelectorAll('.post-card')]
+        .find((c) => /Troll/.test(c.textContent) && c.getAttribute('title'))
+      let stub = null
+      for (const bar of document.querySelectorAll('.activity-bar')) {
+        fireEvent.keyDown(bar, { key: 'Enter' })
+        await new Promise((r) => setTimeout(r, 0))
+        stub = findStub()
+        if (stub) break
+      }
+      expect(stub).toBeTruthy()
+      // revealing used to change PostCard's hook order and crash the whole tree
+      fireEvent.click(stub)
+      await waitFor(() => expect(document.body.textContent).toContain('ignored body text here'))
+      expect(document.querySelector('.marathon-chart')).toBeInTheDocument()
+    })
+
+    it('ships session dots visible by default (CSS guard)', () => {
+      const css = require('node:fs').readFileSync(require('node:path').resolve(__dirname, 'app.css'), 'utf8')
+      expect(css).toMatch(/\.mc-svg \.mc-dot\{opacity:1/)
+      expect(css).not.toMatch(/\.mc-svg \.mc-dot,\.mc-svg \.mc-dot-grouped-ring\{opacity:0/)
+      expect(css).toMatch(/\.mc-svg \.mc-dot-hidden\{opacity:0\}/)
     })
   })
 
