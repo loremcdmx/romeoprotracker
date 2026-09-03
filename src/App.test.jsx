@@ -1039,24 +1039,15 @@ describe('App', () => {
     render(<App />)
     expect(await screen.findByText(new RegExp(translate('ru', 'chart_marathon').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))).toBeInTheDocument()
 
-    const splitCluster = [...document.querySelectorAll('.marathon-chart g[data-start][data-end]')]
-      .find(marker => Number(marker.getAttribute('data-count')) >= 5 && marker.querySelector('.mc-dot-cluster-parts'))
-    const clusterParts = splitCluster?.querySelectorAll('.mc-dot-cluster-part') || []
-    expect(splitCluster).toBeTruthy()
-    expect(clusterParts.length).toBeGreaterThanOrEqual(4)
-    expect([...clusterParts].some(dot => dot.getAttribute('fill') === '#4caf50')).toBe(true)
-    expect([...clusterParts].some(dot => dot.getAttribute('fill') === '#e53935')).toBe(true)
-    expect(splitCluster?.querySelector('.mc-dot-compacted')).not.toBeInTheDocument()
-
-    const mainLinePoints = parseLinearSvgPath(document.querySelector('.mc-line-main')?.getAttribute('d'))
-    for (const dot of clusterParts) {
-      const x = Number(dot.getAttribute('cx'))
-      const y = Number(dot.getAttribute('cy'))
-      const lineY = yOnLinearPath(mainLinePoints, x)
-      expect(lineY).not.toBeNull()
-      expect(Math.abs(y - lineY)).toBeLessThan(0.6)
-    }
+    // Under the 6-session cap the part fans are off (they read as blobs);
+    // a dense mixed cluster is one grouped dot with a mixed-tone ring.
+    const markers = [...document.querySelectorAll('.marathon-chart g[data-start][data-end]')]
+    expect(document.querySelectorAll('.mc-dot-cluster-parts')).toHaveLength(0)
+    const mixed = markers.find(marker => marker.querySelector('.mc-dot-mixed-ring'))
+    expect(mixed).toBeTruthy()
+    markers.forEach(m => expect(Number(m.getAttribute('data-count'))).toBeLessThanOrEqual(6))
   })
+
 
   it('tones down the crowded last marathon marker so adjacent points stay readable', async () => {
     const base = makeMockData()

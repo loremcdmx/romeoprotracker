@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 1.13.8 — 2026-09-03
+
+### Fonts & dots
+- Roboto Mono now loads its 600/700 weights (Inter also 800): every bold monospace number on the site — hero bankroll, axes, callouts — was a browser-synthesised faux bold; no weight above 700 is used anymore
+- x-axis label width estimates follow the 1.13.7 font sizes, so week/month labels clamp inside the plot instead of spilling past its edges; the hover date tag plate fits its text
+- marathon session dots no longer overlap: minor dots yield to any loud dot or neighbour within ~2r, cluster part-fans are off under the 6-session cap, minor radius 3.0
+
 ## 1.13.7 — 2026-09-03
 
 ### Chart legibility

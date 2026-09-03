@@ -1385,8 +1385,8 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
       .join(' · ')
     const intervalFor = item => {
       const mainWidth = String(item.main || '').length * (isMobile ? 7.4 : 7.1)
-      const subWidth = buildSub(item).length * (isMobile ? 4.9 : 4.7)
-      const textWidth = Math.min(isMobile ? 138 : 176, Math.max(48, mainWidth, subWidth))
+      const subWidth = buildSub(item).length * (isMobile ? 5.5 : 5.3)
+      const textWidth = Math.min(isMobile ? 150 : 196, Math.max(48, mainWidth, subWidth))
       const lx = Math.min(Math.max(item.x, pL), W - pR)
       const leftBound = pL + xLabelEdgePad
       const rightBound = W - pR - xLabelEdgePad
@@ -1400,8 +1400,8 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
     const legacyWidth = item => {
       const notes = uniq(item.notes || [])
       const mainWidth = String(item.main || '').length * (isMobile ? 7.4 : 7.1)
-      const noteWidth = notes.reduce((max, note) => Math.max(max, String(note || '').length * (isMobile ? 4.9 : 4.7)), 0)
-      return Math.min(isMobile ? 138 : 176, Math.max(48, mainWidth, noteWidth))
+      const noteWidth = notes.reduce((max, note) => Math.max(max, String(note || '').length * (isMobile ? 5.5 : 5.3)), 0)
+      return Math.min(isMobile ? 150 : 196, Math.max(48, mainWidth, noteWidth))
     }
     const legacyGap = (a, b) => Math.max(isMobile ? 78 : 68, (legacyWidth(a) + legacyWidth(b)) / 2 + (isMobile ? 16 : 14))
     const labelsCollide = (a, b) => {
@@ -1798,20 +1798,24 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
   }))
   let lastDrawnX = -Infinity
   const latestMarkerX = markerGroups.length ? markerGroups[markerGroups.length - 1].x : 0
+  const loudXs = significantMarkerGroups.map(m => m.x)
+  const minorGap = isMobile ? 9 : 8
   const markerVisuals = markerGroups.map((marker, idx) => {
     const significant = significantSet.has(marker)
     const crowding = crowdingByMarker.get(marker) || { nearestDistance:Infinity, isCrowded:false }
-    // thin fully-overlapping minor dots, and keep a quiet zone around the
-    // latest (live) point so its gold dot stays readable (hover still works)
+    // thin overlapping minor dots (a minor dot yields to any loud dot within
+    // ~2r, whichever side it is on), and keep a quiet zone around the latest
+    // (live) point so its gold dot stays readable (hover still works)
     const isLatest = idx === markerGroups.length - 1
     let dotHidden = false
     if (!isLatest && Math.abs(marker.x - latestMarkerX) < (isMobile ? 18 : 14)) {
-      // the live gold dot owns its neighbourhood — labels/ticks stay, dots hide
       dotHidden = true
-    } else if (significant || marker.x - lastDrawnX >= (isMobile ? 4 : 3)) {
+    } else if (significant) {
       lastDrawnX = marker.x
-    } else {
+    } else if (loudXs.some(x => Math.abs(x - marker.x) < minorGap) || marker.x - lastDrawnX < minorGap) {
       dotHidden = true
+    } else {
+      lastDrawnX = marker.x
     }
     return {
       ...marker,
@@ -1964,11 +1968,11 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
           const isHovered = tip?.p === p
           const isGrouped = count > 1
           const clusterParts = compacted && Array.isArray(parts) && parts.length >= 4 ? parts : null
-          const renderClusterParts = !!clusterParts && count >= 5
+          const renderClusterParts = !!clusterParts && count >= 8
           const loudDotR = isMobile
             ? (isHovered ? (isLast ? 8 : 6) : (isLast ? 6 : isGrouped ? 4.5 : 3.4))
             : (isHovered ? (isLast ? 8 : 6) : (isLast ? 6 : isGrouped ? 4.6 : 3.8))
-          const baseDotR = significant || isHovered ? loudDotR : (isMobile ? 3 : 3.2)
+          const baseDotR = significant || isHovered ? loudDotR : (isMobile ? 2.8 : 3)
           const dotR = isCrowded
             ? Math.min(baseDotR, isLast ? (isMobile ? 4.8 : 4.6) : (isMobile ? 3.4 : 3.5))
             : baseDotR
@@ -2044,8 +2048,8 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
           const isLast = i===points.length-1
           const lx = Math.min(Math.max(x,pL),W-pR)
           const mainWidth = String(main || '').length * (isMobile ? 7.4 : 7.1)
-          const subWidth = String(sub || '').length * (isMobile ? 4.9 : 4.7)
-          const textWidth = Math.min(isMobile ? 138 : 176, Math.max(48, mainWidth, subWidth))
+          const subWidth = String(sub || '').length * (isMobile ? 5.5 : 5.3)
+          const textWidth = Math.min(isMobile ? 150 : 196, Math.max(48, mainWidth, subWidth))
           const leftBound = pL + xLabelEdgePad
           const rightBound = W - pR - xLabelEdgePad
           const anchor = lx - textWidth / 2 < leftBound
@@ -2092,7 +2096,7 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
           const positive = (tip.profit ?? 0) >= 0
           const dotFill = positive ? (light ? '#2e8b3a' : '#4caf50') : (light ? '#c8362e' : '#e53935')
           const tagText = fmtDateShortLang(tip.p.timestamp, lang)
-          const tagW = tagText.length * 5.4 + 12
+          const tagW = tagText.length * 6.1 + 12
           const tagX = clampNumber(tip.x, pL + tagW / 2, W - pR - tagW / 2)
           return <>
             <line className="mc-hover-guide" x1={tip.x} y1={pT} x2={tip.x} y2={tip.y - 10}/>
