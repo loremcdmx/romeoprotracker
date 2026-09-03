@@ -126,7 +126,14 @@ button,select,input,summary{font:inherit}
 .mc-dot-cluster-parts{pointer-events:all}
 .mc-dot-cluster-part{stroke-width:1.45;filter:drop-shadow(0 1px 2px rgba(0,0,0,.78))}
 .mc-dot-cluster-part-grouped{stroke-width:1.7}
-.mc-svg .mc-dot,.mc-svg .mc-dot-grouped-ring{opacity:0;transition:opacity .12s ease,r .1s}
+/* Session dots are visible by default since the dense-dots release; the
+   grouped rings stay hover-only. (The old opacity:0 base rule silently hid
+   every dot — the two-class selector outranked the one-class overrides.) */
+.mc-svg .mc-dot{opacity:1;transition:opacity .12s ease,r .1s}
+.mc-svg .mc-dot-grouped-ring{opacity:0;transition:opacity .12s ease,r .1s}
+.mc-svg .mc-dot-minor{opacity:.72}
+.light .mc-svg .mc-dot-minor{opacity:.85}
+.mc-svg .mc-dot-hidden{opacity:0}
 .mc-svg g[data-start]:hover .mc-dot,.mc-svg g[data-start].is-hovered .mc-dot{opacity:1}
 .mc-svg g[data-start]:hover .mc-dot-grouped-ring,.mc-svg g[data-start].is-hovered .mc-dot-grouped-ring{opacity:.42}
 .mc-milestone-callout{pointer-events:none;filter:drop-shadow(0 3px 8px rgba(0,0,0,.42))}
@@ -1173,6 +1180,4 @@ html{scroll-behavior:smooth}
 .light .smtt-tooltip-diff.neg,.light .smtt-tooltip-profit.neg{color:#c62828}
 
 /* minor session dots: present but quiet until hovered */
-.mc-dot-minor{opacity:.78;stroke:none}
-.mc-dot-hidden{opacity:0}
-.light .mc-dot-minor{opacity:.85}
+.mc-dot-minor{stroke:none}

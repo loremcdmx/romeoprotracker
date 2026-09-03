@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 1.13.4 — 2026-09-02
+
+### Fixed
+- revealing an ignored author's post (activity day list) crashed the whole app to a blank page — PostCard returned before its hooks; the stub now renders after every hook
+- the dense session dots shipped in 1.13.2 were invisible: an older `.mc-svg .mc-dot{opacity:0}` rule (dots on hover only) outranked the new one-class overrides — dots are visible by default again (minor ones muted), rings stay hover-only
+- «Турниров за сессию» and the week/month «МТТ/сессия» figure now use the same cumulative-first MTT rule as the pace widget and hero counter, so all counters on one screen agree
+
 - the pace trend line is drawn across the whole plot again (still fitted on completed 2k-MTT chunks only) — it used to stop at the last full chunk and read as broken once a partial tail extended the axis
 
 - removed the «20 авг» current-date sub-label from the marathon X axis (the hover date tag covers it)

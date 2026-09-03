@@ -3097,22 +3097,6 @@ const PostCard = memo(function PostCard({ p, favorites, ignored, onFav, onIgnore
   const isFav  = favorites?.has(p.author)
   const isIgnored = ignored?.has(p.author)
 
-  if (isIgnored && !revealIgnored) {
-    return (
-      <div className="post-card" style={{opacity:.55,cursor:'pointer',padding:'10px 14px',display:'flex',alignItems:'center',gap:10,fontSize:12,color:'var(--dim2)'}}
-        onClick={()=>setRevealIgnored(true)}
-        title={_t('pc_ignored_click_expand')}>
-        <span style={{fontSize:16}}>🚫</span>
-        <span style={S_FLEX1}>
-          {_t('pc_ignored_prefix')} <b>{p.author}</b> · +{p.likes||0} 👍 · {_t('pc_ignored_body')}
-        </span>
-        {onUnignore && (
-          <button className="btn-sm" onClick={e=>{e.stopPropagation();onUnignore(p.author)}}>{_t('pc_unignore')}</button>
-        )}
-      </div>
-    )
-  }
-
   useEffect(() => {
     if (!menu) return
     const handler = e => {
@@ -3159,6 +3143,24 @@ const PostCard = memo(function PostCard({ p, favorites, ignored, onFav, onIgnore
   // (точно не знаем без запроса к API форума)
 
   const isRomeo = ROMEO_RE.test(p.author)
+
+  // Rendered AFTER every hook above: an early return here used to change the
+  // hook order when the stub was revealed and crash the whole app.
+  if (isIgnored && !revealIgnored) {
+    return (
+      <div className="post-card" style={{opacity:.55,cursor:'pointer',padding:'10px 14px',display:'flex',alignItems:'center',gap:10,fontSize:12,color:'var(--dim2)'}}
+        onClick={()=>setRevealIgnored(true)}
+        title={_t('pc_ignored_click_expand')}>
+        <span style={{fontSize:16}}>🚫</span>
+        <span style={S_FLEX1}>
+          {_t('pc_ignored_prefix')} <b>{p.author}</b> · +{p.likes||0} 👍 · {_t('pc_ignored_body')}
+        </span>
+        {onUnignore && (
+          <button className="btn-sm" onClick={e=>{e.stopPropagation();onUnignore(p.author)}}>{_t('pc_unignore')}</button>
+        )}
+      </div>
+    )
+  }
 
   return (
     <div className={`post-card ${isFav?'faved':''} ${isRomeo?'romeo-post':''}`} onClick={()=>menu&&setMenu(false)}>
@@ -3672,11 +3674,12 @@ function SessionMttChart({ meta, period, lang, t }) {
   const [hoverIdx, setHoverIdx] = useState(null)
   const rows = useMemo(() => {
     const hist = [...(meta?.brHistory || [])].sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0))
-    const withMtt = hist.map((row, i) => {
-      const prevTotal = i > 0 ? hist[i - 1]?.totalTournaments || 0 : 0
-      const mtt = row.tournaments ?? (row.totalTournaments ? Math.max(0, row.totalTournaments - prevTotal) : 0)
-      return { timestamp:row.timestamp || 0, mtt, profit:row.sessionResult ?? null }
-    }).filter(r => r.mtt > 0)
+    const withMtt = hist.map((row, i) => ({
+      timestamp:row.timestamp || 0,
+      // same cumulative-first rule as the pace widget and hero counter
+      mtt:historySessionTournaments(row, hist, i),
+      profit:row.sessionResult ?? null,
+    })).filter(r => r.mtt > 0)
     if (period === 'all' || !withMtt.length) return withMtt
     const cutoff = Math.floor(Date.now() / 1000) - (period === 'week' ? 7 : 30) * 86400
     const filtered = withMtt.filter(r => r.timestamp >= cutoff)
@@ -3974,14 +3977,8 @@ export default function App() {
     const sub = sorted.slice(insideIdx)
     if (sub.length < 2) return null
     const positive = sub.filter(h => (h.sessionResult || 0) > 0).length
-    let totalMTT = sub.reduce((s, h) => s + (h.tournaments || 0), 0)
-    if (!totalMTT) {
-      // Fallback when per-session tournament counts are missing: use the
-      // delta of cumulative totalTournaments across the window.
-      const baseTotal = insideIdx === 0 ? 0 : (sorted[insideIdx-1].totalTournaments||0)
-      const lastTotal = sorted[sorted.length-1].totalTournaments||0
-      totalMTT = Math.max(0, lastTotal - baseTotal)
-    }
+    // cumulative-first, like every other MTT figure on the page
+    let totalMTT = sub.reduce((s, h, k) => s + historySessionTournaments(h, sorted, insideIdx + k), 0)
     const avgMTT = totalMTT ? Math.round(totalMTT / sub.length) : null
     const profit = sub.reduce((s, h) => s + (h.sessionResult || 0), 0)
     return {
