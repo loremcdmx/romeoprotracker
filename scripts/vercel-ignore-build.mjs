@@ -114,17 +114,6 @@ export function diffBase(env = process.env, exists = commitExists, fetchMissing 
   return { base: '', source: 'no diff base' }
 }
 
-// Vercel's shallow clone often lacks VERCEL_GIT_PREVIOUS_SHA, which made the
-// step fail OPEN and rebuild production from every ~10th scraper commit. The
-// scraper's commit subject is a reliable second signal.
-export function messageFallback(env = process.env) {
-  const message = String(env.VERCEL_GIT_COMMIT_MESSAGE || '').trim()
-  if (/^scraper:/i.test(message)) {
-    return { skip: true, reason: `commit message marks a data-only scraper commit: ${message.slice(0, 60)}` }
-  }
-  return null
-}
-
 export function changedFiles(env = process.env) {
   const base = diffBase(env)
   if (!base.base) {
@@ -167,13 +156,15 @@ function main() {
   }
 
   if (!diff.ok) {
-    const fallback = messageFallback()
-    const decision = fallback || {
+    // Deliberately fail OPEN: an occasional build on a data-only commit is
+    // what keeps the same-origin /data copy from going stale indefinitely
+    // (a commit-message skip was tried in 1.13.5 and reverted in 1.13.6).
+    const decision = {
       skip: false,
       reason: `cannot safely determine changed files: ${diff.source}`,
     }
     printDecision(decision, diff.files, diff.source)
-    process.exit(decision.skip ? 0 : 1)
+    process.exit(1)
   }
 
   const decision = shouldSkipBuild(diff.files)

@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 1.13.6 — 2026-09-03
+
+### Reverted
+- the 1.13.5 `scraper:` commit-message skip in the Vercel ignore step: it froze the same-origin `/data/*.json` copy until the next code deploy, and visitors for whom raw.githubusercontent.com is blocked or slow would keep seeing a stale bankroll indefinitely. Back to the previous behaviour (an occasional data-commit build refreshes the copy) until the data-source policy is decided.
+
 ## 1.13.5 — 2026-09-02
 
 ### Reliability

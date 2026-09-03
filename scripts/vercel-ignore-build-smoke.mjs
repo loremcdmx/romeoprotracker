@@ -3,13 +3,8 @@ import assert from 'assert'
 const {
   diffBase,
   isSkippablePath,
-  messageFallback,
   shouldSkipBuild,
 } = await import('./vercel-ignore-build.mjs')
-
-assert.equal(messageFallback({ VERCEL_GIT_COMMIT_MESSAGE: 'scraper: likes: 6 updated (total 8309)' })?.skip, true)
-assert.equal(messageFallback({ VERCEL_GIT_COMMIT_MESSAGE: 'fix: month labels' }), null)
-assert.equal(messageFallback({}), null)
 
 assert.equal(isSkippablePath('data/posts.json'), true)
 assert.equal(isSkippablePath('data/posts.min.json'), true)
