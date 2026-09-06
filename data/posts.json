@@ -158847,7 +158847,7 @@
     "date": "5 сентября, 08:38",
     "timestamp": 1788590287,
     "text": "РомеОпро словно взбирается на ледяную горку, быстро забегает и медленно сползает вниз.",
-    "likes": 0,
+    "likes": 1,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -158865,7 +158865,7 @@
     "date": "5 сентября, 09:12",
     "timestamp": 1788592338,
     "text": "Kazimir17, в моём детстве было по другому) \n\nМедленно поднимаешься, быстро съезжаешь\n\nЛед поменял свои свойства?)",
-    "likes": 13,
+    "likes": 14,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -158937,7 +158937,7 @@
     "date": "5 сентября, 14:56",
     "timestamp": 1788612961,
     "text": "[QUOTE]bodytobody|bodytobody @ 05.09.26\nKazimir17, в моём детстве было по другому) \n\nМедленно поднимаешься, быстро съезжаешь\n\nЛед поменял свои свойства?)[/QUOTE]Нет . Просто раньше было лучше...",
-    "likes": 4,
+    "likes": 5,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -158973,7 +158973,7 @@
     "date": "6 сентября, 01:02",
     "timestamp": 1788649370,
     "text": "[QUOTE]Svoboda07|Svoboda07 @ 05.09.26\nRomeopro, вот бы увидеть скрин кассы, что эти деньги действительно там[/QUOTE][QUOTE]|\nдействительно там[/QUOTE] \n\nДа, я тоже сомневаюсь, что 17 баксов на коине до сих пор лежат",
-    "likes": 4,
+    "likes": 7,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -158991,7 +158991,7 @@
     "date": "6 сентября, 04:45",
     "timestamp": 1788662714,
     "text": "Day 149:",
-    "likes": 7,
+    "likes": 31,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_09_2026/post-6195-17886627108b1d_thumb.webp"
     ],
@@ -159016,5 +159016,23 @@
         "lux": 0
       }
     }
+  },
+  {
+    "id": "8292013",
+    "author": "iwnt1million",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/1/5/1/2/151280.jpg",
+    "rating": 1248,
+    "msgCount": 1432,
+    "regData": "8 лет на сайте",
+    "date": "6 сентября, 09:23",
+    "timestamp": 1788679427,
+    "text": "[QUOTE]Svoboda07|Svoboda07 @ 05.09.26\nRomeopro, вот бы увидеть скрин кассы, что эти деньги действительно там[/QUOTE]так мне кажется логичнее наоборот оставлять на пару загрузок остальное куда нить под проценты)",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8292013"
   }
 ]
