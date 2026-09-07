@@ -159045,7 +159045,7 @@
     "date": "6 сентября, 10:21",
     "timestamp": 1788682888,
     "text": "iwnt1million, например Данерьяну под 15 в месяц, заодно еще одну ветку на форуме можно создать",
-    "likes": 22,
+    "likes": 24,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -159070,5 +159070,41 @@
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8292130"
+  },
+  {
+    "id": "8292430",
+    "author": "Romeopro",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/2/6/6/26670.jpg",
+    "rating": 25606,
+    "msgCount": 4224,
+    "regData": "16 лет на сайте",
+    "date": "7 сентября, 06:48",
+    "timestamp": 1788756497,
+    "text": "Day 150:",
+    "likes": 2,
+    "images": [
+      "https://static-forum.gipsyteam.ru/monthly_09_2026/post-6195-17887564899df_thumb.webp"
+    ],
+    "videos": [],
+    "brBefore": 336221,
+    "brAfter": 336004,
+    "sessionResult": -217,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8292430",
+    "rooms": {
+      "before": {
+        "gg": 334784,
+        "ps": 1188,
+        "king": 232,
+        "coin": 17,
+        "lux": 0
+      },
+      "after": {
+        "gg": 334567,
+        "ps": 1188,
+        "king": 232,
+        "coin": 17,
+        "lux": 0
+      }
+    }
   }
 ]
