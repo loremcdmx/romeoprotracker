@@ -159081,7 +159081,7 @@
     "date": "7 сентября, 04:48",
     "timestamp": 1788756497,
     "text": "Day 150:",
-    "likes": 61,
+    "likes": 62,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_09_2026/post-6195-17887564899df_thumb.webp"
     ],
@@ -159189,7 +159189,7 @@
     "date": "8 сентября, 07:53",
     "timestamp": 1788846836,
     "text": "[QUOTE]senqne|senqne @ 08.09.26\nЗа сутки не было ни одного поста и даже ни одной шутки про дворецкого? Похоже тема сдулась[/QUOTE]Так сентябрь на дворе, все в школу пошли...",
-    "likes": 68,
+    "likes": 69,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -159297,7 +159297,7 @@
     "date": "8 сентября, 20:34",
     "timestamp": 1788892492,
     "text": "ixbt,  и pokerpain, который держался сутки чтобы не запостить ссылку на свой твич-канал:",
-    "likes": 24,
+    "likes": 25,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_09_2026/post-15559-1788892464d371_thumb.webp"
     ],
@@ -159467,12 +159467,66 @@
     "date": "9 сентября, 04:11",
     "timestamp": 1788919861,
     "text": "[QUOTE]M45PL|M45PL @ 09.09.26\nа где было сказано, что по плану за 50к турниров заработается 3.5кк?[/QUOTE]На самой первой странице от самого Романа:\n\n \n\n[QUOTE]|\nМоя вера в мультимилионные ожидания из которых я исходил никуда не делась и фактический расчёт простой 50к+ дистанция за год, АБИ 400-500 и РОИ 10-20%. \n\nЯ уверен, что у меня получится вырулить из всего этого и всем отдать долги[/QUOTE]",
-    "likes": 0,
+    "likes": -1,
     "images": [],
     "videos": [],
     "brBefore": null,
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8293728"
+  },
+  {
+    "id": "8293755",
+    "author": "Givchik007",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/1/6/6/1/166134.webp",
+    "rating": 1,
+    "msgCount": 21,
+    "regData": "2 года на сайте",
+    "date": "9 сентября, 06:38",
+    "timestamp": 1788928733,
+    "text": "K1ngHigh, На такое аби, и на такое количество игры, турниров не набрать, даже если подключить все румы)",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8293755"
+  },
+  {
+    "id": "8293759",
+    "author": "Romeopro",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/2/6/6/26670.jpg",
+    "rating": 25606,
+    "msgCount": 4226,
+    "regData": "16 лет на сайте",
+    "date": "9 сентября, 07:06",
+    "timestamp": 1788930383,
+    "text": "Day 152:",
+    "likes": 0,
+    "images": [
+      "https://static-forum.gipsyteam.ru/monthly_09_2026/post-6195-17889303802609_thumb.webp"
+    ],
+    "videos": [],
+    "brBefore": 340083,
+    "brAfter": 348761,
+    "sessionResult": 8678,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8293759",
+    "rooms": {
+      "before": {
+        "gg": 338646,
+        "ps": 1188,
+        "king": 232,
+        "coin": 17,
+        "lux": 0
+      },
+      "after": {
+        "gg": 347324,
+        "ps": 1188,
+        "king": 232,
+        "coin": 17,
+        "lux": 0
+      }
+    }
   }
 ]
