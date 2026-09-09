@@ -159557,7 +159557,7 @@
     "date": "9 сентября, 09:58",
     "timestamp": 1788940716,
     "text": "Так, от тракториста вроде сьебались, следующая остановка",
-    "likes": 11,
+    "likes": 12,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_09_2026/post-200892-17889407085da1.jpg"
     ],
@@ -159676,5 +159676,79 @@
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8294116"
+  },
+  {
+    "id": "8294148",
+    "author": "АллЫн",
+    "avatar": "https://forum.gipsyteam.com/img/imguser.png",
+    "rating": 1491,
+    "msgCount": 693,
+    "regData": "10 месяцев на сайте",
+    "date": "9 сентября, 19:06",
+    "timestamp": 1788973582,
+    "text": "[QUOTE]Eleon|Eleon @ 09.09.26\n[/QUOTE]Ну вот тут уже да! А Фолямово есть?",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8294148"
+  },
+  {
+    "id": "8294153",
+    "author": "Eleon",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/8/9/8999.jpg",
+    "rating": 6643,
+    "msgCount": 636,
+    "regData": "16 лет на сайте",
+    "date": "9 сентября, 19:10",
+    "timestamp": 1788973841,
+    "text": "[QUOTE]АллЫн|АллЫн @ 09.09.26\nНу вот тут уже да! А Фолямово есть?[/QUOTE]Есть, но там чтобы подъехать фотку сделать надо пропуск заказывать.",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8294153"
+  },
+  {
+    "id": "8294158",
+    "author": "АллЫн",
+    "avatar": "https://forum.gipsyteam.com/img/imguser.png",
+    "rating": 1491,
+    "msgCount": 693,
+    "regData": "10 месяцев на сайте",
+    "date": "9 сентября, 19:15",
+    "timestamp": 1788974119,
+    "text": "[QUOTE]Eleon|Eleon @ 09.09.26\nЕсть, но там чтобы подъехать фотку сделать надо пропуск заказывать.[/QUOTE]Ну Ромео когда до Фолямово доедет, пропуск я думаю проплатит)",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8294158"
+  },
+  {
+    "id": "8294143",
+    "author": "Eleon",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/8/9/8999.jpg",
+    "rating": 6643,
+    "msgCount": 636,
+    "regData": "16 лет на сайте",
+    "date": "9 сентября, 19:04",
+    "timestamp": 1788973453,
+    "text": "",
+    "likes": 2,
+    "images": [
+      "https://static-forum.gipsyteam.ru/monthly_09_2026/post-2998-1788973449a0fe_thumb.webp"
+    ],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8294143"
   }
 ]
