@@ -160015,7 +160015,7 @@
     "date": "11 сентября, 12:09",
     "timestamp": 1789121364,
     "text": "[QUOTE]batlebit|batlebit @ 11.09.26\nРебят, меня не теряйте, настроения нет особо писать, да и нечего.[/QUOTE] batlebit, Не сходи с ума, дружище. Без тебя тема совсем умрет",
-    "likes": 4,
+    "likes": 5,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -160051,7 +160051,7 @@
     "date": "11 сентября, 17:15",
     "timestamp": 1789139715,
     "text": "[QUOTE]Zapahzakvaski|Zapahzakvaski @ 11.09.26\nПацаны, а че золото брать стоит, чет дорожает смотрю??![/QUOTE]Бери долю в туриках где Рома выиграет  и не бери где проиграет. Какое золото.",
-    "likes": 14,
+    "likes": 17,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -160087,7 +160087,7 @@
     "date": "12 сентября, 03:48",
     "timestamp": 1789177735,
     "text": "Day 154:",
-    "likes": 8,
+    "likes": 19,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_09_2026/post-6195-17891777335ebf_thumb.webp"
     ],
@@ -160112,5 +160112,79 @@
         "lux": 0
       }
     }
+  },
+  {
+    "id": "8295353",
+    "author": "Arkadiy61",
+    "avatar": "https://forum.gipsyteam.com/img/imguser.png",
+    "rating": 1244,
+    "msgCount": 973,
+    "regData": "11 лет на сайте",
+    "date": "12 сентября, 08:38",
+    "timestamp": 1789195130,
+    "text": "Что то минус Рома поднажми",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8295353"
+  },
+  {
+    "id": "8295367",
+    "author": "Wakkuum",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/1/6/9/6/169645.webp",
+    "rating": 1299,
+    "msgCount": 940,
+    "regData": "11 лет на сайте",
+    "date": "12 сентября, 09:25",
+    "timestamp": 1789197941,
+    "text": "[QUOTE]Zapahzakvaski|Zapahzakvaski @ 11.09.26\nПацаны, а че золото брать стоит, чет дорожает смотрю??![/QUOTE]Зачем тебе столько денег?? Что ты с ними делать будешь?",
+    "likes": 1,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8295367"
+  },
+  {
+    "id": "8295368",
+    "author": "CaHu4",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/1/3/3/6/133677.jpg",
+    "rating": 10319,
+    "msgCount": 2747,
+    "regData": "8 лет на сайте",
+    "date": "12 сентября, 09:26",
+    "timestamp": 1789198017,
+    "text": "[QUOTE]Arkadiy61|Arkadiy61 @ 12.09.26\nЧто то минус Рома поднажми[/QUOTE]  Да, реально минусовый минус",
+    "likes": 0,
+    "images": [
+      "https://static-forum.gipsyteam.ru/monthly_09_2026/post-112139-17891980146319_thumb.webp"
+    ],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8295368"
+  },
+  {
+    "id": "8295396",
+    "author": "Zapahzakvaski",
+    "avatar": "https://forum.gipsyteam.com/img/imguser.png",
+    "rating": 1,
+    "msgCount": 12,
+    "regData": "3 месяца на сайте",
+    "date": "12 сентября, 10:32",
+    "timestamp": 1789201933,
+    "text": "CaHu4,  почти как золото ... Только тут быстрее, надо доли брать )",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8295396"
   }
 ]
