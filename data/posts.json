@@ -161672,7 +161672,7 @@
     "date": "17 сентября, 14:01",
     "timestamp": 1789646480,
     "text": "шашист, насколько я понимаю(у меня точной инфы нет),  то в \"БР после сессии\" идет рейкбек, выигрыши в лидербордах и коэффициенты.\n\nНе идут туда только расходы и возврат долга...То есть БР 359к был бы, если бы трат не было и долг не отдавался. \n\n \n\nЯ бы графу назвал бы не \"БР\" , а \"Профит с марафона\", но это дело вкуса.",
-    "likes": 29,
+    "likes": 32,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -161744,7 +161744,7 @@
     "date": "17 сентября, 17:31",
     "timestamp": 1789659064,
     "text": "[QUOTE]шашист|шашист @ 17.09.26\n10к(на жизнь)*6 месяцев[/QUOTE]так и нищетой заразиться можно, глупости уж не пиши",
-    "likes": 16,
+    "likes": 21,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -161762,7 +161762,7 @@
     "date": "17 сентября, 17:46",
     "timestamp": 1789659995,
     "text": "10к там только дворецкий с прислугами, спуститесь уже на землю",
-    "likes": -4,
+    "likes": -5,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -162070,7 +162070,7 @@
     "date": "18 сентября, 02:25",
     "timestamp": 1789691114,
     "text": "Давно стрим не врубал, а тут такое",
-    "likes": 9,
+    "likes": 14,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_09_2026/post-187091-17896911113fee_thumb.webp"
     ],
@@ -162090,7 +162090,7 @@
     "date": "18 сентября, 02:25",
     "timestamp": 1789691142,
     "text": "АллЫн, \n\n    \n\nНе сработало) второй топ нок урвал и чипует",
-    "likes": 1,
+    "likes": 2,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_09_2026/post-192424-1789691118f338_thumb.webp"
     ],
@@ -162110,7 +162110,7 @@
     "date": "18 сентября, 06:23",
     "timestamp": 1789705427,
     "text": "Day 160:",
-    "likes": 1,
+    "likes": 25,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_09_2026/post-6195-1789705423e49a_thumb.webp"
     ],
@@ -162135,5 +162135,41 @@
         "lux": 0
       }
     }
+  },
+  {
+    "id": "8298469",
+    "author": "Trosh",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/1/7/0/4/170480.webp",
+    "rating": 622,
+    "msgCount": 151,
+    "regData": "5 лет на сайте",
+    "date": "18 сентября, 07:06",
+    "timestamp": 1789708002,
+    "text": "Срочно нужны шутки про 400, мы приближаемся",
+    "likes": 1,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8298469"
+  },
+  {
+    "id": "8298479",
+    "author": "npoBop",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/1/2/3/4/123404.jpg",
+    "rating": 6528,
+    "msgCount": 1297,
+    "regData": "11 лет на сайте",
+    "date": "18 сентября, 08:07",
+    "timestamp": 1789711630,
+    "text": "трактористу кофе по 400? пожалейте баристу...",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8298479"
   }
 ]
