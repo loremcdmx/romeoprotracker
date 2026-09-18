@@ -161672,7 +161672,7 @@
     "date": "17 сентября, 14:01",
     "timestamp": 1789646480,
     "text": "шашист, насколько я понимаю(у меня точной инфы нет),  то в \"БР после сессии\" идет рейкбек, выигрыши в лидербордах и коэффициенты.\n\nНе идут туда только расходы и возврат долга...То есть БР 359к был бы, если бы трат не было и долг не отдавался. \n\n \n\nЯ бы графу назвал бы не \"БР\" , а \"Профит с марафона\", но это дело вкуса.",
-    "likes": 24,
+    "likes": 26,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -161744,7 +161744,7 @@
     "date": "17 сентября, 17:31",
     "timestamp": 1789659064,
     "text": "[QUOTE]шашист|шашист @ 17.09.26\n10к(на жизнь)*6 месяцев[/QUOTE]так и нищетой заразиться можно, глупости уж не пиши",
-    "likes": 11,
+    "likes": 12,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -161762,7 +161762,7 @@
     "date": "17 сентября, 17:46",
     "timestamp": 1789659995,
     "text": "10к там только дворецкий с прислугами, спуститесь уже на землю",
-    "likes": -2,
+    "likes": -4,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -161780,7 +161780,7 @@
     "date": "17 сентября, 17:48",
     "timestamp": 1789660081,
     "text": "[QUOTE]umber|umber @ 17.09.26\nшашист, насколько я понимаю(у меня точной инфы нет),  то в \"БР после сессии\" идет рейкбек, выигрыши в лидербордах и коэффициенты.\n\nНе идут туда только расходы и возврат долга...То есть БР 359к был бы, если бы трат не было и долг не отдавался. \n\n \n\nЯ бы графу назвал бы не \"БР\" , а \"Профит с марафона\", но это дело вкуса.[/QUOTE]Какая то чушь, ты думаешь Рома каждый день меняет РБ?\n\nнаверное нет.\n\nЛБ и продажа с кэфами идет сразу в кассу, РБ думаю нет. Он копиться для дальнейшей конвертации по более выгодному курсу.\n\nНо я могу ошибаться офк",
-    "likes": 4,
+    "likes": 3,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -162059,5 +162059,45 @@
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8298422"
+  },
+  {
+    "id": "8298430",
+    "author": "pokerpain",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/1/6/9/8/169882.webp",
+    "rating": 1366,
+    "msgCount": 165,
+    "regData": "1 год на сайте",
+    "date": "18 сентября, 02:25",
+    "timestamp": 1789691114,
+    "text": "Давно стрим не врубал, а тут такое",
+    "likes": 2,
+    "images": [
+      "https://static-forum.gipsyteam.ru/monthly_09_2026/post-187091-17896911113fee_thumb.webp"
+    ],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8298430"
+  },
+  {
+    "id": "8298431",
+    "author": "MrReplay92",
+    "avatar": "https://forum.gipsyteam.com/img/imguser.png",
+    "rating": 25,
+    "msgCount": 1,
+    "regData": "1 год на сайте",
+    "date": "18 сентября, 02:25",
+    "timestamp": 1789691142,
+    "text": "АллЫн, \n\n    \n\nНе сработало) второй топ нок урвал и чипует",
+    "likes": 0,
+    "images": [
+      "https://static-forum.gipsyteam.ru/monthly_09_2026/post-192424-1789691118f338_thumb.webp"
+    ],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8298431"
   }
 ]
