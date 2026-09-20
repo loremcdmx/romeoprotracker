@@ -162110,7 +162110,7 @@
     "date": "18 сентября, 04:23",
     "timestamp": 1789705427,
     "text": "Day 160:",
-    "likes": 138,
+    "likes": 139,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_09_2026/post-6195-1789705423e49a_thumb.webp"
     ],
@@ -162614,7 +162614,7 @@
     "date": "20 сентября, 06:16",
     "timestamp": 1789877806,
     "text": "Day 161:",
-    "likes": 14,
+    "likes": 15,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_09_2026/post-6195-17898778021bd2_thumb.webp"
     ],
@@ -162695,5 +162695,41 @@
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8299510"
+  },
+  {
+    "id": "8299526",
+    "author": "Geras",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/1/3/4/2/134245.jpg",
+    "rating": 232,
+    "msgCount": 347,
+    "regData": "6 лет на сайте",
+    "date": "20 сентября, 11:07",
+    "timestamp": 1789895230,
+    "text": "[QUOTE]AMDemon|AMDemon @ 20.09.26\n[/QUOTE]Видимо ребаи записываются как новый турнир. А судя по проигрышу ребаев было много.",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8299526"
+  },
+  {
+    "id": "8299530",
+    "author": "Svoboda07",
+    "avatar": "https://forum.gipsyteam.com/img/imguser.png",
+    "rating": 24,
+    "msgCount": 258,
+    "regData": "5 месяцев на сайте",
+    "date": "20 сентября, 11:10",
+    "timestamp": 1789895407,
+    "text": "Рома подключил 5,40 и 10,80?",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8299530"
   }
 ]
