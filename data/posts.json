@@ -163310,7 +163310,7 @@
     "date": "22 сентября, 07:31",
     "timestamp": 1790055078,
     "text": "Day 163:",
-    "likes": 14,
+    "likes": 15,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_09_2026/post-6195-17900550754158_thumb.webp"
     ],
@@ -163443,5 +163443,25 @@
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8300578"
+  },
+  {
+    "id": "8300594",
+    "author": "AMDemon",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/2/8/6/28632.jpg",
+    "rating": 6614,
+    "msgCount": 2181,
+    "regData": "15 лет на сайте",
+    "date": "22 сентября, 11:40",
+    "timestamp": 1790070033,
+    "text": "[QUOTE]Mercator|Mercator @ 22.09.26\ninetboec, с интересом читаю твою увлекательную математику. Но остался вопрос, какой конкретно тезис ты доказываешь? Не мог бы ты кратко, но четко сформулировать.[/QUOTE]Забыл иллюстрацию к посту приложить)",
+    "likes": 0,
+    "images": [
+      "https://static-forum.gipsyteam.ru/monthly_09_2026/post-15559-17900700305068_thumb.webp"
+    ],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8300594"
   }
 ]
