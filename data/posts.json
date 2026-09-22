@@ -163310,7 +163310,7 @@
     "date": "22 сентября, 07:31",
     "timestamp": 1790055078,
     "text": "Day 163:",
-    "likes": 6,
+    "likes": 8,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_09_2026/post-6195-17900550754158_thumb.webp"
     ],
@@ -163353,5 +163353,23 @@
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8300465"
+  },
+  {
+    "id": "8300497",
+    "author": "leksafim",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/1/5/3/8/153835.jpg",
+    "rating": 1661,
+    "msgCount": 603,
+    "regData": "11 лет на сайте",
+    "date": "22 сентября, 09:15",
+    "timestamp": 1790061317,
+    "text": "inetboec, при чем тут рои вообще?\n\nпо твоей логике, первые 4-9 входов невозможно не вылетать во всех играемых турнирах, выходит?\n\n \n\nили даже не так\n\n \n\nесли в первом турнире ты сыграл и вылетел, то для регистрации во второй - тебе нужен ожидаемый рои от входа минимум 100%, верно?",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8300497"
   }
 ]
