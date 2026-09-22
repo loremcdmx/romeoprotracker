@@ -163310,7 +163310,7 @@
     "date": "22 сентября, 07:31",
     "timestamp": 1790055078,
     "text": "Day 163:",
-    "likes": 9,
+    "likes": 12,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_09_2026/post-6195-17900550754158_thumb.webp"
     ],
@@ -163389,5 +163389,41 @@
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8300523"
+  },
+  {
+    "id": "8300544",
+    "author": "almagro",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/6/3/6/63693.jpg",
+    "rating": 3634,
+    "msgCount": 2587,
+    "regData": "12 лет на сайте",
+    "date": "22 сентября, 10:06",
+    "timestamp": 1790064398,
+    "text": "inetboec, ты пишешь какую то ахинею",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8300544"
+  },
+  {
+    "id": "8300547",
+    "author": "Kraster",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/1/7/1/2/171248.webp",
+    "rating": -71,
+    "msgCount": 23,
+    "regData": "4 года на сайте",
+    "date": "22 сентября, 10:14",
+    "timestamp": 1790064859,
+    "text": "Просто нужно найти ещё одного уникума, который будет или попробует хотя бы играть 150турниров за сессию с полным отчётом и прозрачность)",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8300547"
   }
 ]
