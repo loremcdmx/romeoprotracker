@@ -164108,7 +164108,7 @@
     "date": "23 сентября, 21:25",
     "timestamp": 1790191525,
     "text": "Elizar1999, Если ты заедешь вторым входом в первый раз в турнир- он автоматически станет первым, к сожалению. Ничего с этим не поделать, я пытался сразу третьим заходить- он тоже становился первым.",
-    "likes": 2,
+    "likes": 3,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -164252,7 +164252,7 @@
     "date": "24 сентября, 06:16",
     "timestamp": 1790223413,
     "text": "Day 165:",
-    "likes": 23,
+    "likes": 24,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_09_2026/post-6195-1790223407a870_thumb.webp"
     ],
@@ -164331,5 +164331,23 @@
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8301678"
+  },
+  {
+    "id": "8301686",
+    "author": "ixbt",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/1/6/3/1/163150.jpg",
+    "rating": 2941,
+    "msgCount": 2084,
+    "regData": "17 лет на сайте",
+    "date": "24 сентября, 10:16",
+    "timestamp": 1790237777,
+    "text": "На каком месте Рома закончил мэйн? Сколько продавал долей?",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8301686"
   }
 ]
