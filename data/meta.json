@@ -4441,7 +4441,7 @@
     },
     {
       "id": "8300454",
-      "date": "22 сентября, 07:31",
+      "date": "22 сентября, 05:31",
       "timestamp": 1790055078,
       "brBefore": 367047,
       "brAfter": 364591,
@@ -4495,7 +4495,7 @@
     }
   ],
   "totalTournaments": 35608,
-  "lastScrapeRun": "2026-09-24T00:45:00.711Z",
-  "postsChangedAt": "2026-09-24T00:45:00.740Z",
-  "postsHash": "ce7c5716b1ce3952f2e4e99fdaabed9fcdcdbf37"
+  "lastScrapeRun": "2026-09-24T00:59:14.071Z",
+  "postsChangedAt": "2026-09-24T00:59:14.101Z",
+  "postsHash": "30f64eccf602fc6e8bbc410486a104006077dc9a"
 }
