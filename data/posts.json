@@ -164504,7 +164504,7 @@
     "date": "25 сентября, 05:28",
     "timestamp": 1790306915,
     "text": "Day 166:",
-    "likes": 27,
+    "likes": 28,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_09_2026/post-6195-179030691197ee_thumb.webp"
     ],
@@ -164641,5 +164641,23 @@
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8302193"
+  },
+  {
+    "id": "8302213",
+    "author": "Leo",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/1/0/9/7/109763.jpg",
+    "rating": 100,
+    "msgCount": 3,
+    "regData": "15 лет на сайте",
+    "date": "25 сентября, 12:33",
+    "timestamp": 1790332409,
+    "text": "[QUOTE]NasKras|NasKras @ 25.09.26\nРебята кто шарит объясните мне пожалуйста, я посмотрел все его скриншоты и заметил что у него на всех скринах одинаковый отступ от таблицы и вправо и вниз, рукой такое сделать невозможно....[/QUOTE]Мужик пишет письмо на спичечную фабрику: \"Я на протяжении 10 лет покупаю спички Вашей фабрики и считаю количество спичек в коробке. Вы их кладёте то 59, то 60 штук, иногда 61, а вчера положили 56. Вы что там, совсем ебанутые?\"",
+    "likes": 2,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8302213"
   }
 ]
