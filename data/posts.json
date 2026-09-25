@@ -164504,7 +164504,7 @@
     "date": "25 сентября, 05:28",
     "timestamp": 1790306915,
     "text": "Day 166:",
-    "likes": 3,
+    "likes": 4,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_09_2026/post-6195-179030691197ee_thumb.webp"
     ],
@@ -164529,5 +164529,23 @@
         "lux": 0
       }
     }
+  },
+  {
+    "id": "8302114",
+    "author": "Arkadiy61",
+    "avatar": "https://forum.gipsyteam.com/img/imguser.png",
+    "rating": 1322,
+    "msgCount": 1029,
+    "regData": "11 лет на сайте",
+    "date": "25 сентября, 06:10",
+    "timestamp": 1790309409,
+    "text": "Рома не расслабляйся.",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8302114"
   }
 ]
