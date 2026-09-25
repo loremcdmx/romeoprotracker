@@ -164504,7 +164504,7 @@
     "date": "25 сентября, 05:28",
     "timestamp": 1790306915,
     "text": "Day 166:",
-    "likes": 22,
+    "likes": 23,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_09_2026/post-6195-179030691197ee_thumb.webp"
     ],
@@ -164623,5 +164623,23 @@
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8302155"
+  },
+  {
+    "id": "8302193",
+    "author": "DeNK",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/1/5/6/4/156470.jpg",
+    "rating": 1567,
+    "msgCount": 1469,
+    "regData": "11 лет на сайте",
+    "date": "25 сентября, 11:31",
+    "timestamp": 1790328663,
+    "text": "NasKras, В Lightshot в настройках такое есть - Сохранять позицию выделенной области.",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8302193"
   }
 ]
