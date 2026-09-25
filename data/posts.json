@@ -164414,7 +164414,7 @@
     "date": "24 сентября, 14:40",
     "timestamp": 1790253632,
     "text": "inetboec, так это в МТТ так и работает. Занос одного килополя часто профит всего года. \n\nВот Андрей Новак до заноса 4 млн был в мейкапе.",
-    "likes": 3,
+    "likes": 4,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -164504,7 +164504,7 @@
     "date": "25 сентября, 05:28",
     "timestamp": 1790306915,
     "text": "Day 166:",
-    "likes": 9,
+    "likes": 11,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_09_2026/post-6195-179030691197ee_thumb.webp"
     ],
@@ -164547,5 +164547,23 @@
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8302114"
+  },
+  {
+    "id": "8302149",
+    "author": "NasKras",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/1/4/5/5/145585.jpg",
+    "rating": 1910,
+    "msgCount": 919,
+    "regData": "6 лет на сайте",
+    "date": "25 сентября, 08:19",
+    "timestamp": 1790317155,
+    "text": "Ребята кто шарит объясните мне пожалуйста, я посмотрел все его скриншоты и заметил что у него на всех скринах одинаковый отступ от таблицы и вправо и вниз, рукой такое сделать невозможно....",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8302149"
   }
 ]
