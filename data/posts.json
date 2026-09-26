@@ -164724,12 +164724,66 @@
     "date": "26 сентября, 02:15",
     "timestamp": 1790381746,
     "text": "Нет никаких 5 реэнтри в турниры, попадался сегодня с ним, он в макс лейт прыгает в 10ти баксовые неноковые туры.",
-    "likes": 1,
+    "likes": 2,
     "images": [],
     "videos": [],
     "brBefore": null,
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8302516"
+  },
+  {
+    "id": "8302550",
+    "author": "Romeopro",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/2/6/6/26670.jpg",
+    "rating": 25707,
+    "msgCount": 4241,
+    "regData": "16 лет на сайте",
+    "date": "26 сентября, 06:24",
+    "timestamp": 1790396694,
+    "text": "Day 167:",
+    "likes": 0,
+    "images": [
+      "https://static-forum.gipsyteam.ru/monthly_09_2026/post-6195-179039669125b7_thumb.webp"
+    ],
+    "videos": [],
+    "brBefore": 365923,
+    "brAfter": 370262,
+    "sessionResult": 4339,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8302550",
+    "rooms": {
+      "before": {
+        "gg": 364486,
+        "ps": 1188,
+        "king": 232,
+        "coin": 17,
+        "lux": 0
+      },
+      "after": {
+        "gg": 368825,
+        "ps": 1188,
+        "king": 232,
+        "coin": 17,
+        "lux": 0
+      }
+    }
+  },
+  {
+    "id": "8302551",
+    "author": "mimonbear",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/1/6/7/0/167036.webp",
+    "rating": 1298,
+    "msgCount": 408,
+    "regData": "15 лет на сайте",
+    "date": "26 сентября, 06:32",
+    "timestamp": 1790397159,
+    "text": "[QUOTE]Leo|Leo @ 25.09.26\nМужик пишет письмо на спичечную фабрику: \"Я на протяжении 10 лет покупаю спички Вашей фабрики и считаю количество спичек в коробке. Вы их кладёте то 59, то 60 штук, иногда 61, а вчера положили 56. Вы что там, совсем ебанутые?\"[/QUOTE]Вы что там, в киосках их заряжаете?",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8302551"
   }
 ]
