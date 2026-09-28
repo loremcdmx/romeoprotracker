@@ -164976,7 +164976,7 @@
     "date": "28 сентября, 06:48",
     "timestamp": 1790570939,
     "text": "Day 169:",
-    "likes": 8,
+    "likes": 10,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_09_2026/post-6195-1790570936373e_thumb.webp"
     ],
@@ -165001,5 +165001,23 @@
         "lux": 0
       }
     }
+  },
+  {
+    "id": "8303457",
+    "author": "remotepto",
+    "avatar": "https://forum.gipsyteam.com/img/imguser.png",
+    "rating": null,
+    "msgCount": 3,
+    "regData": "1 год на сайте",
+    "date": "28 сентября, 07:52",
+    "timestamp": 1790574732,
+    "text": "Romeopro, устал?",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8303457"
   }
 ]
