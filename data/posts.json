@@ -165102,7 +165102,7 @@
     "date": "28 сентября, 18:48",
     "timestamp": 1790614105,
     "text": "darkmoon311, А ты там че делал? Можно же  открыть любой другой рум и запустить всё что угодно за 10-50 и печатать своё EV",
-    "likes": 1,
+    "likes": 0,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -165266,7 +165266,7 @@
     "date": "29 сентября, 06:28",
     "timestamp": 1790656086,
     "text": "Day 170:",
-    "likes": 35,
+    "likes": 36,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_09_2026/post-6195-17906560813118_thumb.webp"
     ],
@@ -165345,5 +165345,23 @@
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8303966"
+  },
+  {
+    "id": "8304018",
+    "author": "Kravsunov",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/1/6/8/9/168975.webp",
+    "rating": 1312,
+    "msgCount": 602,
+    "regData": "11 лет на сайте",
+    "date": "29 сентября, 13:27",
+    "timestamp": 1790681233,
+    "text": "PovArjuga, дурят или не дурят, и что теперь ты будешь делать с этой информацией?",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8304018"
   }
 ]
