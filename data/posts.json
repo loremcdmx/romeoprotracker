@@ -165084,7 +165084,7 @@
     "date": "28 сентября, 18:44",
     "timestamp": 1790613897,
     "text": "Я тут не давно ночью в  дейликлассик по 15$ сидел на предфиналке с Ромой, и всё понять не мог, турнир шёл 4 часа, это ж нужно место на экране  выделить какое-то внимание ему уделить, а всё ради чего? 1 место было 170$ \n\nЯ понимаю что просто уже от нехуй загрузил так как грузить не чего, но можно же  открыть любой другой рум и запустить всё что угодно за 50-100 и печатать своё EV? \n\nТут яявноо какая-то не понятная хуйня, зачем вообще загружать при якобы бр 370к дейликлассики нищенские которые в основном играют для раскруток бр😑",
-    "likes": 9,
+    "likes": 10,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -165102,7 +165102,7 @@
     "date": "28 сентября, 18:48",
     "timestamp": 1790614105,
     "text": "darkmoon311, А ты там че делал? Можно же  открыть любой другой рум и запустить всё что угодно за 10-50 и печатать своё EV",
-    "likes": 1,
+    "likes": 2,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -165255,5 +165255,41 @@
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8303842"
+  },
+  {
+    "id": "8303856",
+    "author": "Romeopro",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/2/6/6/26670.jpg",
+    "rating": 25707,
+    "msgCount": 4244,
+    "regData": "16 лет на сайте",
+    "date": "29 сентября, 06:28",
+    "timestamp": 1790656086,
+    "text": "Day 170:",
+    "likes": 0,
+    "images": [
+      "https://static-forum.gipsyteam.ru/monthly_09_2026/post-6195-17906560813118_thumb.webp"
+    ],
+    "videos": [],
+    "brBefore": 373197,
+    "brAfter": 378273,
+    "sessionResult": 5076,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8303856",
+    "rooms": {
+      "before": {
+        "gg": 371760,
+        "ps": 1188,
+        "king": 232,
+        "coin": 17,
+        "lux": 0
+      },
+      "after": {
+        "gg": 376836,
+        "ps": 1188,
+        "king": 232,
+        "coin": 17,
+        "lux": 0
+      }
+    }
   }
 ]
