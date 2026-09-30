@@ -165374,7 +165374,7 @@
     "date": "29 сентября, 13:48",
     "timestamp": 1790682481,
     "text": "На начало марафона БР был 10к, долг Мистерам - 3,5кк\n\n \n\nНе удивлюсь, если придет сейчас Гнат и поведает нам что:\n\n \n\nНа данный момент профит марафона 370к, а долг Мистерам уже 4,5кк",
-    "likes": 21,
+    "likes": 22,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -165615,5 +165615,41 @@
         "lux": 0
       }
     }
+  },
+  {
+    "id": "8304483",
+    "author": "krestik",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/1/0/2/0/102064.jpg",
+    "rating": 4998,
+    "msgCount": 548,
+    "regData": "16 лет на сайте",
+    "date": "30 сентября, 07:56",
+    "timestamp": 1790747768,
+    "text": "[QUOTE]Poatan|Poatan @ 29.09.26\nА в чём дурят-то, не понимаю логику)) Рома показал профит в 370К с 10К, поставил на кеш аут 300к и отдал всем мистерам по 10% от суммы долга. Оставил себе 70к на игру, в чем обман то?[/QUOTE]Само собой, Роман с кредиторами вправе распределять деньги так, как им хочется. Но графа в табличке называется \"БР после сессии\". БР, не профит. И если все, как ты предположил, то информация в табличке является неточной. При желании кто-то может описать эту неточность как \"нас дурят\".",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8304483"
+  },
+  {
+    "id": "8304485",
+    "author": "AnnUta1991",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/1/6/9/7/169721.webp",
+    "rating": 1071,
+    "msgCount": 107,
+    "regData": "3 года на сайте",
+    "date": "30 сентября, 08:00",
+    "timestamp": 1790748054,
+    "text": "[QUOTE]Poatan|Poatan @ 29.09.26\nпоставил на кеш аут 300к и отдал всем мистерам по 10% от суммы долга[/QUOTE])))",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8304485"
   }
 ]
