@@ -1,4 +1,4 @@
-export default function MarathonChartControls({ period, setPeriod, grouping, setGrouping, t, count }) {
+export default function MarathonChartControls({ period, setPeriod, grouping, setGrouping, t }) {
   return <>
     <div className="section-head mc-chart-head">
       <h2 className="section-title">{t('chart_marathon')}</h2>
@@ -6,7 +6,6 @@ export default function MarathonChartControls({ period, setPeriod, grouping, set
         {[['week', t('period_week')], ['month', t('period_month')], ['all', t('period_all')]].map(([key, label]) =>
           <button type="button" key={key} onClick={() => setPeriod(key)} className={`mc-period ${period === key ? 'active' : ''}`} aria-pressed={period === key}>{label}</button>)}
       </div>
-      <span className="section-count">{count}</span>
     </div>
     <div className="mc-chart-controls">
       <label className="mc-group-control" htmlFor="marathon-grouping">

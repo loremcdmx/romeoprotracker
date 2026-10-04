@@ -182,7 +182,8 @@ describe('App', () => {
   it('renders marathon chart', async () => {
     render(<App />)
     expect(await screen.findByText(new RegExp(translate('ru', 'chart_marathon').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))).toBeInTheDocument()
-    expect(screen.getByText('2 BR-апдейта')).toBeInTheDocument()
+    expect(screen.queryByText('2 BR-апдейта')).not.toBeInTheDocument()
+    expect(document.querySelector('.mc-svg')).toHaveAttribute('aria-label', expect.stringContaining('2 BR-апдейта'))
     expect(screen.queryByText('2 сессии')).not.toBeInTheDocument()
   })
 

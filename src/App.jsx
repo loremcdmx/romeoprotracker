@@ -32,11 +32,6 @@ function plDays(n, lang) {
   if (lang === 'es') return `${n} día${n === 1 ? '' : 's'}`
   return `${n} day${n === 1 ? '' : 's'}`
 }
-function plSessions(n, lang) {
-  if (lang === 'ru') return pl(n, ['сессия','сессии','сессий'])
-  if (lang === 'es') return `${n} ${n === 1 ? 'sesión' : 'sesiones'}`
-  return `${n} session${n === 1 ? '' : 's'}`
-}
 function plBrUpdates(n, lang) {
   if (lang === 'ru') return pl(n, ['BR-апдейт','BR-апдейта','BR-апдейтов'])
   if (lang === 'es') return `${n} ${n === 1 ? 'actualización BR' : 'actualizaciones BR'}`
@@ -1798,7 +1793,7 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
 
   return (
     <div className="marathon-chart" ref={chartRef} onClick={tip ? closeTip : undefined}>
-      <MarathonChartControls {...{ period, setPeriod:setPeriodPersist, grouping, setGrouping, t }} count={plBrUpdates(points.length, lang)}/>
+      <MarathonChartControls {...{ period, setPeriod:setPeriodPersist, grouping, setGrouping, t }}/>
       {usesWholeArchiveFallback && <p className="mc-view-hint">{t('chart_session_fallback')}</p>}
       <svg className="mc-svg" viewBox={`0 0 ${W} ${H+pB+xLabelExtraBottom}`}
         role="img" aria-label={`${t('chart_marathon')}: ${plBrUpdates(points.length, lang)}`}
@@ -3640,7 +3635,6 @@ const SessionMttChart = memo(function SessionMttChart({ meta, period, lang, t })
         <div style={{display:'flex',gap:6,flexShrink:0}}>
           <span className="section-count smtt-avg-chip">{`${t('smtt_avg')}: ${fmtInt(Math.round(avg))}`}</span>
           <span className="section-count smtt-last-chip">{`${t('smtt_last')}: ${fmtInt(rows[lastIdx].mtt)}`}</span>
-          <span className="section-count">{plSessions ? plSessions(rows.length, lang) : rows.length}</span>
         </div>
       </div>
       <div className="pace-chart-wrap" onMouseLeave={() => setHoverIdx(null)}>
@@ -3729,20 +3723,6 @@ export default function App() {
   })
   const t = useMemo(() => createTranslator(lang), [lang])
   const appVersionLabel = `v${String(__APP_VERSION__).replace(/\.0$/, '')}`
-  // Build date instead of a hand-edited literal, formatted for the active
-  // locale (DD.MM.YYYY reads as a different day in en/es).
-  const buildDateLabel = useMemo(() => {
-    // Guarded: a missing build-time define must degrade to an empty label,
-    // never throw and take the whole app down with it.
-    const stamp = typeof __BUILD_DATE__ === 'undefined' ? null : __BUILD_DATE__
-    if (!stamp) return ''
-    const d = new Date(stamp)
-    if (Number.isNaN(d.getTime())) return ''
-    const locale = lang === 'ru' ? 'ru-RU' : lang === 'es' ? 'es-ES' : 'en-US'
-    return new Intl.DateTimeFormat(locale, {
-      day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Europe/Warsaw',
-    }).format(d)
-  }, [lang])
   // Version the preference so existing visitors move off the former
   // "oldest first" default once, while future choices remain persistent.
   const [sortBy, setSortBy] = usePersistentState('rpt_sortby_v2', 'date_desc', {
@@ -4613,13 +4593,9 @@ export default function App() {
                 {' '}
                   <span style={{color:'var(--dim)'}}>{appVersionLabel}</span>
               </div>
-              <div style={{fontSize:10,color:'var(--dim)',marginBottom:4}}>
-                {t('footer_made')}{' '}
-                <a href="https://t.me/loremnopoker" target="_blank" rel="noreferrer"
-                  style={{color:'var(--dim2)',textDecoration:'none'}}>LoremCDMX</a>
-              </div>
-              <div style={{fontSize:10,color:'var(--dim2)'}}>
-                {t('footer_interface_updated')}: {buildDateLabel}
+              <div className="footer-credit">
+                <span className="footer-credit-prefix">{t('footer_made')}</span>
+                <a className="footer-credit-author" href="https://t.me/loremnopoker" target="_blank" rel="noopener noreferrer">LoremCDMX</a>
               </div>
               {(() => {
                 const scrapeTs = meta?.lastScrapeRun

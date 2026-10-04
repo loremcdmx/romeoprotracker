@@ -68,7 +68,7 @@ export default memo(function MonthlyMarathonChart({ allPoints, period, setPeriod
   const color = profit => profit >= 0 ? (light ? '#2e8b3a' : '#76d982') : (light ? '#c8362e' : '#ff665d')
 
   return <div className="marathon-chart mc-monthly" data-testid="marathon-monthly-chart">
-    <MarathonChartControls {...{period, setPeriod, grouping, setGrouping, t}} count={`${months.length} ${t('chart_months_count')}`}/>
+    <MarathonChartControls {...{period, setPeriod, grouping, setGrouping, t}}/>
     <p className="mc-view-hint">{t(period === 'all' ? 'chart_month_hint' : 'chart_month_period_hint')}</p>
     {!months.length ? <div className="empty-state">{t('empty_data_scraper')}</div> : <>
       <svg className="mc-svg mc-month-svg" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`${t('chart_marathon')}: ${t('chart_months')}`}>
