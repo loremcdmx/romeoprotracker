@@ -246,7 +246,7 @@ function compactCrowdedMarathonMarkers(markers, minGap, yAtX = null) {
   const keepLatestReadable = items => {
     const output = items.slice(0, -1)
     const previous = output[output.length - 1]
-    if (previous && Math.hypot(latest.x - previous.x, latest.y - previous.y) < latestGap * .82) {
+    if (previous && !previous.protected && Math.hypot(latest.x - previous.x, latest.y - previous.y) < latestGap * .82) {
       const beforePrevious = output[output.length - 2]
       const targetX = latest.x - latestGap * .95
       const leftLimit = beforePrevious ? beforePrevious.x + latestGap * .72 : previous.x - latestGap
@@ -260,23 +260,10 @@ function compactCrowdedMarathonMarkers(markers, minGap, yAtX = null) {
     }
     return [...output, latest]
   }
-  const tailSearchStart = Math.max(0, markers.length - 18)
-  let tailStart = markers.length - 2
-
-  while (tailStart > tailSearchStart) {
-    const prev = markers[tailStart - 1]
-    const current = markers[tailStart]
-    if (!prev || !current) break
-    const horizontalGap = current.x - prev.x
-    const visualGap = Math.hypot(current.x - prev.x, current.y - prev.y)
-    if (horizontalGap >= minGap * 1.35 && visualGap >= minGap * 1.55) break
-    tailStart--
-  }
-
-  const body = markers.slice(tailStart, -1)
+  // Dense periods can occur anywhere in the marathon, including historical months.
+  const body = markers.slice(1, -1)
   if (body.length < 2) return keepLatestReadable(markers)
-
-  const head = markers.slice(0, tailStart)
+  const head = [markers[0]]
   const compacted = []
   let cluster = []
 
@@ -294,9 +281,9 @@ function compactCrowdedMarathonMarkers(markers, minGap, yAtX = null) {
 
     const prev = cluster[cluster.length - 1]
     const prevGap = Math.hypot(marker.x - prev.x, marker.y - prev.y)
-    const horizontalGap = marker.x - prev.x
     const clusterSessions = cluster.reduce((sum, m) => sum + (m.count || 1), 0)
-    const shouldMerge = (prevGap < minGap || horizontalGap < minGap * .8)
+    const shouldMerge = !marker.protected && !cluster.some(m => m.protected)
+      && prevGap < minGap
       && clusterSessions + (marker.count || 1) <= 6
 
     if (shouldMerge) {
@@ -1184,75 +1171,6 @@ const MarathonChart = memo(function MarathonChart({ posts, meta, startBR, setLig
     return ({ best:'БЕСТ', worst:'ВОРСТ', peak:'ПИК' })[kind]
   }
   const mttUnit = lang === 'ru' ? 'МТТ' : 'MTT'
-  const markerGroups = (() => {
-    if (!points.length) return []
-    if (points.length === 1) return [{
-      start:0,
-      end:0,
-      p:points[0],
-      x:coords[0].x,
-      y:coords[0].y,
-      profit:sessionProfitAt(0),
-      count:1,
-      sessions:[{ p:points[0], profit:sessionProfitAt(0), tournaments:mttDeltaAt(0) }],
-    }]
-
-    const groups = []
-    const minMarkerGap = isMobile ? 16 : 12
-    const detailedTailStart = Math.max(0, points.length - 5)
-    let start = 0
-    let runSign = profitSignAt(0)
-
-    const emit = end => {
-      if (end < start) return
-      groups.push({ start, end })
-    }
-
-    for (let i = 1; i < detailedTailStart; i++) {
-      const sign = profitSignAt(i) || runSign
-      if (!runSign && sign) runSign = sign
-
-      const signChanged = runSign && sign && sign !== runSign
-      const enoughGap = coords[i].x - coords[start].x >= minMarkerGap
-      // Hard cap: a winning/losing streak must not collapse into one dot no
-      // matter how tight the pixels are (a 24-session blob was one hover stop).
-      const sizeCap = i - start + 1 >= 6
-
-      if (signChanged) {
-        emit(i - 1)
-        start = i
-        runSign = profitSignAt(i)
-      } else if (enoughGap || sizeCap) {
-        emit(i)
-        start = i + 1
-        runSign = start < points.length ? (profitSignAt(start) || runSign) : runSign
-      }
-    }
-
-    if (start < detailedTailStart) emit(detailedTailStart - 1)
-    for (let i = detailedTailStart; i < points.length; i++) {
-      groups.push({ start:i, end:i })
-    }
-
-    const rawMarkers = groups
-      .filter((g, idx, arr) => idx === 0 || g.end !== arr[idx - 1].end)
-      .map(g => ({
-        ...g,
-        p: points[g.end],
-        x: coords[g.end].x,
-        y: coords[g.end].y,
-        profit: points
-          .slice(g.start, g.end + 1)
-          .reduce((sum, p, offset) => sum + sessionProfitAt(g.start + offset), 0),
-        count: g.end - g.start + 1,
-        sessions: points.slice(g.start, g.end + 1).map((p, offset) => {
-          const idx = g.start + offset
-          return { p, profit:sessionProfitAt(idx), tournaments:mttDeltaAt(idx) }
-        }),
-      }))
-
-    return compactCrowdedMarathonMarkers(rawMarkers, isMobile ? 20 : 16, yAtChartX)
-  })()
   const xLabelItems = (() => {
     if (!points.length) return []
 
@@ -1742,8 +1660,8 @@ const MarathonChart = memo(function MarathonChart({ posts, meta, startBR, setLig
 
     return stops
   })()
-  const significantMarkerGroups = (() => {
-    if (!points.length) return []
+  const significantIndexes = (() => {
+    if (!points.length) return new Set()
 
     const indexes = new Set([0, points.length - 1])
     let peakIdx = 0
@@ -1779,31 +1697,110 @@ const MarathonChart = memo(function MarathonChart({ posts, meta, startBR, setLig
       if (moneySwing >= localTurnMoney || pixelSwing >= localTurnPixels) indexes.add(idx)
     })
 
-    return markerGroups.filter(marker =>
-      [...indexes].some(idx => idx >= marker.start && idx <= marker.end)
-    )
+    return indexes
   })()
+  const markerGroups = (() => {
+    if (!points.length) return []
+    if (points.length === 1) return [{
+      start:0,
+      end:0,
+      p:points[0],
+      x:coords[0].x,
+      y:coords[0].y,
+      profit:sessionProfitAt(0),
+      count:1,
+      sessions:[{ p:points[0], profit:sessionProfitAt(0), tournaments:mttDeltaAt(0) }],
+    }]
+
+    const groups = points.length > 5 ? [{ start:0, end:0 }] : []
+    const minMarkerGap = isMobile ? 16 : 12
+    const detailedTailStart = Math.max(0, points.length - 5)
+    let start = points.length > 5 ? 1 : 0
+    let runSign = profitSignAt(0)
+
+    const emit = end => {
+      if (end < start) return
+      groups.push({ start, end })
+    }
+
+    for (let i = 1; i < detailedTailStart; i++) {
+      // Key updates keep their own point on the exact bankroll line.
+      if (significantIndexes.has(i)) {
+        emit(i - 1)
+        groups.push({ start:i, end:i })
+        start = i + 1
+        runSign = profitSignAt(start)
+        continue
+      }
+      const sign = profitSignAt(i) || runSign
+      if (!runSign && sign) runSign = sign
+
+      const signChanged = runSign && sign && sign !== runSign
+      const enoughGap = coords[i].x - coords[start].x >= minMarkerGap
+      // Hard cap: a winning/losing streak must not collapse into one dot no
+      // matter how tight the pixels are (a 24-session blob was one hover stop).
+      const sizeCap = i - start + 1 >= 6
+
+      if (signChanged) {
+        emit(i - 1)
+        start = i
+        runSign = profitSignAt(i)
+      } else if (enoughGap || sizeCap) {
+        emit(i)
+        start = i + 1
+        runSign = start < points.length ? (profitSignAt(start) || runSign) : runSign
+      }
+    }
+
+    if (start < detailedTailStart) emit(detailedTailStart - 1)
+    for (let i = detailedTailStart; i < points.length; i++) {
+      groups.push({ start:i, end:i })
+    }
+
+    const rawMarkers = groups
+      .filter((g, idx, arr) => idx === 0 || g.end !== arr[idx - 1].end)
+      .map(g => ({
+        ...g,
+        protected: [...significantIndexes].some(i => i >= g.start && i <= g.end),
+        p: points[g.end],
+        x: coords[g.end].x,
+        y: coords[g.end].y,
+        profit: points
+          .slice(g.start, g.end + 1)
+          .reduce((sum, p, offset) => sum + sessionProfitAt(g.start + offset), 0),
+        count: g.end - g.start + 1,
+        sessions: points.slice(g.start, g.end + 1).map((p, offset) => {
+          const idx = g.start + offset
+          return { p, profit:sessionProfitAt(idx), tournaments:mttDeltaAt(idx) }
+        }),
+      }))
+
+    return compactCrowdedMarathonMarkers(rawMarkers, isMobile ? 20 : 16, yAtChartX)
+  })()
+  const significantMarkerGroups = markerGroups.filter(marker =>
+    [...significantIndexes].some(idx => idx >= marker.start && idx <= marker.end)
+  )
   // Every group gets a dot (43 of 62 used to be invisible); label-bearing
   // groups keep the loud styling, the rest render as small muted session dots.
   const significantSet = new Set(significantMarkerGroups)
   // Crowding keeps its original meaning: distance between LOUD markers only —
   // small minor dots must not demote the styling of labelled/last points.
-  const crowdingByMarker = new Map(significantMarkerGroups.map((marker, idx, arr) => {
-    const distances = [
-      arr[idx - 1] ? Math.hypot(marker.x - arr[idx - 1].x, marker.y - arr[idx - 1].y) : Infinity,
-      arr[idx + 1] ? Math.hypot(marker.x - arr[idx + 1].x, marker.y - arr[idx + 1].y) : Infinity,
-    ]
+  const crowdingByMarker = new Map(significantMarkerGroups.map((marker, _, arr) => {
+    // A sharp zigzag can bring non-adjacent updates close together.
+    const distances = arr.filter(other => other !== marker)
+      .map(other => Math.hypot(marker.x - other.x, marker.y - other.y))
     const nearestDistance = Math.min(...distances)
     return [marker, { nearestDistance, isCrowded:nearestDistance < (isMobile ? 23 : 20) }]
   }))
-  let lastDrawnX = -Infinity
+  let lastDrawnMarker = null
   const latestMarkerX = markerGroups.length ? markerGroups[markerGroups.length - 1].x : 0
-  const loudXs = significantMarkerGroups.map(m => m.x)
+  const nearMarker = (a, b, gap) => Math.hypot(a.x - b.x, a.y - b.y) < gap
   const minorGap = isMobile ? 9 : 8
   const markerVisuals = markerGroups.map((marker, idx) => {
     const significant = significantSet.has(marker)
     const crowding = crowdingByMarker.get(marker) || { nearestDistance:Infinity, isCrowded:false }
-    // thin overlapping minor dots (a minor dot yields to any loud dot within
+    // Thin overlapping minor dots by visual distance, retaining vertically separated turns.
+    // A minor dot yields to any loud dot within
     // ~2r, whichever side it is on), and keep a quiet zone around the latest
     // (live) point so its gold dot stays readable (hover still works)
     const isLatest = idx === markerGroups.length - 1
@@ -1811,24 +1808,30 @@ const MarathonChart = memo(function MarathonChart({ posts, meta, startBR, setLig
     if (!isLatest && Math.abs(marker.x - latestMarkerX) < (isMobile ? 18 : 14)) {
       dotHidden = true
     } else if (significant) {
-      lastDrawnX = marker.x
-    } else if (loudXs.some(x => Math.abs(x - marker.x) < minorGap) || marker.x - lastDrawnX < minorGap) {
+      lastDrawnMarker = marker
+    } else if (significantMarkerGroups.some(m => nearMarker(m, marker, minorGap))
+      || (lastDrawnMarker && nearMarker(lastDrawnMarker, marker, minorGap))) {
       dotHidden = true
     } else {
-      lastDrawnX = marker.x
+      lastDrawnMarker = marker
     }
+    const nearestHitDistance = Math.min(...markerGroups.filter(other => other !== marker)
+      .map(other => Math.hypot(marker.x - other.x, marker.y - other.y)))
     return {
       ...marker,
+      hitRadius:Math.min(isLatest ? 14 : 10, nearestHitDistance * .45),
       nearestDistance:crowding.nearestDistance,
       significant,
       dotHidden,
-      isCrowded:crowding.isCrowded,
+      isCrowded:!isLatest && crowding.isCrowded,
     }
   })
 
   // ── Mobile: long-press (300ms) to show tooltip ──
   const longPressTimer = useRef(null)
+  const longPressOpened = useRef(false)
   const handleTouchStart = e => {
+    longPressOpened.current = false
     e.preventDefault()
     const rect = e.currentTarget.getBoundingClientRect()
     const touch = e.touches[0]
@@ -1836,14 +1839,20 @@ const MarathonChart = memo(function MarathonChart({ posts, meta, startBR, setLig
     const sy = touch.clientY
     longPressTimer.current = setTimeout(() => {
       let nearest=null, minD=Infinity
-      significantMarkerGroups.forEach(m => { const d=Math.abs(m.x-tx); if(d<minD){minD=d;nearest=m} })
+      markerGroups.forEach(m => { const d=Math.abs(m.x-tx); if(d<minD){minD=d;nearest=m} })
       if (!nearest) return
+      longPressOpened.current = true
       const p = nearest.p
       announceHoverPopupOpen()
       openTipState({ p, profit:nearest.profit, x:nearest.x, y:nearest.y, screenY: sy, groupCount:nearest.count, sessions:nearest.sessions, totalMTT:cumMTT[nearest.end] || null })
     }, 300)
   }
-  const handleTouchEnd = () => { clearTimeout(longPressTimer.current) }
+  const handleTouchEnd = e => {
+    clearTimeout(longPressTimer.current)
+    // Suppress the compatibility click that would immediately close the popup.
+    if (longPressOpened.current) e.preventDefault()
+    longPressOpened.current = false
+  }
   const handleTouchMove = () => { clearTimeout(longPressTimer.current) }
 
   if (!points.length) return (
@@ -1955,13 +1964,14 @@ const MarathonChart = memo(function MarathonChart({ posts, meta, startBR, setLig
               }
               // Hysteresis: switch anchors only once the cursor is clearly past
               // the midpoint, otherwise the tooltip chatters on the boundary.
-              if (tip && Number.isFinite(tip.x) && minD >= Math.abs(tip.x - mx) - 7) return
+              const switchBuffer = tip ? Math.min(7, Math.abs(tip.x - nearest.x) * .3) : 0
+              if (tip && Number.isFinite(tip.x) && minD >= Math.abs(tip.x - mx) - switchBuffer) return
               if (!tip) announceHoverPopupOpen()
               openTipState({ p:nearest.p, profit:nearest.profit, x:nearest.x, y:nearest.y,
                 groupCount:nearest.count, sessions:nearest.sessions, totalMTT:cumMTT[nearest.end] || null })
             }}/>
         )}
-        {markerVisuals.map(({ p, start, end, x, y, profit, count, sessions, parts, compacted, mixedTone, isCrowded, significant, dotHidden }) => {
+        {markerVisuals.map(({ p, start, end, x, y, profit, count, sessions, parts, compacted, mixedTone, isCrowded, hitRadius, nearestDistance, significant, dotHidden }) => {
           const i=end
           const isLast = i===points.length-1
           const cx=x, cy=y
@@ -1974,7 +1984,7 @@ const MarathonChart = memo(function MarathonChart({ posts, meta, startBR, setLig
             : (isHovered ? (isLast ? 8 : 6) : (isLast ? 6 : isGrouped ? 4.6 : 3.8))
           const baseDotR = significant || isHovered ? loudDotR : (isMobile ? 2.8 : 3)
           const dotR = isCrowded
-            ? Math.min(baseDotR, isLast ? (isMobile ? 4.8 : 4.6) : (isMobile ? 2.7 : 2.8))
+            ? Math.min(baseDotR, isMobile ? 2.7 : 2.8, Math.max(1.2, (nearestDistance - 2.4) / 2))
             : baseDotR
           const clusterPartR = partCount => {
             const base = isMobile ? 2.2 : 2.05
@@ -1990,7 +2000,7 @@ const MarathonChart = memo(function MarathonChart({ posts, meta, startBR, setLig
             <g key={`marker-${start}-${end}`} className={isHovered ? 'is-hovered' : ''} onMouseEnter={!isMobile ? openTip : undefined}
               onClick={!isMobile ? e => { e.stopPropagation(); openTip() } : undefined}
               data-start={start} data-end={end} data-count={count}>
-              {!isMobile && <circle cx={cx} cy={cy} r={renderClusterParts ? 18 : isLast?14:10} fill="transparent"
+              {!isMobile && <circle cx={cx} cy={cy} r={renderClusterParts ? 18 : hitRadius} fill="transparent"
                 className={renderClusterParts ? 'mc-dot-cluster-hit' : undefined}
                 />}
               {renderClusterParts ? (
@@ -2011,13 +2021,13 @@ const MarathonChart = memo(function MarathonChart({ posts, meta, startBR, setLig
                 </g>
               ) : (
                 <>
-                  {isGrouped && (significant || isHovered) && <circle cx={cx} cy={cy} r={dotR + (compacted ? 3.2 : 2.6)}
+                  {isGrouped && <circle cx={cx} cy={cy} r={dotR + (compacted ? 3.2 : 2.6)}
                     className={`mc-dot-grouped-ring ${mixedTone ? 'mc-dot-mixed-ring' : ''}`}
                     stroke={profit>=0?'#4caf50':'#e53935'}/>}
                   <circle cx={cx} cy={cy} r={dotR}
                     className={`mc-dot ${isLast && !isCrowded ? 'mc-dot-last' : ''} ${isGrouped?'mc-dot-grouped':''} ${compacted?'mc-dot-compacted':''} ${mixedTone?'mc-dot-mixed':''} ${isCrowded?'mc-dot-crowded':''} ${!significant && !isHovered ? 'mc-dot-minor' : ''} ${dotHidden && !isHovered ? 'mc-dot-hidden' : ''}`}
                     fill={profit>=0?'#4caf50':'#e53935'}
-                    style={{transition:'r .12s', ...(isLast?{color:profit>=0?'#4caf50':'#e53935'}:{})}}/>
+                    style={{transition:'r .12s', ...(isCrowded ? {strokeWidth:isHovered ? 1.4 : .9} : {}), ...(isLast?{color:profit>=0?'#4caf50':'#e53935'}:{})}}/>
                 </>
               )}
             </g>

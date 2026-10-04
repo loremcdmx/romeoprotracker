@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import App from './App.jsx'
+import * as responsive from './hooks/useIsMobile.js'
 import { translate } from './i18n.js'
 import { fetchPublicData } from './storage.js'
 
@@ -1054,7 +1055,94 @@ describe('App', () => {
     expect(digits(totalLine())).toBe(String(expected))
   })
 
-  it('splits dense mixed marathon clusters into small dots on the line', async () => {
+  it.each([1280, 375])('keeps dense historical sessions readable and accessible at %i px', async (width) => {
+    const previousWidth = window.innerWidth
+    window.innerWidth = width
+    const mobileMock = vi.spyOn(responsive, 'useIsMobile').mockReturnValue(width <= 720)
+    try {
+      const base = makeMockData()
+      let br = 10000, total = 0
+      const changes = [
+        ...Array.from({ length: 4 }, () => [5000, 2000]),
+        ...Array.from({ length: 24 }, (_, i) => [i % 2 === 0 ? 1000 : -900, 20]),
+        ...Array.from({ length: 30 }, () => [3000, 800]),
+      ]
+      const brHistory = changes.map(([profit, tournaments], i) => {
+        const brPrev = br
+        br += profit
+        total += tournaments
+        return { id: 'historical-' + i, brAfter: br, brPrev, sessionResult: profit,
+          totalTournaments: total, tournaments, timestamp: Date.UTC(2026, 3, 25 + i, 12) / 1000,
+          date: 'D' + i, text: 'Historical session ' + i }
+      })
+      fetchPublicData.mockResolvedValue(makeMockData({
+        meta: { ...base.meta, brHistory, totalTournaments: total },
+      }))
+      render(<App />)
+      await screen.findByTestId('pace-widget')
+      const svg = document.querySelector('.marathon-chart .mc-svg')
+      const markers = [...svg.querySelectorAll('g[data-start][data-end]')]
+      let nextIndex = 0
+      for (const marker of markers) {
+        const { start, end, count } = marker.dataset
+        expect(Number(start)).toBe(nextIndex)
+        expect(Number(count)).toBe(Number(end) - Number(start) + 1)
+        expect(Number(count)).toBeLessThanOrEqual(6)
+        nextIndex = Number(end) + 1
+      }
+      expect(nextIndex).toBe(brHistory.length)
+      const historical = markers.filter(m => Number(m.dataset.start) >= 4 && Number(m.dataset.end) < 28)
+      expect(historical.length).toBeLessThanOrEqual(6)
+      expect(historical.some(m => m.querySelector('.mc-dot-mixed-ring'))).toBe(true)
+
+      const linePoints = parseLinearSvgPath(svg.querySelector('.mc-line-main').getAttribute('d'))
+      expect(linePoints).toHaveLength(brHistory.length)
+      const segments = [...svg.querySelectorAll('.mc-line-segment')]
+      expect(segments).toHaveLength(brHistory.length - 1)
+      segments.forEach((segment, i) => {
+        expect(segment.dataset.sourceId).toBe(brHistory[i + 1].id)
+        expect(Number(segment.getAttribute('x2'))).toBeCloseTo(linePoints[i + 1].x, 0)
+        expect(Number(segment.getAttribute('y2'))).toBeCloseTo(linePoints[i + 1].y, 0)
+      })
+      // First and latest updates keep their own exact positions and identities.
+      for (const marker of [markers[0], markers.at(-1)]) {
+        expect(Number(marker.dataset.count)).toBe(1)
+        const dot = marker.querySelector('.mc-dot')
+        const point = linePoints[Number(marker.dataset.end)]
+        expect(Number(dot.getAttribute('cx'))).toBeCloseTo(point.x, 0)
+        expect(Number(dot.getAttribute('cy'))).toBeCloseTo(point.y, 0)
+      }
+
+      const group = historical.find(m => Number(m.dataset.count) > 1 && m.querySelector('.mc-dot-minor'))
+      expect(group).toBeTruthy()
+      if (width > 600) {
+        const capture = svg.querySelector('.mc-hover-capture')
+        // Move across close historical groups; a fixed 7-unit buffer skipped them.
+        for (const marker of historical) {
+          fireEvent.mouseMove(capture, { clientX: Number(marker.querySelector('.mc-dot').getAttribute('cx')) })
+          const count = Number(marker.dataset.count)
+          expect(document.querySelectorAll('.mc-session-row')).toHaveLength(count > 1 ? count : 0)
+          const totalCell = [...document.querySelectorAll('.mc-tooltip div')]
+            .filter(d => d.textContent.includes(translate('ru', 'tip_mtt_total'))
+              && !d.textContent.includes(translate('ru', 'tip_mtt_since')) && /\d/.test(d.textContent)).pop()
+          expect(totalCell.textContent.replace(/\D/g, '')).toBe(String(brHistory[Number(marker.dataset.end)].totalTournaments))
+        }
+      } else {
+        // A minor historical group must also be reachable by long-press.
+        svg.getBoundingClientRect = () => ({ left: 0, top: 0, width: 360, height: 438 })
+        const dot = group.querySelector('.mc-dot')
+        fireEvent.touchStart(svg, { touches: [{ clientX: Number(dot.getAttribute('cx')), clientY: Number(dot.getAttribute('cy')) }] })
+        await waitFor(() => expect(document.querySelectorAll('.mc-session-row')).toHaveLength(Number(group.dataset.count)))
+        expect(fireEvent.touchEnd(svg)).toBe(false)
+        expect(document.querySelectorAll('.mc-session-row')).toHaveLength(Number(group.dataset.count))
+      }
+    } finally {
+      mobileMock.mockRestore()
+      window.innerWidth = previousWidth
+    }
+  })
+
+  it('preserves major turns in dense mixed marathon history', async () => {
     const base = makeMockData()
     const prefix = [
       [9954, 167], [8710, 385], [47815, 8803], [45727, 8957],
@@ -1100,13 +1188,36 @@ describe('App', () => {
     // a dense mixed cluster is one grouped dot with a mixed-tone ring.
     const markers = [...document.querySelectorAll('.marathon-chart g[data-start][data-end]')]
     expect(document.querySelectorAll('.mc-dot-cluster-parts')).toHaveLength(0)
-    const mixed = markers.find(marker => marker.querySelector('.mc-dot-mixed-ring'))
-    expect(mixed).toBeTruthy()
+    // These large historical reversals must stay individual points, not averages.
+    const linePoints = parseLinearSvgPath(document.querySelector('.mc-line-main').getAttribute('d'))
+    for (const index of [1, 19, 24, 40]) {
+      const marker = markers.find(m => Number(m.dataset.start) === index && Number(m.dataset.end) === index)
+      expect(marker).toBeTruthy()
+      const dot = marker.querySelector('.mc-dot')
+      expect(Number(dot.getAttribute('cx'))).toBeCloseTo(linePoints[index].x, 0)
+      expect(Number(dot.getAttribute('cy'))).toBeCloseTo(linePoints[index].y, 0)
+    }
     markers.forEach(m => expect(Number(m.getAttribute('data-count'))).toBeLessThanOrEqual(6))
+    // Even close non-adjacent turns must have distinct hit areas.
+    const hits = markers.map(m => m.querySelector('circle[fill="transparent"]'))
+    for (let i = 0; i < hits.length; i++) for (const other of hits.slice(i + 1)) {
+      const hit = hits[i]
+      const distance = Math.hypot(Number(hit.getAttribute('cx')) - Number(other.getAttribute('cx')),
+        Number(hit.getAttribute('cy')) - Number(other.getAttribute('cy')))
+      expect(Number(hit.getAttribute('r')) + Number(other.getAttribute('r'))).toBeLessThanOrEqual(distance + 1e-8)
+    }
+    const crowded = [...document.querySelectorAll('.marathon-chart .mc-dot-crowded:not(.mc-dot-hidden)')]
+    for (let i = 0; i < crowded.length; i++) for (const other of crowded.slice(i + 1)) {
+      const dot = crowded[i]
+      const distance = Math.hypot(Number(dot.getAttribute('cx')) - Number(other.getAttribute('cx')),
+        Number(dot.getAttribute('cy')) - Number(other.getAttribute('cy')))
+      const outerRadius = circle => Number(circle.getAttribute('r')) + Number(circle.style.strokeWidth) / 2
+      expect(distance - outerRadius(dot) - outerRadius(other)).toBeGreaterThanOrEqual(1)
+    }
   })
 
 
-  it('tones down the crowded last marathon marker so adjacent points stay readable', async () => {
+  it('preserves protected updates near the latest marker without obscuring its live value', async () => {
     const base = makeMockData()
     const brs = [20000, 50000, 100000, 175000, 156363, 153715]
     const totals = [5000, 7000, 9000, 11000, 11740, 11799]
@@ -1147,7 +1258,8 @@ describe('App', () => {
     expect(lastMarker?.dataset.count).toBe('1')
     expect(lastDot).toHaveClass('mc-dot-last')
     expect(lastDot).not.toHaveClass('mc-dot-crowded')
-    expect(Math.hypot(lastX - previousX, lastY - previousY)).toBeGreaterThanOrEqual(20)
+    expect(lastDot).not.toHaveClass('mc-dot-hidden')
+    expect(previousDot).toHaveClass('mc-dot-hidden')
 
     const mainLinePoints = parseLinearSvgPath(document.querySelector('.mc-line-main')?.getAttribute('d'))
     for (const dot of [previousDot, lastDot]) {
