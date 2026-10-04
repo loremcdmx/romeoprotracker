@@ -32,11 +32,6 @@ function plDays(n, lang) {
   if (lang === 'es') return `${n} día${n === 1 ? '' : 's'}`
   return `${n} day${n === 1 ? '' : 's'}`
 }
-function plSessions(n, lang) {
-  if (lang === 'ru') return pl(n, ['сессия','сессии','сессий'])
-  if (lang === 'es') return `${n} ${n === 1 ? 'sesión' : 'sesiones'}`
-  return `${n} session${n === 1 ? '' : 's'}`
-}
 function plBrUpdates(n, lang) {
   if (lang === 'ru') return pl(n, ['BR-апдейт','BR-апдейта','BR-апдейтов'])
   if (lang === 'es') return `${n} ${n === 1 ? 'actualización BR' : 'actualizaciones BR'}`
@@ -323,110 +318,6 @@ function estimateSvgTextWidth(text, fontSize) {
   return String(text || '').length * fontSize * .58
 }
 
-function svgTextRect({ x, y, text, fontSize, anchor = 'middle' }) {
-  const width = estimateSvgTextWidth(text, fontSize)
-  const height = fontSize + 4
-  let left = x - width / 2
-  if (anchor === 'end') left = x - width
-  if (anchor === 'start') left = x
-  return {
-    left,
-    right:left + width,
-    top:y - height + 3,
-    bottom:y + 4,
-  }
-}
-
-function rectsOverlap(a, b, gap = 0) {
-  if (!a || !b) return false
-  return a.left < b.right + gap
-    && a.right > b.left - gap
-    && a.top < b.bottom + gap
-    && a.bottom > b.top - gap
-}
-
-function resolvePaceTrendLabelLayout({ trend, text, latestValue, latestPoint, gridLeft, gridRight, plotTop, plotBottom, dots = [], valueLabels = [] }) {
-  if (!trend) return null
-
-  const fontSize = 10
-  const minX = gridLeft + 92
-  const maxX = gridRight - 18
-  const minY = plotTop + 13
-  const maxY = plotBottom - 8
-  const primaryY = clampNumber(trend.endY + (trend.rising ? -10 : 14), minY, maxY)
-  const primaryX = clampNumber(trend.endX - 18, minX, maxX)
-  const blockers = []
-
-  if (latestValue?.show) {
-    blockers.push(svgTextRect({
-      x:latestValue.x,
-      y:latestValue.y,
-      text:latestValue.text,
-      fontSize:10,
-      anchor:latestValue.anchor,
-    }))
-  }
-
-  if (latestPoint) {
-    blockers.push({
-      left:latestPoint.x - 12,
-      right:latestPoint.x + 12,
-      top:latestPoint.y - 12,
-      bottom:latestPoint.y + 12,
-    })
-  }
-  // Every data dot and every rendered value label blocks the trend label —
-  // it used to sit across a mid-line dot with a digit hidden behind it.
-  for (const d of dots) blockers.push({ left:d.x - 9, right:d.x + 9, top:d.y - 9, bottom:d.y + 9 })
-  for (const v of valueLabels) blockers.push(svgTextRect({ x:v.x, y:v.y, text:v.text, fontSize:10.5, anchor:v.anchor }))
-
-  const makeLayout = (x, y, shifted = false) => {
-    const next = { x, y, shifted }
-    return {
-      ...next,
-      rect:svgTextRect({ x, y, text, fontSize, anchor:'end' }),
-    }
-  }
-
-  let layout = makeLayout(primaryX, primaryY)
-  if (!blockers.some(blocker => rectsOverlap(layout.rect, blocker, 3))) return layout
-
-  // Walk back along the trend line and try above/below it before resorting
-  // to the shifted fallbacks — the middle of the plot is usually empty air.
-  const dx = trend.endX - trend.startX
-  const dy = trend.endY - trend.startY
-  for (const frac of [0.72, 0.55, 0.4, 0.86, 0.25]) {
-    const lx = clampNumber(trend.startX + dx * frac, minX, maxX)
-    const ly = trend.startY + dy * frac
-    for (const off of [-11, 15, -19, 23]) {
-      const candidate = makeLayout(lx, clampNumber(ly + off, minY, maxY), true)
-      if (!blockers.some(blocker => rectsOverlap(candidate.rect, blocker, 3))) return candidate
-    }
-  }
-
-  const shiftedX = blockers.reduce((nextX, blocker) => (
-    rectsOverlap(layout.rect, blocker, 3) ? Math.min(nextX, blocker.left - 6) : nextX
-  ), primaryX)
-  layout = makeLayout(clampNumber(shiftedX, minX, maxX), primaryY, true)
-  if (!blockers.some(blocker => rectsOverlap(layout.rect, blocker, 3))) return layout
-
-  const latestSafeY = latestPoint
-    ? (trend.rising ? latestPoint.y + 24 : latestPoint.y - 21)
-    : trend.endY + (trend.rising ? 25 : -21)
-  const alternateY = clampNumber(
-    trend.rising ? Math.max(trend.endY + 25, latestSafeY) : Math.min(trend.endY - 21, latestSafeY),
-    minY,
-    maxY
-  )
-  layout = makeLayout(primaryX, alternateY, true)
-  if (!blockers.some(blocker => rectsOverlap(layout.rect, blocker, 3))) return layout
-
-  const alternateShiftedX = blockers.reduce((nextX, blocker) => (
-    rectsOverlap(layout.rect, blocker, 3) ? Math.min(nextX, blocker.left - 6) : nextX
-  ), primaryX)
-  return makeLayout(clampNumber(alternateShiftedX, minX, maxX), alternateY, true)
-}
-
 function formatPaceAxisTick(value, unit) {
   if (Math.abs(value) < .05) return '0'
   return formatDollarPerMTT(value, unit).replace(`/${unit}`, '')
@@ -577,40 +468,6 @@ function PaceMiniChart({ segments, binSize, unit, t, light = false }) {
   const labelIndexes = new Set([segments.length - 1, bestIdx, worstIdx])
   if (segments.length <= 3) segments.forEach((_, idx) => labelIndexes.add(idx))
   const trend = buildPaceTrend(segments, { maxMtt, maxAbs, xByMtt, y })
-  const latestIdx = segments.length - 1
-  const latestSeg = segments[latestIdx]
-  const latestPoint = points[latestIdx]
-  const latestShowsRateLabel = Boolean(latestSeg && labelIndexes.has(latestIdx))
-  const latestValueText = latestSeg ? formatDollarPerMTT(latestSeg.rate, unit).replace(`/${unit}`, '') : ''
-  const latestValueIsEdge = latestPoint && latestPoint.x > gridRight - 42
-  const latestValueLayout = latestSeg && latestPoint ? {
-    show:latestShowsRateLabel,
-    text:latestValueText,
-    x:latestValueIsEdge ? latestPoint.x - 10 : latestPoint.x,
-    y:latestPoint.y + (latestSeg.rate >= 0 ? -11 : 17),
-    anchor:latestValueIsEdge ? 'end' : 'middle',
-  } : null
-  const trendLabelText = trend ? `${t('pace_trend_label')} ${formatPaceAxisTick(trend.endRate, unit)}` : ''
-  const valueLabelLayouts = segments.flatMap((seg, idx) => {
-    const show = labelIndexes.has(idx) && (idx === segments.length - 1 || Math.abs(seg.rate) >= Math.max(1, maxAbs * .08))
-    if (!show) return []
-    const cx = x(idx)
-    const edge = idx === segments.length - 1 && cx > gridRight - 42
-    return [{ x:edge ? cx - 10 : cx, y:y(seg.rate) + (seg.rate >= 0 ? -11 : 17), anchor:edge ? 'end' : 'middle',
-      text:formatDollarPerMTT(seg.rate, unit).replace(`/${unit}`, '') }]
-  })
-  const trendLabel = trend ? resolvePaceTrendLabelLayout({
-    trend,
-    text:trendLabelText,
-    latestValue:latestValueLayout,
-    latestPoint,
-    gridLeft,
-    gridRight,
-    plotTop:pad.top,
-    plotBottom:pad.top + plotH,
-    dots:points,
-    valueLabels:valueLabelLayouts,
-  }) : null
   const xLabelIndexes = new Set()
   segments.forEach((_, idx) => {
     if (segments.length <= 8 || idx % 2 === 0 || idx === segments.length - 1) xLabelIndexes.add(idx)
@@ -686,15 +543,8 @@ function PaceMiniChart({ segments, binSize, unit, t, light = false }) {
         })}
         {areaPath && <path className="pace-area" d={areaPath}/>}
         {trend && (
-          <g className={`pace-trend ${trend.rising ? 'rising' : 'falling'} ${trendLabel?.shifted ? 'shifted' : ''}`} aria-hidden="true">
+          <g className={`pace-trend ${trend.rising ? 'rising' : 'falling'}`} aria-hidden="true">
             <path className="pace-trend-line" d={trend.path}/>
-            {trendLabel?.rect && (
-              <rect className="pace-trend-plate" x={trendLabel.rect.left - 4} y={trendLabel.rect.top - 1}
-                width={trendLabel.rect.right - trendLabel.rect.left + 8} height={trendLabel.rect.bottom - trendLabel.rect.top + 2} rx="4"/>
-            )}
-            <text className={`pace-trend-label ${trend.rising ? 'rising' : 'falling'}`} x={trendLabel?.x} y={trendLabel?.y}>
-              {trendLabelText}
-            </text>
           </g>
         )}
         {solidPoints.length > 1 && <path className="pace-line-rail" d={solidLinePath}/>}
@@ -837,6 +687,10 @@ const PaceWidget = memo(function PaceWidget({ pace, period, setPeriod, binSize, 
               </select>
             </label>
           </div>
+          {showTrend && <div className={`pace-trend-legend ${pace.trend.rising ? 'rising' : 'falling'}`}>
+            <span className="pace-trend-swatch" aria-hidden="true"/>
+            <span className="pace-trend-label">{t('pace_trend_label')} {formatPaceAxisTick(pace.trend.endRate, mttUnit)}</span>
+          </div>}
         </div>
         <PaceMiniChart segments={pace.segments} binSize={binSize} unit={mttUnit} t={t} light={light}/>
       </div>
@@ -1939,7 +1793,7 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
 
   return (
     <div className="marathon-chart" ref={chartRef} onClick={tip ? closeTip : undefined}>
-      <MarathonChartControls {...{ period, setPeriod:setPeriodPersist, grouping, setGrouping, t }} count={plBrUpdates(points.length, lang)}/>
+      <MarathonChartControls {...{ period, setPeriod:setPeriodPersist, grouping, setGrouping, t }}/>
       {usesWholeArchiveFallback && <p className="mc-view-hint">{t('chart_session_fallback')}</p>}
       <svg className="mc-svg" viewBox={`0 0 ${W} ${H+pB+xLabelExtraBottom}`}
         role="img" aria-label={`${t('chart_marathon')}: ${plBrUpdates(points.length, lang)}`}
@@ -3781,7 +3635,6 @@ const SessionMttChart = memo(function SessionMttChart({ meta, period, lang, t })
         <div style={{display:'flex',gap:6,flexShrink:0}}>
           <span className="section-count smtt-avg-chip">{`${t('smtt_avg')}: ${fmtInt(Math.round(avg))}`}</span>
           <span className="section-count smtt-last-chip">{`${t('smtt_last')}: ${fmtInt(rows[lastIdx].mtt)}`}</span>
-          <span className="section-count">{plSessions ? plSessions(rows.length, lang) : rows.length}</span>
         </div>
       </div>
       <div className="pace-chart-wrap" onMouseLeave={() => setHoverIdx(null)}>
@@ -3870,20 +3723,6 @@ export default function App() {
   })
   const t = useMemo(() => createTranslator(lang), [lang])
   const appVersionLabel = `v${String(__APP_VERSION__).replace(/\.0$/, '')}`
-  // Build date instead of a hand-edited literal, formatted for the active
-  // locale (DD.MM.YYYY reads as a different day in en/es).
-  const buildDateLabel = useMemo(() => {
-    // Guarded: a missing build-time define must degrade to an empty label,
-    // never throw and take the whole app down with it.
-    const stamp = typeof __BUILD_DATE__ === 'undefined' ? null : __BUILD_DATE__
-    if (!stamp) return ''
-    const d = new Date(stamp)
-    if (Number.isNaN(d.getTime())) return ''
-    const locale = lang === 'ru' ? 'ru-RU' : lang === 'es' ? 'es-ES' : 'en-US'
-    return new Intl.DateTimeFormat(locale, {
-      day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Europe/Warsaw',
-    }).format(d)
-  }, [lang])
   // Version the preference so existing visitors move off the former
   // "oldest first" default once, while future choices remain persistent.
   const [sortBy, setSortBy] = usePersistentState('rpt_sortby_v2', 'date_desc', {
@@ -4754,13 +4593,9 @@ export default function App() {
                 {' '}
                   <span style={{color:'var(--dim)'}}>{appVersionLabel}</span>
               </div>
-              <div style={{fontSize:10,color:'var(--dim)',marginBottom:4}}>
-                {t('footer_made')}{' '}
-                <a href="https://t.me/loremnopoker" target="_blank" rel="noreferrer"
-                  style={{color:'var(--dim2)',textDecoration:'none'}}>LoremCDMX</a>
-              </div>
-              <div style={{fontSize:10,color:'var(--dim2)'}}>
-                {t('footer_interface_updated')}: {buildDateLabel}
+              <div className="footer-credit">
+                <span className="footer-credit-prefix">{t('footer_made')}</span>
+                <a className="footer-credit-author" href="https://t.me/loremnopoker" target="_blank" rel="noopener noreferrer">LoremCDMX</a>
               </div>
               {(() => {
                 const scrapeTs = meta?.lastScrapeRun
@@ -4813,20 +4648,21 @@ export default function App() {
                 {t('footer_changelog')}
               </div>
               {[
-                ['20.08', 'v1.13', 'Тултип показывает сыгранные МТТ, наведение работает в любом месте графика и стало плавным, у пика короткая выноска. Неделя и месяц масштабируются крупно, счётчики МТТ сведены к одному числу. Новый виджет «Турниров за сессию». Подтянуты светлая тема, клавиатура и англ/исп версии'],
-                ['02.07', 'v1.12', 'BR-апдейты больше не конфликтуют с номером дня, а тренд $/МТТ считается по завершённым отрезкам'],
-                ['23.05', 'v1.11', '«Доллар с турнира» стал чище: точки по 2k МТТ, зелёный тренд, неполный отрезок приглушён, старт от нуля. Починены аватарки, favicon и узкая верстка'],
-                ['15.05', 'v1.10', 'Появился виджет GGWF-лидербордов: три борда Low/Medium/High, лидеры, место Ромео, призы, сколько осталось до конца и тултип с формулой очков'],
-                ['09.05', 'v1.9', 'График марафона стал крупнее и честнее читается на телефоне: точки объединяются по сессиям, попап показывает разбивку, а подписи оси X отмечают важные рубежи — $25k, $100k и крупные доезды'],
-                ['19.04', 'v1.8', 'Попапы снова открываются рядом с нужным местом, не прилипают к верху и не дублируются при хаотичном наведении. У «Сыграно МТТ» теперь нейтральная иконка'],
-                ['13.04', 'v1.7', 'Попапы активности и топ-постов больше не вылезают за границы экрана в любых положениях. Под капотом готовится переключатель языков'],
-                ['13.04', 'v1.6', 'В активности — карточки дней с картинками, клик уносит к посту в ленте. Окошко топ-постов прилипает ближе и не дрожит. Длинные посты не режутся, если скрыта пара строк'],
-                ['11.04', 'v1.5', 'Фильтры графика по неделе и месяцу. Избранное и игнор по авторам. В темах — интересные моменты и самые активные. Страница подгоняется под ширину окна'],
-                ['09.04', 'v1.4', 'Можно плюсовать и минусовать посты прямо из трекера. Кнопка «новые посты» когда приходит свежак. Новые посты подтягиваются каждые 15 минут. График теперь на первом экране'],
-                ['08.04', 'v1.3', 'Светлая тема. Новые посты подтягиваются автоматически'],
-                ['07.04', 'v1.2', 'Плавные кривые на графике с анимацией. Версия для телефона'],
-                ['06.04', 'v1.1', 'Блок активности по дням. Топ-10 самых плюсанутых постов. Страница обновляется без перезагрузки'],
-                ['05.04', 'v1.0', 'Первый запуск — лента постов, цитаты, страницы, график марафона, тёмная и светлая тема, избранное, фильтры'],
+                ['04.10', 'v1.14', 'Марафон по месяцам и дистанция в МТТ; шаг $/МТТ — 1/2/5/10k. Подпись тренда над графиком, среднее и автор выделены. Исправлены активность и плотные точки, ускорена лента. Меньше лишних подписей, удобнее на телефоне. FirstFund: $100M.'],
+                ['20.08', 'v1.13', 'МТТ в подсказках, наведение и масштаб недели/месяца. График турниров за сессию. Улучшены светлая тема, клавиатура и переводы.'],
+                ['02.07', 'v1.12', 'BR-апдейты отделены от дней; тренд — по полным отрезкам МТТ.'],
+                ['23.05', 'v1.11', '$/МТТ: шаг 2k, тренд, неполные отрезки. Исправлены аватарки, favicon и мобильная верстка.'],
+                ['15.05', 'v1.10', 'GGWF: три лидерборда, место Ромео, призы, таймер и формула очков.'],
+                ['09.05', 'v1.9', 'Крупный график на телефоне: точки по сессиям, разбивка в подсказках, рубежи на оси.'],
+                ['19.04', 'v1.8', 'Подсказки рядом с точками, без дублей. Иконка МТТ.'],
+                ['13.04', 'v1.7', 'Подсказки активности и топ-постов в границах экрана.'],
+                ['13.04', 'v1.6', 'Карточки дней: картинки и переход к постам. Стабильные подсказки, посты без обрезки.'],
+                ['11.04', 'v1.5', 'Неделя/месяц, избранное, игнор. Интересные темы, активные авторы. Адаптивная верстка.'],
+                ['09.04', 'v1.4', 'Лайки из трекера, автообновление раз в 15 минут и кнопка новых постов. График наверху.'],
+                ['08.04', 'v1.3', 'Светлая тема и автообновление постов.'],
+                ['07.04', 'v1.2', 'Плавные кривые и мобильная версия.'],
+                ['06.04', 'v1.1', 'Активность по дням, топ-10, обновление без перезагрузки.'],
+                ['05.04', 'v1.0', 'Старт: лента, цитаты, страницы, график, темы и фильтры.'],
               ].map(([date, ver, desc]) => (
                 <div key={date+ver} style={{display:'flex',gap:8,marginBottom:6,alignItems:'baseline'}}>
                   <span style={{fontSize:9,color:'var(--dim)',fontFamily:"'Roboto Mono',monospace",minWidth:36,flexShrink:0}}>{date}</span>

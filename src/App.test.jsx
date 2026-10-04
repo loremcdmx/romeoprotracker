@@ -182,7 +182,8 @@ describe('App', () => {
   it('renders marathon chart', async () => {
     render(<App />)
     expect(await screen.findByText(new RegExp(translate('ru', 'chart_marathon').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))).toBeInTheDocument()
-    expect(screen.getByText('2 BR-апдейта')).toBeInTheDocument()
+    expect(screen.queryByText('2 BR-апдейта')).not.toBeInTheDocument()
+    expect(document.querySelector('.mc-svg')).toHaveAttribute('aria-label', expect.stringContaining('2 BR-апдейта'))
     expect(screen.queryByText('2 сессии')).not.toBeInTheDocument()
   })
 
@@ -653,13 +654,15 @@ describe('App', () => {
     }
   })
 
-  it('keeps the pace trend label clear of the latest value label and marker', async () => {
+  it.each([1000, 2000, 5000, 10000])('places the fitted pace trend value outside the plot at a %i MTT step', async (binSize) => {
     const now = Math.floor(Date.now() / 1000)
     const rates = [-35, 12, 18, 22.8]
-    let br = 10000
+    const startBankroll = 500000
+    let br = startBankroll
+    localStorage.setItem('rpt_pace_bin_size', String(binSize))
     const brHistory = rates.map((rate, i) => {
       const brPrev = br
-      const tournaments = 2000
+      const tournaments = binSize
       br += rate * tournaments
       return {
         brAfter: br,
@@ -673,27 +676,34 @@ describe('App', () => {
       }
     })
     fetchPublicData.mockResolvedValue(makeMockData({
-      meta: { ...makeMockData().meta, brHistory, totalTournaments: 8000 },
+      meta: { ...makeMockData().meta, startBankroll, brHistory, totalTournaments: rates.length * binSize },
     }))
 
     render(<App />)
     const widget = await screen.findByTestId('pace-widget')
-    const trendLabel = widget.querySelector('.pace-trend-label')
+    const meta = widget.querySelector('.pace-chart-meta')
+    const legend = widget.querySelector('.pace-trend-legend')
+    const trendLabel = legend?.querySelector('.pace-trend-label')
     const latestValue = widget.querySelector('.pace-segment.latest .pace-chart-value')
     const latestDot = widget.querySelector('.pace-segment.latest .pace-dot')
 
-    expect(trendLabel?.closest('.pace-trend')).toHaveClass('shifted')
+    expect(legend).toBeInTheDocument()
+    expect(trendLabel).toBeInTheDocument()
+    expect(trendLabel.tagName).toBe('SPAN')
+    expect(trendLabel).toHaveTextContent('+31.4$')
+    expect(legend.parentElement).toBe(meta)
+    expect(trendLabel.closest('.pace-chart-meta')).toBe(meta)
+    expect(trendLabel.closest('.pace-chart-wrap')).toBeNull()
+    expect(trendLabel.closest('svg')).toBeNull()
+    expect(widget.querySelector('.pace-chart-wrap .pace-trend-label')).toBeNull()
+    expect(widget.querySelector('.pace-trend-plate')).toBeNull()
+    expect(widget.querySelector('.pace-trend-line')).toBeInTheDocument()
+    expect(within(meta).getByRole('combobox', { name: translate('ru', 'pace_chart_step_label') }))
+      .toHaveValue(String(binSize))
+    expect(localStorage.getItem('rpt_pace_bin_size')).toBe(String(binSize))
+    expect(widget.querySelectorAll('.pace-segment')).toHaveLength(rates.length)
     expect(latestValue).toBeInTheDocument()
     expect(latestDot).toBeInTheDocument()
-
-    const trendRect = estimatedSvgTextRect(trendLabel, 10, 'end')
-    const valueRect = estimatedSvgTextRect(latestValue, 10, latestValue.classList.contains('edge') ? 'end' : 'middle')
-    const dotX = Number(latestDot.getAttribute('cx'))
-    const dotY = Number(latestDot.getAttribute('cy'))
-    const dotRect = { left:dotX - 12, right:dotX + 12, top:dotY - 12, bottom:dotY + 12 }
-
-    expect(rectsOverlap(trendRect, valueRect, 3)).toBe(false)
-    expect(rectsOverlap(trendRect, dotRect, 3)).toBe(false)
   })
 
   it('renders the incomplete pace chunk as a muted partial marker', async () => {
@@ -1537,7 +1547,8 @@ describe('App', () => {
     render(<App />)
     await screen.findAllByText('Romeopro')
     const pkgVersion = require('../package.json').version.replace(/\.0$/, '')
-    expect(screen.getByText(`v${pkgVersion}`)).toBeInTheDocument()
+    const footerBrand = within(document.querySelector('footer')).getByText('RomeoPro Marathon').parentElement
+    expect(within(footerBrand).getByText(`v${pkgVersion}`)).toBeInTheDocument()
     expect(screen.getByText(translate('ru', 'footer_changelog'))).toBeInTheDocument()
   })
 
