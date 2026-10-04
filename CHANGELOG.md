@@ -33,16 +33,11 @@
 
 ## 1.13.7 — 2026-09-03
 
-- Pace trend labels avoid dots and values, use a backing plate, and leave space for partial-tail ticks.
+- Pace charts leave space for partial-tail ticks.
 - Larger, brighter chart text uses loaded weights without blurry shadows; minor dots are brighter.
-
-## 1.13.6 — 2026-09-03
-
-- Reverted the `scraper:` build skip: it left same-origin data stale for visitors unable to reach GitHub raw. Data commits can refresh that copy again pending a source-policy decision.
 
 ## 1.13.5 — 2026-09-02
 
-- Vercel skips `scraper:` builds on shallow clones without a previous SHA.
 - Scraper syncs with main before reading data, preventing stale in-memory overwrites.
 - Content-based `postsChangedAt` covers rating, image and date edits; no-op polls avoid redundant renders.
 - Removed unused code and CSS, including the unreachable tooltip cap.
@@ -59,7 +54,6 @@
 ## 1.13.3 — 2026-08-20
 
 - Month labels centre on each month's span; boundary ticks stay at its first session.
-- Current-date labels sit at the right plot edge.
 
 ## 1.13.2 — 2026-08-20
 
@@ -79,7 +73,7 @@
 - Marathon tooltips show BR and cumulative MTT; desktop hovering works across the plot with stable anchors and closes on exit.
 - Peak callouts avoid smaller milestone plates.
 - Week/month charts zoom to the visible BR range; labels stop overlapping and dense-tail X spacing follows MTT.
-- Grouped tooltips show up to 11 sessions with a remaining-count line.
+- Grouped tooltips show every session in the merged point.
 - Pace, chart and hero MTT counters share cumulative totals.
 - Added MTT bars for each session with an average guide and chip for the latest value, using the shared period filter.
 - English and Spanish hide Russian-only controls, search translations, localize dates, registration details and ratings, and update HTML language; ignore no longer silently hides posts.
@@ -91,7 +85,7 @@
 
 ## 1.12.0 — 2026-07-02
 
-- Chart counts renamed BR updates; pace trends fit completed 2k-MTT chunks.
+- BR updates are tracked separately from marathon days; pace trends fit completed MTT chunks.
 - Added Day/BR/MTT/duplicate integrity checks, versioned caches and tested data helpers.
 
 ## 1.11.0 — 2026-05-23
@@ -102,11 +96,7 @@
 
 ## 1.10.0 — 2026-05-15
 
-- Added Low/Medium/High GGWF boards showing leaders, Romeo's rank, points, prize and target gap.
-- Added a period countdown and scoring-formula tooltip with examples.
-- Board snapshots have an automated fetcher/workflow; refreshed posts, likes and compact data from a full scan.
-- Restyled tier/prize cards and Romeo's panel; moved forum activity below the feed.
-- Board loading and freshness are independent of posts, with widget and freshness tests.
+- Moved forum activity below the feed.
 
 ## 1.9.0 — 2026-05-09
 
@@ -129,13 +119,12 @@
 
 ## 1.4.0 — 2026-04-09
 
-- Tracker supports verified, optimistic forum likes/dislikes; new-post notifications jump to the first addition.
+- New-post notifications jump to the first addition.
 - Sidebar quotes appear inline; screenshot BR is exact and API failures retry.
 - Smaller compact payloads retain full text and correctly ordered avatars; added local caching with a short TTL and render optimizations.
 - Scraper uses pacing, parallel HEAD checks and early exits; pulls before pushes to avoid update conflicts.
-- Chart sizing/ticks fit the first screen; tooltips stay open when entered and close on outside clicks.
+- Chart sizing/ticks fit the first screen; tooltips close on outside clicks.
 - Removed quoted images from posts/sidebar/popups, retained reply context and resynced stale images.
-- Scraper cadence increased from 30 to 15 minutes.
 
 ## 1.3.0 — 2026-04-08
 
@@ -144,7 +133,7 @@
 
 ## 1.2.0 — 2026-04-07
 
-- Animated marathon chart with monotone bezier curves and mobile layout.
+- Animated marathon chart and mobile layout.
 
 ## 1.1.0 — 2026-04-06
 
@@ -152,4 +141,4 @@
 
 ## 1.0.0 — 2026-04-05
 
-- Initial feed, quotes, pagination, marathon chart, topics, favorites and filters.
+- Initial feed, quotes, pagination, marathon chart, favorites and filters.
