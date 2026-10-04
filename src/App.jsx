@@ -47,6 +47,12 @@ function plBrUpdates(n, lang) {
 const MARATHON_TARGET = 10_000_000
 const PACE_PERIOD_SECONDS = { week:7 * 86400, month:30 * 86400 }
 const PACE_BIN_SIZE = 2000
+const PACE_BIN_OPTIONS = [1000, 2000, 5000, 10000]
+
+function parsePaceBinSize(value) {
+  const parsed = Number(value)
+  return PACE_BIN_OPTIONS.includes(parsed) ? parsed : PACE_BIN_SIZE
+}
 
 function formatDollarPerMTT(value, unit = 'MTT') {
   if (value == null || !Number.isFinite(value)) return '—'
@@ -444,7 +450,7 @@ function buildSmoothSvgPath(points, tension = .64, minY = -Infinity, maxY = Infi
   return d
 }
 
-function computePaceMetrics({ meta, stats, period, target = MARATHON_TARGET, now = Date.now() / 1000 }) {
+function computePaceMetrics({ meta, stats, period, binSize = PACE_BIN_SIZE, target = MARATHON_TARGET, now = Date.now() / 1000 }) {
   const sorted = (meta?.brHistory || [])
     .slice()
     .sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0))
@@ -480,7 +486,7 @@ function computePaceMetrics({ meta, stats, period, target = MARATHON_TARGET, now
   const finishMTT = rate > 0 ? Math.ceil(remaining / rate) : null
   const bustMTT = rate < 0 ? Math.ceil(stats.br / Math.abs(rate)) : null
   const deltaRate = previous?.rate != null && rate != null ? rate - previous.rate : null
-  const segments = buildPaceSegments(sorted, currentPredicate, startBR, PACE_BIN_SIZE)
+  const segments = buildPaceSegments(sorted, currentPredicate, startBR, binSize)
 
   return {
     period,
@@ -489,7 +495,7 @@ function computePaceMetrics({ meta, stats, period, target = MARATHON_TARGET, now
     previous,
     segments,
     trend:computePaceTrendStats(segments),
-    binSize:PACE_BIN_SIZE,
+    binSize,
     rate,
     deltaRate,
     finishMTT,
@@ -516,8 +522,9 @@ function PaceRateValue({ value, unit, className = '', animate = true }) {
   return <span className={`pace-rate-value ${tone} ${pulse ? 'pulse' : ''} ${className}`}>{formatDollarPerMTT(animated, unit)}</span>
 }
 
-function PaceMiniChart({ segments, unit, t, light = false }) {
+function PaceMiniChart({ segments, binSize, unit, t, light = false }) {
   const [hovered, setHovered] = useState(null)
+  useEffect(() => setHovered(null), [segments])
   // Must stay above the early return so the hook order never changes.
   const isMobile = useIsMobile()
   if (!segments?.length) return <div className="pace-chart-empty">{t('pace_chart_empty')}</div>
@@ -605,14 +612,24 @@ function PaceMiniChart({ segments, unit, t, light = false }) {
   segments.forEach((_, idx) => {
     if (segments.length <= 8 || idx % 2 === 0 || idx === segments.length - 1) xLabelIndexes.add(idx)
   })
-  // Drop x-axis ticks that would collide with the final (current-total) label.
-  // The partial tail can end only a few MTT past the last full bin (e.g. 14k vs
-  // 14.2k), which otherwise renders as overlapping text.
+  // Keep the current total visible, then space the other ticks by text width.
   const lastLabelIdx = segments.length - 1
   const lastLabelX = x(lastLabelIdx)
+  const labelWidth = idx => estimateSvgTextWidth(segments[idx].label, 10)
+  let previousLabelIdx = null
   for (const idx of [...xLabelIndexes]) {
-    if (idx !== lastLabelIdx && Math.abs(x(idx) - lastLabelX) < 40) xLabelIndexes.delete(idx)
+    if (idx === lastLabelIdx) continue
+    const finalGap = Math.max(40, (labelWidth(idx) + labelWidth(lastLabelIdx)) / 2 + 8)
+    const previousGap = previousLabelIdx == null ? 0 : (labelWidth(idx) + labelWidth(previousLabelIdx)) / 2 + 8
+    if (lastLabelX - x(idx) < finalGap || (previousLabelIdx != null && x(idx) - x(previousLabelIdx) < previousGap)) {
+      xLabelIndexes.delete(idx)
+    } else {
+      previousLabelIdx = idx
+    }
   }
+  // Dense steps must not put one point's hit area over another point's center.
+  const hitRadii = points.map((point, idx) => Math.min(isMobile ? 16 : 12,
+    ...points.flatMap((other, otherIdx) => otherIdx === idx ? [] : [Math.hypot(point.x - other.x, point.y - other.y) * .45])))
   const paceTone = ok => ok ? (light ? '#2e8b3a' : '#78d984') : (light ? '#c8362e' : '#f0756d')
   const firstTone = paceTone(segments[0]?.rate >= 0)
   const lineStops = [
@@ -636,7 +653,7 @@ function PaceMiniChart({ segments, unit, t, light = false }) {
 
   return (
     <div className="pace-chart-wrap" data-testid="pace-chart" onMouseLeave={closeTooltip}>
-      <svg className="pace-chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-label={t('pace_chart_label')}>
+      <svg className="pace-chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-label={t('pace_chart_label').replace('{step}', String(binSize))}>
         <defs>
           <linearGradient id="paceAreaGrad" x1="0" y1={pad.top} x2="0" y2={pad.top + plotH} gradientUnits="userSpaceOnUse">
             <stop offset="0%" stopColor="#ffffff" stopOpacity=".12"/>
@@ -702,7 +719,7 @@ function PaceMiniChart({ segments, unit, t, light = false }) {
               onBlur={closeTooltip}
               onClick={(e) => { e.stopPropagation(); openTooltip(seg, idx, cx, rateY) }}
               tabIndex="0" role="button" aria-label={`${seg.label}: ${formatDollarPerMTT(seg.rate, unit)}${isPartial ? `, ${t('pace_tip_partial')}` : ''}`}>
-              <circle className="pace-dot-hit" cx={cx} cy={rateY} r={isMobile ? 16 : 12}/>
+              <circle className="pace-dot-hit" cx={cx} cy={rateY} r={hitRadii[idx]}/>
               {isPartial && <circle className="pace-dot-partial-ring" cx={cx} cy={rateY} r="8.2"/>}
               {isLatest && <circle className="pace-dot-latest-ring" cx={cx} cy={rateY} r="8.4"/>}
               <circle className="pace-dot" cx={cx} cy={rateY} r={isLatest ? 5 : 3.8}/>
@@ -743,7 +760,7 @@ function PaceMiniChart({ segments, unit, t, light = false }) {
   )
 }
 
-const PaceWidget = memo(function PaceWidget({ pace, period, setPeriod, lang, t, light = false }) {
+const PaceWidget = memo(function PaceWidget({ pace, period, setPeriod, binSize, setBinSize, lang, t, light = false }) {
   if (!pace?.current) return null
 
   const currentRate = pace.rate
@@ -809,10 +826,16 @@ const PaceWidget = memo(function PaceWidget({ pace, period, setPeriod, lang, t, 
         </div>
         <div className="pace-chart-meta">
           <div className="pace-chart-title">
-            <b>{t('pace_chart_step')}: {fmtInt(pace.binSize)} {mttUnit}</b>
+            <label className="pace-step-control" htmlFor="pace-bin-size">
+              {t('pace_chart_step')}
+              <select id="pace-bin-size" className="pace-step-select" value={binSize}
+                aria-label={t('pace_chart_step_label')} onChange={e => setBinSize(parsePaceBinSize(e.target.value))}>
+                {PACE_BIN_OPTIONS.map(size => <option key={size} value={size}>{fmtInt(size)} {mttUnit}</option>)}
+              </select>
+            </label>
           </div>
         </div>
-        <PaceMiniChart segments={pace.segments} unit={mttUnit} t={t} light={light}/>
+        <PaceMiniChart segments={pace.segments} binSize={binSize} unit={mttUnit} t={t} light={light}/>
       </div>
     </section>
   )
@@ -3948,9 +3971,13 @@ export default function App() {
     deserialize: (raw) => raw || 'all',
   })
 
+  const [paceBinSize, setPaceBinSize] = usePersistentState('rpt_pace_bin_size', PACE_BIN_SIZE, {
+    serialize: String,
+    deserialize: parsePaceBinSize,
+  })
   // Both the progress bar and pace widget use the same calculation. Unrelated
   // feed/search/lightbox renders keep this result and the chart props stable.
-  const pace = useMemo(() => computePaceMetrics({ meta, stats, period: chartPeriod }), [meta, stats, chartPeriod])
+  const pace = useMemo(() => computePaceMetrics({ meta, stats, period: chartPeriod, binSize: paceBinSize }), [meta, stats, chartPeriod, paceBinSize])
 
   // Session stats recomputed against the chart-period filter so МТТ/сессия
   // and % плюсовых react when the user toggles week/month/all.
@@ -4469,7 +4496,7 @@ export default function App() {
                 period={chartPeriod} setPeriod={setChartPeriod} lang={lang} t={t} light={theme === 'light'}/>
               {/* Mobile-only: sidebar is hidden <=980px, so surface the FF banner here in the feed */}
               {isNarrow && <div className="ff-banner-mobile-slot"><FirstFundBanner t={t}/></div>}
-              <PaceWidget pace={pace} period={chartPeriod} setPeriod={setChartPeriod} lang={lang} t={t} light={theme === 'light'}/>
+              <PaceWidget pace={pace} period={chartPeriod} setPeriod={setChartPeriod} binSize={paceBinSize} setBinSize={setPaceBinSize} lang={lang} t={t} light={theme === 'light'}/>
               <SessionMttChart meta={meta} period={chartPeriod} lang={lang} t={t}/>
               {/* Mobile-only top posts */}
               {lang==='ru' && hotPosts.length > 0 && (() => {

@@ -73,6 +73,36 @@ function makeMockData(overrides = {}) {
   }
 }
 
+function makePaceStepData() {
+  const now = Math.floor(Date.now() / 1000)
+  // Deliberately cross step boundaries with different rates. Splitting these
+  // session results gives an independently checkable 12,500 MTT / +$18,500.
+  const sessions = [
+    { daysAgo: 20, tournaments: 3000, profit: 6000 },
+    { daysAgo: 10, tournaments: 4000, profit: -4000 },
+    { daysAgo: 1, tournaments: 5500, profit: 16500 },
+  ]
+  let bankroll = 10000
+  let total = 0
+  const brHistory = sessions.map(({ daysAgo, tournaments, profit }, i) => {
+    const brPrev = bankroll
+    bankroll += profit
+    total += tournaments
+    return {
+      id: `pace-step-${i}`,
+      timestamp: now - daysAgo * 86400,
+      date: `P${i + 1}`,
+      brPrev,
+      brAfter: bankroll,
+      sessionResult: profit,
+      tournaments,
+      totalTournaments: total,
+      text: `Pace step session ${i + 1}`,
+    }
+  })
+  return makeMockData({ meta: { ...makeMockData().meta, brHistory, totalTournaments: total } })
+}
+
 function findPostCardByAuthor(author) {
   return [...document.querySelectorAll('.post-card')].find((card) =>
     card.querySelector('.pc-author')?.textContent === author,
@@ -374,7 +404,7 @@ describe('App', () => {
     expect(within(widget).getByText(translate('ru', 'pace_finish'))).toBeInTheDocument()
     expect(within(widget).queryByText(translate('ru', 'pace_finish_note'))).not.toBeInTheDocument()
     expect(within(widget).getByTestId('pace-chart')).toBeInTheDocument()
-    expect(within(widget).getByText((text) => text.replace(/\s/g, ' ') === 'шаг: 2 000 МТТ')).toBeInTheDocument()
+    expect(within(widget).getByRole('combobox', { name: translate('ru', 'pace_chart_step_label') })).toHaveValue('2000')
     expect(within(widget).queryByText(translate('ru', 'pace_chart_title'))).not.toBeInTheDocument()
     expect(within(widget).getByText(translate('ru', 'pace_trend_card'))).toBeInTheDocument()
     expect(widget.querySelector('.pace-trend-label')).toBeInTheDocument()
@@ -404,6 +434,184 @@ describe('App', () => {
     })
     expect(within(widget).getAllByText('2k').length).toBeGreaterThanOrEqual(1)
     expect(within(widget).queryByText('1k')).not.toBeInTheDocument()
+  })
+
+  it('recalculates pace points and tooltip results for 1k, 5k and 10k steps without changing the overall rate or finish', async () => {
+    fetchPublicData.mockResolvedValue(makePaceStepData())
+    render(<App />)
+    const widget = await screen.findByTestId('pace-widget')
+    const selector = within(widget).getByRole('combobox', { name: translate('ru', 'pace_chart_step_label') })
+    expect(selector).toHaveValue('2000')
+    expect([...selector.options].map(option => option.value)).toEqual(['1000', '2000', '5000', '10000'])
+    expect(widget.querySelectorAll('.pace-segment')).toHaveLength(7)
+
+    const rate = () => widget.querySelector('.pace-rate-item .mps-value')?.textContent
+    const projection = () => widget.querySelector('.pace-projection-item .tempo-val')?.textContent?.replace(/\s/g, '')
+    expect(rate()).toBe('+1.5$/МТТ')
+    expect(projection()).toBe('~6737500турниров')
+    const originalRate = rate()
+    const originalProjection = projection()
+    let previousLine = widget.querySelector('.pace-line:not(.partial)')?.getAttribute('d')
+    const normalizedText = node => node?.textContent?.replace(/\s/g, '')
+    const expectTooltip = ({ profit, tournaments, rate: segmentRate, partial = false }) => {
+      const tooltip = widget.querySelector('.pace-point-tooltip')
+      expect(tooltip).toBeInTheDocument()
+      expect([...tooltip.querySelectorAll('.pace-formula-eq b')].map(normalizedText))
+        .toEqual([profit, String(tournaments), segmentRate])
+      const countRow = within(tooltip).getByText(translate('ru', 'pace_tip_tournaments')).closest('.pace-point-tooltip-row')
+      expect(normalizedText(countRow.querySelector('b'))).toBe(`${tournaments}МТТ`)
+      if (partial) {
+        expect(within(tooltip).getByText(translate('ru', 'pace_tip_partial'))).toBeInTheDocument()
+        const netRow = within(tooltip).getByText(translate('ru', 'pace_tip_net')).closest('.pace-point-tooltip-row')
+        expect(normalizedText(netRow.querySelector('b'))).toBe(profit)
+      }
+    }
+
+    for (const sample of [
+      { step: 1000, points: 13, firstLabel: '1k: +2$/МТТ', fullProfit: '+2.0k$', fullRate: '+2$/МТТ', partialMtt: 500, partialProfit: '+1.5k$' },
+      { step: 5000, points: 3, firstLabel: '5k: +0.8$/МТТ', fullProfit: '+4.0k$', fullRate: '+0.8$/МТТ', partialMtt: 2500, partialProfit: '+7.5k$' },
+      { step: 10000, points: 2, firstLabel: '10k: +1.1$/МТТ', fullProfit: '+11.0k$', fullRate: '+1.1$/МТТ', partialMtt: 2500, partialProfit: '+7.5k$' },
+    ]) {
+      fireEvent.change(selector, { target: { value: String(sample.step) } })
+      expect(selector).toHaveValue(String(sample.step))
+      expect(widget.querySelector('.pace-point-tooltip')).toBeNull()
+      expect(widget.querySelectorAll('.pace-segment')).toHaveLength(sample.points)
+      expect(widget.querySelectorAll('.pace-segment.partial')).toHaveLength(1)
+      expect(widget.querySelectorAll('.pace-segment .pace-dot')).toHaveLength(sample.points)
+      expect(within(widget).getByRole('img', {
+        name: translate('ru', 'pace_chart_label').replace('{step}', String(sample.step)),
+      })).toBeInTheDocument()
+      const nextLine = widget.querySelector('.pace-line:not(.partial)')?.getAttribute('d')
+      expect(nextLine).not.toBe(previousLine)
+      previousLine = nextLine
+      expect(rate()).toBe(originalRate)
+      expect(projection()).toBe(originalProjection)
+
+      fireEvent.click(within(widget).getByRole('button', { name: sample.firstLabel }))
+      expectTooltip({ profit: sample.fullProfit, tournaments: sample.step, rate: sample.fullRate })
+      if (sample.step === 1000) {
+        fireEvent.click(within(widget).getByRole('button', { name: '4k: -1$/МТТ' }))
+        expectTooltip({ profit: '-1.0k$', tournaments: 1000, rate: '-1$/МТТ' })
+      }
+      fireEvent.click(widget.querySelector('.pace-segment.partial'))
+      expectTooltip({ profit: sample.partialProfit, tournaments: sample.partialMtt, rate: '+3$/МТТ', partial: true })
+      expect(widget.querySelector('.pace-line.partial')).toBeInTheDocument()
+    }
+  })
+
+  it('persists the selected pace step after unmount and a fresh mount', async () => {
+    fetchPublicData.mockResolvedValue(makePaceStepData())
+    const firstRender = render(<App />)
+    let widget = await screen.findByTestId('pace-widget')
+    fireEvent.change(within(widget).getByRole('combobox', { name: translate('ru', 'pace_chart_step_label') }),
+      { target: { value: '5000' } })
+    expect(widget.querySelectorAll('.pace-segment')).toHaveLength(3)
+    expect(localStorage.getItem('rpt_pace_bin_size')).toBe('5000')
+    firstRender.unmount()
+
+    render(<App />)
+    widget = await screen.findByTestId('pace-widget')
+    expect(within(widget).getByRole('combobox', { name: translate('ru', 'pace_chart_step_label') })).toHaveValue('5000')
+    expect(widget.querySelectorAll('.pace-segment')).toHaveLength(3)
+    expect(within(widget).getByRole('button', { name: '5k: +0.8$/МТТ' })).toBeInTheDocument()
+  })
+
+  it('falls back to a safe 2k step when the saved step is zero', async () => {
+    localStorage.setItem('rpt_pace_bin_size', '0')
+    fetchPublicData.mockResolvedValue(makePaceStepData())
+    render(<App />)
+    const widget = await screen.findByTestId('pace-widget')
+    expect(within(widget).getByRole('combobox', { name: translate('ru', 'pace_chart_step_label') })).toHaveValue('2000')
+    expect(widget.querySelectorAll('.pace-segment')).toHaveLength(7)
+    expect(within(widget).getByRole('button', { name: '2k: +2$/МТТ' })).toBeInTheDocument()
+    expect(localStorage.getItem('rpt_pace_bin_size')).toBe('2000')
+  })
+
+  it('retains the selected pace step while changing the shared week, month and all-time period', async () => {
+    fetchPublicData.mockResolvedValue(makePaceStepData())
+    render(<App />)
+    const widget = await screen.findByTestId('pace-widget')
+    const selector = within(widget).getByRole('combobox', { name: translate('ru', 'pace_chart_step_label') })
+    fireEvent.change(selector, { target: { value: '5000' } })
+
+    fireEvent.click(within(widget).getByText(translate('ru', 'period_week')))
+    expect(selector).toHaveValue('5000')
+    expect(widget.querySelectorAll('.pace-segment')).toHaveLength(2)
+    expect(within(widget).getByRole('button', { name: '5k: +3$/МТТ' })).toBeInTheDocument()
+    fireEvent.click(widget.querySelector('.pace-segment.partial'))
+    const weekTooltip = widget.querySelector('.pace-point-tooltip')
+    expect([...weekTooltip.querySelectorAll('.pace-formula-eq b')].map(node => node.textContent.replace(/\s/g, '')))
+      .toEqual(['+1.5k$', '500', '+3$/МТТ'])
+
+    for (const period of ['period_month', 'period_all']) {
+      fireEvent.click(within(widget).getByText(translate('ru', period)))
+      expect(selector).toHaveValue('5000')
+      expect(widget.querySelectorAll('.pace-segment')).toHaveLength(3)
+      expect(within(widget).getByRole('button', { name: '5k: +0.8$/МТТ' })).toBeInTheDocument()
+    }
+    expect(localStorage.getItem('rpt_pace_bin_size')).toBe('5000')
+  })
+
+  it('keeps dense 1k pace labels and point hit areas separated on mobile without dropping the latest total', async () => {
+    const previousWidth = window.innerWidth
+    window.innerWidth = 375
+    const mobileMock = vi.spyOn(responsive, 'useIsMobile').mockReturnValue(true)
+    try {
+      const now = Math.floor(Date.now() / 1000)
+      const totals = [...Array.from({ length: 37 }, (_, i) => (i + 1) * 1000), 37677]
+      const brHistory = totals.map((total, i) => {
+        const previousTotal = i === 0 ? 0 : totals[i - 1]
+        const tournaments = total - previousTotal
+        return {
+          id: `mobile-pace-${i}`,
+          timestamp: now - (totals.length - i) * 3600,
+          date: `M${i + 1}`,
+          brPrev: 10000 + previousTotal,
+          brAfter: 10000 + total,
+          sessionResult: tournaments,
+          tournaments,
+          totalTournaments: total,
+          text: `Mobile pace session ${i + 1}`,
+        }
+      })
+      fetchPublicData.mockResolvedValue(makeMockData({
+        meta: { ...makeMockData().meta, brHistory, totalTournaments: 37677 },
+      }))
+      render(<App />)
+      const widget = await screen.findByTestId('pace-widget')
+      fireEvent.change(within(widget).getByRole('combobox', { name: translate('ru', 'pace_chart_step_label') }),
+        { target: { value: '1000' } })
+
+      const labels = [...widget.querySelectorAll('.pace-x-label')]
+        .sort((a, b) => Number(a.getAttribute('x')) - Number(b.getAttribute('x')))
+      expect(labels.length).toBeGreaterThan(2)
+      expect(labels.at(-1).textContent).toBe('37.7k')
+      // Roboto Mono axis labels are 10px here. Estimate each rendered glyph
+      // independently of the application's thinning decisions (jsdom has no
+      // SVG text metrics); all neighbouring visible labels must fit.
+      const labelRects = labels.map(label => estimatedSvgTextRect(label, 10))
+      for (let i = 1; i < labelRects.length; i++) {
+        expect(rectsOverlap(labelRects[i - 1], labelRects[i])).toBe(false)
+      }
+
+      const points = [...widget.querySelectorAll('.pace-segment')].map(segment => {
+        const dot = segment.querySelector('.pace-dot')
+        return { x: Number(dot.getAttribute('cx')), y: Number(dot.getAttribute('cy')),
+          radius: Number(segment.querySelector('.pace-dot-hit').getAttribute('r')) }
+      })
+      // Thinning labels must preserve all 37 completed chunks and the tail.
+      expect(points).toHaveLength(38)
+      expect(widget.querySelectorAll('.pace-segment.partial')).toHaveLength(1)
+      for (const [i, point] of points.entries()) {
+        const nearestDistance = Math.min(...points.filter((_, j) => i !== j)
+          .map(other => Math.hypot(other.x - point.x, other.y - point.y)))
+        expect(point.radius).toBeGreaterThan(0)
+        expect(point.radius).toBeLessThan(nearestDistance / 2)
+      }
+    } finally {
+      mobileMock.mockRestore()
+      window.innerWidth = previousWidth
+    }
   })
 
   it('drops the colliding full-bin pace label when the total sits just past a bin', async () => {

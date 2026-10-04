@@ -294,6 +294,12 @@ button,select,input,summary{font:inherit}
 .pace-chart-title span{color:rgba(245,245,245,.88);font-size:12px;font-weight:700;letter-spacing:.01em}
 .pace-chart-title small{color:rgba(220,220,220,.54);font-size:10.2px;font-weight:500;letter-spacing:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pace-chart-title b{display:inline-flex;align-items:center;color:color-mix(in srgb,var(--pace-blue) 74%,var(--dim2));font-size:10px;font-weight:700;letter-spacing:0;white-space:nowrap;padding:4px 9px;border-radius:999px;background:rgba(123,220,255,.055);border:1px solid rgba(123,220,255,.14)}
+.pace-step-control{display:inline-flex;align-items:center;gap:8px;color:color-mix(in srgb,var(--pace-blue) 74%,var(--dim2));font-size:11px;font-weight:700}
+.pace-step-select{min-height:36px;max-width:100%;padding:6px 10px;border:1px solid rgba(123,220,255,.25);border-radius:8px;background:var(--bg2);color:var(--white);font:inherit;font-variant-numeric:tabular-nums;cursor:pointer;color-scheme:dark}
+.pace-step-select:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.pace-step-select option{background:var(--bg2);color:var(--white)}
+.light .pace-step-control{color:#2f6270}
+.light .pace-step-select{border-color:rgba(55,135,156,.35);color-scheme:light}
 .pace-chart-wrap{border:1px solid rgba(255,255,255,.07);border-radius:12px;background:linear-gradient(180deg,rgba(255,255,255,.02),rgba(0,0,0,.05));overflow:visible;position:relative;box-shadow:inset 0 1px 0 rgba(255,255,255,.03)}
 .pace-chart{display:block;width:100%;height:auto;min-height:176px}
 .pace-grid-line{stroke:rgba(255,255,255,.062);stroke-width:1}
@@ -316,7 +322,7 @@ button,select,input,summary{font:inherit}
 .pace-dot-hit{fill:transparent;cursor:pointer;pointer-events:all}
 .pace-dot-partial-ring{fill:none;stroke:rgba(255,212,121,.42);stroke-width:1.05;opacity:.62;pointer-events:none}
 .pace-dot-latest-ring{fill:none;stroke:rgba(255,212,121,.62);stroke-width:1.35;stroke-dasharray:3 2.6;pointer-events:none}
-.pace-dot{fill:var(--pace-green);stroke:#080a09;stroke-width:2.35}
+.pace-dot{pointer-events:none;fill:var(--pace-green);stroke:#080a09;stroke-width:2.35}
 .pace-segment:hover .pace-dot,.pace-segment:focus .pace-dot{stroke-width:2.8}
 .pace-segment.neg .pace-dot{fill:var(--pace-red)}
 .pace-segment.pos{color:var(--pace-green)}
