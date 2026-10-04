@@ -1189,3 +1189,47 @@ html{scroll-behavior:smooth}
 
 /* minor session dots: present but quiet until hovered */
 .mc-dot-minor{stroke:none}
+
+/* Marathon grouping and the distance lane share the existing chart palette. */
+.mc-chart-head{margin-bottom:6px;flex-wrap:wrap}
+.mc-chart-controls{display:flex;align-items:center;gap:12px;margin:8px 0 10px}
+.mc-group-control{display:inline-flex;align-items:center;gap:8px;color:var(--dim2);font-size:11px;font-weight:600}
+.mc-group-control select{min-height:36px;padding:6px 10px;border:1px solid var(--border2);border-radius:8px;background:var(--bg3);color:var(--text);font:inherit;cursor:pointer}
+.mc-group-control select:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.mc-view-hint{color:var(--dim2);font-size:11px;margin-bottom:8px}
+.mc-distance-axis,.mc-distance-caption,.mc-distance-label,.mc-volume-label{pointer-events:none}
+.mc-distance-label,.mc-volume-label{font-family:'Roboto Mono',monospace;font-size:9px;font-weight:600;fill:var(--axis-x-muted);font-variant-numeric:tabular-nums}
+.mc-distance-caption{font-family:inherit;font-size:9px;fill:var(--dim2)}
+.mc-distance-tick{stroke:var(--dim);stroke-width:1}
+.mc-distance-summary{display:flex;gap:6px 20px;flex-wrap:wrap;font-size:11px;color:var(--dim2);padding-top:4px}
+.mc-distance-summary b{color:var(--text);font-family:'Roboto Mono',monospace;font-variant-numeric:tabular-nums}
+.mc-month-line-segment{stroke-width:3.2;stroke-linecap:round;vector-effect:non-scaling-stroke;pointer-events:none}
+.mc-month-axis-label{font-family:inherit;font-size:10px;font-weight:600;fill:var(--axis-x-muted);pointer-events:none}
+.mc-month-hit{pointer-events:all;cursor:pointer}
+.mc-month-mark{outline:none}
+.mc-month-dot{stroke:var(--bg2);stroke-width:2;pointer-events:none}
+.mc-month-volume{fill:#7bdcff;opacity:.35;pointer-events:none}
+.mc-month-volume.partial{opacity:.2;stroke:#7bdcff;stroke-width:1;stroke-dasharray:3 2}
+.mc-month-mark.selected .mc-month-volume{opacity:.75}
+.mc-month-guide{stroke:var(--chart-grid-strong);stroke-dasharray:3 3;pointer-events:none}
+.mc-month-mark:focus-visible .mc-month-dot{stroke:var(--focus);stroke-width:2.5}
+.mc-month-details{border-top:1px solid var(--border);padding-top:12px;margin-top:2px}
+.mc-month-details-head{display:flex;align-items:baseline;gap:6px 14px;flex-wrap:wrap;margin-bottom:10px}
+.mc-month-details-head b{font-size:13px;color:var(--white)}
+.mc-month-details-head span{font-size:10px;color:var(--dim2)}
+.mc-month-details dl{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.mc-month-details dt{color:var(--dim2);font-size:10px;margin-bottom:3px}
+.mc-month-details dd{font-family:'Roboto Mono',monospace;font-variant-numeric:tabular-nums;color:var(--white);font-size:13px;font-weight:600;white-space:nowrap}
+.mc-month-details dd.mc-month-profit-pos{color:#76d982}
+.mc-month-details dd.mc-month-profit-neg{color:#ff665d}
+.mc-monthly .mc-distance-summary{margin-top:10px}
+.light .mc-month-volume{fill:#367d92}
+.light .mc-month-volume.partial{stroke:#367d92}
+.light .mc-month-details dd.mc-month-profit-pos{color:#2e8b3a}
+.light .mc-month-details dd.mc-month-profit-neg{color:#c8362e}
+@media(max-width:720px){
+  .mc-chart-head .section-count{margin-left:0}
+  .mc-month-details dl{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+  .mc-month-details dd{font-size:12px}
+  .mc-distance-summary{font-size:10px}
+}

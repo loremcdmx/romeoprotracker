@@ -15,6 +15,9 @@ import { usePostsData } from './hooks/usePostsData.js'
 import AnimatedValue, { useTweenValue } from './components/AnimatedValue.jsx'
 import { buildPaceTrend, computePaceTrendStats } from './paceTrend.js'
 import { buildGlobalAuthorCounts, pickTopAuthors } from './activityAuthors.js'
+import { normalizeMarathonDistance } from './marathonMonths.js'
+import MarathonChartControls from './components/MarathonChartControls.jsx'
+import MonthlyMarathonChart from './components/MonthlyMarathonChart.jsx'
 
 let _lang = DEFAULT_LANG
 let _translate = createTranslator(DEFAULT_LANG)
@@ -911,7 +914,53 @@ function MarathonMilestoneCallout({ milestone, type, isMobile, W, pL, pR, pT, pl
   )
 }
 
-const MarathonChart = memo(function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, lang, t, light = false }) {
+function buildMarathonPoints(posts, meta, startBR) {
+  if (meta?.brHistory?.length) {
+    return meta.brHistory
+      .slice()
+      .sort((a,b) => (a.timestamp||0)-(b.timestamp||0))
+      .map((h,i,arr) => ({
+        id:h.id,
+        br:h.brAfter, brPrev:i===0?startBR:arr[i-1].brAfter,
+        date:h.date, timestamp:h.timestamp, text:h.text||'',
+        url:h.url||`https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=${h.id}`,
+        images:[], sessionResult:h.sessionResult, rooms:h.rooms||null,
+        tournaments:h.tournaments ?? null, totalTournaments:h.totalTournaments ?? null,
+      }))
+  }
+  return posts
+    .filter(p => ROMEO_RE.test(p.author) && p.brAfter)
+    .sort((a,b) => (a.timestamp||0)-(b.timestamp||0))
+    .map((p,i,arr) => ({
+      id:p.id,
+      br:p.brAfter, brPrev:i===0?startBR:arr[i-1].brAfter,
+      date:p.date, timestamp:p.timestamp, text:p.text, url:p.url,
+      images:p.images||[], sessionResult:p.sessionResult,
+      tournaments:p.tournaments ?? null, totalTournaments:p.totalTournaments ?? null,
+    }))
+}
+
+const MarathonChart = memo(function MarathonChart(props) {
+  const [grouping, persistGrouping] = usePersistentState('rpt_marathon_grouping', 'sessions', {
+    serialize:String,
+    deserialize:value => value === 'months' ? 'months' : 'sessions',
+  })
+  const restoreControlFocus = useRef(false)
+  const setGrouping = useCallback(value => {
+    restoreControlFocus.current = document.activeElement?.id === 'marathon-grouping'
+    persistGrouping(value)
+  }, [persistGrouping])
+  useLayoutEffect(() => {
+    if (restoreControlFocus.current) document.getElementById('marathon-grouping')?.focus()
+    restoreControlFocus.current = false
+  }, [grouping])
+  const allPoints = useMemo(() => normalizeMarathonDistance(buildMarathonPoints(props.posts, props.meta, props.startBR)), [props.posts, props.meta, props.startBR])
+  return grouping === 'months'
+    ? <MonthlyMarathonChart {...props} allPoints={allPoints} grouping={grouping} setGrouping={setGrouping}/>
+    : <SessionMarathonChart {...props} allPoints={allPoints} grouping={grouping} setGrouping={setGrouping}/>
+})
+
+const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, startBR, setLightbox, period, setPeriod, grouping, setGrouping, lang, t, light = false }) {
   const [tip, setTip]     = useState(null)
   const [tipVisible, setTipVisible] = useState(false)
   const [pathLen, setPathLen] = useState(null)
@@ -951,31 +1000,6 @@ const MarathonChart = memo(function MarathonChart({ posts, meta, startBR, setLig
 
   // Reset animation on period change so line redraws
   useEffect(() => { setPathLen(null) }, [period])
-
-  const allPoints = useMemo(() => {
-    if (meta?.brHistory?.length) {
-      return meta.brHistory
-        .slice()
-        .sort((a,b) => (a.timestamp||0)-(b.timestamp||0))
-        .map((h,i,arr) => ({
-          id:h.id,
-          br:h.brAfter, brPrev:i===0?startBR:arr[i-1].brAfter,
-          date:h.date, timestamp:h.timestamp, text:h.text||'',
-          url:h.url||`https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=${h.id}`,
-          images:[], sessionResult:h.sessionResult, rooms:h.rooms||null,
-          tournaments:h.tournaments||null, totalTournaments:h.totalTournaments||null,
-        }))
-    }
-    return posts
-      .filter(p => ROMEO_RE.test(p.author) && p.brAfter)
-      .sort((a,b) => (a.timestamp||0)-(b.timestamp||0))
-      .map((p,i,arr) => ({
-        id:p.id,
-        br:p.brAfter, brPrev:i===0?startBR:arr[i-1].brAfter,
-        date:p.date, timestamp:p.timestamp, text:p.text, url:p.url,
-        images:p.images||[], sessionResult:p.sessionResult,
-      }))
-  }, [posts, meta, startBR])
 
   // Period filter: keep points within cutoff. If result < 2 points, fall back to all.
   const points = useMemo(() => {
@@ -1136,6 +1160,34 @@ const MarathonChart = memo(function MarathonChart({ posts, meta, startBR, setLig
   const xMainLabelY = xAxisY + (isMobile ? 19 : 16)
   const xSubLabelY = xMainLabelY + (isMobile ? 13 : 11)
   const xLabelEdgePad = isMobile ? 6 : 8
+  const knownDistancePoints = points.map((point, idx) => ({ idx, value:point.cumulativeMTT, x:coords[idx].x }))
+    .filter(point => point.value != null)
+  const distanceTicks = (() => {
+    if (!knownDistancePoints.length) return []
+    const first = knownDistancePoints[0]
+    const last = knownDistancePoints.at(-1)
+    const candidates = new Map([[first.idx, first], [last.idx, last]])
+    const tickCount = isMobile ? 4 : 6
+    for (let i = 1; i < tickCount - 1; i++) {
+      const target = first.value + (last.value - first.value) * i / (tickCount - 1)
+      const closest = knownDistancePoints.reduce((best, point) => Math.abs(point.value - target) < Math.abs(best.value - target) ? point : best, first)
+      candidates.set(closest.idx, closest)
+    }
+    const kept = []
+    for (const point of [...candidates.values()].sort((a, b) => a.idx - b.idx)) {
+      if (point !== last && last.x - point.x < 48) continue
+      if (kept.length && point.x - kept.at(-1).x < 48) continue
+      kept.push(point)
+    }
+    return kept
+  })()
+  const distanceAxisY = xSubLabelY + (isMobile ? 27 : 22)
+  const distanceCutoff = Date.now() / 1000 - (period === 'week' ? 7 : 30) * 86400
+  const periodDistancePoints = period === 'all' ? allPoints : allPoints.filter(point => point.timestamp >= distanceCutoff)
+  const visibleDistance = periodDistancePoints.every(point => point.distanceMTT != null) ? periodDistancePoints.reduce((sum, point) => sum + point.distanceMTT, 0) : null
+  const usesWholeArchiveFallback = period !== 'all' && periodDistancePoints.length < 2 && periodDistancePoints.length < allPoints.length
+  const totalDistance = points.at(-1)?.cumulativeMTT ?? null
+  const compactDistance = value => value >= 1000 ? `${(value / 1000).toFixed(value % 1000 ? 1 : 0)}k` : String(value)
   const xLabelExtraBottom = 0
   const signOfProfit = v => v > 0 ? 1 : v < 0 ? -1 : 0
   const sessionProfitAt = i => {
@@ -1887,18 +1939,8 @@ const MarathonChart = memo(function MarathonChart({ posts, meta, startBR, setLig
 
   return (
     <div className="marathon-chart" ref={chartRef} onClick={tip ? closeTip : undefined}>
-      <div className="section-head" style={{marginBottom:6,display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
-        <h2 className="section-title">{t('chart_marathon')}</h2>
-        <div className="mc-periods">
-          {[['week',t('period_week')],['month',t('period_month')],['all',t('period_all')]].map(([k,label])=>(
-            <button type="button" key={k} onClick={()=>setPeriodPersist(k)}
-              className={`mc-period ${period===k?'active':''}`} aria-pressed={period===k}>
-              {label}
-            </button>
-          ))}
-        </div>
-        <span className="section-count">{plBrUpdates(points.length, lang)}</span>
-      </div>
+      <MarathonChartControls {...{ period, setPeriod:setPeriodPersist, grouping, setGrouping, t }} count={plBrUpdates(points.length, lang)}/>
+      {usesWholeArchiveFallback && <p className="mc-view-hint">{t('chart_session_fallback')}</p>}
       <svg className="mc-svg" viewBox={`0 0 ${W} ${H+pB+xLabelExtraBottom}`}
         role="img" aria-label={`${t('chart_marathon')}: ${plBrUpdates(points.length, lang)}`}
         onMouseLeave={(e)=>{
@@ -2125,6 +2167,15 @@ const MarathonChart = memo(function MarathonChart({ posts, meta, startBR, setLig
             </g>
           )
         })}
+        <g className="mc-distance-axis" aria-label={t('chart_distance_axis')}>
+          {distanceTicks.map((tick, index) => <g key={tick.idx}>
+            <line x1={tick.x} x2={tick.x} y1={distanceAxisY - 14} y2={distanceAxisY - 9} className="mc-distance-tick"/>
+            <text x={tick.x} y={distanceAxisY} textAnchor={index === 0 ? 'start' : index === distanceTicks.length - 1 ? 'end' : 'middle'} className="mc-distance-label">
+              <title>{fmtInt(tick.value)} {mttUnit}</title>{compactDistance(tick.value)}
+            </text>
+          </g>)}
+          {distanceTicks.length > 0 && <text x={W - pR} y={distanceAxisY + 17} textAnchor="end" className="mc-distance-caption">{t('chart_distance_axis')} · {mttUnit}</text>}
+        </g>
         {tip && (() => {
           const positive = (tip.profit ?? 0) >= 0
           const dotFill = positive ? (light ? '#2e8b3a' : '#4caf50') : (light ? '#c8362e' : '#e53935')
@@ -2143,6 +2194,10 @@ const MarathonChart = memo(function MarathonChart({ posts, meta, startBR, setLig
           </>
         })()}
       </svg>
+      <div className="mc-distance-summary" data-testid="marathon-distance">
+        <span data-testid="marathon-period-distance">{t('chart_period_distance')}: <b>{fmtInt(visibleDistance)} {mttUnit}</b></span>
+        {period !== 'all' && <span data-testid="marathon-total-distance">{t('chart_total_distance')}: <b>{fmtInt(totalDistance)} {mttUnit}</b></span>}
+      </div>
       {tip && (() => {
         const pct=tip.x/W*100, right=pct>60
         const roomDeltas = tip.p.rooms ? CHART_ROOMS.map(r=>({...r,v:(tip.p.rooms.after[r.key]||0)-(tip.p.rooms.before[r.key]||0)})).filter(r=>r.v!==0) : []
