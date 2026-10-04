@@ -14,6 +14,7 @@ import { usePersistentState } from './hooks/usePersistentState.js'
 import { usePostsData } from './hooks/usePostsData.js'
 import AnimatedValue, { useTweenValue } from './components/AnimatedValue.jsx'
 import { buildPaceTrend, computePaceTrendStats } from './paceTrend.js'
+import { buildGlobalAuthorCounts, pickTopAuthors } from './activityAuthors.js'
 
 let _lang = DEFAULT_LANG
 let _translate = createTranslator(DEFAULT_LANG)
@@ -755,8 +756,7 @@ function PaceMiniChart({ segments, unit, t, light = false }) {
   )
 }
 
-function PaceWidget({ meta, stats, period, setPeriod, lang, t, light = false }) {
-  const pace = useMemo(() => computePaceMetrics({ meta, stats, period }), [meta, stats, period])
+const PaceWidget = memo(function PaceWidget({ pace, period, setPeriod, lang, t, light = false }) {
   if (!pace?.current) return null
 
   const currentRate = pace.rate
@@ -829,7 +829,7 @@ function PaceWidget({ meta, stats, period, setPeriod, lang, t, light = false }) 
       </div>
     </section>
   )
-}
+})
 
 // ─── MARATHON CHART (bezier functions imported from utils.js) ─────────────────
 
@@ -901,7 +901,7 @@ function MarathonMilestoneCallout({ milestone, type, isMobile, W, pL, pR, pT, pl
   )
 }
 
-function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, lang, t, light = false }) {
+const MarathonChart = memo(function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, lang, t, light = false }) {
   const [tip, setTip]     = useState(null)
   const [tipVisible, setTipVisible] = useState(false)
   const [pathLen, setPathLen] = useState(null)
@@ -2198,7 +2198,7 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
       })()}
     </div>
   )
-}
+})
 
 
 // ─── ROOM WIDGET ─────────────────────────────────────────────────────────────
@@ -2328,34 +2328,6 @@ function DayEventsList({ events, compact, onPostClick, setLightbox, lang = _lang
   )
 }
 
-function pickTopAuthors(dayPosts, allPosts) {
-  const MIN_RATING = 15000
-  const VIP_RATING = 25000
-  const byAuthor = {}
-  dayPosts.filter(p => p.author && !ROMEO_RE.test(p.author)).forEach(p => {
-    const a = p.author
-    if (!byAuthor[a]) byAuthor[a] = { rating: p.rating||0, bestLikes: 0, count: 0 }
-    byAuthor[a].count++
-    if ((p.likes||0) > byAuthor[a].bestLikes) byAuthor[a].bestLikes = p.likes||0
-    if ((p.rating||0) > byAuthor[a].rating) byAuthor[a].rating = p.rating||0
-  })
-  const globalCounts = {}
-  allPosts?.forEach(p => { if (p.author) globalCounts[p.author] = (globalCounts[p.author]||0)+1 })
-  return Object.entries(byAuthor)
-    .filter(([, {rating}]) => rating >= MIN_RATING)
-    .map(([name, {rating, bestLikes, count}]) => {
-      const gc = globalCounts[name] || count
-      const uniqueBonus = gc <= 3 ? 10 : gc <= 10 ? 4 : 0
-      const authority = Math.log10(rating + 1) * 20
-      const likeScore = (bestLikes || 0) * 2
-      const vipBoost = (rating >= VIP_RATING && bestLikes > 5) ? 80 : 0
-      const score = authority + likeScore + vipBoost + uniqueBonus
-      return { name, rating, score, bestLikes }
-    })
-    .sort((a,b) => b.score - a.score)
-    .slice(0, 5)
-}
-
 function smartSortPosts(ps) {
   if (ps.length < 2) return ps
   const sorted = [...ps].sort((a,b) => (a.timestamp||0) - (b.timestamp||0))
@@ -2413,7 +2385,8 @@ function ActivityChart({ posts, favorites, ignored, onFav, onIgnore, onUnignore,
   const PERIOD_DAYS = { week: 7, month: 30, all: null }
   const PERIOD_LABELS = { week: t('period_week'), month: t('period_month'), all: t('period_all_marathon') }
 
-  const data = useMemo(() => {
+  const globalAuthorCounts = useMemo(() => buildGlobalAuthorCounts(posts), [posts])
+  const allDays = useMemo(() => {
     const byDate = {}
     posts.forEach(p => {
       if (!p.timestamp) return
@@ -2423,10 +2396,13 @@ function ActivityChart({ posts, favorites, ignored, onFav, onIgnore, onUnignore,
       byDate[k].count++
       byDate[k].posts.push(p)
     })
-    const sorted = Object.entries(byDate).sort((a,b)=>a[0]>b[0]?1:-1)
+    return Object.entries(byDate).sort((a,b)=>a[0]>b[0]?1:-1)
+  }, [posts])
+
+  const data = useMemo(() => {
     const days = PERIOD_DAYS[period]
-    return days ? sorted.slice(-days) : sorted
-  }, [posts, period])
+    return days ? allDays.slice(-days) : allDays
+  }, [allDays, period])
 
   // Precompute tooltip payload per date — avoids re-running makeDayEvents / pickTopAuthors
   // on every hover frame. Building this once per `data/posts` change is much cheaper
@@ -2437,12 +2413,12 @@ function ActivityChart({ posts, favorites, ignored, onFav, onIgnore, onUnignore,
       const romeoCount = dp.reduce((n, p) => n + (ROMEO_RE.test(p.author) ? 1 : 0), 0)
       meta.set(date, {
         events: makeDayEvents(dp),
-        topAuthors: pickTopAuthors(dp, posts).slice(0, 3),
+        topAuthors: pickTopAuthors(dp, globalAuthorCounts).slice(0, 3),
         romeoCount,
       })
     }
     return meta
-  }, [data, posts])
+  }, [data, globalAuthorCounts])
 
   useLayoutEffect(() => {
     if (!tip || selected || !tip.anchorRect || !tipRef.current) {
@@ -3665,7 +3641,7 @@ function FirstFundBanner({ t }) {
 // ─── SESSION MTT WIDGET ──────────────────────────────────────────────────────
 // Bars of tournaments played per session (channel request). Follows the shared
 // week/month/all chart period; average as a dashed guide, last session in gold.
-function SessionMttChart({ meta, period, lang, t }) {
+const SessionMttChart = memo(function SessionMttChart({ meta, period, lang, t }) {
   const isMobile = useIsMobile()
   const [hoverIdx, setHoverIdx] = useState(null)
   const rows = useMemo(() => {
@@ -3783,7 +3759,7 @@ function SessionMttChart({ meta, period, lang, t }) {
       </div>
     </section>
   )
-}
+})
 
 // ─── APP ─────────────────────────────────────────────────────────────────────
 export default function App() {
@@ -3959,6 +3935,10 @@ export default function App() {
     serialize: String,
     deserialize: (raw) => raw || 'all',
   })
+
+  // Both the progress bar and pace widget use the same calculation. Unrelated
+  // feed/search/lightbox renders keep this result and the chart props stable.
+  const pace = useMemo(() => computePaceMetrics({ meta, stats, period: chartPeriod }), [meta, stats, chartPeriod])
 
   // Session stats recomputed against the chart-period filter so МТТ/сессия
   // and % плюсовых react when the user toggles week/month/all.
@@ -4297,7 +4277,6 @@ export default function App() {
         const pct = Math.max(0, Math.min(100, raw))
         const remaining = Math.max(0, target - stats.br)
 
-        const pace = computePaceMetrics({ meta, stats, period:chartPeriod, target })
         const isLosing = pace?.rate != null && pace.rate < 0
         const mttNeeded = pace?.finishMTT || null
         const mttToBust = pace?.bustMTT || null
@@ -4478,7 +4457,7 @@ export default function App() {
                 period={chartPeriod} setPeriod={setChartPeriod} lang={lang} t={t} light={theme === 'light'}/>
               {/* Mobile-only: sidebar is hidden <=980px, so surface the FF banner here in the feed */}
               {isNarrow && <div className="ff-banner-mobile-slot"><FirstFundBanner t={t}/></div>}
-              <PaceWidget meta={meta} stats={stats} period={chartPeriod} setPeriod={setChartPeriod} lang={lang} t={t} light={theme === 'light'}/>
+              <PaceWidget pace={pace} period={chartPeriod} setPeriod={setChartPeriod} lang={lang} t={t} light={theme === 'light'}/>
               <SessionMttChart meta={meta} period={chartPeriod} lang={lang} t={t}/>
               {/* Mobile-only top posts */}
               {lang==='ru' && hotPosts.length > 0 && (() => {

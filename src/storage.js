@@ -5,6 +5,11 @@ const IS_TEST = import.meta.env.MODE === 'test'
 const JSON_FETCH_TIMEOUT_MS = IS_TEST ? 300 : 6500
 const SOURCE_SETTLE_MS = IS_TEST ? 0 : 1400
 
+// Keep one decoded snapshot, keyed by the exact persisted value so another
+// tab replacing/clearing the cache is still observed on the next read.
+let memoryCache = null
+let inFlight = null
+
 function trimTrailingSlash(value) {
   return value.replace(/\/+$/, '')
 }
@@ -40,29 +45,50 @@ function delay(ms) {
 }
 
 function getCache() {
+  let raw
   try {
-    const raw = localStorage.getItem(CACHE_KEY)
-    if (!raw) return null
-    const cache = JSON.parse(raw)
-    if (Date.now() - cache.ts < CACHE_TTL) return cache
-    return { ...cache, stale: true }
+    raw = localStorage.getItem(CACHE_KEY)
   } catch {
-    return null
+    // Private/storage-blocked browsers can still reuse this tab's snapshot.
+    raw = memoryCache?.raw ?? null
   }
+  if (!memoryCache || memoryCache.raw !== raw) {
+    if (!raw) {
+      memoryCache = null
+      return null
+    }
+    try {
+      const record = JSON.parse(raw)
+      memoryCache = { raw, record, validatedAt: record.ts, payload: null }
+    } catch {
+      memoryCache = null
+      return null
+    }
+  }
+  const cache = memoryCache.record
+  cache.stale = !(Date.now() - memoryCache.validatedAt < CACHE_TTL)
+  return cache
 }
 
 function setCache(payload) {
-  try {
-    localStorage.setItem(CACHE_KEY, JSON.stringify({
-      ts: Date.now(),
-      compact: payload.compact ?? null,
-      posts: payload.posts ?? null,
-      meta: payload.meta ?? {},
-      source: payload.source ?? null,
-    }))
-  } catch {
-    // Ignore storage quota/access issues.
+  const record = {
+    ts: Date.now(),
+    compact: payload.compact ?? null,
+    posts: payload.posts ?? null,
+    meta: payload.meta ?? {},
+    source: payload.source ?? null,
   }
+  let raw = memoryCache?.raw ?? null
+  try {
+    const serialized = JSON.stringify(record)
+    localStorage.setItem(CACHE_KEY, serialized)
+    raw = serialized
+  } catch {
+    // Multi-MB payloads can exceed storage quota. Preserve the memory cache,
+    // tied to the previous persisted value, even when this write fails.
+  }
+  memoryCache = { raw, record, validatedAt: record.ts, payload: null }
+  return record
 }
 
 function getPayloadUpdatedAt(payload) {
@@ -191,10 +217,20 @@ export function expandPosts(compact) {
 }
 
 function inflateCachedPayload(cache) {
-  const posts = cache.compact ? expandPosts(cache.compact) : (cache.posts || []).map(normalizePostAvatar)
+  const snapshot = memoryCache?.record === cache ? memoryCache : null
+  if (!snapshot?.payload) {
+    const payload = {
+      posts: cache.compact ? expandPosts(cache.compact) : (cache.posts || []).map((post) => ({ ...normalizePostAvatar(post) })),
+      // The hook enriches posts and replaces brHistory with its deduplicated
+      // version. Keep the source meta intact for subsequent freshness probes.
+      meta: { ...(cache.meta || {}) },
+      source: cache.source || null,
+    }
+    if (snapshot) snapshot.payload = payload
+    else return { ...payload, stale: Boolean(cache.stale) }
+  }
   return {
-    posts,
-    meta: cache.meta || {},
+    ...snapshot.payload,
     source: cache.source || null,
     stale: Boolean(cache.stale),
   }
@@ -306,7 +342,7 @@ async function probeFreshestMeta() {
   return { meta: freshest.meta }
 }
 
-export async function fetchPublicData() {
+async function loadPublicData() {
   const cached = getCache()
   const cachedPayload = cached ? inflateCachedPayload(cached) : null
 
@@ -318,14 +354,13 @@ export async function fetchPublicData() {
   if (cached && (cached.compact || cached.posts) && cached.meta) {
     const probe = await probeFreshestMeta().catch(() => null)
     if (probe && !hasPayloadAdvanced(probe, { meta: cached.meta, stale: true })) {
-      const refreshed = {
-        compact: cached.compact ?? null,
-        posts: cached.posts ?? null,
-        meta: cached.meta,
-        source: cached.source ?? null,
+      // Refresh this tab's TTL without serializing/writing the multi-MB posts
+      // again. A page reload may revalidate meta once, which is cheap.
+      if (memoryCache?.record === cached) {
+        memoryCache.validatedAt = Date.now()
       }
-      setCache(refreshed)
-      return inflateCachedPayload(refreshed)
+      cached.stale = false
+      return inflateCachedPayload(cached)
     }
   }
 
@@ -343,14 +378,22 @@ export async function fetchPublicData() {
     lastError = result.reason
   }
 
-  const freshestPayload = selectFreshestPayload(freshestNetworkPayload, cachedPayload)
+  const freshestPayload = selectFreshestPayload(freshestNetworkPayload, cached)
 
   if (freshestNetworkPayload && freshestPayload === freshestNetworkPayload) {
-    setCache(freshestPayload)
-    return inflateCachedPayload(freshestPayload)
+    return inflateCachedPayload(setCache(freshestPayload))
   }
 
-  if (cachedPayload) return freshestPayload || cachedPayload
+  if (cachedPayload) return cachedPayload
 
   throw lastError || new Error('Failed to load tracker data from every configured source')
+}
+
+export function fetchPublicData() {
+  // Initial mount, visibility changes and manual refresh can overlap. Share
+  // one source selection/download, and allow another attempt after failure.
+  if (!inFlight) {
+    inFlight = loadPublicData().finally(() => { inFlight = null })
+  }
+  return inFlight
 }

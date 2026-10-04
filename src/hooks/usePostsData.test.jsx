@@ -245,4 +245,26 @@ describe('usePostsData', () => {
     expect(renders).toBe(rendersAfterLoad)
     expect(fetchPublicData.mock.calls.length).toBeGreaterThanOrEqual(3)
   })
+
+  it('applies history changes even when timestamps and the post count are unchanged', async () => {
+    vi.useFakeTimers()
+    const lastUpdated = '2026-04-19T03:00:00.000Z'
+    fetchPublicData
+      .mockResolvedValueOnce(makePayload({
+        posts: [{ id: 'post-1', author: 'OtherUser', timestamp: 10000 }],
+        meta: { lastUpdated, totalTournaments: 4000, brHistory: [{ id: 'old', timestamp: 1000, brAfter: 12000 }] },
+      }))
+      .mockResolvedValue(makePayload({
+        posts: [{ id: 'post-1', author: 'OtherUser', timestamp: 10000 }],
+        meta: { lastUpdated, totalTournaments: 4500, brHistory: [
+          { id: 'old', timestamp: 1000, brAfter: 12000 },
+          { id: 'new', timestamp: 2000, brAfter: 9000 },
+        ] },
+      }))
+
+    await renderAndFlush()
+    expect(screen.getByTestId('history-count')).toHaveTextContent('1')
+    await advancePoll()
+    expect(screen.getByTestId('history-count')).toHaveTextContent('2')
+  })
 })
