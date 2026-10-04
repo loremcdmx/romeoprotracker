@@ -224,7 +224,7 @@ button,select,input,summary{font:inherit}
 .pc-action{width:32px;height:32px;background:none;border:1px solid transparent;border-radius:8px;cursor:pointer;font-size:14px;padding:0;opacity:.5;transition:opacity .15s,border-color .15s,background .15s;color:var(--text)}
 .pc-action:hover,.pc-action.on{opacity:1}
 .pc-action:hover{background:var(--bg3);border-color:var(--border)}
-.pc-body{padding:10px 14px;font-size:12px;color:var(--text);line-height:1.6}
+.pc-body{padding:10px 14px;font-size:12px;color:var(--text);line-height:1.6;overflow-wrap:anywhere}
 .pc-body.clamped{display:-webkit-box;-webkit-line-clamp:10;-webkit-box-orient:vertical;overflow:hidden}
 .pc-images{display:flex;flex-wrap:wrap;gap:6px;padding:0 14px 10px}
 /* A fixed box reserves layout space up front so lazily loaded screenshots stop
@@ -294,6 +294,12 @@ button,select,input,summary{font:inherit}
 .pace-chart-title span{color:rgba(245,245,245,.88);font-size:12px;font-weight:700;letter-spacing:.01em}
 .pace-chart-title small{color:rgba(220,220,220,.54);font-size:10.2px;font-weight:500;letter-spacing:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pace-chart-title b{display:inline-flex;align-items:center;color:color-mix(in srgb,var(--pace-blue) 74%,var(--dim2));font-size:10px;font-weight:700;letter-spacing:0;white-space:nowrap;padding:4px 9px;border-radius:999px;background:rgba(123,220,255,.055);border:1px solid rgba(123,220,255,.14)}
+.pace-step-control{display:inline-flex;align-items:center;gap:8px;color:color-mix(in srgb,var(--pace-blue) 74%,var(--dim2));font-size:11px;font-weight:700}
+.pace-step-select{min-height:36px;max-width:100%;padding:6px 10px;border:1px solid rgba(123,220,255,.25);border-radius:8px;background:var(--bg2);color:var(--white);font:inherit;font-variant-numeric:tabular-nums;cursor:pointer;color-scheme:dark}
+.pace-step-select:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.pace-step-select option{background:var(--bg2);color:var(--white)}
+.light .pace-step-control{color:#2f6270}
+.light .pace-step-select{border-color:rgba(55,135,156,.35);color-scheme:light}
 .pace-chart-wrap{border:1px solid rgba(255,255,255,.07);border-radius:12px;background:linear-gradient(180deg,rgba(255,255,255,.02),rgba(0,0,0,.05));overflow:visible;position:relative;box-shadow:inset 0 1px 0 rgba(255,255,255,.03)}
 .pace-chart{display:block;width:100%;height:auto;min-height:176px}
 .pace-grid-line{stroke:rgba(255,255,255,.062);stroke-width:1}
@@ -316,7 +322,7 @@ button,select,input,summary{font:inherit}
 .pace-dot-hit{fill:transparent;cursor:pointer;pointer-events:all}
 .pace-dot-partial-ring{fill:none;stroke:rgba(255,212,121,.42);stroke-width:1.05;opacity:.62;pointer-events:none}
 .pace-dot-latest-ring{fill:none;stroke:rgba(255,212,121,.62);stroke-width:1.35;stroke-dasharray:3 2.6;pointer-events:none}
-.pace-dot{fill:var(--pace-green);stroke:#080a09;stroke-width:2.35}
+.pace-dot{pointer-events:none;fill:var(--pace-green);stroke:#080a09;stroke-width:2.35}
 .pace-segment:hover .pace-dot,.pace-segment:focus .pace-dot{stroke-width:2.8}
 .pace-segment.neg .pace-dot{fill:var(--pace-red)}
 .pace-segment.pos{color:var(--pace-green)}
@@ -929,10 +935,12 @@ html{scroll-behavior:smooth}
   }
   .mobile-top-header{
     display:flex;align-items:center;justify-content:space-between;
+    flex-wrap:wrap;gap:8px;
     padding:12px 14px;font-size:14px;font-weight:700;color:var(--white);
     border-bottom:1px solid var(--border);background:var(--bg3);
   }
-  .mobile-top-periods{display:flex;gap:5px}
+  .mobile-top-header>span{flex-shrink:0}
+  .mobile-top-periods{display:flex;flex-wrap:wrap;gap:5px}
   .mobile-top-period{
     background:var(--bg2);border:1px solid var(--border);border-radius:8px;
     color:var(--dim2);font-size:12px;padding:6px 10px;cursor:pointer;
@@ -1128,9 +1136,11 @@ html{scroll-behavior:smooth}
 /* motion: cover the remaining always-on animations */
 @media (prefers-reduced-motion:reduce){
   html{scroll-behavior:auto}
-  .new-posts-bubble{animation:none}
+  .new-posts-bubble,.sidebar-popup{animation:none}
   .post-highlight{animation:none;outline:2px solid var(--gold)}
   .ff-banner{transition:none}
+  .ff-chip{transform:none;transition:none}
+  .ff-banner:hover,.new-posts-bubble:hover,.day-event-clickable:hover,.day-event-clickable:active{transform:none}
 }
 
 /* merged-point breakdown: capped list header */
@@ -1179,3 +1189,47 @@ html{scroll-behavior:smooth}
 
 /* minor session dots: present but quiet until hovered */
 .mc-dot-minor{stroke:none}
+
+/* Marathon grouping and the distance lane share the existing chart palette. */
+.mc-chart-head{margin-bottom:6px;flex-wrap:wrap}
+.mc-chart-controls{display:flex;align-items:center;gap:12px;margin:8px 0 10px}
+.mc-group-control{display:inline-flex;align-items:center;gap:8px;color:var(--dim2);font-size:11px;font-weight:600}
+.mc-group-control select{min-height:36px;padding:6px 10px;border:1px solid var(--border2);border-radius:8px;background:var(--bg3);color:var(--text);font:inherit;cursor:pointer}
+.mc-group-control select:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.mc-view-hint{color:var(--dim2);font-size:11px;margin-bottom:8px}
+.mc-distance-axis,.mc-distance-caption,.mc-distance-label,.mc-volume-label{pointer-events:none}
+.mc-distance-label,.mc-volume-label{font-family:'Roboto Mono',monospace;font-size:9px;font-weight:600;fill:var(--axis-x-muted);font-variant-numeric:tabular-nums}
+.mc-distance-caption{font-family:inherit;font-size:9px;fill:var(--dim2)}
+.mc-distance-tick{stroke:var(--dim);stroke-width:1}
+.mc-distance-summary{display:flex;gap:6px 20px;flex-wrap:wrap;font-size:11px;color:var(--dim2);padding-top:4px}
+.mc-distance-summary b{color:var(--text);font-family:'Roboto Mono',monospace;font-variant-numeric:tabular-nums}
+.mc-month-line-segment{stroke-width:3.2;stroke-linecap:round;vector-effect:non-scaling-stroke;pointer-events:none}
+.mc-month-axis-label{font-family:inherit;font-size:10px;font-weight:600;fill:var(--axis-x-muted);pointer-events:none}
+.mc-month-hit{pointer-events:all;cursor:pointer}
+.mc-month-mark{outline:none}
+.mc-month-dot{stroke:var(--bg2);stroke-width:2;pointer-events:none}
+.mc-month-volume{fill:#7bdcff;opacity:.35;pointer-events:none}
+.mc-month-volume.partial{opacity:.2;stroke:#7bdcff;stroke-width:1;stroke-dasharray:3 2}
+.mc-month-mark.selected .mc-month-volume{opacity:.75}
+.mc-month-guide{stroke:var(--chart-grid-strong);stroke-dasharray:3 3;pointer-events:none}
+.mc-month-mark:focus-visible .mc-month-dot{stroke:var(--focus);stroke-width:2.5}
+.mc-month-details{border-top:1px solid var(--border);padding-top:12px;margin-top:2px}
+.mc-month-details-head{display:flex;align-items:baseline;gap:6px 14px;flex-wrap:wrap;margin-bottom:10px}
+.mc-month-details-head b{font-size:13px;color:var(--white)}
+.mc-month-details-head span{font-size:10px;color:var(--dim2)}
+.mc-month-details dl{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.mc-month-details dt{color:var(--dim2);font-size:10px;margin-bottom:3px}
+.mc-month-details dd{font-family:'Roboto Mono',monospace;font-variant-numeric:tabular-nums;color:var(--white);font-size:13px;font-weight:600;white-space:nowrap}
+.mc-month-details dd.mc-month-profit-pos{color:#76d982}
+.mc-month-details dd.mc-month-profit-neg{color:#ff665d}
+.mc-monthly .mc-distance-summary{margin-top:10px}
+.light .mc-month-volume{fill:#367d92}
+.light .mc-month-volume.partial{stroke:#367d92}
+.light .mc-month-details dd.mc-month-profit-pos{color:#2e8b3a}
+.light .mc-month-details dd.mc-month-profit-neg{color:#c8362e}
+@media(max-width:720px){
+  .mc-chart-head .section-count{margin-left:0}
+  .mc-month-details dl{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+  .mc-month-details dd{font-size:12px}
+  .mc-distance-summary{font-size:10px}
+}

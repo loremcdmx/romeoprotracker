@@ -47,7 +47,6 @@ export function usePostsData() {
   const knownIdsRef = useRef(null)
   const latestPostsRef = useRef([])
   const latestMetaRef = useRef(null)
-  const appliedSigRef = useRef(null)
   // Mirror of `error` so no-op polls never call setError(null) on an already
   // null state — React 18 may still render once for a same-value update, which
   // defeated the no-op fast path on the first poll.
@@ -64,16 +63,14 @@ export function usePostsData() {
     try {
       const { posts: nextPosts = [], meta: nextMeta = {} } = await fetchPublicData()
 
-      // No-op poll fast path: when the freshness markers are unchanged the payload
-      // is content-identical (the storage layer returns the cached posts), so skip
-      // enrich + setState entirely and avoid re-rendering the whole app every cycle.
-      const signature = `${nextMeta?.lastUpdated || ''}|${nextMeta?.postsChangedAt || ''}|${nextPosts.length}`
-      if (silent && knownIdsRef.current && appliedSigRef.current === signature) {
+      // Storage preserves these references only for the same cached payload.
+      // Timestamp/count signatures alone miss bankroll-history corrections
+      // that the storage freshness rules already know how to detect.
+      if (silent && knownIdsRef.current
+        && nextPosts === latestPostsRef.current && nextMeta === latestMetaRef.current) {
         if (errorRef.current) { errorRef.current = null; setError(null) }
         return { posts: latestPostsRef.current, meta: latestMetaRef.current }
       }
-      appliedSigRef.current = signature
-
       enrichPosts(nextPosts, nextMeta)
 
       if (knownIdsRef.current) {

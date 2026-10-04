@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import App from './App.jsx'
+import * as responsive from './hooks/useIsMobile.js'
 import { translate } from './i18n.js'
 import { fetchPublicData } from './storage.js'
 
@@ -70,6 +71,36 @@ function makeMockData(overrides = {}) {
     },
     ...overrides,
   }
+}
+
+function makePaceStepData() {
+  const now = Math.floor(Date.now() / 1000)
+  // Deliberately cross step boundaries with different rates. Splitting these
+  // session results gives an independently checkable 12,500 MTT / +$18,500.
+  const sessions = [
+    { daysAgo: 20, tournaments: 3000, profit: 6000 },
+    { daysAgo: 10, tournaments: 4000, profit: -4000 },
+    { daysAgo: 1, tournaments: 5500, profit: 16500 },
+  ]
+  let bankroll = 10000
+  let total = 0
+  const brHistory = sessions.map(({ daysAgo, tournaments, profit }, i) => {
+    const brPrev = bankroll
+    bankroll += profit
+    total += tournaments
+    return {
+      id: `pace-step-${i}`,
+      timestamp: now - daysAgo * 86400,
+      date: `P${i + 1}`,
+      brPrev,
+      brAfter: bankroll,
+      sessionResult: profit,
+      tournaments,
+      totalTournaments: total,
+      text: `Pace step session ${i + 1}`,
+    }
+  })
+  return makeMockData({ meta: { ...makeMockData().meta, brHistory, totalTournaments: total } })
 }
 
 function findPostCardByAuthor(author) {
@@ -373,7 +404,7 @@ describe('App', () => {
     expect(within(widget).getByText(translate('ru', 'pace_finish'))).toBeInTheDocument()
     expect(within(widget).queryByText(translate('ru', 'pace_finish_note'))).not.toBeInTheDocument()
     expect(within(widget).getByTestId('pace-chart')).toBeInTheDocument()
-    expect(within(widget).getByText((text) => text.replace(/\s/g, ' ') === 'шаг: 2 000 МТТ')).toBeInTheDocument()
+    expect(within(widget).getByRole('combobox', { name: translate('ru', 'pace_chart_step_label') })).toHaveValue('2000')
     expect(within(widget).queryByText(translate('ru', 'pace_chart_title'))).not.toBeInTheDocument()
     expect(within(widget).getByText(translate('ru', 'pace_trend_card'))).toBeInTheDocument()
     expect(widget.querySelector('.pace-trend-label')).toBeInTheDocument()
@@ -403,6 +434,184 @@ describe('App', () => {
     })
     expect(within(widget).getAllByText('2k').length).toBeGreaterThanOrEqual(1)
     expect(within(widget).queryByText('1k')).not.toBeInTheDocument()
+  })
+
+  it('recalculates pace points and tooltip results for 1k, 5k and 10k steps without changing the overall rate or finish', async () => {
+    fetchPublicData.mockResolvedValue(makePaceStepData())
+    render(<App />)
+    const widget = await screen.findByTestId('pace-widget')
+    const selector = within(widget).getByRole('combobox', { name: translate('ru', 'pace_chart_step_label') })
+    expect(selector).toHaveValue('2000')
+    expect([...selector.options].map(option => option.value)).toEqual(['1000', '2000', '5000', '10000'])
+    expect(widget.querySelectorAll('.pace-segment')).toHaveLength(7)
+
+    const rate = () => widget.querySelector('.pace-rate-item .mps-value')?.textContent
+    const projection = () => widget.querySelector('.pace-projection-item .tempo-val')?.textContent?.replace(/\s/g, '')
+    expect(rate()).toBe('+1.5$/МТТ')
+    expect(projection()).toBe('~6737500турниров')
+    const originalRate = rate()
+    const originalProjection = projection()
+    let previousLine = widget.querySelector('.pace-line:not(.partial)')?.getAttribute('d')
+    const normalizedText = node => node?.textContent?.replace(/\s/g, '')
+    const expectTooltip = ({ profit, tournaments, rate: segmentRate, partial = false }) => {
+      const tooltip = widget.querySelector('.pace-point-tooltip')
+      expect(tooltip).toBeInTheDocument()
+      expect([...tooltip.querySelectorAll('.pace-formula-eq b')].map(normalizedText))
+        .toEqual([profit, String(tournaments), segmentRate])
+      const countRow = within(tooltip).getByText(translate('ru', 'pace_tip_tournaments')).closest('.pace-point-tooltip-row')
+      expect(normalizedText(countRow.querySelector('b'))).toBe(`${tournaments}МТТ`)
+      if (partial) {
+        expect(within(tooltip).getByText(translate('ru', 'pace_tip_partial'))).toBeInTheDocument()
+        const netRow = within(tooltip).getByText(translate('ru', 'pace_tip_net')).closest('.pace-point-tooltip-row')
+        expect(normalizedText(netRow.querySelector('b'))).toBe(profit)
+      }
+    }
+
+    for (const sample of [
+      { step: 1000, points: 13, firstLabel: '1k: +2$/МТТ', fullProfit: '+2.0k$', fullRate: '+2$/МТТ', partialMtt: 500, partialProfit: '+1.5k$' },
+      { step: 5000, points: 3, firstLabel: '5k: +0.8$/МТТ', fullProfit: '+4.0k$', fullRate: '+0.8$/МТТ', partialMtt: 2500, partialProfit: '+7.5k$' },
+      { step: 10000, points: 2, firstLabel: '10k: +1.1$/МТТ', fullProfit: '+11.0k$', fullRate: '+1.1$/МТТ', partialMtt: 2500, partialProfit: '+7.5k$' },
+    ]) {
+      fireEvent.change(selector, { target: { value: String(sample.step) } })
+      expect(selector).toHaveValue(String(sample.step))
+      expect(widget.querySelector('.pace-point-tooltip')).toBeNull()
+      expect(widget.querySelectorAll('.pace-segment')).toHaveLength(sample.points)
+      expect(widget.querySelectorAll('.pace-segment.partial')).toHaveLength(1)
+      expect(widget.querySelectorAll('.pace-segment .pace-dot')).toHaveLength(sample.points)
+      expect(within(widget).getByRole('img', {
+        name: translate('ru', 'pace_chart_label').replace('{step}', String(sample.step)),
+      })).toBeInTheDocument()
+      const nextLine = widget.querySelector('.pace-line:not(.partial)')?.getAttribute('d')
+      expect(nextLine).not.toBe(previousLine)
+      previousLine = nextLine
+      expect(rate()).toBe(originalRate)
+      expect(projection()).toBe(originalProjection)
+
+      fireEvent.click(within(widget).getByRole('button', { name: sample.firstLabel }))
+      expectTooltip({ profit: sample.fullProfit, tournaments: sample.step, rate: sample.fullRate })
+      if (sample.step === 1000) {
+        fireEvent.click(within(widget).getByRole('button', { name: '4k: -1$/МТТ' }))
+        expectTooltip({ profit: '-1.0k$', tournaments: 1000, rate: '-1$/МТТ' })
+      }
+      fireEvent.click(widget.querySelector('.pace-segment.partial'))
+      expectTooltip({ profit: sample.partialProfit, tournaments: sample.partialMtt, rate: '+3$/МТТ', partial: true })
+      expect(widget.querySelector('.pace-line.partial')).toBeInTheDocument()
+    }
+  })
+
+  it('persists the selected pace step after unmount and a fresh mount', async () => {
+    fetchPublicData.mockResolvedValue(makePaceStepData())
+    const firstRender = render(<App />)
+    let widget = await screen.findByTestId('pace-widget')
+    fireEvent.change(within(widget).getByRole('combobox', { name: translate('ru', 'pace_chart_step_label') }),
+      { target: { value: '5000' } })
+    expect(widget.querySelectorAll('.pace-segment')).toHaveLength(3)
+    expect(localStorage.getItem('rpt_pace_bin_size')).toBe('5000')
+    firstRender.unmount()
+
+    render(<App />)
+    widget = await screen.findByTestId('pace-widget')
+    expect(within(widget).getByRole('combobox', { name: translate('ru', 'pace_chart_step_label') })).toHaveValue('5000')
+    expect(widget.querySelectorAll('.pace-segment')).toHaveLength(3)
+    expect(within(widget).getByRole('button', { name: '5k: +0.8$/МТТ' })).toBeInTheDocument()
+  })
+
+  it('falls back to a safe 2k step when the saved step is zero', async () => {
+    localStorage.setItem('rpt_pace_bin_size', '0')
+    fetchPublicData.mockResolvedValue(makePaceStepData())
+    render(<App />)
+    const widget = await screen.findByTestId('pace-widget')
+    expect(within(widget).getByRole('combobox', { name: translate('ru', 'pace_chart_step_label') })).toHaveValue('2000')
+    expect(widget.querySelectorAll('.pace-segment')).toHaveLength(7)
+    expect(within(widget).getByRole('button', { name: '2k: +2$/МТТ' })).toBeInTheDocument()
+    expect(localStorage.getItem('rpt_pace_bin_size')).toBe('2000')
+  })
+
+  it('retains the selected pace step while changing the shared week, month and all-time period', async () => {
+    fetchPublicData.mockResolvedValue(makePaceStepData())
+    render(<App />)
+    const widget = await screen.findByTestId('pace-widget')
+    const selector = within(widget).getByRole('combobox', { name: translate('ru', 'pace_chart_step_label') })
+    fireEvent.change(selector, { target: { value: '5000' } })
+
+    fireEvent.click(within(widget).getByText(translate('ru', 'period_week')))
+    expect(selector).toHaveValue('5000')
+    expect(widget.querySelectorAll('.pace-segment')).toHaveLength(2)
+    expect(within(widget).getByRole('button', { name: '5k: +3$/МТТ' })).toBeInTheDocument()
+    fireEvent.click(widget.querySelector('.pace-segment.partial'))
+    const weekTooltip = widget.querySelector('.pace-point-tooltip')
+    expect([...weekTooltip.querySelectorAll('.pace-formula-eq b')].map(node => node.textContent.replace(/\s/g, '')))
+      .toEqual(['+1.5k$', '500', '+3$/МТТ'])
+
+    for (const period of ['period_month', 'period_all']) {
+      fireEvent.click(within(widget).getByText(translate('ru', period)))
+      expect(selector).toHaveValue('5000')
+      expect(widget.querySelectorAll('.pace-segment')).toHaveLength(3)
+      expect(within(widget).getByRole('button', { name: '5k: +0.8$/МТТ' })).toBeInTheDocument()
+    }
+    expect(localStorage.getItem('rpt_pace_bin_size')).toBe('5000')
+  })
+
+  it('keeps dense 1k pace labels and point hit areas separated on mobile without dropping the latest total', async () => {
+    const previousWidth = window.innerWidth
+    window.innerWidth = 375
+    const mobileMock = vi.spyOn(responsive, 'useIsMobile').mockReturnValue(true)
+    try {
+      const now = Math.floor(Date.now() / 1000)
+      const totals = [...Array.from({ length: 37 }, (_, i) => (i + 1) * 1000), 37677]
+      const brHistory = totals.map((total, i) => {
+        const previousTotal = i === 0 ? 0 : totals[i - 1]
+        const tournaments = total - previousTotal
+        return {
+          id: `mobile-pace-${i}`,
+          timestamp: now - (totals.length - i) * 3600,
+          date: `M${i + 1}`,
+          brPrev: 10000 + previousTotal,
+          brAfter: 10000 + total,
+          sessionResult: tournaments,
+          tournaments,
+          totalTournaments: total,
+          text: `Mobile pace session ${i + 1}`,
+        }
+      })
+      fetchPublicData.mockResolvedValue(makeMockData({
+        meta: { ...makeMockData().meta, brHistory, totalTournaments: 37677 },
+      }))
+      render(<App />)
+      const widget = await screen.findByTestId('pace-widget')
+      fireEvent.change(within(widget).getByRole('combobox', { name: translate('ru', 'pace_chart_step_label') }),
+        { target: { value: '1000' } })
+
+      const labels = [...widget.querySelectorAll('.pace-x-label')]
+        .sort((a, b) => Number(a.getAttribute('x')) - Number(b.getAttribute('x')))
+      expect(labels.length).toBeGreaterThan(2)
+      expect(labels.at(-1).textContent).toBe('37.7k')
+      // Roboto Mono axis labels are 10px here. Estimate each rendered glyph
+      // independently of the application's thinning decisions (jsdom has no
+      // SVG text metrics); all neighbouring visible labels must fit.
+      const labelRects = labels.map(label => estimatedSvgTextRect(label, 10))
+      for (let i = 1; i < labelRects.length; i++) {
+        expect(rectsOverlap(labelRects[i - 1], labelRects[i])).toBe(false)
+      }
+
+      const points = [...widget.querySelectorAll('.pace-segment')].map(segment => {
+        const dot = segment.querySelector('.pace-dot')
+        return { x: Number(dot.getAttribute('cx')), y: Number(dot.getAttribute('cy')),
+          radius: Number(segment.querySelector('.pace-dot-hit').getAttribute('r')) }
+      })
+      // Thinning labels must preserve all 37 completed chunks and the tail.
+      expect(points).toHaveLength(38)
+      expect(widget.querySelectorAll('.pace-segment.partial')).toHaveLength(1)
+      for (const [i, point] of points.entries()) {
+        const nearestDistance = Math.min(...points.filter((_, j) => i !== j)
+          .map(other => Math.hypot(other.x - point.x, other.y - point.y)))
+        expect(point.radius).toBeGreaterThan(0)
+        expect(point.radius).toBeLessThan(nearestDistance / 2)
+      }
+    } finally {
+      mobileMock.mockRestore()
+      window.innerWidth = previousWidth
+    }
   })
 
   it('drops the colliding full-bin pace label when the total sits just past a bin', async () => {
@@ -617,6 +826,63 @@ describe('App', () => {
       expect(bounds[i].left - bounds[i - 1].right).toBeGreaterThanOrEqual(minimumGap)
     }
   })
+
+  it.each([1, 7, 30, 200, 201, 209, 365, 730, 1000])(
+    'keeps every activity bar visible and selectable across %i marathon days',
+    async (days) => {
+      const base = makeMockData()
+      const start = Date.UTC(2024, 0, 1, 12) / 1000
+      const posts = Array.from({ length: days }, (_, i) => ({
+        ...base.posts[1],
+        id: `long-activity-${i}`,
+        text: `Marathon activity day ${i + 1}`,
+        timestamp: start + i * 86400,
+        url: `https://forum.gipsyteam.ru/long-activity-${i}`,
+      }))
+      fetchPublicData.mockResolvedValue(makeMockData({ posts }))
+      render(<App />)
+      const heading = await screen.findByText(translate('ru', 'chart_activity'))
+      const chart = heading.closest('.chart-wrap')
+      fireEvent.click(within(chart).getByRole('button', {
+        name: translate('ru', 'period_all_marathon'),
+      }))
+
+      const svg = chart.querySelector('svg')
+      const [,, width, height] = svg.getAttribute('viewBox').split(' ').map(Number)
+      const rects = [...svg.querySelectorAll('.activity-bar-rect')]
+      expect(rects).toHaveLength(days)
+      let previousEnd = 0
+      for (const rect of rects) {
+        const x = Number(rect.getAttribute('x'))
+        const y = Number(rect.getAttribute('y'))
+        const barWidth = Number(rect.getAttribute('width'))
+        const barHeight = Number(rect.getAttribute('height'))
+        expect([x, y, barWidth, barHeight].every(Number.isFinite)).toBe(true)
+        expect(barWidth).toBeGreaterThan(0)
+        expect(barHeight).toBeGreaterThan(0)
+        expect(x).toBeGreaterThanOrEqual(previousEnd - 1e-8)
+        expect(x + barWidth).toBeLessThanOrEqual(width + 1e-8)
+        expect(y).toBeGreaterThanOrEqual(0)
+        expect(y + barHeight).toBeLessThanOrEqual(height)
+        previousEnd = x + barWidth
+      }
+      expect(previousEnd).toBeCloseTo(width, 6)
+
+      const lastBar = rects.at(-1).closest('.activity-bar')
+      fireEvent.keyDown(lastBar, { key: 'Enter' })
+      expect(lastBar).toHaveAttribute('aria-pressed', 'true')
+      expect(within(chart).getByText(posts.at(-1).text)).toBeInTheDocument()
+      fireEvent.keyDown(lastBar, { key: ' ' })
+      expect(lastBar).toHaveAttribute('aria-pressed', 'false')
+
+      for (const [period, count] of [['period_week', 7], ['period_month', 30]]) {
+        fireEvent.click(within(chart).getByRole('button', { name: translate('ru', period) }))
+        const periodRects = [...chart.querySelectorAll('.activity-bar-rect')]
+        expect(periodRects).toHaveLength(Math.min(days, count))
+        expect(periodRects.every(rect => Number(rect.getAttribute('width')) > 0)).toBe(true)
+      }
+    },
+  )
 
   it('uses semantic event labels on the marathon X axis', async () => {
     const base = makeMockData()
@@ -997,7 +1263,94 @@ describe('App', () => {
     expect(digits(totalLine())).toBe(String(expected))
   })
 
-  it('splits dense mixed marathon clusters into small dots on the line', async () => {
+  it.each([1280, 375])('keeps dense historical sessions readable and accessible at %i px', async (width) => {
+    const previousWidth = window.innerWidth
+    window.innerWidth = width
+    const mobileMock = vi.spyOn(responsive, 'useIsMobile').mockReturnValue(width <= 720)
+    try {
+      const base = makeMockData()
+      let br = 10000, total = 0
+      const changes = [
+        ...Array.from({ length: 4 }, () => [5000, 2000]),
+        ...Array.from({ length: 24 }, (_, i) => [i % 2 === 0 ? 1000 : -900, 20]),
+        ...Array.from({ length: 30 }, () => [3000, 800]),
+      ]
+      const brHistory = changes.map(([profit, tournaments], i) => {
+        const brPrev = br
+        br += profit
+        total += tournaments
+        return { id: 'historical-' + i, brAfter: br, brPrev, sessionResult: profit,
+          totalTournaments: total, tournaments, timestamp: Date.UTC(2026, 3, 25 + i, 12) / 1000,
+          date: 'D' + i, text: 'Historical session ' + i }
+      })
+      fetchPublicData.mockResolvedValue(makeMockData({
+        meta: { ...base.meta, brHistory, totalTournaments: total },
+      }))
+      render(<App />)
+      await screen.findByTestId('pace-widget')
+      const svg = document.querySelector('.marathon-chart .mc-svg')
+      const markers = [...svg.querySelectorAll('g[data-start][data-end]')]
+      let nextIndex = 0
+      for (const marker of markers) {
+        const { start, end, count } = marker.dataset
+        expect(Number(start)).toBe(nextIndex)
+        expect(Number(count)).toBe(Number(end) - Number(start) + 1)
+        expect(Number(count)).toBeLessThanOrEqual(6)
+        nextIndex = Number(end) + 1
+      }
+      expect(nextIndex).toBe(brHistory.length)
+      const historical = markers.filter(m => Number(m.dataset.start) >= 4 && Number(m.dataset.end) < 28)
+      expect(historical.length).toBeLessThanOrEqual(6)
+      expect(historical.some(m => m.querySelector('.mc-dot-mixed-ring'))).toBe(true)
+
+      const linePoints = parseLinearSvgPath(svg.querySelector('.mc-line-main').getAttribute('d'))
+      expect(linePoints).toHaveLength(brHistory.length)
+      const segments = [...svg.querySelectorAll('.mc-line-segment')]
+      expect(segments).toHaveLength(brHistory.length - 1)
+      segments.forEach((segment, i) => {
+        expect(segment.dataset.sourceId).toBe(brHistory[i + 1].id)
+        expect(Number(segment.getAttribute('x2'))).toBeCloseTo(linePoints[i + 1].x, 0)
+        expect(Number(segment.getAttribute('y2'))).toBeCloseTo(linePoints[i + 1].y, 0)
+      })
+      // First and latest updates keep their own exact positions and identities.
+      for (const marker of [markers[0], markers.at(-1)]) {
+        expect(Number(marker.dataset.count)).toBe(1)
+        const dot = marker.querySelector('.mc-dot')
+        const point = linePoints[Number(marker.dataset.end)]
+        expect(Number(dot.getAttribute('cx'))).toBeCloseTo(point.x, 0)
+        expect(Number(dot.getAttribute('cy'))).toBeCloseTo(point.y, 0)
+      }
+
+      const group = historical.find(m => Number(m.dataset.count) > 1 && m.querySelector('.mc-dot-minor'))
+      expect(group).toBeTruthy()
+      if (width > 600) {
+        const capture = svg.querySelector('.mc-hover-capture')
+        // Move across close historical groups; a fixed 7-unit buffer skipped them.
+        for (const marker of historical) {
+          fireEvent.mouseMove(capture, { clientX: Number(marker.querySelector('.mc-dot').getAttribute('cx')) })
+          const count = Number(marker.dataset.count)
+          expect(document.querySelectorAll('.mc-session-row')).toHaveLength(count > 1 ? count : 0)
+          const totalCell = [...document.querySelectorAll('.mc-tooltip div')]
+            .filter(d => d.textContent.includes(translate('ru', 'tip_mtt_total'))
+              && !d.textContent.includes(translate('ru', 'tip_mtt_since')) && /\d/.test(d.textContent)).pop()
+          expect(totalCell.textContent.replace(/\D/g, '')).toBe(String(brHistory[Number(marker.dataset.end)].totalTournaments))
+        }
+      } else {
+        // A minor historical group must also be reachable by long-press.
+        svg.getBoundingClientRect = () => ({ left: 0, top: 0, width: 360, height: 438 })
+        const dot = group.querySelector('.mc-dot')
+        fireEvent.touchStart(svg, { touches: [{ clientX: Number(dot.getAttribute('cx')), clientY: Number(dot.getAttribute('cy')) }] })
+        await waitFor(() => expect(document.querySelectorAll('.mc-session-row')).toHaveLength(Number(group.dataset.count)))
+        expect(fireEvent.touchEnd(svg)).toBe(false)
+        expect(document.querySelectorAll('.mc-session-row')).toHaveLength(Number(group.dataset.count))
+      }
+    } finally {
+      mobileMock.mockRestore()
+      window.innerWidth = previousWidth
+    }
+  })
+
+  it('preserves major turns in dense mixed marathon history', async () => {
     const base = makeMockData()
     const prefix = [
       [9954, 167], [8710, 385], [47815, 8803], [45727, 8957],
@@ -1043,13 +1396,36 @@ describe('App', () => {
     // a dense mixed cluster is one grouped dot with a mixed-tone ring.
     const markers = [...document.querySelectorAll('.marathon-chart g[data-start][data-end]')]
     expect(document.querySelectorAll('.mc-dot-cluster-parts')).toHaveLength(0)
-    const mixed = markers.find(marker => marker.querySelector('.mc-dot-mixed-ring'))
-    expect(mixed).toBeTruthy()
+    // These large historical reversals must stay individual points, not averages.
+    const linePoints = parseLinearSvgPath(document.querySelector('.mc-line-main').getAttribute('d'))
+    for (const index of [1, 19, 24, 40]) {
+      const marker = markers.find(m => Number(m.dataset.start) === index && Number(m.dataset.end) === index)
+      expect(marker).toBeTruthy()
+      const dot = marker.querySelector('.mc-dot')
+      expect(Number(dot.getAttribute('cx'))).toBeCloseTo(linePoints[index].x, 0)
+      expect(Number(dot.getAttribute('cy'))).toBeCloseTo(linePoints[index].y, 0)
+    }
     markers.forEach(m => expect(Number(m.getAttribute('data-count'))).toBeLessThanOrEqual(6))
+    // Even close non-adjacent turns must have distinct hit areas.
+    const hits = markers.map(m => m.querySelector('circle[fill="transparent"]'))
+    for (let i = 0; i < hits.length; i++) for (const other of hits.slice(i + 1)) {
+      const hit = hits[i]
+      const distance = Math.hypot(Number(hit.getAttribute('cx')) - Number(other.getAttribute('cx')),
+        Number(hit.getAttribute('cy')) - Number(other.getAttribute('cy')))
+      expect(Number(hit.getAttribute('r')) + Number(other.getAttribute('r'))).toBeLessThanOrEqual(distance + 1e-8)
+    }
+    const crowded = [...document.querySelectorAll('.marathon-chart .mc-dot-crowded:not(.mc-dot-hidden)')]
+    for (let i = 0; i < crowded.length; i++) for (const other of crowded.slice(i + 1)) {
+      const dot = crowded[i]
+      const distance = Math.hypot(Number(dot.getAttribute('cx')) - Number(other.getAttribute('cx')),
+        Number(dot.getAttribute('cy')) - Number(other.getAttribute('cy')))
+      const outerRadius = circle => Number(circle.getAttribute('r')) + Number(circle.style.strokeWidth) / 2
+      expect(distance - outerRadius(dot) - outerRadius(other)).toBeGreaterThanOrEqual(1)
+    }
   })
 
 
-  it('tones down the crowded last marathon marker so adjacent points stay readable', async () => {
+  it('preserves protected updates near the latest marker without obscuring its live value', async () => {
     const base = makeMockData()
     const brs = [20000, 50000, 100000, 175000, 156363, 153715]
     const totals = [5000, 7000, 9000, 11000, 11740, 11799]
@@ -1090,7 +1466,8 @@ describe('App', () => {
     expect(lastMarker?.dataset.count).toBe('1')
     expect(lastDot).toHaveClass('mc-dot-last')
     expect(lastDot).not.toHaveClass('mc-dot-crowded')
-    expect(Math.hypot(lastX - previousX, lastY - previousY)).toBeGreaterThanOrEqual(20)
+    expect(lastDot).not.toHaveClass('mc-dot-hidden')
+    expect(previousDot).toHaveClass('mc-dot-hidden')
 
     const mainLinePoints = parseLinearSvgPath(document.querySelector('.mc-line-main')?.getAttribute('d'))
     for (const dot of [previousDot, lastDot]) {

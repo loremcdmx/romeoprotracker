@@ -14,6 +14,10 @@ import { usePersistentState } from './hooks/usePersistentState.js'
 import { usePostsData } from './hooks/usePostsData.js'
 import AnimatedValue, { useTweenValue } from './components/AnimatedValue.jsx'
 import { buildPaceTrend, computePaceTrendStats } from './paceTrend.js'
+import { buildGlobalAuthorCounts, pickTopAuthors } from './activityAuthors.js'
+import { normalizeMarathonDistance } from './marathonMonths.js'
+import MarathonChartControls from './components/MarathonChartControls.jsx'
+import MonthlyMarathonChart from './components/MonthlyMarathonChart.jsx'
 
 let _lang = DEFAULT_LANG
 let _translate = createTranslator(DEFAULT_LANG)
@@ -46,6 +50,12 @@ function plBrUpdates(n, lang) {
 const MARATHON_TARGET = 10_000_000
 const PACE_PERIOD_SECONDS = { week:7 * 86400, month:30 * 86400 }
 const PACE_BIN_SIZE = 2000
+const PACE_BIN_OPTIONS = [1000, 2000, 5000, 10000]
+
+function parsePaceBinSize(value) {
+  const parsed = Number(value)
+  return PACE_BIN_OPTIONS.includes(parsed) ? parsed : PACE_BIN_SIZE
+}
 
 function formatDollarPerMTT(value, unit = 'MTT') {
   if (value == null || !Number.isFinite(value)) return '—'
@@ -245,7 +255,7 @@ function compactCrowdedMarathonMarkers(markers, minGap, yAtX = null) {
   const keepLatestReadable = items => {
     const output = items.slice(0, -1)
     const previous = output[output.length - 1]
-    if (previous && Math.hypot(latest.x - previous.x, latest.y - previous.y) < latestGap * .82) {
+    if (previous && !previous.protected && Math.hypot(latest.x - previous.x, latest.y - previous.y) < latestGap * .82) {
       const beforePrevious = output[output.length - 2]
       const targetX = latest.x - latestGap * .95
       const leftLimit = beforePrevious ? beforePrevious.x + latestGap * .72 : previous.x - latestGap
@@ -259,23 +269,10 @@ function compactCrowdedMarathonMarkers(markers, minGap, yAtX = null) {
     }
     return [...output, latest]
   }
-  const tailSearchStart = Math.max(0, markers.length - 18)
-  let tailStart = markers.length - 2
-
-  while (tailStart > tailSearchStart) {
-    const prev = markers[tailStart - 1]
-    const current = markers[tailStart]
-    if (!prev || !current) break
-    const horizontalGap = current.x - prev.x
-    const visualGap = Math.hypot(current.x - prev.x, current.y - prev.y)
-    if (horizontalGap >= minGap * 1.35 && visualGap >= minGap * 1.55) break
-    tailStart--
-  }
-
-  const body = markers.slice(tailStart, -1)
+  // Dense periods can occur anywhere in the marathon, including historical months.
+  const body = markers.slice(1, -1)
   if (body.length < 2) return keepLatestReadable(markers)
-
-  const head = markers.slice(0, tailStart)
+  const head = [markers[0]]
   const compacted = []
   let cluster = []
 
@@ -293,9 +290,9 @@ function compactCrowdedMarathonMarkers(markers, minGap, yAtX = null) {
 
     const prev = cluster[cluster.length - 1]
     const prevGap = Math.hypot(marker.x - prev.x, marker.y - prev.y)
-    const horizontalGap = marker.x - prev.x
     const clusterSessions = cluster.reduce((sum, m) => sum + (m.count || 1), 0)
-    const shouldMerge = (prevGap < minGap || horizontalGap < minGap * .8)
+    const shouldMerge = !marker.protected && !cluster.some(m => m.protected)
+      && prevGap < minGap
       && clusterSessions + (marker.count || 1) <= 6
 
     if (shouldMerge) {
@@ -456,7 +453,7 @@ function buildSmoothSvgPath(points, tension = .64, minY = -Infinity, maxY = Infi
   return d
 }
 
-function computePaceMetrics({ meta, stats, period, target = MARATHON_TARGET, now = Date.now() / 1000 }) {
+function computePaceMetrics({ meta, stats, period, binSize = PACE_BIN_SIZE, target = MARATHON_TARGET, now = Date.now() / 1000 }) {
   const sorted = (meta?.brHistory || [])
     .slice()
     .sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0))
@@ -492,7 +489,7 @@ function computePaceMetrics({ meta, stats, period, target = MARATHON_TARGET, now
   const finishMTT = rate > 0 ? Math.ceil(remaining / rate) : null
   const bustMTT = rate < 0 ? Math.ceil(stats.br / Math.abs(rate)) : null
   const deltaRate = previous?.rate != null && rate != null ? rate - previous.rate : null
-  const segments = buildPaceSegments(sorted, currentPredicate, startBR, PACE_BIN_SIZE)
+  const segments = buildPaceSegments(sorted, currentPredicate, startBR, binSize)
 
   return {
     period,
@@ -501,7 +498,7 @@ function computePaceMetrics({ meta, stats, period, target = MARATHON_TARGET, now
     previous,
     segments,
     trend:computePaceTrendStats(segments),
-    binSize:PACE_BIN_SIZE,
+    binSize,
     rate,
     deltaRate,
     finishMTT,
@@ -528,8 +525,9 @@ function PaceRateValue({ value, unit, className = '', animate = true }) {
   return <span className={`pace-rate-value ${tone} ${pulse ? 'pulse' : ''} ${className}`}>{formatDollarPerMTT(animated, unit)}</span>
 }
 
-function PaceMiniChart({ segments, unit, t, light = false }) {
+function PaceMiniChart({ segments, binSize, unit, t, light = false }) {
   const [hovered, setHovered] = useState(null)
+  useEffect(() => setHovered(null), [segments])
   // Must stay above the early return so the hook order never changes.
   const isMobile = useIsMobile()
   if (!segments?.length) return <div className="pace-chart-empty">{t('pace_chart_empty')}</div>
@@ -617,14 +615,24 @@ function PaceMiniChart({ segments, unit, t, light = false }) {
   segments.forEach((_, idx) => {
     if (segments.length <= 8 || idx % 2 === 0 || idx === segments.length - 1) xLabelIndexes.add(idx)
   })
-  // Drop x-axis ticks that would collide with the final (current-total) label.
-  // The partial tail can end only a few MTT past the last full bin (e.g. 14k vs
-  // 14.2k), which otherwise renders as overlapping text.
+  // Keep the current total visible, then space the other ticks by text width.
   const lastLabelIdx = segments.length - 1
   const lastLabelX = x(lastLabelIdx)
+  const labelWidth = idx => estimateSvgTextWidth(segments[idx].label, 10)
+  let previousLabelIdx = null
   for (const idx of [...xLabelIndexes]) {
-    if (idx !== lastLabelIdx && Math.abs(x(idx) - lastLabelX) < 40) xLabelIndexes.delete(idx)
+    if (idx === lastLabelIdx) continue
+    const finalGap = Math.max(40, (labelWidth(idx) + labelWidth(lastLabelIdx)) / 2 + 8)
+    const previousGap = previousLabelIdx == null ? 0 : (labelWidth(idx) + labelWidth(previousLabelIdx)) / 2 + 8
+    if (lastLabelX - x(idx) < finalGap || (previousLabelIdx != null && x(idx) - x(previousLabelIdx) < previousGap)) {
+      xLabelIndexes.delete(idx)
+    } else {
+      previousLabelIdx = idx
+    }
   }
+  // Dense steps must not put one point's hit area over another point's center.
+  const hitRadii = points.map((point, idx) => Math.min(isMobile ? 16 : 12,
+    ...points.flatMap((other, otherIdx) => otherIdx === idx ? [] : [Math.hypot(point.x - other.x, point.y - other.y) * .45])))
   const paceTone = ok => ok ? (light ? '#2e8b3a' : '#78d984') : (light ? '#c8362e' : '#f0756d')
   const firstTone = paceTone(segments[0]?.rate >= 0)
   const lineStops = [
@@ -648,7 +656,7 @@ function PaceMiniChart({ segments, unit, t, light = false }) {
 
   return (
     <div className="pace-chart-wrap" data-testid="pace-chart" onMouseLeave={closeTooltip}>
-      <svg className="pace-chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-label={t('pace_chart_label')}>
+      <svg className="pace-chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-label={t('pace_chart_label').replace('{step}', String(binSize))}>
         <defs>
           <linearGradient id="paceAreaGrad" x1="0" y1={pad.top} x2="0" y2={pad.top + plotH} gradientUnits="userSpaceOnUse">
             <stop offset="0%" stopColor="#ffffff" stopOpacity=".12"/>
@@ -714,7 +722,7 @@ function PaceMiniChart({ segments, unit, t, light = false }) {
               onBlur={closeTooltip}
               onClick={(e) => { e.stopPropagation(); openTooltip(seg, idx, cx, rateY) }}
               tabIndex="0" role="button" aria-label={`${seg.label}: ${formatDollarPerMTT(seg.rate, unit)}${isPartial ? `, ${t('pace_tip_partial')}` : ''}`}>
-              <circle className="pace-dot-hit" cx={cx} cy={rateY} r={isMobile ? 16 : 12}/>
+              <circle className="pace-dot-hit" cx={cx} cy={rateY} r={hitRadii[idx]}/>
               {isPartial && <circle className="pace-dot-partial-ring" cx={cx} cy={rateY} r="8.2"/>}
               {isLatest && <circle className="pace-dot-latest-ring" cx={cx} cy={rateY} r="8.4"/>}
               <circle className="pace-dot" cx={cx} cy={rateY} r={isLatest ? 5 : 3.8}/>
@@ -755,8 +763,7 @@ function PaceMiniChart({ segments, unit, t, light = false }) {
   )
 }
 
-function PaceWidget({ meta, stats, period, setPeriod, lang, t, light = false }) {
-  const pace = useMemo(() => computePaceMetrics({ meta, stats, period }), [meta, stats, period])
+const PaceWidget = memo(function PaceWidget({ pace, period, setPeriod, binSize, setBinSize, lang, t, light = false }) {
   if (!pace?.current) return null
 
   const currentRate = pace.rate
@@ -822,14 +829,20 @@ function PaceWidget({ meta, stats, period, setPeriod, lang, t, light = false }) 
         </div>
         <div className="pace-chart-meta">
           <div className="pace-chart-title">
-            <b>{t('pace_chart_step')}: {fmtInt(pace.binSize)} {mttUnit}</b>
+            <label className="pace-step-control" htmlFor="pace-bin-size">
+              {t('pace_chart_step')}
+              <select id="pace-bin-size" className="pace-step-select" value={binSize}
+                aria-label={t('pace_chart_step_label')} onChange={e => setBinSize(parsePaceBinSize(e.target.value))}>
+                {PACE_BIN_OPTIONS.map(size => <option key={size} value={size}>{fmtInt(size)} {mttUnit}</option>)}
+              </select>
+            </label>
           </div>
         </div>
-        <PaceMiniChart segments={pace.segments} unit={mttUnit} t={t} light={light}/>
+        <PaceMiniChart segments={pace.segments} binSize={binSize} unit={mttUnit} t={t} light={light}/>
       </div>
     </section>
   )
-}
+})
 
 // ─── MARATHON CHART (bezier functions imported from utils.js) ─────────────────
 
@@ -901,7 +914,53 @@ function MarathonMilestoneCallout({ milestone, type, isMobile, W, pL, pR, pT, pl
   )
 }
 
-function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, lang, t, light = false }) {
+function buildMarathonPoints(posts, meta, startBR) {
+  if (meta?.brHistory?.length) {
+    return meta.brHistory
+      .slice()
+      .sort((a,b) => (a.timestamp||0)-(b.timestamp||0))
+      .map((h,i,arr) => ({
+        id:h.id,
+        br:h.brAfter, brPrev:i===0?startBR:arr[i-1].brAfter,
+        date:h.date, timestamp:h.timestamp, text:h.text||'',
+        url:h.url||`https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=${h.id}`,
+        images:[], sessionResult:h.sessionResult, rooms:h.rooms||null,
+        tournaments:h.tournaments ?? null, totalTournaments:h.totalTournaments ?? null,
+      }))
+  }
+  return posts
+    .filter(p => ROMEO_RE.test(p.author) && p.brAfter)
+    .sort((a,b) => (a.timestamp||0)-(b.timestamp||0))
+    .map((p,i,arr) => ({
+      id:p.id,
+      br:p.brAfter, brPrev:i===0?startBR:arr[i-1].brAfter,
+      date:p.date, timestamp:p.timestamp, text:p.text, url:p.url,
+      images:p.images||[], sessionResult:p.sessionResult,
+      tournaments:p.tournaments ?? null, totalTournaments:p.totalTournaments ?? null,
+    }))
+}
+
+const MarathonChart = memo(function MarathonChart(props) {
+  const [grouping, persistGrouping] = usePersistentState('rpt_marathon_grouping', 'sessions', {
+    serialize:String,
+    deserialize:value => value === 'months' ? 'months' : 'sessions',
+  })
+  const restoreControlFocus = useRef(false)
+  const setGrouping = useCallback(value => {
+    restoreControlFocus.current = document.activeElement?.id === 'marathon-grouping'
+    persistGrouping(value)
+  }, [persistGrouping])
+  useLayoutEffect(() => {
+    if (restoreControlFocus.current) document.getElementById('marathon-grouping')?.focus()
+    restoreControlFocus.current = false
+  }, [grouping])
+  const allPoints = useMemo(() => normalizeMarathonDistance(buildMarathonPoints(props.posts, props.meta, props.startBR)), [props.posts, props.meta, props.startBR])
+  return grouping === 'months'
+    ? <MonthlyMarathonChart {...props} allPoints={allPoints} grouping={grouping} setGrouping={setGrouping}/>
+    : <SessionMarathonChart {...props} allPoints={allPoints} grouping={grouping} setGrouping={setGrouping}/>
+})
+
+const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, startBR, setLightbox, period, setPeriod, grouping, setGrouping, lang, t, light = false }) {
   const [tip, setTip]     = useState(null)
   const [tipVisible, setTipVisible] = useState(false)
   const [pathLen, setPathLen] = useState(null)
@@ -941,31 +1000,6 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
 
   // Reset animation on period change so line redraws
   useEffect(() => { setPathLen(null) }, [period])
-
-  const allPoints = useMemo(() => {
-    if (meta?.brHistory?.length) {
-      return meta.brHistory
-        .slice()
-        .sort((a,b) => (a.timestamp||0)-(b.timestamp||0))
-        .map((h,i,arr) => ({
-          id:h.id,
-          br:h.brAfter, brPrev:i===0?startBR:arr[i-1].brAfter,
-          date:h.date, timestamp:h.timestamp, text:h.text||'',
-          url:h.url||`https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=${h.id}`,
-          images:[], sessionResult:h.sessionResult, rooms:h.rooms||null,
-          tournaments:h.tournaments||null, totalTournaments:h.totalTournaments||null,
-        }))
-    }
-    return posts
-      .filter(p => ROMEO_RE.test(p.author) && p.brAfter)
-      .sort((a,b) => (a.timestamp||0)-(b.timestamp||0))
-      .map((p,i,arr) => ({
-        id:p.id,
-        br:p.brAfter, brPrev:i===0?startBR:arr[i-1].brAfter,
-        date:p.date, timestamp:p.timestamp, text:p.text, url:p.url,
-        images:p.images||[], sessionResult:p.sessionResult,
-      }))
-  }, [posts, meta, startBR])
 
   // Period filter: keep points within cutoff. If result < 2 points, fall back to all.
   const points = useMemo(() => {
@@ -1126,6 +1160,34 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
   const xMainLabelY = xAxisY + (isMobile ? 19 : 16)
   const xSubLabelY = xMainLabelY + (isMobile ? 13 : 11)
   const xLabelEdgePad = isMobile ? 6 : 8
+  const knownDistancePoints = points.map((point, idx) => ({ idx, value:point.cumulativeMTT, x:coords[idx].x }))
+    .filter(point => point.value != null)
+  const distanceTicks = (() => {
+    if (!knownDistancePoints.length) return []
+    const first = knownDistancePoints[0]
+    const last = knownDistancePoints.at(-1)
+    const candidates = new Map([[first.idx, first], [last.idx, last]])
+    const tickCount = isMobile ? 4 : 6
+    for (let i = 1; i < tickCount - 1; i++) {
+      const target = first.value + (last.value - first.value) * i / (tickCount - 1)
+      const closest = knownDistancePoints.reduce((best, point) => Math.abs(point.value - target) < Math.abs(best.value - target) ? point : best, first)
+      candidates.set(closest.idx, closest)
+    }
+    const kept = []
+    for (const point of [...candidates.values()].sort((a, b) => a.idx - b.idx)) {
+      if (point !== last && last.x - point.x < 48) continue
+      if (kept.length && point.x - kept.at(-1).x < 48) continue
+      kept.push(point)
+    }
+    return kept
+  })()
+  const distanceAxisY = xSubLabelY + (isMobile ? 27 : 22)
+  const distanceCutoff = Date.now() / 1000 - (period === 'week' ? 7 : 30) * 86400
+  const periodDistancePoints = period === 'all' ? allPoints : allPoints.filter(point => point.timestamp >= distanceCutoff)
+  const visibleDistance = periodDistancePoints.every(point => point.distanceMTT != null) ? periodDistancePoints.reduce((sum, point) => sum + point.distanceMTT, 0) : null
+  const usesWholeArchiveFallback = period !== 'all' && periodDistancePoints.length < 2 && periodDistancePoints.length < allPoints.length
+  const totalDistance = points.at(-1)?.cumulativeMTT ?? null
+  const compactDistance = value => value >= 1000 ? `${(value / 1000).toFixed(value % 1000 ? 1 : 0)}k` : String(value)
   const xLabelExtraBottom = 0
   const signOfProfit = v => v > 0 ? 1 : v < 0 ? -1 : 0
   const sessionProfitAt = i => {
@@ -1184,75 +1246,6 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
     return ({ best:'БЕСТ', worst:'ВОРСТ', peak:'ПИК' })[kind]
   }
   const mttUnit = lang === 'ru' ? 'МТТ' : 'MTT'
-  const markerGroups = (() => {
-    if (!points.length) return []
-    if (points.length === 1) return [{
-      start:0,
-      end:0,
-      p:points[0],
-      x:coords[0].x,
-      y:coords[0].y,
-      profit:sessionProfitAt(0),
-      count:1,
-      sessions:[{ p:points[0], profit:sessionProfitAt(0), tournaments:mttDeltaAt(0) }],
-    }]
-
-    const groups = []
-    const minMarkerGap = isMobile ? 16 : 12
-    const detailedTailStart = Math.max(0, points.length - 5)
-    let start = 0
-    let runSign = profitSignAt(0)
-
-    const emit = end => {
-      if (end < start) return
-      groups.push({ start, end })
-    }
-
-    for (let i = 1; i < detailedTailStart; i++) {
-      const sign = profitSignAt(i) || runSign
-      if (!runSign && sign) runSign = sign
-
-      const signChanged = runSign && sign && sign !== runSign
-      const enoughGap = coords[i].x - coords[start].x >= minMarkerGap
-      // Hard cap: a winning/losing streak must not collapse into one dot no
-      // matter how tight the pixels are (a 24-session blob was one hover stop).
-      const sizeCap = i - start + 1 >= 6
-
-      if (signChanged) {
-        emit(i - 1)
-        start = i
-        runSign = profitSignAt(i)
-      } else if (enoughGap || sizeCap) {
-        emit(i)
-        start = i + 1
-        runSign = start < points.length ? (profitSignAt(start) || runSign) : runSign
-      }
-    }
-
-    if (start < detailedTailStart) emit(detailedTailStart - 1)
-    for (let i = detailedTailStart; i < points.length; i++) {
-      groups.push({ start:i, end:i })
-    }
-
-    const rawMarkers = groups
-      .filter((g, idx, arr) => idx === 0 || g.end !== arr[idx - 1].end)
-      .map(g => ({
-        ...g,
-        p: points[g.end],
-        x: coords[g.end].x,
-        y: coords[g.end].y,
-        profit: points
-          .slice(g.start, g.end + 1)
-          .reduce((sum, p, offset) => sum + sessionProfitAt(g.start + offset), 0),
-        count: g.end - g.start + 1,
-        sessions: points.slice(g.start, g.end + 1).map((p, offset) => {
-          const idx = g.start + offset
-          return { p, profit:sessionProfitAt(idx), tournaments:mttDeltaAt(idx) }
-        }),
-      }))
-
-    return compactCrowdedMarathonMarkers(rawMarkers, isMobile ? 20 : 16, yAtChartX)
-  })()
   const xLabelItems = (() => {
     if (!points.length) return []
 
@@ -1742,8 +1735,8 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
 
     return stops
   })()
-  const significantMarkerGroups = (() => {
-    if (!points.length) return []
+  const significantIndexes = (() => {
+    if (!points.length) return new Set()
 
     const indexes = new Set([0, points.length - 1])
     let peakIdx = 0
@@ -1779,31 +1772,110 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
       if (moneySwing >= localTurnMoney || pixelSwing >= localTurnPixels) indexes.add(idx)
     })
 
-    return markerGroups.filter(marker =>
-      [...indexes].some(idx => idx >= marker.start && idx <= marker.end)
-    )
+    return indexes
   })()
+  const markerGroups = (() => {
+    if (!points.length) return []
+    if (points.length === 1) return [{
+      start:0,
+      end:0,
+      p:points[0],
+      x:coords[0].x,
+      y:coords[0].y,
+      profit:sessionProfitAt(0),
+      count:1,
+      sessions:[{ p:points[0], profit:sessionProfitAt(0), tournaments:mttDeltaAt(0) }],
+    }]
+
+    const groups = points.length > 5 ? [{ start:0, end:0 }] : []
+    const minMarkerGap = isMobile ? 16 : 12
+    const detailedTailStart = Math.max(0, points.length - 5)
+    let start = points.length > 5 ? 1 : 0
+    let runSign = profitSignAt(0)
+
+    const emit = end => {
+      if (end < start) return
+      groups.push({ start, end })
+    }
+
+    for (let i = 1; i < detailedTailStart; i++) {
+      // Key updates keep their own point on the exact bankroll line.
+      if (significantIndexes.has(i)) {
+        emit(i - 1)
+        groups.push({ start:i, end:i })
+        start = i + 1
+        runSign = profitSignAt(start)
+        continue
+      }
+      const sign = profitSignAt(i) || runSign
+      if (!runSign && sign) runSign = sign
+
+      const signChanged = runSign && sign && sign !== runSign
+      const enoughGap = coords[i].x - coords[start].x >= minMarkerGap
+      // Hard cap: a winning/losing streak must not collapse into one dot no
+      // matter how tight the pixels are (a 24-session blob was one hover stop).
+      const sizeCap = i - start + 1 >= 6
+
+      if (signChanged) {
+        emit(i - 1)
+        start = i
+        runSign = profitSignAt(i)
+      } else if (enoughGap || sizeCap) {
+        emit(i)
+        start = i + 1
+        runSign = start < points.length ? (profitSignAt(start) || runSign) : runSign
+      }
+    }
+
+    if (start < detailedTailStart) emit(detailedTailStart - 1)
+    for (let i = detailedTailStart; i < points.length; i++) {
+      groups.push({ start:i, end:i })
+    }
+
+    const rawMarkers = groups
+      .filter((g, idx, arr) => idx === 0 || g.end !== arr[idx - 1].end)
+      .map(g => ({
+        ...g,
+        protected: [...significantIndexes].some(i => i >= g.start && i <= g.end),
+        p: points[g.end],
+        x: coords[g.end].x,
+        y: coords[g.end].y,
+        profit: points
+          .slice(g.start, g.end + 1)
+          .reduce((sum, p, offset) => sum + sessionProfitAt(g.start + offset), 0),
+        count: g.end - g.start + 1,
+        sessions: points.slice(g.start, g.end + 1).map((p, offset) => {
+          const idx = g.start + offset
+          return { p, profit:sessionProfitAt(idx), tournaments:mttDeltaAt(idx) }
+        }),
+      }))
+
+    return compactCrowdedMarathonMarkers(rawMarkers, isMobile ? 20 : 16, yAtChartX)
+  })()
+  const significantMarkerGroups = markerGroups.filter(marker =>
+    [...significantIndexes].some(idx => idx >= marker.start && idx <= marker.end)
+  )
   // Every group gets a dot (43 of 62 used to be invisible); label-bearing
   // groups keep the loud styling, the rest render as small muted session dots.
   const significantSet = new Set(significantMarkerGroups)
   // Crowding keeps its original meaning: distance between LOUD markers only —
   // small minor dots must not demote the styling of labelled/last points.
-  const crowdingByMarker = new Map(significantMarkerGroups.map((marker, idx, arr) => {
-    const distances = [
-      arr[idx - 1] ? Math.hypot(marker.x - arr[idx - 1].x, marker.y - arr[idx - 1].y) : Infinity,
-      arr[idx + 1] ? Math.hypot(marker.x - arr[idx + 1].x, marker.y - arr[idx + 1].y) : Infinity,
-    ]
+  const crowdingByMarker = new Map(significantMarkerGroups.map((marker, _, arr) => {
+    // A sharp zigzag can bring non-adjacent updates close together.
+    const distances = arr.filter(other => other !== marker)
+      .map(other => Math.hypot(marker.x - other.x, marker.y - other.y))
     const nearestDistance = Math.min(...distances)
     return [marker, { nearestDistance, isCrowded:nearestDistance < (isMobile ? 23 : 20) }]
   }))
-  let lastDrawnX = -Infinity
+  let lastDrawnMarker = null
   const latestMarkerX = markerGroups.length ? markerGroups[markerGroups.length - 1].x : 0
-  const loudXs = significantMarkerGroups.map(m => m.x)
+  const nearMarker = (a, b, gap) => Math.hypot(a.x - b.x, a.y - b.y) < gap
   const minorGap = isMobile ? 9 : 8
   const markerVisuals = markerGroups.map((marker, idx) => {
     const significant = significantSet.has(marker)
     const crowding = crowdingByMarker.get(marker) || { nearestDistance:Infinity, isCrowded:false }
-    // thin overlapping minor dots (a minor dot yields to any loud dot within
+    // Thin overlapping minor dots by visual distance, retaining vertically separated turns.
+    // A minor dot yields to any loud dot within
     // ~2r, whichever side it is on), and keep a quiet zone around the latest
     // (live) point so its gold dot stays readable (hover still works)
     const isLatest = idx === markerGroups.length - 1
@@ -1811,24 +1883,30 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
     if (!isLatest && Math.abs(marker.x - latestMarkerX) < (isMobile ? 18 : 14)) {
       dotHidden = true
     } else if (significant) {
-      lastDrawnX = marker.x
-    } else if (loudXs.some(x => Math.abs(x - marker.x) < minorGap) || marker.x - lastDrawnX < minorGap) {
+      lastDrawnMarker = marker
+    } else if (significantMarkerGroups.some(m => nearMarker(m, marker, minorGap))
+      || (lastDrawnMarker && nearMarker(lastDrawnMarker, marker, minorGap))) {
       dotHidden = true
     } else {
-      lastDrawnX = marker.x
+      lastDrawnMarker = marker
     }
+    const nearestHitDistance = Math.min(...markerGroups.filter(other => other !== marker)
+      .map(other => Math.hypot(marker.x - other.x, marker.y - other.y)))
     return {
       ...marker,
+      hitRadius:Math.min(isLatest ? 14 : 10, nearestHitDistance * .45),
       nearestDistance:crowding.nearestDistance,
       significant,
       dotHidden,
-      isCrowded:crowding.isCrowded,
+      isCrowded:!isLatest && crowding.isCrowded,
     }
   })
 
   // ── Mobile: long-press (300ms) to show tooltip ──
   const longPressTimer = useRef(null)
+  const longPressOpened = useRef(false)
   const handleTouchStart = e => {
+    longPressOpened.current = false
     e.preventDefault()
     const rect = e.currentTarget.getBoundingClientRect()
     const touch = e.touches[0]
@@ -1836,14 +1914,20 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
     const sy = touch.clientY
     longPressTimer.current = setTimeout(() => {
       let nearest=null, minD=Infinity
-      significantMarkerGroups.forEach(m => { const d=Math.abs(m.x-tx); if(d<minD){minD=d;nearest=m} })
+      markerGroups.forEach(m => { const d=Math.abs(m.x-tx); if(d<minD){minD=d;nearest=m} })
       if (!nearest) return
+      longPressOpened.current = true
       const p = nearest.p
       announceHoverPopupOpen()
       openTipState({ p, profit:nearest.profit, x:nearest.x, y:nearest.y, screenY: sy, groupCount:nearest.count, sessions:nearest.sessions, totalMTT:cumMTT[nearest.end] || null })
     }, 300)
   }
-  const handleTouchEnd = () => { clearTimeout(longPressTimer.current) }
+  const handleTouchEnd = e => {
+    clearTimeout(longPressTimer.current)
+    // Suppress the compatibility click that would immediately close the popup.
+    if (longPressOpened.current) e.preventDefault()
+    longPressOpened.current = false
+  }
   const handleTouchMove = () => { clearTimeout(longPressTimer.current) }
 
   if (!points.length) return (
@@ -1855,18 +1939,8 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
 
   return (
     <div className="marathon-chart" ref={chartRef} onClick={tip ? closeTip : undefined}>
-      <div className="section-head" style={{marginBottom:6,display:'flex',alignItems:'center',gap:10,flexWrap:'wrap'}}>
-        <h2 className="section-title">{t('chart_marathon')}</h2>
-        <div className="mc-periods">
-          {[['week',t('period_week')],['month',t('period_month')],['all',t('period_all')]].map(([k,label])=>(
-            <button type="button" key={k} onClick={()=>setPeriodPersist(k)}
-              className={`mc-period ${period===k?'active':''}`} aria-pressed={period===k}>
-              {label}
-            </button>
-          ))}
-        </div>
-        <span className="section-count">{plBrUpdates(points.length, lang)}</span>
-      </div>
+      <MarathonChartControls {...{ period, setPeriod:setPeriodPersist, grouping, setGrouping, t }} count={plBrUpdates(points.length, lang)}/>
+      {usesWholeArchiveFallback && <p className="mc-view-hint">{t('chart_session_fallback')}</p>}
       <svg className="mc-svg" viewBox={`0 0 ${W} ${H+pB+xLabelExtraBottom}`}
         role="img" aria-label={`${t('chart_marathon')}: ${plBrUpdates(points.length, lang)}`}
         onMouseLeave={(e)=>{
@@ -1955,13 +2029,14 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
               }
               // Hysteresis: switch anchors only once the cursor is clearly past
               // the midpoint, otherwise the tooltip chatters on the boundary.
-              if (tip && Number.isFinite(tip.x) && minD >= Math.abs(tip.x - mx) - 7) return
+              const switchBuffer = tip ? Math.min(7, Math.abs(tip.x - nearest.x) * .3) : 0
+              if (tip && Number.isFinite(tip.x) && minD >= Math.abs(tip.x - mx) - switchBuffer) return
               if (!tip) announceHoverPopupOpen()
               openTipState({ p:nearest.p, profit:nearest.profit, x:nearest.x, y:nearest.y,
                 groupCount:nearest.count, sessions:nearest.sessions, totalMTT:cumMTT[nearest.end] || null })
             }}/>
         )}
-        {markerVisuals.map(({ p, start, end, x, y, profit, count, sessions, parts, compacted, mixedTone, isCrowded, significant, dotHidden }) => {
+        {markerVisuals.map(({ p, start, end, x, y, profit, count, sessions, parts, compacted, mixedTone, isCrowded, hitRadius, nearestDistance, significant, dotHidden }) => {
           const i=end
           const isLast = i===points.length-1
           const cx=x, cy=y
@@ -1974,7 +2049,7 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
             : (isHovered ? (isLast ? 8 : 6) : (isLast ? 6 : isGrouped ? 4.6 : 3.8))
           const baseDotR = significant || isHovered ? loudDotR : (isMobile ? 2.8 : 3)
           const dotR = isCrowded
-            ? Math.min(baseDotR, isLast ? (isMobile ? 4.8 : 4.6) : (isMobile ? 2.7 : 2.8))
+            ? Math.min(baseDotR, isMobile ? 2.7 : 2.8, Math.max(1.2, (nearestDistance - 2.4) / 2))
             : baseDotR
           const clusterPartR = partCount => {
             const base = isMobile ? 2.2 : 2.05
@@ -1990,7 +2065,7 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
             <g key={`marker-${start}-${end}`} className={isHovered ? 'is-hovered' : ''} onMouseEnter={!isMobile ? openTip : undefined}
               onClick={!isMobile ? e => { e.stopPropagation(); openTip() } : undefined}
               data-start={start} data-end={end} data-count={count}>
-              {!isMobile && <circle cx={cx} cy={cy} r={renderClusterParts ? 18 : isLast?14:10} fill="transparent"
+              {!isMobile && <circle cx={cx} cy={cy} r={renderClusterParts ? 18 : hitRadius} fill="transparent"
                 className={renderClusterParts ? 'mc-dot-cluster-hit' : undefined}
                 />}
               {renderClusterParts ? (
@@ -2011,13 +2086,13 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
                 </g>
               ) : (
                 <>
-                  {isGrouped && (significant || isHovered) && <circle cx={cx} cy={cy} r={dotR + (compacted ? 3.2 : 2.6)}
+                  {isGrouped && <circle cx={cx} cy={cy} r={dotR + (compacted ? 3.2 : 2.6)}
                     className={`mc-dot-grouped-ring ${mixedTone ? 'mc-dot-mixed-ring' : ''}`}
                     stroke={profit>=0?'#4caf50':'#e53935'}/>}
                   <circle cx={cx} cy={cy} r={dotR}
                     className={`mc-dot ${isLast && !isCrowded ? 'mc-dot-last' : ''} ${isGrouped?'mc-dot-grouped':''} ${compacted?'mc-dot-compacted':''} ${mixedTone?'mc-dot-mixed':''} ${isCrowded?'mc-dot-crowded':''} ${!significant && !isHovered ? 'mc-dot-minor' : ''} ${dotHidden && !isHovered ? 'mc-dot-hidden' : ''}`}
                     fill={profit>=0?'#4caf50':'#e53935'}
-                    style={{transition:'r .12s', ...(isLast?{color:profit>=0?'#4caf50':'#e53935'}:{})}}/>
+                    style={{transition:'r .12s', ...(isCrowded ? {strokeWidth:isHovered ? 1.4 : .9} : {}), ...(isLast?{color:profit>=0?'#4caf50':'#e53935'}:{})}}/>
                 </>
               )}
             </g>
@@ -2092,6 +2167,15 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
             </g>
           )
         })}
+        <g className="mc-distance-axis" aria-label={t('chart_distance_axis')}>
+          {distanceTicks.map((tick, index) => <g key={tick.idx}>
+            <line x1={tick.x} x2={tick.x} y1={distanceAxisY - 14} y2={distanceAxisY - 9} className="mc-distance-tick"/>
+            <text x={tick.x} y={distanceAxisY} textAnchor={index === 0 ? 'start' : index === distanceTicks.length - 1 ? 'end' : 'middle'} className="mc-distance-label">
+              <title>{fmtInt(tick.value)} {mttUnit}</title>{compactDistance(tick.value)}
+            </text>
+          </g>)}
+          {distanceTicks.length > 0 && <text x={W - pR} y={distanceAxisY + 17} textAnchor="end" className="mc-distance-caption">{t('chart_distance_axis')} · {mttUnit}</text>}
+        </g>
         {tip && (() => {
           const positive = (tip.profit ?? 0) >= 0
           const dotFill = positive ? (light ? '#2e8b3a' : '#4caf50') : (light ? '#c8362e' : '#e53935')
@@ -2110,6 +2194,10 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
           </>
         })()}
       </svg>
+      <div className="mc-distance-summary" data-testid="marathon-distance">
+        <span data-testid="marathon-period-distance">{t('chart_period_distance')}: <b>{fmtInt(visibleDistance)} {mttUnit}</b></span>
+        {period !== 'all' && <span data-testid="marathon-total-distance">{t('chart_total_distance')}: <b>{fmtInt(totalDistance)} {mttUnit}</b></span>}
+      </div>
       {tip && (() => {
         const pct=tip.x/W*100, right=pct>60
         const roomDeltas = tip.p.rooms ? CHART_ROOMS.map(r=>({...r,v:(tip.p.rooms.after[r.key]||0)-(tip.p.rooms.before[r.key]||0)})).filter(r=>r.v!==0) : []
@@ -2198,7 +2286,7 @@ function MarathonChart({ posts, meta, startBR, setLightbox, period, setPeriod, l
       })()}
     </div>
   )
-}
+})
 
 
 // ─── ROOM WIDGET ─────────────────────────────────────────────────────────────
@@ -2328,34 +2416,6 @@ function DayEventsList({ events, compact, onPostClick, setLightbox, lang = _lang
   )
 }
 
-function pickTopAuthors(dayPosts, allPosts) {
-  const MIN_RATING = 15000
-  const VIP_RATING = 25000
-  const byAuthor = {}
-  dayPosts.filter(p => p.author && !ROMEO_RE.test(p.author)).forEach(p => {
-    const a = p.author
-    if (!byAuthor[a]) byAuthor[a] = { rating: p.rating||0, bestLikes: 0, count: 0 }
-    byAuthor[a].count++
-    if ((p.likes||0) > byAuthor[a].bestLikes) byAuthor[a].bestLikes = p.likes||0
-    if ((p.rating||0) > byAuthor[a].rating) byAuthor[a].rating = p.rating||0
-  })
-  const globalCounts = {}
-  allPosts?.forEach(p => { if (p.author) globalCounts[p.author] = (globalCounts[p.author]||0)+1 })
-  return Object.entries(byAuthor)
-    .filter(([, {rating}]) => rating >= MIN_RATING)
-    .map(([name, {rating, bestLikes, count}]) => {
-      const gc = globalCounts[name] || count
-      const uniqueBonus = gc <= 3 ? 10 : gc <= 10 ? 4 : 0
-      const authority = Math.log10(rating + 1) * 20
-      const likeScore = (bestLikes || 0) * 2
-      const vipBoost = (rating >= VIP_RATING && bestLikes > 5) ? 80 : 0
-      const score = authority + likeScore + vipBoost + uniqueBonus
-      return { name, rating, score, bestLikes }
-    })
-    .sort((a,b) => b.score - a.score)
-    .slice(0, 5)
-}
-
 function smartSortPosts(ps) {
   if (ps.length < 2) return ps
   const sorted = [...ps].sort((a,b) => (a.timestamp||0) - (b.timestamp||0))
@@ -2413,7 +2473,8 @@ function ActivityChart({ posts, favorites, ignored, onFav, onIgnore, onUnignore,
   const PERIOD_DAYS = { week: 7, month: 30, all: null }
   const PERIOD_LABELS = { week: t('period_week'), month: t('period_month'), all: t('period_all_marathon') }
 
-  const data = useMemo(() => {
+  const globalAuthorCounts = useMemo(() => buildGlobalAuthorCounts(posts), [posts])
+  const allDays = useMemo(() => {
     const byDate = {}
     posts.forEach(p => {
       if (!p.timestamp) return
@@ -2423,10 +2484,13 @@ function ActivityChart({ posts, favorites, ignored, onFav, onIgnore, onUnignore,
       byDate[k].count++
       byDate[k].posts.push(p)
     })
-    const sorted = Object.entries(byDate).sort((a,b)=>a[0]>b[0]?1:-1)
+    return Object.entries(byDate).sort((a,b)=>a[0]>b[0]?1:-1)
+  }, [posts])
+
+  const data = useMemo(() => {
     const days = PERIOD_DAYS[period]
-    return days ? sorted.slice(-days) : sorted
-  }, [posts, period])
+    return days ? allDays.slice(-days) : allDays
+  }, [allDays, period])
 
   // Precompute tooltip payload per date — avoids re-running makeDayEvents / pickTopAuthors
   // on every hover frame. Building this once per `data/posts` change is much cheaper
@@ -2437,12 +2501,12 @@ function ActivityChart({ posts, favorites, ignored, onFav, onIgnore, onUnignore,
       const romeoCount = dp.reduce((n, p) => n + (ROMEO_RE.test(p.author) ? 1 : 0), 0)
       meta.set(date, {
         events: makeDayEvents(dp),
-        topAuthors: pickTopAuthors(dp, posts).slice(0, 3),
+        topAuthors: pickTopAuthors(dp, globalAuthorCounts).slice(0, 3),
         romeoCount,
       })
     }
     return meta
-  }, [data, posts])
+  }, [data, globalAuthorCounts])
 
   useLayoutEffect(() => {
     if (!tip || selected || !tip.anchorRect || !tipRef.current) {
@@ -2578,7 +2642,9 @@ function ActivityChart({ posts, favorites, ignored, onFav, onIgnore, onUnignore,
   }
 
   // ── DESKTOP: SVG bar chart ─────────────────────────────────────────────────
-  const W=600, H=70, pad=3
+  const W=600, H=70
+  // Keep gaps proportional on long timelines so every bar retains positive width.
+  const pad = Math.min(3, (W / data.length) * .3)
   const bw   = (W - pad * (data.length - 1)) / data.length
   const labelEdge = 40
   const labelWidth = 30
@@ -3636,7 +3702,7 @@ function FirstFundChip() {
 
 function FirstFundBanner({ t }) {
   const stats = [
-    ['$92M', t('ff_stat_income')],
+    ['$100M', t('ff_stat_income')],
     ['1500+', t('ff_stat_players')],
     ['13', t('ff_stat_years')],
   ]
@@ -3665,7 +3731,7 @@ function FirstFundBanner({ t }) {
 // ─── SESSION MTT WIDGET ──────────────────────────────────────────────────────
 // Bars of tournaments played per session (channel request). Follows the shared
 // week/month/all chart period; average as a dashed guide, last session in gold.
-function SessionMttChart({ meta, period, lang, t }) {
+const SessionMttChart = memo(function SessionMttChart({ meta, period, lang, t }) {
   const isMobile = useIsMobile()
   const [hoverIdx, setHoverIdx] = useState(null)
   const rows = useMemo(() => {
@@ -3783,7 +3849,7 @@ function SessionMttChart({ meta, period, lang, t }) {
       </div>
     </section>
   )
-}
+})
 
 // ─── APP ─────────────────────────────────────────────────────────────────────
 export default function App() {
@@ -3959,6 +4025,14 @@ export default function App() {
     serialize: String,
     deserialize: (raw) => raw || 'all',
   })
+
+  const [paceBinSize, setPaceBinSize] = usePersistentState('rpt_pace_bin_size', PACE_BIN_SIZE, {
+    serialize: String,
+    deserialize: parsePaceBinSize,
+  })
+  // Both the progress bar and pace widget use the same calculation. Unrelated
+  // feed/search/lightbox renders keep this result and the chart props stable.
+  const pace = useMemo(() => computePaceMetrics({ meta, stats, period: chartPeriod, binSize: paceBinSize }), [meta, stats, chartPeriod, paceBinSize])
 
   // Session stats recomputed against the chart-period filter so МТТ/сессия
   // and % плюсовых react when the user toggles week/month/all.
@@ -4297,7 +4371,6 @@ export default function App() {
         const pct = Math.max(0, Math.min(100, raw))
         const remaining = Math.max(0, target - stats.br)
 
-        const pace = computePaceMetrics({ meta, stats, period:chartPeriod, target })
         const isLosing = pace?.rate != null && pace.rate < 0
         const mttNeeded = pace?.finishMTT || null
         const mttToBust = pace?.bustMTT || null
@@ -4478,7 +4551,7 @@ export default function App() {
                 period={chartPeriod} setPeriod={setChartPeriod} lang={lang} t={t} light={theme === 'light'}/>
               {/* Mobile-only: sidebar is hidden <=980px, so surface the FF banner here in the feed */}
               {isNarrow && <div className="ff-banner-mobile-slot"><FirstFundBanner t={t}/></div>}
-              <PaceWidget meta={meta} stats={stats} period={chartPeriod} setPeriod={setChartPeriod} lang={lang} t={t} light={theme === 'light'}/>
+              <PaceWidget pace={pace} period={chartPeriod} setPeriod={setChartPeriod} binSize={paceBinSize} setBinSize={setPaceBinSize} lang={lang} t={t} light={theme === 'light'}/>
               <SessionMttChart meta={meta} period={chartPeriod} lang={lang} t={t}/>
               {/* Mobile-only top posts */}
               {lang==='ru' && hotPosts.length > 0 && (() => {

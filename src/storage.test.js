@@ -1,12 +1,19 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { CACHE_KEY } from './cacheConfig.js'
-import { expandPosts, fetchPublicData } from './storage.js'
+import { CACHE_KEY, CACHE_TTL } from './cacheConfig.js'
+import { expandPosts } from './storage.js'
 
 function jsonResponse(body) {
   return Promise.resolve({
     ok: true,
     json: async () => body,
   })
+}
+
+function spyStorageMethod(method) {
+  // jsdom Storage is a proxy: spying on the instance does not replace its
+  // methods. The fallback memory storage from test-setup has own methods.
+  const prototype = Object.getPrototypeOf(localStorage)
+  return vi.spyOn(typeof prototype[method] === 'function' ? prototype : localStorage, method)
 }
 
 describe('expandPosts', () => {
@@ -108,12 +115,17 @@ describe('expandPosts', () => {
 })
 
 describe('fetchPublicData', () => {
-  beforeEach(() => {
+  let fetchPublicData
+
+  beforeEach(async () => {
     localStorage.clear()
     vi.restoreAllMocks()
+    vi.resetModules()
+    ;({ fetchPublicData } = await import('./storage.js'))
   })
 
   afterEach(() => {
+    vi.restoreAllMocks()
     vi.unstubAllGlobals()
   })
 
@@ -216,6 +228,178 @@ describe('fetchPublicData', () => {
     expect(fetchSpy).not.toHaveBeenCalled()
   })
 
+  it('decodes a cache once and revalidates unchanged posts without rewriting it', async () => {
+    let now = 1_800_000_000_000
+    vi.spyOn(Date, 'now').mockImplementation(() => now)
+    const raw = JSON.stringify({
+      ts: now,
+      compact: { avatars: [], posts: [{ i: 'cached', a: 'Cached', t: 1 }] },
+      meta: { lastUpdated: '2026-04-19T03:00:00.000Z' },
+    })
+    localStorage.setItem(CACHE_KEY, raw)
+    const parseSpy = vi.spyOn(JSON, 'parse')
+    const writeSpy = spyStorageMethod('setItem')
+    const fetchSpy = vi.fn((url) => {
+      if (String(url).endsWith('/meta.json')) {
+        return jsonResponse({ lastUpdated: '2026-04-19T03:00:00.000Z' })
+      }
+      throw new Error(`Unexpected heavy fetch: ${url}`)
+    })
+    vi.stubGlobal('fetch', fetchSpy)
+
+    const first = await fetchPublicData()
+    const second = await fetchPublicData()
+    expect(fetchSpy).not.toHaveBeenCalled()
+    now += CACHE_TTL + 1
+    const revalidated = await fetchPublicData()
+    const afterRevalidation = await fetchPublicData()
+
+    for (const result of [second, revalidated, afterRevalidation]) {
+      expect(result.posts).toBe(first.posts)
+      expect(result.meta).toBe(first.meta)
+      expect(result.stale).toBe(false)
+    }
+    expect(parseSpy.mock.calls.filter(([value]) => value === raw)).toHaveLength(1)
+    expect(writeSpy).not.toHaveBeenCalled()
+    expect(fetchSpy.mock.calls.every(([url]) => String(url).endsWith('/meta.json'))).toBe(true)
+    expect(fetchSpy.mock.calls.length).toBeGreaterThan(0)
+  })
+
+  it('keeps a memory cache when a multi-MB payload cannot fit in localStorage', async () => {
+    let now = 1_800_000_000_000
+    vi.spyOn(Date, 'now').mockImplementation(() => now)
+    spyStorageMethod('setItem').mockImplementation(() => {
+      throw new DOMException('Quota exceeded', 'QuotaExceededError')
+    })
+    const fetchSpy = vi.fn((url) => {
+      if (String(url).endsWith('/meta.json')) return jsonResponse({ lastUpdated: '2026-04-19T03:00:00.000Z' })
+      if (String(url).endsWith('/posts.min.json')) return jsonResponse({ posts: [{ i: 'large', a: 'Romeopro', t: 1 }] })
+      throw new Error(`Unexpected fetch: ${url}`)
+    })
+    vi.stubGlobal('fetch', fetchSpy)
+
+    const first = await fetchPublicData()
+    expect(localStorage.getItem(CACHE_KEY)).toBeNull()
+    fetchSpy.mockClear()
+    const warm = await fetchPublicData()
+    expect(fetchSpy).not.toHaveBeenCalled()
+    now += CACHE_TTL + 1
+    const revalidated = await fetchPublicData()
+
+    expect(warm.posts).toBe(first.posts)
+    expect(revalidated.posts).toBe(first.posts)
+    expect(revalidated.meta).toBe(first.meta)
+    expect(revalidated.stale).toBe(false)
+    expect(fetchSpy.mock.calls.length).toBeGreaterThan(0)
+    expect(fetchSpy.mock.calls.every(([url]) => String(url).endsWith('/meta.json'))).toBe(true)
+  })
+
+  it('keeps fresh memory data when an existing persisted cache cannot be updated', async () => {
+    localStorage.setItem(CACHE_KEY, JSON.stringify({
+      ts: Date.now() - CACHE_TTL - 1,
+      compact: { posts: [{ i: 'old', a: 'Cached' }] },
+      meta: { lastUpdated: '2026-04-19T03:00:00.000Z' },
+    }))
+    spyStorageMethod('setItem').mockImplementation(() => { throw new Error('quota') })
+    const fetchSpy = vi.fn((url) => String(url).endsWith('/meta.json')
+      ? jsonResponse({ lastUpdated: '2026-04-19T04:00:00.000Z' })
+      : jsonResponse({ posts: [{ i: 'new', a: 'Romeopro' }] }))
+    vi.stubGlobal('fetch', fetchSpy)
+
+    const first = await fetchPublicData()
+    fetchSpy.mockClear()
+    const warm = await fetchPublicData()
+
+    expect(first.posts[0].id).toBe('new')
+    expect(warm.posts).toBe(first.posts)
+    expect(fetchSpy).not.toHaveBeenCalled()
+    expect(JSON.parse(localStorage.getItem(CACHE_KEY)).compact.posts[0].i).toBe('old')
+  })
+
+  it('reuses the memory snapshot when the browser blocks all storage access', async () => {
+    spyStorageMethod('getItem').mockImplementation(() => { throw new Error('blocked') })
+    spyStorageMethod('setItem').mockImplementation(() => { throw new Error('blocked') })
+    const fetchSpy = vi.fn((url) => String(url).endsWith('/meta.json')
+      ? jsonResponse({ lastUpdated: '2026-04-19T03:00:00.000Z' })
+      : jsonResponse({ posts: [{ i: 'memory', a: 'Romeopro' }] }))
+    vi.stubGlobal('fetch', fetchSpy)
+
+    const first = await fetchPublicData()
+    fetchSpy.mockClear()
+    const warm = await fetchPublicData()
+
+    expect(warm.posts).toBe(first.posts)
+    expect(fetchSpy).not.toHaveBeenCalled()
+  })
+
+  it('uses the original history for freshness after the hook deduplicates returned meta', async () => {
+    let now = 1_800_000_000_000
+    vi.spyOn(Date, 'now').mockImplementation(() => now)
+    const meta = {
+      lastUpdated: '2026-04-19T03:00:00.000Z',
+      brHistory: [
+        { id: 'a', timestamp: 1, brBefore: 10000, brAfter: 11000 },
+        { id: 'b', timestamp: 2, brBefore: 10000, brAfter: 12000 },
+      ],
+    }
+    localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: now, compact: { posts: [{ i: 'b', a: 'Romeopro' }] }, meta }))
+    const first = await fetchPublicData()
+    first.meta.brHistory = first.meta.brHistory.slice(1)
+    now += CACHE_TTL + 1
+    const fetchSpy = vi.fn((url) => {
+      if (String(url).endsWith('/meta.json')) return jsonResponse(meta)
+      throw new Error(`Unexpected heavy fetch: ${url}`)
+    })
+    vi.stubGlobal('fetch', fetchSpy)
+
+    const revalidated = await fetchPublicData()
+
+    expect(revalidated.posts).toBe(first.posts)
+    expect(revalidated.meta.brHistory).toHaveLength(1)
+    expect(fetchSpy.mock.calls.every(([url]) => String(url).endsWith('/meta.json'))).toBe(true)
+  })
+
+  it('observes a cache replaced or cleared by another tab', async () => {
+    const persist = (id) => localStorage.setItem(CACHE_KEY, JSON.stringify({
+      ts: Date.now(),
+      compact: { posts: [{ i: id, a: 'Cached' }] },
+      meta: { lastUpdated: '2026-04-19T03:00:00.000Z' },
+    }))
+    persist('first')
+    const first = await fetchPublicData()
+    persist('second')
+    const second = await fetchPublicData()
+    expect(second.posts[0].id).toBe('second')
+    expect(second.posts).not.toBe(first.posts)
+
+    localStorage.removeItem(CACHE_KEY)
+    vi.stubGlobal('fetch', vi.fn((url) => {
+      if (String(url).endsWith('/meta.json')) return jsonResponse({ lastUpdated: '2026-04-19T04:00:00.000Z' })
+      return jsonResponse({ posts: [{ i: 'network', a: 'Network' }] })
+    }))
+    const afterClear = await fetchPublicData()
+    expect(afterClear.posts[0].id).toBe('network')
+  })
+
+  it('shares overlapping loads instead of downloading each source twice', async () => {
+    const pending = []
+    const fetchSpy = vi.fn((url) => new Promise((resolve) => { pending.push({ url, resolve }) }))
+    vi.stubGlobal('fetch', fetchSpy)
+
+    const first = fetchPublicData()
+    const second = fetchPublicData()
+    expect(second).toBe(first)
+    expect(new Set(fetchSpy.mock.calls.map(([url]) => String(url))).size).toBe(fetchSpy.mock.calls.length)
+    for (const { url, resolve } of pending) {
+      resolve({ ok: true, json: async () => String(url).endsWith('/meta.json')
+        ? { lastUpdated: '2026-04-19T03:00:00.000Z' }
+        : { posts: [{ i: 'shared', a: 'Romeopro' }] } })
+    }
+    const [a, b] = await Promise.all([first, second])
+    expect(a).toBe(b)
+    expect(a.posts[0].id).toBe('shared')
+  })
+
   it('falls back to posts.json when the compact payload is unavailable', async () => {
     vi.stubGlobal('fetch', vi.fn((url) => {
       const href = String(url)
@@ -261,9 +445,15 @@ describe('fetchPublicData', () => {
   })
 
   it('throws when every source fails and no cache is available', async () => {
-    vi.stubGlobal('fetch', vi.fn(() => Promise.reject(new Error('offline'))))
+    const fetchSpy = vi.fn(() => Promise.reject(new Error('offline')))
+    vi.stubGlobal('fetch', fetchSpy)
 
     await expect(fetchPublicData()).rejects.toThrow('offline')
+
+    fetchSpy.mockImplementation((url) => String(url).endsWith('/meta.json')
+      ? jsonResponse({ lastUpdated: '2026-04-19T03:00:00.000Z' })
+      : jsonResponse({ posts: [{ i: 'retry', a: 'Romeopro' }] }))
+    expect((await fetchPublicData()).posts[0].id).toBe('retry')
   })
 
   it('reuses cached posts and skips the heavy payload when meta is unchanged', async () => {
