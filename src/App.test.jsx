@@ -618,6 +618,63 @@ describe('App', () => {
     }
   })
 
+  it.each([1, 7, 30, 200, 201, 209, 365, 730, 1000])(
+    'keeps every activity bar visible and selectable across %i marathon days',
+    async (days) => {
+      const base = makeMockData()
+      const start = Date.UTC(2024, 0, 1, 12) / 1000
+      const posts = Array.from({ length: days }, (_, i) => ({
+        ...base.posts[1],
+        id: `long-activity-${i}`,
+        text: `Marathon activity day ${i + 1}`,
+        timestamp: start + i * 86400,
+        url: `https://forum.gipsyteam.ru/long-activity-${i}`,
+      }))
+      fetchPublicData.mockResolvedValue(makeMockData({ posts }))
+      render(<App />)
+      const heading = await screen.findByText(translate('ru', 'chart_activity'))
+      const chart = heading.closest('.chart-wrap')
+      fireEvent.click(within(chart).getByRole('button', {
+        name: translate('ru', 'period_all_marathon'),
+      }))
+
+      const svg = chart.querySelector('svg')
+      const [,, width, height] = svg.getAttribute('viewBox').split(' ').map(Number)
+      const rects = [...svg.querySelectorAll('.activity-bar-rect')]
+      expect(rects).toHaveLength(days)
+      let previousEnd = 0
+      for (const rect of rects) {
+        const x = Number(rect.getAttribute('x'))
+        const y = Number(rect.getAttribute('y'))
+        const barWidth = Number(rect.getAttribute('width'))
+        const barHeight = Number(rect.getAttribute('height'))
+        expect([x, y, barWidth, barHeight].every(Number.isFinite)).toBe(true)
+        expect(barWidth).toBeGreaterThan(0)
+        expect(barHeight).toBeGreaterThan(0)
+        expect(x).toBeGreaterThanOrEqual(previousEnd - 1e-8)
+        expect(x + barWidth).toBeLessThanOrEqual(width + 1e-8)
+        expect(y).toBeGreaterThanOrEqual(0)
+        expect(y + barHeight).toBeLessThanOrEqual(height)
+        previousEnd = x + barWidth
+      }
+      expect(previousEnd).toBeCloseTo(width, 6)
+
+      const lastBar = rects.at(-1).closest('.activity-bar')
+      fireEvent.keyDown(lastBar, { key: 'Enter' })
+      expect(lastBar).toHaveAttribute('aria-pressed', 'true')
+      expect(within(chart).getByText(posts.at(-1).text)).toBeInTheDocument()
+      fireEvent.keyDown(lastBar, { key: ' ' })
+      expect(lastBar).toHaveAttribute('aria-pressed', 'false')
+
+      for (const [period, count] of [['period_week', 7], ['period_month', 30]]) {
+        fireEvent.click(within(chart).getByRole('button', { name: translate('ru', period) }))
+        const periodRects = [...chart.querySelectorAll('.activity-bar-rect')]
+        expect(periodRects).toHaveLength(Math.min(days, count))
+        expect(periodRects.every(rect => Number(rect.getAttribute('width')) > 0)).toBe(true)
+      }
+    },
+  )
+
   it('uses semantic event labels on the marathon X axis', async () => {
     const base = makeMockData()
     const brs = [18000, 31000, 48000, 76000, 91000, 101000, 122000, 121000, 112000, 119000]

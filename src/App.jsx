@@ -2554,7 +2554,9 @@ function ActivityChart({ posts, favorites, ignored, onFav, onIgnore, onUnignore,
   }
 
   // ── DESKTOP: SVG bar chart ─────────────────────────────────────────────────
-  const W=600, H=70, pad=3
+  const W=600, H=70
+  // Keep gaps proportional on long timelines so every bar retains positive width.
+  const pad = Math.min(3, (W / data.length) * .3)
   const bw   = (W - pad * (data.length - 1)) / data.length
   const labelEdge = 40
   const labelWidth = 30
