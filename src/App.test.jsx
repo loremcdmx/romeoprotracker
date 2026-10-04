@@ -1547,7 +1547,8 @@ describe('App', () => {
     render(<App />)
     await screen.findAllByText('Romeopro')
     const pkgVersion = require('../package.json').version.replace(/\.0$/, '')
-    expect(screen.getByText(`v${pkgVersion}`)).toBeInTheDocument()
+    const footerBrand = within(document.querySelector('footer')).getByText('RomeoPro Marathon').parentElement
+    expect(within(footerBrand).getByText(`v${pkgVersion}`)).toBeInTheDocument()
     expect(screen.getByText(translate('ru', 'footer_changelog'))).toBeInTheDocument()
   })
 
