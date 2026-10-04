@@ -3702,7 +3702,7 @@ function FirstFundChip() {
 
 function FirstFundBanner({ t }) {
   const stats = [
-    ['$92M', t('ff_stat_income')],
+    ['$100M', t('ff_stat_income')],
     ['1500+', t('ff_stat_players')],
     ['13', t('ff_stat_years')],
   ]
