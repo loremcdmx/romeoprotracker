@@ -2,253 +2,154 @@
 
 ## Unreleased
 
+## 1.14.0 — 2026-10-04
+
+- Faster feed loading, cache reuse and chart rendering; author counts are indexed once per archive update.
+- Improved responsive layouts, long-link wrapping and reduced-motion behavior.
+- Activity bars cover the full marathon; dense May markers keep important turns and complete session tooltips readable.
+- Pace chart steps: 1k, 2k, 5k or 10k MTT. Marathon charts switch between sessions and calendar months, with monthly and cumulative MTT distance.
+- Pace trend values appear in a legend above the plot.
+- Removed BR-update/session counts and the footer's interface date; session-MTT averages are blue and the footer credits the author.
+- FirstFund banner updated to $100M.
+- Includes PR #88 and PR #89.
+
 ## 1.13.11 — 2026-09-03
 
-- pace-widget titles/pills used Inter weights 760/720 that no loaded face provides (synthesised); normalised to 700 — no synthesised weights remain on the page
+- Pace titles and pills use loaded Inter weight 700, avoiding synthetic bold.
 
 ## 1.13.10 — 2026-09-03
 
-- the tempo panel values and tooltip session profits asked Roboto Mono for weight 800 (not loaded) — capped at 700; no faux-bold monospace text remains on the page
+- Tempo values and session-profit tooltips use loaded Roboto Mono weight 700.
 
 ## 1.13.9 — 2026-09-03
 
-- last two faux-bold spots (progress percent, $/MTT rate chips) capped at the loaded 700 weight; crowded loud dots trimmed so no two visible dots touch on the mobile canvas
+- Progress and rate chips use loaded weight 700; crowded mobile dots no longer touch.
 
 ## 1.13.8 — 2026-09-03
 
-### Fonts & dots
-- Roboto Mono now loads its 600/700 weights (Inter also 800): every bold monospace number on the site — hero bankroll, axes, callouts — was a browser-synthesised faux bold; no weight above 700 is used anymore
-- x-axis label width estimates follow the 1.13.7 font sizes, so week/month labels clamp inside the plot instead of spilling past its edges; the hover date tag plate fits its text
-- marathon session dots no longer overlap: minor dots yield to any loud dot or neighbour within ~2r, cluster part-fans are off under the 6-session cap, minor radius 3.0
+- Loaded Roboto Mono 600/700 and Inter 800; capped monospace weights at 700.
+- Updated label-width estimates and hover date plates to fit the larger chart fonts.
+- Thinned overlapping minor dots and disabled cluster fans under the six-session cap.
 
 ## 1.13.7 — 2026-09-03
 
-### Chart legibility
-- pace trend label («тренд +N$») now avoids every dot and value label (it used to sit across a mid-line dot with a digit hidden behind it) and sits on a small plate; the x-axis drops a tick that crowds the partial-tail label
-- chart typography pass: pace/marathon/session-widget axis labels and values are larger (8.4–10px → 9.5–11px), weight 900 → 700, blurry text-shadows removed, axis label contrast raised; hover date tag 9.5px; minor session dots slightly larger and brighter
+- Pace trend labels avoid dots and values, use a backing plate, and leave space for partial-tail ticks.
+- Larger, brighter chart text uses loaded weights without blurry shadows; minor dots are brighter.
 
 ## 1.13.6 — 2026-09-03
 
-### Reverted
-- the 1.13.5 `scraper:` commit-message skip in the Vercel ignore step: it froze the same-origin `/data/*.json` copy until the next code deploy, and visitors for whom raw.githubusercontent.com is blocked or slow would keep seeing a stale bankroll indefinitely. Back to the previous behaviour (an occasional data-commit build refreshes the copy) until the data-source policy is decided.
+- Reverted the `scraper:` build skip: it left same-origin data stale for visitors unable to reach GitHub raw. Data commits can refresh that copy again pending a source-policy decision.
 
 ## 1.13.5 — 2026-09-02
 
-### Reliability
-- Vercel ignore-build step no longer fails open on shallow clones without `VERCEL_GIT_PREVIOUS_SHA`: a `scraper:` commit subject now skips the build (production was being rebuilt from every ~10th data commit)
-- the scraper syncs with `origin/main` before reading `data/*.json` (a data commit pulled in later was silently overwritten by the in-memory copy)
-- `postsChangedAt` is now driven by a content hash of the published posts, so rating/image/date-only syncs reach open tabs too
-- the no-op poll path no longer triggers a spurious re-render on the first poll (same-value `setError`)
-
-### Housekeeping
-- removed dead code (Sparkline, makeDaySummary, passesIgnored, the unreachable 11-row tooltip cap) and dead CSS; CI gets `permissions`/`concurrency` and drops the nonexistent `docs/**` ignore; README/CLAUDE.md sentences about freshness, cadence and `npm run check` match the code again
+- Vercel skips `scraper:` builds on shallow clones without a previous SHA.
+- Scraper syncs with main before reading data, preventing stale in-memory overwrites.
+- Content-based `postsChangedAt` covers rating, image and date edits; no-op polls avoid redundant renders.
+- Removed unused code and CSS, including the unreachable tooltip cap.
+- Added CI permissions/concurrency and corrected workflow ignores and freshness/check documentation.
 
 ## 1.13.4 — 2026-09-02
 
-### Fixed
-- revealing an ignored author's post (activity day list) crashed the whole app to a blank page — PostCard returned before its hooks; the stub now renders after every hook
-- the dense session dots shipped in 1.13.2 were invisible: an older `.mc-svg .mc-dot{opacity:0}` rule (dots on hover only) outranked the new one-class overrides — dots are visible by default again (minor ones muted), rings stay hover-only
-- «Турниров за сессию» and the week/month «МТТ/сессия» figure now use the same cumulative-first MTT rule as the pace widget and hero counter, so all counters on one screen agree
-
-- the pace trend line is drawn across the whole plot again (still fitted on completed 2k-MTT chunks only) — it used to stop at the last full chunk and read as broken once a partial tail extended the axis
-
-- removed the «20 авг» current-date sub-label from the marathon X axis (the hover date tag covers it)
+- Fixed hook order when revealing ignored posts, preventing blank-page crashes.
+- Restored visible session dots; minor dots are muted and rings appear on hover.
+- Session and period MTT averages follow the cumulative-first rule used by pace and hero counters.
+- Trend lines span the plot while fitting completed chunks only.
+- Removed the current-date X-axis subtitle; hover tags show dates.
 
 ## 1.13.3 — 2026-08-20
 
-### Chart
-- month labels on the X axis are centred over each month's span (April used to vanish under a boundary-gap filter, and «АВГ» floated over July's air); the boundary ticks stay on each month's first session
-- the current-date label («20 авг») is pinned to the right plot edge instead of the August boundary tick
+- Month labels centre on each month's span; boundary ticks stay at its first session.
+- Current-date labels sit at the right plot edge.
 
 ## 1.13.2 — 2026-08-20
 
-### Chart density
-- every session group renders a dot now (69 visible dots on live data instead of 19 — 43 groups used to be invisible); minor groups draw as small muted dots that grow on hover
-- a winning/losing streak can no longer collapse into one blob: hard cap of 6 sessions per marker in both the run grouping and the compactor (the record was a 24-session dot)
-- marker gaps loosened (18→12px, compactor 24→16), while the latest gold dot keeps a guaranteed quiet zone — nearby dots hide instead of crowding it
-- fully-overlapping minor dots thin themselves out; hover, tooltips and totals still cover every session
+- Every session group has a dot, with smaller minor dots that grow on hover.
+- Both grouping passes cap markers at six sessions.
+- Tighter marker spacing retains a quiet zone around the latest point.
+- Overlapping minor dots are thinned; tooltips and totals still cover all sessions.
 
 ## 1.13.1 — 2026-08-20
 
-### Chart hover
-- the hovered point is unmistakable now: a filled profit-coloured anchor dot with a halo, a full-height crosshair, a crosshair cursor, and a date tag pinned to the X axis under the cursor
-
-### «Турниров за сессию»
-- sparse date ticks along the X axis (11 мар … 20 авг style)
-- a real per-day hover tooltip: date, MTTs, deviation from the average, session profit — with the hovered bar highlighted
-- the gold value is always the labelled «последняя: N» header chip; the naked floating number is gone
+- Hovered marathon points have an anchor coloured by profit, halo, crosshair and axis date tag.
+- MTT charts for each session gained sparse date ticks and a highlighted per-day tooltip with volume, average deviation and profit.
+- The latest session's gold value moved to a labelled header chip.
 
 ## 1.13.0 — 2026-08-20
 
-### Chart
-- marathon tooltip shows the cumulative MTT total at every point (channel request), with BR and the counter as a compact stat row
-- the whole plot is hoverable on desktop: the tooltip follows the nearest session group with an anchor ring, boundary hysteresis, and it now reliably closes when the cursor leaves the chart
-- the peak callout no longer sits on milestone plates at the end of a long leader (187.7 → 61.4 units on live data); milestone plates are ~20% smaller
-- week/month views zoom the Y axis to the visible range (the line used 17% of the plot height, now ~80%) and no longer collapse sessions into mega marker groups
-- month-view x-axis labels stopped overlapping (the solver now models the exact rendered intervals); the dense-tail x spacing is proportional again
-- merged-point tooltips cap the session breakdown at 11 rows with an "… ещё N" line
-- every MTT counter now derives from the same cumulative totals — the pace widget, its axis, and the hero counter show one number
-
-### New
-- «Турниров за сессию» widget: per-session tournament bars with an average guide and the last session in gold, honoring the shared week/month/all filter; labels never sit on the bars (average lives on the axis, the last value moves to a header chip when there is no sky above the cluster)
-
-### Localization & themes
-- en/es: the ru-only feed controls are hidden, search works over translations, the ignore action can no longer silently hide posts; `<html lang>` follows the language switch; dates, regData and ratings localized
-- light theme: chart line colors, pace drill-down tooltip, progress percent, special x-axis ticks, FF-banner stats and footer freshness all pass contrast now
-
-### Accessibility
-- lightbox is a dialog with a close button and Escape; zoomable images and desktop activity bars are keyboard-reachable; the profile menu closes on Escape; reduced-motion also covers smooth scrolling
-
-### Data & network
-- likes/translation-only scraper runs now reach already-open tabs (postsChangedAt freshness stamp)
-- cold load stopped double-downloading the posts payload from every source (~2.9MB → ~1.5MB)
-- missing files under /assets/ and /data/ return honest 404s instead of a year-cached HTML fallback
-- footer times follow the site-wide Europe/Warsaw policy; freshness thresholds match the real scraper cadence
-
-### Reliability
-- the scraper no longer swallows rejected git pushes (retries after a rebase, then alerts); commit messages are argv-safe
-- undici and postcss bumped; four stale branches removed
+- Marathon tooltips show BR and cumulative MTT; desktop hovering works across the plot with stable anchors and closes on exit.
+- Peak callouts avoid smaller milestone plates.
+- Week/month charts zoom to the visible BR range; labels stop overlapping and dense-tail X spacing follows MTT.
+- Grouped tooltips show up to 11 sessions with a remaining-count line.
+- Pace, chart and hero MTT counters share cumulative totals.
+- Added MTT bars for each session with an average guide and chip for the latest value, using the shared period filter.
+- English and Spanish hide Russian-only controls, search translations, localize dates, registration details and ratings, and update HTML language; ignore no longer silently hides posts.
+- Improved light-theme contrast across charts, tooltips, progress, banners and footer freshness.
+- Lightbox dialog supports Escape; images/activity bars support keyboards, profile menus close on Escape, and scrolling respects reduced motion.
+- Likes and translation updates reach open tabs; cold loads avoid duplicate post downloads.
+- Missing assets/data return 404; footer dates use Warsaw time and freshness matches scraper cadence.
+- Scraper reports failed pushes, retries after rebase and safely passes commit messages; updated undici/postcss and removed stale branches.
 
 ## 1.12.0 — 2026-07-02
 
-### UI
-- renamed marathon chart counters from sessions to BR updates so they no longer conflict with Romeo's Day number
-- recalculated the dollar-per-tournament trend from completed 2k-MTT chunks only
-
-### Reliability
-- added marathon data integrity checks for Day, bankroll, MTT totals, and duplicate BR updates
-- hardened client cache versioning and split trend/data helpers into focused tested modules
+- Chart counts renamed BR updates; pace trends fit completed 2k-MTT chunks.
+- Added Day/BR/MTT/duplicate integrity checks, versioned caches and tested data helpers.
 
 ## 1.11.0 — 2026-05-23
 
-### UI
-- rebuilt the dollar-per-tournament widget with calmer typography, cleaner chart lines, a green trend line, and 2k-MTT chart points
-- incomplete chart chunks are shown as muted partial points, while the graph now starts from zero
-- improved narrow-screen layout by hiding the right stats rail and keeping bankroll/profit cards readable
-
-### Fixes
-- restored real GipsyTeam avatars instead of letter fallbacks when the forum default avatar URL appears
-- restored Romeo's avatar favicon
+- Cleaner dollars earned per tournament chart uses a green trend and 2k-MTT points; partial chunks are muted and the graph starts at zero.
+- Narrow layouts keep BR and profit readable without the stats rail.
+- Restored GipsyTeam avatars and Romeo's avatar favicon.
 
 ## 1.10.0 — 2026-05-15
 
-### New features
-- added a GGWF leaderboard widget with three readable columns for Low, Medium, and High
-- each visible board shows the leaders, Romeo's current place, points, prize, and the gap to the next target
-- added a countdown to the end of the GGWF leaderboard period
-- added a points tooltip with the formula and approximate scoring examples
-
-### Data
-- added `data/leaderboards.json` as the app snapshot for GGWF leaderboard data
-- added a repeatable GGWF leaderboard fetcher and a GitHub Actions workflow to refresh it automatically
-- refreshed forum data from a full scan: new posts, latest likes, and compact payloads are updated
-
-### UI polish
-- rebuilt the leaderboard cards with stronger tier accents, cleaner prize chips, and a dedicated Romeo panel
-- moved forum activity below the feed so the leaderboard widget owns the post-chart slot
-
-### Reliability
-- client data loading now carries leaderboard snapshots separately from forum post freshness
-- added tests for the leaderboard widget and independent leaderboard freshness selection
+- Added Low/Medium/High GGWF boards showing leaders, Romeo's rank, points, prize and target gap.
+- Added a period countdown and scoring-formula tooltip with examples.
+- Board snapshots have an automated fetcher/workflow; refreshed posts, likes and compact data from a full scan.
+- Restyled tier/prize cards and Romeo's panel; moved forum activity below the feed.
+- Board loading and freshness are independent of posts, with widget and freshness tests.
 
 ## 1.9.0 — 2026-05-09
 
-### New features
-- added fresh Romeo marathon data from the latest forum posts
-- forum stats are now separated from bankroll stats and include unique authors in the thread
-- progress to `$10M` has its own cleaner progress widget based on bankroll progress
-- favicon now uses Romeo's forum avatar
-
-### Chart
-- rebuilt marathon chart typography and axis labels for a cleaner dark-mode look
-- X-axis labels now mark meaningful events instead of random spacing: bankroll milestones, large wins/losses, start, peak, and latest point
-- mobile marathon chart is larger, uses the real bankroll scale, and avoids horizontal scroll
-- dense plus/minus streaks are grouped into readable session points without hiding the real session breakdown
-- grouped-point tooltip now shows the individual sessions inside the combined point
-- reduced marker halos and kept edge labels inside the chart bounds
-
-### Mobile
-- removed the lower feed/topics/settings bar from the mobile layout for now
-- tuned the chart proportions so the graph has more vertical room and less diagonal compression
-
-### Reliability
-- added coverage for event-based chart labels, grouped session tooltips, activity edge labels, and forum stats
-- verified the scraper update path and production deployment after the chart changes
+- Refreshed Romeo's posts, separated author/thread stats from BR, and added a cleaner $10M progress widget and avatar favicon.
+- Marathon labels mark milestones, major wins/losses, start, peak and latest point.
+- Larger mobile charts use the actual BR scale without horizontal scrolling.
+- Dense streaks group into readable markers with full session tooltips; smaller halos and clamped labels improve clarity.
+- Removed the mobile bottom bar and gave charts more vertical room.
+- Added chart, tooltip, activity-edge and forum-stat coverage; verified scraping and deployment.
 
 ## 1.8.0 — 2026-04-19
 
-### New features
-- hover popups are positioned next to the hovered element again instead of being pinned to the top edge of the screen
-- hover popups now coordinate with each other so opening one closes the others instead of showing stray duplicates
-- replaced the `Сыграно МТТ` icon with a neutral spade icon
-
-### Architecture
-- extracted UI translations into `src/i18n.js`
-- extracted persistent state and public-data loading into dedicated hooks
-- moved scraper translation logic into `scripts/lib/translation.mjs`
-
-### Reliability
-- client now compares `meta.lastUpdated` across all configured public data sources and keeps the freshest payload
-- stale client cache is preferred over older network data instead of being overwritten blindly
-- local `predev` / `prebuild` sync copies tracked JSON data into `public/data`
-- fixed conditional hook order in chart components so retry / empty-state transitions do not blow up React renders
-
-### Tooling
-- added `npm test`, `npm test:watch`, and `npm run check`
-- added CI workflow for build + tests
-- hardened scraper workflow with `npm ci`, concurrency control, timeouts, and manual `translate` mode
-
-### Tests
-- added storage loader coverage for source freshness, cache fallback, and compact/full JSON fallback
-- expanded utility coverage for locale-aware relative time and bankroll history deduplication
-- added dedicated tests for `i18n`, persistent state, hover-popup coordination, poll-based post loading, and scraper translation helpers
-- added App-level coverage for retry, language switching, and filter flows
+- Hover popups stay beside their anchors and coordinate so only one remains open; MTT uses a neutral spade icon.
+- Extracted translations, persistence/data hooks and scraper translation logic.
+- Loader chooses the freshest source and retains cache over older network data; local dev/build sync public JSON.
+- Fixed chart hook order for retry/empty transitions.
+- Added test/watch/check commands and CI for builds and tests; scraper uses clean installs, concurrency, timeouts and manual translation.
+- Added tests for source freshness, cache and JSON fallback, locale time and BR deduplication coverage, and tests for translations, hooks, popups, polling and scraper helpers.
+- App tests cover retry, language switching and filters.
 
 ## 1.4.0 — 2026-04-09
 
-### New features
-- Like/dislike posts on GipsyTeam directly from the tracker (thumbs up/down emoji buttons with optimistic UI + verification)
-- "N new posts!" notification bubble — click to jump to the first new post
-- Short quotes shown fully inline in top posts sidebar (no need to hover)
-- Exact bankroll data from screenshots (no rounding), auto-retry on API failures
-
-### Performance
-- Compact data format (`posts.min.json`) — 57% smaller payload with avatar dedup, null stripping, short keys
-- localStorage caching with 2-min TTL to avoid redundant fetches
-- Memoized style constants and extracted event handlers
-- Scraper: 500ms delay, parallel HEAD requests, early exit when no new posts
-
-### Fixes
-- Marathon chart: cleaner Y-axis ticks, reduced vertical stretch, fits first screen
-- Chart tooltip stays visible when moving mouse from dot to tooltip, closes on outside click
-- Scraper: images from `<blockquote>` no longer appear in post images
-- Scraper: git pull before push to avoid rebase conflicts on concurrent updates
-- Avatar dedup uses Map to preserve insertion order (fixes avatar mismatch)
-- Full post text preserved in compact format (no truncation)
-- Quote context shown in top posts sidebar (author, reply text)
-- Quoted images hidden in sidebar/popup for reply posts
-
-### Scraper
-- Cron frequency increased to every 15 min (was 30 min)
-- Rescrape syncs images to remove stale quoted images
+- Tracker supports verified, optimistic forum likes/dislikes; new-post notifications jump to the first addition.
+- Sidebar quotes appear inline; screenshot BR is exact and API failures retry.
+- Smaller compact payloads retain full text and correctly ordered avatars; added local caching with a short TTL and render optimizations.
+- Scraper uses pacing, parallel HEAD checks and early exits; pulls before pushes to avoid update conflicts.
+- Chart sizing/ticks fit the first screen; tooltips stay open when entered and close on outside clicks.
+- Removed quoted images from posts/sidebar/popups, retained reply context and resynced stale images.
+- Scraper cadence increased from 30 to 15 minutes.
 
 ## 1.3.0 — 2026-04-08
 
-- Full refactoring, light theme, animated BR counter
-- Auto-scraper via GitHub Actions (cron every 30 min)
-- Claude Vision API for bankroll screenshot recognition
-- Full post texts, room icons in tooltip, top post image previews
-- Mobile stats adaptation
+- Refactored the app with a light theme, animated BR, full texts, room icons, image previews and mobile stats.
+- Added scheduled scraping and screenshot BR recognition through Claude Vision.
 
 ## 1.2.0 — 2026-04-07
 
-- Marathon chart with monotone bezier curves and animation
-- Mobile layout
+- Animated marathon chart with monotone bezier curves and mobile layout.
 
 ## 1.1.0 — 2026-04-06
 
-- Activity widget by day, top-10 posts, auto-refresh
+- Daily activity, top-10 posts and automatic refresh.
 
 ## 1.0.0 — 2026-04-05
 
-- Initial release — feed, quotes, pagination, marathon chart, topics, favorites, filters
+- Initial feed, quotes, pagination, marathon chart, topics, favorites and filters.

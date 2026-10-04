@@ -1,7 +1,7 @@
 {
   "name": "romeoprotracker",
   "private": true,
-  "version": "1.13.11",
+  "version": "1.14.0",
   "type": "module",
   "engines": {
     "node": ">=20.19.0"
