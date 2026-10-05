@@ -167862,7 +167862,7 @@
     "date": "4 октября, 16:56",
     "timestamp": 1791125801,
     "text": "[QUOTE]arozinov|arozinov @ 04.10.26\nили Рома просто там для себя стал играть, а не для Марафона[/QUOTE]конечно, это как дальнобойщик который играет в евро трак симулятор",
-    "likes": 11,
+    "likes": 12,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -167898,7 +167898,7 @@
     "date": "4 октября, 19:42",
     "timestamp": 1791135773,
     "text": "rutakime, Он точно не катает с ботом. Но вполне может быть что бот катает без него.",
-    "likes": 3,
+    "likes": 4,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -167916,7 +167916,7 @@
     "date": "4 октября, 20:22",
     "timestamp": 1791138177,
     "text": "[QUOTE]rutakime|rutakime @ 04.10.26\nСпроси у него, как время будет, он с ботом катает или нет.\n\nНам просто интересно тут.[/QUOTE]я спрашивал у людей + до меня доходила инфа, что ГГ его проверяли. Просто забавно будет, если катает бот, а его никто не проверил. Лично я, думаю что сам, там же вот в мейне недавно был с утг рейз колл 3бета с 73с вроде. Такое вроде бот не исполнит. \n\n \n\nНо надо сказать, Рома поднял планку \"допустимого\" количества турниров. Тренера в конюшнях теперь могут говорить \"Катал бы ты хотя бы 25 процентов от Роминой загрузки\"",
-    "likes": 13,
+    "likes": 14,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -167970,7 +167970,7 @@
     "date": "4 октября, 23:52",
     "timestamp": 1791150746,
     "text": "[QUOTE]umber|umber @ 04.10.26\n\"Катал бы ты хотя бы 25 5 процентов от Роминой загрузки\"[/QUOTE]",
-    "likes": 0,
+    "likes": 1,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -167995,5 +167995,59 @@
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8307159"
+  },
+  {
+    "id": "8307185",
+    "author": "Romeopro",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/2/6/6/26670.jpg",
+    "rating": 25707,
+    "msgCount": 4249,
+    "regData": "16 лет на сайте",
+    "date": "5 октября, 06:34",
+    "timestamp": 1791174889,
+    "text": "Day 175:",
+    "likes": 16,
+    "images": [
+      "https://static-forum.gipsyteam.ru/monthly_10_2026/post-6195-1791174886d6cb_thumb.webp"
+    ],
+    "videos": [],
+    "brBefore": 380963,
+    "brAfter": 405725,
+    "sessionResult": 24762,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8307185",
+    "rooms": {
+      "before": {
+        "gg": 379526,
+        "ps": 1188,
+        "king": 232,
+        "coin": 17,
+        "lux": 0
+      },
+      "after": {
+        "gg": 404288,
+        "ps": 1188,
+        "king": 232,
+        "coin": 17,
+        "lux": 0
+      }
+    }
+  },
+  {
+    "id": "8307186",
+    "author": "SAYKOD",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/1/7/5/0/175044.webp",
+    "rating": 16732,
+    "msgCount": 2418,
+    "regData": "9 лет на сайте",
+    "date": "5 октября, 06:42",
+    "timestamp": 1791175346,
+    "text": "Как вам лига УЕФА? Португалия вчера еле с Норвегией справилась. Владение мячём равное.",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8307186"
   }
 ]
