@@ -168628,7 +168628,7 @@
     "date": "6 октября, 06:30",
     "timestamp": 1791261011,
     "text": "batlebit, хули так мало сыграл?",
-    "likes": 15,
+    "likes": 16,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -169044,7 +169044,7 @@
     "date": "7 октября, 05:44",
     "timestamp": 1791344696,
     "text": "Day 177:",
-    "likes": 1,
+    "likes": 3,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_10_2026/post-6195-179134469326d3_thumb.webp"
     ],
@@ -169069,5 +169069,23 @@
         "lux": 0
       }
     }
+  },
+  {
+    "id": "8308138",
+    "author": "NasKras",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/1/4/5/5/145585.jpg",
+    "rating": 1810,
+    "msgCount": 923,
+    "regData": "6 лет на сайте",
+    "date": "7 октября, 06:03",
+    "timestamp": 1791345806,
+    "text": "я хз как можно играя по 200 турниров не улетать по диспе туда сюда, у него каждая сессия +-5к, он явно где-то диспу нае6ывает, либо не диспу :)",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8308138"
   }
 ]
