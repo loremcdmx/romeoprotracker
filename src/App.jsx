@@ -875,7 +875,6 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
   // units, so a narrower canvas simply thins the labels out on its own.
   const W = isMobile ? 360 : 700
   const H = isMobile ? (period === 'all' ? 380 : 310) : 240
-  const pL = isMobile ? 46 : 58
   const pR = isMobile ? 18 : 22
   const pT = isMobile ? 18 : 14
   const pB = isMobile ? 58 : 44
@@ -896,6 +895,34 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
     : Math.max(0, Math.floor(dataMin * 0.7 / 1000) * 1000)
   const maxV = isZoomedView ? dataMax + rangePad : dataMax * 1.05
   const yOf = v => pT + (1-(v-minV)/(maxV-minV)) * (plotBottom-pT)
+
+  const fmtMoneyTick = v => {
+    if (v >= 1_000_000) return `$${Number((v / 1_000_000).toFixed(3))}M`
+    if (v >= 1000) {
+      const k = v / 1000
+      return `$${Number.isInteger(k) ? k : k.toFixed(1)}k`
+    }
+    return `$${v}`
+  }
+  // Continue the 1/2/5 sequence as bankroll grows. The old $50k ceiling
+  // fell back to $2k at a $400k range, drawing hundreds of overlapping labels.
+  const yTicks = (() => {
+    const range = maxV - minV
+    const candidates = []
+    for (let magnitude = 1000; magnitude <= Math.max(1000, range); magnitude *= 10) {
+      candidates.push(magnitude, magnitude * 2, magnitude * 5)
+    }
+    const step = candidates.find(s => { const n = Math.floor(range / s); return n >= 3 && n <= 7 }) || 2000
+    const ticks = []
+    const first = Math.ceil(minV / step) * step
+    for (let v = first; v < maxV; v += step) {
+      ticks.push({ v, y: yOf(v) })
+    }
+    return ticks
+  })()
+  // Narrow zooms near a million can need labels such as $1.002M. Keep them
+  // inside the SVG without rounding different tick values to the same text.
+  const pL = Math.max(isMobile ? 46 : 58, ...yTicks.map(({ v }) => Math.ceil(12 + fmtMoneyTick(v).length * 6.5)))
 
   // Two arrays: cumMTT (absolute totals, used for display labels) and cumMTTX
   // (normalized + anti-overlap, used for X-axis positioning). Mixing them caused
@@ -991,25 +1018,6 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
   const yAtChartX = x => interpolateLinearChartY(coords, x)
   const linePath = makeLinearChartPath(coords)
   const areaPath = makeLinearChartArea(coords, plotBottom)
-  const fmtMoneyTick = v => {
-    if (v >= 1000) {
-      const k = v / 1000
-      return `$${Number.isInteger(k) ? k : k.toFixed(1)}k`
-    }
-    return `$${v}`
-  }
-  // Y ticks: true linear scale.
-  const yTicks = (() => {
-    const candidates = [1000,2000,5000,10000,20000,50000]
-    const range = maxV - minV
-    const step = candidates.find(s => { const n = Math.floor(range / s); return n >= 3 && n <= 7 }) || 2000
-    const ticks = []
-    const first = Math.ceil(minV / step) * step
-    for (let v = first; v < maxV; v += step) {
-      ticks.push({ v, y: yOf(v) })
-    }
-    return ticks
-  })()
   const xAxisY = plotBottom + (isMobile ? 18 : 16)
   const xMainLabelY = xAxisY + (isMobile ? 19 : 16)
   const xSubLabelY = xMainLabelY + (isMobile ? 13 : 11)
