@@ -5,7 +5,7 @@
   "day": 177,
   "status": "active",
   "lastUpdated": "2026-10-07T03:48:12.403Z",
-  "totalPosts": 8902,
+  "totalPosts": 8904,
   "scrapedPages": 0,
   "chronicle": [],
   "authorName": "Romeopro",
@@ -4846,7 +4846,7 @@
     }
   ],
   "totalTournaments": 38190,
-  "lastScrapeRun": "2026-10-07T12:10:25.661Z",
-  "postsChangedAt": "2026-10-07T12:10:25.681Z",
-  "postsHash": "2630fdcf5795b9c1bef68750cc7637c7a3b52638"
+  "lastScrapeRun": "2026-10-07T12:41:04.894Z",
+  "postsChangedAt": "2026-10-07T12:41:04.915Z",
+  "postsHash": "8e9c7be7f7ca00a0ac989d0a0678691324e349fd"
 }
