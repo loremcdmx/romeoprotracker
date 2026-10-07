@@ -169015,5 +169015,59 @@
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8308077"
+  },
+  {
+    "id": "8308133",
+    "author": "psihoz",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/5/6/9/56999.jpg",
+    "rating": 2751,
+    "msgCount": 662,
+    "regData": "17 лет на сайте",
+    "date": "7 октября, 05:41",
+    "timestamp": 1791344469,
+    "text": "[QUOTE]darkmoon311|darkmoon311 @ 07.10.26\nкогда я спросил как можно чекать без остановки катки[/QUOTE]Вообще, это странный нарратив, что для проверки надо обязательно блокировать аккаунт. Большинство мероприятий СБ происходит так, что пользователи об этом даже не догадываются.",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8308133"
+  },
+  {
+    "id": "8308135",
+    "author": "Romeopro",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/2/6/6/26670.jpg",
+    "rating": 25707,
+    "msgCount": 4251,
+    "regData": "16 лет на сайте",
+    "date": "7 октября, 05:44",
+    "timestamp": 1791344696,
+    "text": "Day 177:",
+    "likes": 0,
+    "images": [
+      "https://static-forum.gipsyteam.ru/monthly_10_2026/post-6195-179134469326d3_thumb.webp"
+    ],
+    "videos": [],
+    "brBefore": 399634,
+    "brAfter": 402399,
+    "sessionResult": 2765,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8308135",
+    "rooms": {
+      "before": {
+        "gg": 398197,
+        "ps": 1188,
+        "king": 232,
+        "coin": 17,
+        "lux": 0
+      },
+      "after": {
+        "gg": 400962,
+        "ps": 1188,
+        "king": 232,
+        "coin": 17,
+        "lux": 0
+      }
+    }
   }
 ]
