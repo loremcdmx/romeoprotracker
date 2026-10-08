@@ -169520,7 +169520,7 @@
     "date": "7 октября, 15:03",
     "timestamp": 1791378239,
     "text": "CaHu4, бро как ты смог на форуме зарегаться?",
-    "likes": 91,
+    "likes": 92,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -169702,7 +169702,7 @@
     "date": "7 октября, 19:42",
     "timestamp": 1791394955,
     "text": "Прочитал посты CaHu4 в этой теме, и стало интересно, что это за человек с довольно немаленьким рейтингом, который пишет подобное. Зашёл в его профиль и был вознагражден за любопытство вот такой милотой:\n\n[QUOTE]CaHu4|CaHu4 @ 06.02.22\nАстрология это очень сложная и реально работающая наука. Абсолютно все, кто изучал её с целью доказать, что это чушь, доказали обратное. А попыток было много. И она может крепко помочь там, где твоё \"критическое мышление\" сдаст заднюю.[/QUOTE]",
-    "likes": 39,
+    "likes": 40,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -169792,7 +169792,7 @@
     "date": "7 октября, 21:31",
     "timestamp": 1791401498,
     "text": "Jessler, да впизду, я в этой теме как ни напишу- минус 50 баллов минимум) тут очень агрессивная публика с весьма своеобразным чувством юмора.",
-    "likes": 3,
+    "likes": 4,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -169882,7 +169882,7 @@
     "date": "8 октября, 02:10",
     "timestamp": 1791418249,
     "text": "krestik, \n\nАстрология работает, стопудово. Скока ни проверял, всегда всё было, как астрологи скажут.",
-    "likes": 3,
+    "likes": 4,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_10_2026/post-16341-17914181688855_thumb.webp"
     ],
@@ -169902,7 +169902,7 @@
     "date": "8 октября, 02:38",
     "timestamp": 1791419885,
     "text": "[QUOTE]|\nЯ срал вам всем на лицо[/QUOTE]Смысл?",
-    "likes": 0,
+    "likes": 1,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -169927,5 +169927,41 @@
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8308560"
+  },
+  {
+    "id": "8308578",
+    "author": "Romeopro",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/2/6/6/26670.jpg",
+    "rating": 25687,
+    "msgCount": 4252,
+    "regData": "16 лет на сайте",
+    "date": "8 октября, 05:22",
+    "timestamp": 1791429730,
+    "text": "Day 178:",
+    "likes": 0,
+    "images": [
+      "https://static-forum.gipsyteam.ru/monthly_10_2026/post-6195-17914297266d60_thumb.webp"
+    ],
+    "videos": [],
+    "brBefore": 402399,
+    "brAfter": 402194,
+    "sessionResult": -205,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8308578",
+    "rooms": {
+      "before": {
+        "gg": 400962,
+        "ps": 1188,
+        "king": 232,
+        "coin": 17,
+        "lux": 0
+      },
+      "after": {
+        "gg": 400757,
+        "ps": 1188,
+        "king": 232,
+        "coin": 17,
+        "lux": 0
+      }
+    }
   }
 ]
