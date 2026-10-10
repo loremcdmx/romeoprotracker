@@ -170465,7 +170465,7 @@
     "date": "10 октября, 05:53",
     "timestamp": 1791604403,
     "text": "Day 180:",
-    "likes": 4,
+    "likes": 6,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_10_2026/post-6195-17916044015490_thumb.webp"
     ],
@@ -170490,5 +170490,23 @@
         "lux": 0
       }
     }
+  },
+  {
+    "id": "8309611",
+    "author": "Arkadiy61",
+    "avatar": "https://forum.gipsyteam.com/img/imguser.png",
+    "rating": 1213,
+    "msgCount": 1072,
+    "regData": "11 лет на сайте",
+    "date": "10 октября, 08:36",
+    "timestamp": 1791614179,
+    "text": "Зх РОМА Рома в низ не ходи там 300",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8309611"
   }
 ]
