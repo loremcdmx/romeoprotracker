@@ -170615,7 +170615,7 @@
     "date": "11 октября, 02:56",
     "timestamp": 1791680163,
     "text": "",
-    "likes": 14,
+    "likes": 15,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_10_2026/post-99309-1791680146eebe_thumb.webp",
       "https://static-forum.gipsyteam.ru/monthly_10_2026/post-99309-17916801466c68_thumb.webp",
@@ -170673,7 +170673,7 @@
     "date": "11 октября, 06:54",
     "timestamp": 1791694456,
     "text": "Day 181:",
-    "likes": 23,
+    "likes": 25,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_10_2026/post-6195-1791694439f097_thumb.webp"
     ],
@@ -170709,12 +170709,30 @@
     "date": "11 октября, 09:12",
     "timestamp": 1791702742,
     "text": "Так держать Ромео",
-    "likes": 1,
+    "likes": 2,
     "images": [],
     "videos": [],
     "brBefore": null,
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8310169"
+  },
+  {
+    "id": "8310187",
+    "author": "PapaLionis",
+    "avatar": "https://forum.gipsyteam.com/img/imguser.png",
+    "rating": -52,
+    "msgCount": 59,
+    "regData": "1 год на сайте",
+    "date": "11 октября, 10:48",
+    "timestamp": 1791708507,
+    "text": "NasKras, называется «Продажа долей с кф 2»",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8310187"
   }
 ]
