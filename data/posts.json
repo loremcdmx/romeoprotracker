@@ -170138,7 +170138,7 @@
     "date": "8 октября, 21:30",
     "timestamp": 1791495029,
     "text": "По факту Рома что-то выплачивает. Да с кэфами, да непонятно как играет сам или с ботами, но выплачивает. За это его стоит уважать.",
-    "likes": -10,
+    "likes": -11,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -170519,7 +170519,7 @@
     "date": "10 октября, 23:37",
     "timestamp": 1791668274,
     "text": "Финалка Оушена по 500. Запустил на Кике и твиче",
-    "likes": 14,
+    "likes": 15,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_10_2026/post-187091-179166826238a6_thumb.webp"
     ],
@@ -170557,7 +170557,7 @@
     "date": "11 октября, 00:57",
     "timestamp": 1791673034,
     "text": "pokerpain, заскринь чем закончилось,плиз.",
-    "likes": 1,
+    "likes": 2,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_10_2026/post-22652-17916737997063.png"
     ],
@@ -170615,7 +170615,7 @@
     "date": "11 октября, 02:56",
     "timestamp": 1791680163,
     "text": "",
-    "likes": 3,
+    "likes": 5,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_10_2026/post-99309-1791680146eebe_thumb.webp",
       "https://static-forum.gipsyteam.ru/monthly_10_2026/post-99309-17916801466c68_thumb.webp",
@@ -170626,5 +170626,41 @@
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8310118"
+  },
+  {
+    "id": "8310131",
+    "author": "markusil",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/1/7/5/2/175211.webp",
+    "rating": null,
+    "msgCount": 6,
+    "regData": "9 лет на сайте",
+    "date": "11 октября, 04:47",
+    "timestamp": 1791686820,
+    "text": "slx, крутяк, бро!!",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8310131"
+  },
+  {
+    "id": "8310132",
+    "author": "markusil",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/1/7/5/2/175211.webp",
+    "rating": null,
+    "msgCount": 6,
+    "regData": "9 лет на сайте",
+    "date": "11 октября, 04:50",
+    "timestamp": 1791687040,
+    "text": "slx, на что потратишь? Только не говори, что банкрол увеличить просто.",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8310132"
   }
 ]
