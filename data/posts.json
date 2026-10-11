@@ -170615,7 +170615,7 @@
     "date": "11 октября, 02:56",
     "timestamp": 1791680163,
     "text": "",
-    "likes": 17,
+    "likes": 18,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_10_2026/post-99309-1791680146eebe_thumb.webp",
       "https://static-forum.gipsyteam.ru/monthly_10_2026/post-99309-17916801466c68_thumb.webp",
@@ -170673,7 +170673,7 @@
     "date": "11 октября, 06:54",
     "timestamp": 1791694456,
     "text": "Day 181:",
-    "likes": 26,
+    "likes": 28,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_10_2026/post-6195-1791694439f097_thumb.webp"
     ],
@@ -170734,5 +170734,23 @@
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8310187"
+  },
+  {
+    "id": "8310197",
+    "author": "pokerpain",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/1/6/9/8/169882.webp",
+    "rating": 1466,
+    "msgCount": 174,
+    "regData": "2 года на сайте",
+    "date": "11 октября, 11:13",
+    "timestamp": 1791710017,
+    "text": "[QUOTE]markusil|markusil @ 11.10.26\nslx, на что потратишь? Только не говори, что банкрол увеличить просто.[/QUOTE]Очевидно, на донаты стримеру",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8310197"
   }
 ]
