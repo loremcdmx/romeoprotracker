@@ -170673,7 +170673,7 @@
     "date": "11 октября, 06:54",
     "timestamp": 1791694456,
     "text": "Day 181:",
-    "likes": 82,
+    "likes": 83,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_10_2026/post-6195-1791694439f097_thumb.webp"
     ],
@@ -170943,7 +170943,7 @@
     "date": "12 октября, 17:24",
     "timestamp": 1791818645,
     "text": "",
-    "likes": 13,
+    "likes": 15,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_10_2026/post-15559-1791818622bdfd.png"
     ],
@@ -170952,5 +170952,25 @@
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8310819"
+  },
+  {
+    "id": "8310931",
+    "author": "SAYKOD",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/1/7/5/0/175044.webp",
+    "rating": 16732,
+    "msgCount": 2420,
+    "regData": "9 лет на сайте",
+    "date": "12 октября, 22:56",
+    "timestamp": 1791838614,
+    "text": "",
+    "likes": 0,
+    "images": [
+      "https://static-forum.gipsyteam.ru/monthly_10_2026/post-96195-17918386021248_thumb.webp"
+    ],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8310931"
   }
 ]
