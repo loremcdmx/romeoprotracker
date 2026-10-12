@@ -170519,7 +170519,7 @@
     "date": "10 октября, 21:37",
     "timestamp": 1791668274,
     "text": "Финалка Оушена по 500. Запустил на Кике и твиче",
-    "likes": 53,
+    "likes": 54,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_10_2026/post-187091-179166826238a6_thumb.webp"
     ],
@@ -170799,7 +170799,7 @@
     "date": "12 октября, 07:18",
     "timestamp": 1791782294,
     "text": "Day 182:",
-    "likes": 27,
+    "likes": 28,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_10_2026/post-6195-17917822861ed1_thumb.webp"
     ],
@@ -170932,5 +170932,25 @@
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8310795"
+  },
+  {
+    "id": "8310819",
+    "author": "AMDemon",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/2/8/6/28632.jpg",
+    "rating": 7643,
+    "msgCount": 2263,
+    "regData": "15 лет на сайте",
+    "date": "12 октября, 17:24",
+    "timestamp": 1791818645,
+    "text": "",
+    "likes": 0,
+    "images": [
+      "https://static-forum.gipsyteam.ru/monthly_10_2026/post-15559-1791818622bdfd.png"
+    ],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8310819"
   }
 ]
