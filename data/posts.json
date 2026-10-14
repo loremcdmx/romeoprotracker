@@ -170799,7 +170799,7 @@
     "date": "12 октября, 05:18",
     "timestamp": 1791782294,
     "text": "Day 182:",
-    "likes": 45,
+    "likes": 46,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_10_2026/post-6195-17917822861ed1_thumb.webp"
     ],
@@ -170963,7 +170963,7 @@
     "date": "12 октября, 20:56",
     "timestamp": 1791838614,
     "text": "",
-    "likes": 51,
+    "likes": 52,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_10_2026/post-96195-17918386021248_thumb.webp"
     ],
@@ -171019,7 +171019,7 @@
     "date": "13 октября, 21:56",
     "timestamp": 1791921402,
     "text": "Внезапный подруб на хэдзап. Твич, кик",
-    "likes": 25,
+    "likes": 26,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_10_2026/post-187091-1791921377d33b_thumb.webp"
     ],
@@ -171039,7 +171039,7 @@
     "date": "14 октября, 05:06",
     "timestamp": 1791947170,
     "text": "Day 183:",
-    "likes": 22,
+    "likes": 28,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_10_2026/post-6195-1791947142628_thumb.webp"
     ],
@@ -171064,5 +171064,23 @@
         "lux": 0
       }
     }
+  },
+  {
+    "id": "8311367",
+    "author": "Kazimir17",
+    "avatar": "https://forum.gipsyteam.com/img/imguser.png",
+    "rating": 4688,
+    "msgCount": 3283,
+    "regData": "15 лет на сайте",
+    "date": "14 октября, 10:03",
+    "timestamp": 1791965039,
+    "text": "Курочка клюёт по зёрнышку )",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8311367"
   }
 ]
