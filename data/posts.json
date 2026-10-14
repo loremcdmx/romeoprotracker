@@ -171028,5 +171028,41 @@
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8311255"
+  },
+  {
+    "id": "8311305",
+    "author": "Romeopro",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/2/6/6/26670.jpg",
+    "rating": 25587,
+    "msgCount": 4257,
+    "regData": "16 лет на сайте",
+    "date": "14 октября, 05:06",
+    "timestamp": 1791947170,
+    "text": "Day 183:",
+    "likes": 1,
+    "images": [
+      "https://static-forum.gipsyteam.ru/monthly_10_2026/post-6195-1791947142628_thumb.webp"
+    ],
+    "videos": [],
+    "brBefore": 399543,
+    "brAfter": 403710,
+    "sessionResult": 4167,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8311305",
+    "rooms": {
+      "before": {
+        "gg": 398106,
+        "ps": 1188,
+        "king": 232,
+        "coin": 17,
+        "lux": 0
+      },
+      "after": {
+        "gg": 402273,
+        "ps": 1188,
+        "king": 232,
+        "coin": 17,
+        "lux": 0
+      }
+    }
   }
 ]
