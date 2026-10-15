@@ -171623,7 +171623,7 @@
     "date": "15 октября, 20:15",
     "timestamp": 1792088126,
     "text": "0 часов на сайте. Наверняка, местный",
-    "likes": 0,
+    "likes": 1,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -171702,5 +171702,25 @@
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8312135"
+  },
+  {
+    "id": "8312142",
+    "author": "Jessler",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/1/7/4/8/174815.webp",
+    "rating": 211,
+    "msgCount": 102,
+    "regData": "7 лет на сайте",
+    "date": "15 октября, 20:52",
+    "timestamp": 1792090330,
+    "text": "[QUOTE]Eleon|Eleon @ 15.10.26\nНу единственное почему я вообще подумал вдруг не скам - потому что сообщение в личку от акка с рейтингом 0. Такое вроде нельзя простому смертному.[/QUOTE]В личку можно писать и с 0 рейтинга, достаточно обратиться в поддержку",
+    "likes": 0,
+    "images": [
+      "https://static-forum.gipsyteam.ru/monthly_10_2026/post-124604-1792090304e7ed_thumb.webp"
+    ],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8312142"
   }
 ]
