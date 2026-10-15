@@ -171329,7 +171329,7 @@
     "date": "15 октября, 00:28",
     "timestamp": 1792016939,
     "text": "Уже веселее становится...",
-    "likes": 0,
+    "likes": 1,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -171365,7 +171365,7 @@
     "date": "15 октября, 01:16",
     "timestamp": 1792019795,
     "text": "[QUOTE]S19msv73M|S19msv73M @ 15.10.26\nСколько раз материл их техподдержку[/QUOTE]А они тебе что !?",
-    "likes": 0,
+    "likes": 1,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -171383,7 +171383,7 @@
     "date": "15 октября, 02:14",
     "timestamp": 1792023243,
     "text": "S19msv73M, вариант, что ты тупой фиш, не рассматривал?",
-    "likes": -1,
+    "likes": -2,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -171401,7 +171401,7 @@
     "date": "15 октября, 02:40",
     "timestamp": 1792024821,
     "text": "",
-    "likes": 4,
+    "likes": 6,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_10_2026/post-187091-1792024820727a.png"
     ],
@@ -171410,5 +171410,23 @@
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8311719"
+  },
+  {
+    "id": "8311737",
+    "author": "Trosh",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/1/7/0/4/170480.webp",
+    "rating": 524,
+    "msgCount": 156,
+    "regData": "5 лет на сайте",
+    "date": "15 октября, 04:20",
+    "timestamp": 1792030814,
+    "text": "Trogi, а они ему в отместку ни один гатшот не закрывают больше",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8311737"
   }
 ]
