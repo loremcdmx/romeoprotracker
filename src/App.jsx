@@ -120,11 +120,13 @@ function previousTrustedTotal(totals, idx) {
 // are only trusted when no cumulative context exists. A total that disagrees
 // with its neighbours (decreasing, non-finite) counts as "no cumulative on this
 // row", so one mis-read value cannot become the baseline of the next delta.
-// A count that is not finite, not positive or above MAX_SESSION_MTT is "no data"
-// (0): it can neither freeze the pace split nor drown the rate.
+// A count that is not finite, below one tournament or above MAX_SESSION_MTT is
+// "no data" (0): it can neither freeze the pace split nor drown the rate. Real
+// counts are whole numbers from 1; a sliver such as 5e-324 is positive but would
+// turn any profit into an infinite rate.
 function historySessionTournaments(row, sorted, idx) {
   const count = reportedSessionTournaments(row, sorted, idx)
-  return Number.isFinite(count) && count > 0 && count <= MAX_SESSION_MTT ? count : 0
+  return Number.isFinite(count) && count >= 1 && count <= MAX_SESSION_MTT ? count : 0
 }
 
 function reportedSessionTournaments(row, sorted, idx) {
@@ -2253,7 +2255,7 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
                 </div>
               )}
             </div>
-            {tip.p.tournaments && (
+            {!!tip.p.tournaments && (
               <div style={{fontSize:11,color:'var(--dim)',marginBottom:roomDeltas.length?8:4}}>
                 {t('tip_mtt_since')}: <b style={{color:'var(--dim2)'}}>{fmtInt(tip.p.tournaments)}</b>
               </div>
@@ -2382,7 +2384,7 @@ function DayEventsList({ events, compact, onPostClick, setLightbox, lang = _lang
                 <span className="day-event-author">{romeo}</span>
                 <span className="day-event-meta"> {_t('day_reports_session')}</span>
                 <span className={'day-event-pill ' + (positive ? 'pos' : 'neg')}>{fmtBR(ev.result)}</span>
-                {ev.brAfter && <span className="day-event-br">{brLbl} {fmtNum(ev.brAfter)}</span>}
+                {!!ev.brAfter && <span className="day-event-br">{brLbl} {fmtNum(ev.brAfter)}</span>}
                 {ev.image && thumb(ev.image)}
               </div>
             </div>
@@ -3295,7 +3297,7 @@ const PostCard = memo(function PostCard({ p, favorites, ignored, onFav, onIgnore
             {p.author}
           </button>
           <div className="pc-author-meta">
-            {p.msgCount && <span>{lang==='ru' ? `${fmtInt(p.msgCount)} ${plural(p.msgCount, ['пост','поста','постов'])}` : `${fmtInt(p.msgCount)} ${_t('posts_word')}`}</span>}
+            {!!p.msgCount && <span>{lang==='ru' ? `${fmtInt(p.msgCount)} ${plural(p.msgCount, ['пост','поста','постов'])}` : `${fmtInt(p.msgCount)} ${_t('posts_word')}`}</span>}
             {p.regData  && <span>· {formatRegData(p.regData, lang)}</span>}
             {p.rating != null && (
               <><span>·</span><a href={ratingUrl} target="_blank" rel="noreferrer" className={`pc-rating ${p.rating>=0?'pos':'neg'}`}
@@ -3358,7 +3360,7 @@ const PostCard = memo(function PostCard({ p, favorites, ignored, onFav, onIgnore
       })()}
       <div className="pc-foot">
         <span className={`pc-likes ${likes>0?'pos':likes<0?'neg':'zero'}`}>{likes>0?'👍 +':likes<0?'👎 ':''}{likes}</span>
-        {p.brAfter && <span className="pc-br">{_t('day_br_label')}: {fmtNum(p.brAfter)}</span>}
+        {!!p.brAfter && <span className="pc-br">{_t('day_br_label')}: {fmtNum(p.brAfter)}</span>}
         {((shouldClamp && overflows) || (isLong && exp)) && (
           <button onClick={()=>setExp(s=>!s)} style={S_EXPAND}>
             <span style={S_ARROW}>{exp?'▲':'▼'}</span>
@@ -4474,7 +4476,7 @@ export default function App() {
       </header>
 
       {/* PROGRESS BAR */}
-      {!loading && stats?.br && (() => {
+      {!loading && !!stats?.br && (() => {
         const target = MARATHON_TARGET
         const raw = stats.br / target * 100
         const pct = Math.max(0, Math.min(100, raw))
@@ -4561,7 +4563,7 @@ export default function App() {
                   <div className="hero-desc">
                     From Hero to Zero · <a href="https://forum.gipsyteam.ru/index.php?viewtopic=181676"
                       target="_blank" rel="noreferrer" style={{color:'var(--dim2)'}}>GipsyTeam</a>
-                    {stats.lastTs && <span> · {t('last_post')}: {fmtDateTimeLang(stats.lastTs, lang)}</span>}
+                    {!!stats.lastTs && <span> · {t('last_post')}: {fmtDateTimeLang(stats.lastTs, lang)}</span>}
                   </div>
                 </div>
               </div>
