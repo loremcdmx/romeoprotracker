@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 1.14.8 — 2026-10-19
+
+- Money is formatted correctly at any size: exact amounts group every thousand (1 234 567$), compact labels switch to millions ($1.23M, never "1000.0k"), including chart axes, the peak badge and milestone labels.
+- The monthly chart's Y axis sizes its gutter to the longest label.
+- Month labels and date tags get a short year once the shown range crosses a calendar year (MAR 26 ... MAR 27), so months no longer repeat ambiguously.
+
 ## 1.14.7 — 2026-10-19
 
 - Tooltips and labels stay inside the screen and their cards: the phone long-press tooltip no longer loses its date header, the "tournaments per session" tooltip no longer sticks out of the card, and the activity and top-posts popups are placed again once their images load.
