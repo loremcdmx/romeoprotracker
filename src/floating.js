@@ -97,6 +97,104 @@ export function computeFixedPopupLayout({
   }
 }
 
+// Vertical placement for a position:fixed sheet that opens next to a touch
+// point (the marathon chart's long-press tooltip). It sits above the finger;
+// when that would push its top out of the viewport it flips below the finger;
+// when neither side holds the whole sheet (landscape phones, tall merged
+// groups) it takes the roomier side and is capped with maxHeight, so the
+// content scrolls inside it instead of being cut off by the viewport — and it
+// never covers the touch point, which would swallow the touch's follow-up
+// events. Inputs are layout pixels (window.innerHeight and clientY): the phone
+// layout is never zoomed.
+export function computeTouchSheetLayout({
+  touchY,
+  panelHeight,
+  viewportHeight,
+  edge = 8,
+  gap = 16,
+  bottomReserve = 90,
+}) {
+  const maxHeight = Math.max(120, viewportHeight - edge * 2)
+  const height = Math.min(Math.max(panelHeight, 0), maxHeight)
+  const aboveBottom = Math.min(viewportHeight - bottomReserve, touchY - gap)
+  if (aboveBottom - height >= edge) return { top: aboveBottom - height, maxHeight }
+  const belowTop = touchY + gap
+  if (belowTop + height <= viewportHeight - edge) return { top: belowTop, maxHeight }
+  const roomAbove = aboveBottom - edge
+  const roomBelow = viewportHeight - edge - belowTop
+  return roomBelow > roomAbove
+    ? { top: belowTop, maxHeight: Math.max(roomBelow, 0) }
+    : { top: edge, maxHeight: Math.max(roomAbove, 0) }
+}
+
+// Real-pixel anchor for a tooltip that floats over an SVG chart. A viewBox
+// point is scaled by the rendered size of the svg (preserveAspectRatio "meet":
+// the drawing is centred and, when the svg has a min-height, letterboxed), so
+// viewBox units are NOT CSS pixels. Returns the TOP-LEFT corner of the tooltip
+// in CSS pixels relative to the svg's own box — the padding-box origin of a
+// wrapper whose first child is the display:block svg. Rects are the raw
+// getBoundingClientRect values; the #root zoom is divided out like in
+// computeFixedPopupLayout.
+//
+// Placement, all of it kept inside the svg box horizontally and inside
+// boundsRect (the clipping card) vertically:
+//   above  - centred over the anchor, `gap` above it (the normal case);
+//   right / left - when the anchor sits too close to the top of the card for
+//     the tooltip to fit above it (the tallest bars), beside the anchor, so it
+//     still never covers the hovered bar;
+//   inside - the chart is too narrow for either side: pinned just under the
+//     card's top edge, which overlaps the top of the bar rather than being cut.
+// point.halfWidth (viewBox units) is half the bar's width, for the side gap.
+export function computeSvgTooltipLayout({
+  svgRect,
+  viewBox,
+  point,
+  tipWidth = 0,
+  tipHeight = 0,
+  boundsRect = null,
+  edge = 4,
+  gap = 10,
+  zoom = 1,
+}) {
+  if (!svgRect || !viewBox || !(svgRect.width > 0) || !(svgRect.height > 0)) return null
+  const scale = Math.min(svgRect.width / viewBox.width, svgRect.height / viewBox.height)
+  const offsetX = (svgRect.width - viewBox.width * scale) / 2
+  const offsetY = (svgRect.height - viewBox.height * scale) / 2
+  const boxWidth = svgRect.width / zoom
+  const anchorX = (offsetX + point.x * scale) / zoom
+  const anchorY = (offsetY + point.y * scale) / zoom
+  const halfBar = ((point.halfWidth || 0) * scale) / zoom
+  const hasBounds = !!boundsRect && boundsRect.width > 0 && boundsRect.height > 0
+  const minTop = hasBounds ? (boundsRect.top - svgRect.top) / zoom + edge : -Infinity
+  const maxBottom = hasBounds ? (boundsRect.top + boundsRect.height - svgRect.top) / zoom - edge : Infinity
+  const maxLeft = boxWidth - tipWidth - edge
+  const centred = clamp(anchorX - tipWidth / 2, edge, maxLeft)
+
+  const above = anchorY - gap - tipHeight
+  if (above >= minTop) return { left: centred, top: above, placement: 'above' }
+
+  const sideTop = clamp(anchorY - tipHeight / 2, minTop, maxBottom - tipHeight)
+  const sideGap = Math.max(gap - 2, 4)
+  const right = anchorX + halfBar + sideGap
+  if (right <= maxLeft) return { left: right, top: sideTop, placement: 'right' }
+  const left = anchorX - halfBar - sideGap - tipWidth
+  if (left >= edge) return { left, top: sideTop, placement: 'left' }
+  return { left: centred, top: minTop, placement: 'inside' }
+}
+
+// Calls onChange when something inside a popup finishes loading (or fails),
+// i.e. when lazy thumbnails get their real height after the popup was already
+// measured and placed. load/error do not bubble, hence the capture listeners.
+export function watchPopupContentLoad(el, onChange) {
+  if (!el || typeof el.addEventListener !== 'function') return () => {}
+  el.addEventListener('load', onChange, true)
+  el.addEventListener('error', onChange, true)
+  return () => {
+    el.removeEventListener('load', onChange, true)
+    el.removeEventListener('error', onChange, true)
+  }
+}
+
 export function findHoverListIndexAtPoint({
   items,
   point,

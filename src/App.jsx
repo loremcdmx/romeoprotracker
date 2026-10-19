@@ -7,7 +7,7 @@ import {
   warsawDayKey, warsawParts, fmtDateTimeLang,
 } from './utils.js'
 import { createTranslator, DEFAULT_LANG, FORUM_WORD, LANG_DICT, fmtDateShortLang } from './i18n.js'
-import { computeFixedPopupLayout, findHoverListIndexAtPoint } from './floating.js'
+import { computeFixedPopupLayout, computeSvgTooltipLayout, computeTouchSheetLayout, findHoverListIndexAtPoint, getZoomedViewportMetrics, watchPopupContentLoad } from './floating.js'
 import { useIsMobile } from './hooks/useIsMobile.js'
 import { useExclusiveHoverPopup } from './hooks/useExclusiveHoverPopup.js'
 import { usePersistentState } from './hooks/usePersistentState.js'
@@ -15,6 +15,7 @@ import { usePostsData } from './hooks/usePostsData.js'
 import { safeEmbedUrls } from '../scripts/lib/embed-url.mjs'
 import AnimatedValue, { useTweenValue } from './components/AnimatedValue.jsx'
 import { buildPaceTrend, computePaceTrendStats } from './paceTrend.js'
+import { placePaceValueLabels } from './paceLabels.js'
 import { buildGlobalAuthorCounts, pickTopAuthors } from './activityAuthors.js'
 import { addIgnoredAuthor, isIgnoredAuthor, removeIgnoredAuthor } from './ignoredAuthors.js'
 import { normalizeMarathonDistance } from './marathonMonths.js'
@@ -489,6 +490,35 @@ function PaceMiniChart({ segments, binSize, unit, t, light = false }) {
       previousLabelIdx = idx
     }
   }
+  // Value labels (latest, worst, best) get a collision pass: against the x-axis
+  // labels (a negative extreme sits on the plot floor, right above them) and
+  // against each other. A label flips to the other side of its dot when its
+  // preferred side is taken; a best/worst label with no free side is dropped
+  // (the tooltip and aria-label still carry the exact value).
+  const xLabelY = height - 22
+  const valueLabelText = seg => formatDollarPerMTT(seg.rate, unit).replace(`/${unit}`, '')
+  const valueLabelPlacement = placePaceValueLabels(
+    [...new Set([lastLabelIdx, worstIdx, bestIdx, ...labelIndexes])]
+      .filter(idx => labelIndexes.has(idx)
+        && (idx === lastLabelIdx || Math.abs(segments[idx].rate) >= Math.max(1, maxAbs * .08)))
+      .map(idx => {
+        const rateY = y(segments[idx].rate)
+        const edge = idx === lastLabelIdx && x(idx) > gridRight - 42
+        return {
+          key: idx,
+          x: edge ? x(idx) - 10 : x(idx),
+          anchor: edge ? 'end' : 'middle',
+          width: estimateSvgTextWidth(valueLabelText(segments[idx]), 10.5),
+          baselines: segments[idx].rate >= 0 ? [rateY - 11, rateY + 17] : [rateY + 17, rateY - 11],
+          keep: idx === lastLabelIdx,
+        }
+      }),
+    [...xLabelIndexes].map(idx => {
+      const half = labelWidth(idx) / 2
+      return { left: x(idx) - half, right: x(idx) + half, top: xLabelY - 8, bottom: xLabelY + 3 }
+    }),
+    { minY: 0, maxY: height },
+  )
   // Dense steps must not put one point's hit area over another point's center.
   const hitRadii = points.map((point, idx) => Math.min(isMobile ? 16 : 12,
     ...points.flatMap((other, otherIdx) => otherIdx === idx ? [] : [Math.hypot(point.x - other.x, point.y - other.y) * .45])))
@@ -560,7 +590,7 @@ function PaceMiniChart({ segments, binSize, unit, t, light = false }) {
           const isLatest = idx === segments.length - 1
           const isBest = idx === bestIdx
           const isWorst = idx === worstIdx
-          const showRateLabel = labelIndexes.has(idx) && (idx === segments.length - 1 || Math.abs(seg.rate) >= Math.max(1, maxAbs * .08))
+          const valueLabelY = valueLabelPlacement.get(idx)
           const isPartial = !seg.full
           const isRightEdgeLabel = isLatest && cx > gridRight - 42
           const valueLabelX = isRightEdgeLabel ? cx - 10 : cx
@@ -578,12 +608,12 @@ function PaceMiniChart({ segments, binSize, unit, t, light = false }) {
               {isPartial && <circle className="pace-dot-partial-ring" cx={cx} cy={rateY} r="8.2"/>}
               {isLatest && <circle className="pace-dot-latest-ring" cx={cx} cy={rateY} r="8.4"/>}
               <circle className="pace-dot" cx={cx} cy={rateY} r={isLatest ? 5 : 3.8}/>
-              {showRateLabel && (
-                <text className={`pace-chart-value ${tone} ${isRightEdgeLabel ? 'edge' : ''}`} x={valueLabelX} y={rateY + (seg.rate >= 0 ? -11 : 17)}>
-                  {formatDollarPerMTT(seg.rate, unit).replace(`/${unit}`, '')}
+              {valueLabelY != null && (
+                <text className={`pace-chart-value ${tone} ${isRightEdgeLabel ? 'edge' : ''}`} x={valueLabelX} y={valueLabelY}>
+                  {valueLabelText(seg)}
                 </text>
               )}
-              {xLabelIndexes.has(idx) && <text className="pace-x-label" x={cx} y={height - 22}>{seg.label}</text>}
+              {xLabelIndexes.has(idx) && <text className="pace-x-label" x={cx} y={xLabelY}>{seg.label}</text>}
             </g>
           )
         })}
@@ -841,6 +871,28 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
     raf(() => setTipVisible(true))
   }, [])
   const { announceOpen: announceHoverPopupOpen } = useExclusiveHoverPopup(closeTip)
+
+  // Phone long-press tooltip: measured and placed in real pixels so it always
+  // stays inside the viewport (above the finger, else below it, else on the
+  // roomier side with its content scrolling inside).
+  const sheetRef = useRef(null)
+  const [sheetPos, setSheetPos] = useState(null)
+  useLayoutEffect(() => {
+    if (!isMobile || !tip || !sheetRef.current) { setSheetPos(null); return undefined }
+    const place = () => {
+      const el = sheetRef.current
+      if (!el) return
+      setSheetPos(computeTouchSheetLayout({
+        touchY: tip.screenY || 0,
+        // scrollHeight is the full content height even when maxHeight caps it
+        panelHeight: el.scrollHeight + (el.offsetHeight - el.clientHeight),
+        viewportHeight: window.innerHeight,
+      }))
+    }
+    place()
+    window.addEventListener('resize', place)
+    return () => window.removeEventListener('resize', place)
+  }, [isMobile, tip])
 
   useEffect(() => () => clearTimeout(tipCloseTimer.current), [])
 
@@ -1402,6 +1454,12 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
     const milestonePlates = allTimeMilestones
       .map(m => milestonePlateRect(m.type, m.point, isMobile, chartFrame))
       .filter(Boolean)
+    // Plates actually painted: phones draw only the best-day plate, the other
+    // milestones are bare markers there.
+    const drawnPlates = allTimeMilestones
+      .filter(m => !isMobile || m.type === 'best')
+      .map(m => milestonePlateRect(m.type, m.point, isMobile, chartFrame))
+      .filter(Boolean)
     const rectsOverlap = (a, b) =>
       a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom
     const nearX = badgeW / 2 + (isMobile ? 12 : 14)
@@ -1509,6 +1567,7 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
         { left:r.left - 3, right:r.right + 3, top:r.top - 3, bottom:r.bottom + 3 })).length
       const tightRect = { left:rect.left - 2, right:rect.right + 2, top:rect.top - 2, bottom:rect.bottom + 2 }
       const plateOverlaps = milestonePlates.filter(r => rectsOverlap(tightRect, r)).length
+      const drawnPlateOverlaps = drawnPlates.filter(r => rectsOverlap(tightRect, r)).length
       const leaderDistance = leaderDangerPoints.length
         ? Math.min(...leaderDangerPoints.map(p => distanceToSegment(p, point, anchor)))
         : 32
@@ -1528,6 +1587,7 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
         dotOverlaps,
         lineIntersections,
         plateOverlaps,
+        drawnPlateOverlaps,
         plateLeaderHits,
         score:clearRectScore * 2.4 + clearPaddedScore * 2 + Math.min(leaderDistance, 34) * .8
           + affinity - overlaps * 220 - lineIntersections * 180 - leaderLength * .38
@@ -1537,15 +1597,20 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
     }).sort((a,b) => b.score - a.score)
     const preferredCx = clampCx(point.x - nearX)
     const preferredCy = clampCy(point.y - nearY)
-    const pointSafeCandidates = candidates.filter(candidate => candidate.dotOverlaps === 0)
-    // Never sit on (or run the leader through) a milestone plate if any clean
-    // spot exists — overlapping "$200k"-style plates was the visible defect.
-    const plateSafeCandidates = pointSafeCandidates.filter(
-      candidate => candidate.plateOverlaps === 0 && candidate.plateLeaderHits === 0,
-    )
-    const candidatePool = plateSafeCandidates.length
-      ? plateSafeCandidates
-      : (pointSafeCandidates.length ? pointSafeCandidates : candidates)
+    // The badge must never sit on a painted milestone plate — that hides the
+    // best-day figure or the "$200k"-style label. Tiers, best first: clear of
+    // dots and plates with a leader that skips the plates; clear of dots and
+    // painted plates (the leader may cross one); clear of painted plates only
+    // (may cover dots).
+    const plateFreeCandidates = candidates.filter(candidate => candidate.drawnPlateOverlaps === 0)
+    const candidatePool = [
+      candidates.filter(candidate => candidate.dotOverlaps === 0
+        && candidate.plateOverlaps === 0 && candidate.plateLeaderHits === 0),
+      plateFreeCandidates.filter(candidate => candidate.dotOverlaps === 0),
+      plateFreeCandidates,
+    ].find(pool => pool.length) || []
+    // Every spot would bury a plate: drop the badge instead of covering it.
+    if (!candidatePool.length) return null
     const preferred = candidatePool.reduce((best, candidate) => {
       const distance = Math.hypot(candidate.cx - preferredCx, candidate.cy - preferredCy)
       const selectionScore = candidate.score - distance * 8
@@ -1553,7 +1618,7 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
         ? { ...candidate, distance, selectionScore }
         : best
     }, null)
-    const { cx, cy, anchor } = preferred || candidates[0]
+    const { cx, cy, anchor } = preferred
     return {
       idx:peakIdx,
       point,
@@ -2068,7 +2133,12 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
         const pillColor  = tip.profit >= 0 ? '#66bb6a' : '#ff5252'
         const pillBorder = tip.profit >= 0 ? 'rgba(102,187,106,.25)' : 'rgba(255,82,82,.25)'
         const mobileStyle = isMobile ? {
-          position:'fixed', bottom:Math.max(90, window.innerHeight - (tip.screenY||0) + 16)+'px',
+          position:'fixed',
+          // before the first measurement: the legacy above-the-finger anchor
+          ...(sheetPos
+            ? { top:sheetPos.top+'px', bottom:'auto', maxHeight:sheetPos.maxHeight+'px' }
+            : { bottom:Math.max(90, window.innerHeight - (tip.screenY||0) + 16)+'px', maxHeight:'calc(100vh - 16px)' }),
+          overflowY:'auto', overscrollBehavior:'contain',
           left:'12px', right:'12px', maxWidth:'none', width:'auto',
           '--mc-tooltip-x':'0px',
         } : {
@@ -2080,7 +2150,7 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
           transformOrigin:right?'right bottom':'left bottom',
         }
         return (
-          <div className={`mc-tooltip ${tipVisible ? 'is-visible' : ''}`} style={{...mobileStyle, position: isMobile ? 'fixed' : 'absolute', pointerEvents: isMobile ? 'auto' : 'none'}}
+          <div ref={sheetRef} className={`mc-tooltip ${tipVisible ? 'is-visible' : ''}`} style={{...mobileStyle, position: isMobile ? 'fixed' : 'absolute', pointerEvents: isMobile ? 'auto' : 'none'}}
             onClick={e => e.stopPropagation()}>
             {/* Pill — всегда в правом верхнем углу тултипа */}
             <div className="mc-pill" style={{
@@ -2376,20 +2446,26 @@ function ActivityChart({ posts, favorites, ignored, onFav, onIgnore, onUnignore,
   useLayoutEffect(() => {
     if (!tip || selected || !tip.anchorRect || !tipRef.current) {
       setTipStyle(null)
-      return
+      return undefined
     }
 
-    const nextStyle = computeFixedPopupLayout({
-      anchorRect: tip.anchorRect,
-      panelRect: tipRef.current.getBoundingClientRect(),
-      preferredWidth: 380,
-      minWidth: 280,
-      gap: 12,
-      edge: 8,
-      vertical: 'center',
-    })
-    setTipStyle(nextStyle)
-  }, [tip, selected])
+    const place = () => {
+      if (!tipRef.current) return
+      setTipStyle(computeFixedPopupLayout({
+        anchorRect: tip.anchorRect,
+        panelRect: tipRef.current.getBoundingClientRect(),
+        preferredWidth: 380,
+        minWidth: 280,
+        gap: 12,
+        edge: 8,
+        vertical: 'center',
+      }))
+    }
+    place()
+    // The first pass measures a card whose lazy thumbnails are still 0px tall
+    // (and at the provisional width); place again once they load.
+    return watchPopupContentLoad(tipRef.current, place)
+  }, [tip, selected, tipStyle?.width])
 
   useEffect(() => {
     if (!tip || selected) return undefined
@@ -2634,7 +2710,9 @@ function ActivityChart({ posts, favorites, ignored, onFav, onIgnore, onUnignore,
               top: tipStyle?.top ?? 0,
               pointerEvents:'auto',
               width: tipStyle?.width ?? 380,
-              maxHeight: tipStyle?.maxHeight ?? 'calc(100vh - 16px)',
+              // unconstrained until placed: `vh` is scaled by the #root zoom, so a
+              // vh-based first pass would measure a differently capped card
+              maxHeight: tipStyle?.maxHeight ?? 'none',
               maxWidth:'calc(100vw - 16px)',
               minWidth:280,
               overflowY:'auto',
@@ -3349,20 +3427,26 @@ export function SidebarTopList({ posts, setLightbox }) {
   useLayoutEffect(() => {
     if (hovered === null || !anchor || !popupRef.current) {
       setPopupStyle(null)
-      return
+      return undefined
     }
 
-    const nextStyle = computeFixedPopupLayout({
-      anchorRect: anchor,
-      panelRect: popupRef.current.getBoundingClientRect(),
-      preferredWidth: 340,
-      minWidth: 260,
-      gap: 6,
-      edge: 8,
-      vertical: 'smart',
-    })
-    setPopupStyle(nextStyle)
-  }, [hovered, anchor])
+    const place = () => {
+      if (!popupRef.current) return
+      setPopupStyle(computeFixedPopupLayout({
+        anchorRect: anchor,
+        panelRect: popupRef.current.getBoundingClientRect(),
+        preferredWidth: 340,
+        minWidth: 260,
+        gap: 6,
+        edge: 8,
+        vertical: 'smart',
+      }))
+    }
+    place()
+    // Placed again once the width is applied (text re-wraps) and when the
+    // post image finishes loading: both change the height it was placed for.
+    return watchPopupContentLoad(popupRef.current, place)
+  }, [hovered, anchor, popupStyle?.width])
 
   useEffect(() => {
     if (hovered === null) return undefined
@@ -3402,7 +3486,9 @@ export function SidebarTopList({ posts, setLightbox }) {
             borderRadius:8, padding:14, zIndex:9999,
             boxShadow:'var(--shadow-popup)',
             pointerEvents:'auto',
-            maxHeight: popupStyle?.maxHeight ?? 'calc(100vh - 16px)',
+            // unconstrained until placed: `vh` is scaled by the #root zoom, so a
+            // vh-based first pass would measure a card capped lower than its final cap
+            maxHeight: popupStyle?.maxHeight ?? 'none',
             display:'flex', flexDirection:'column',
             visibility: popupStyle ? 'visible' : 'hidden',
             transformOrigin: popupStyle?.transformOrigin ?? 'left top',
@@ -3594,11 +3680,53 @@ function FirstFundBanner({ t }) {
 }
 
 // ─── SESSION MTT WIDGET ──────────────────────────────────────────────────────
+// Hover tooltip of the session-MTT chart. The svg is drawn in viewBox units but
+// scaled (and, on phones, letterboxed by its min-height) to whatever size the
+// column gives it, so the anchor is measured from the rendered svg and placed
+// in real pixels: 10px above the hovered bar, clamped by its own pixel width
+// so it never sticks out of the card sideways, and moved beside the bar when
+// there is no room above it inside the card (the tallest bars sit right under
+// the card's top edge, which clips with overflow:hidden). Without a layout
+// (jsdom) it falls back to percentages of the box.
+function SmttTooltip({ svgRef, W, H, point, fallbackLeftPct, contentKey, children }) {
+  const tipRef = useRef(null)
+  const [pos, setPos] = useState(null)
+  useLayoutEffect(() => {
+    const place = () => {
+      const svg = svgRef.current
+      const tip = tipRef.current
+      if (!svg || !tip) return
+      const { zoom } = getZoomedViewportMetrics()
+      const tipRect = tip.getBoundingClientRect()
+      setPos(computeSvgTooltipLayout({
+        svgRect: svg.getBoundingClientRect(),
+        viewBox: { width: W, height: H },
+        point,
+        tipWidth: tipRect.width / zoom,
+        tipHeight: tipRect.height / zoom,
+        boundsRect: svg.closest('.pace-widget')?.getBoundingClientRect() || null,
+        zoom,
+      }))
+    }
+    place()
+    window.addEventListener('resize', place)
+    return () => window.removeEventListener('resize', place)
+    // point is rebuilt every render; its coordinates are the real inputs
+  }, [svgRef, W, H, point.x, point.y, point.halfWidth, contentKey])
+  return (
+    <div ref={tipRef} className="smtt-tooltip" data-placement={pos?.placement}
+      style={pos ? { left:`${pos.left}px`, top:`${pos.top}px`, transform:'none' } : { left:`${fallbackLeftPct}%`, top:`${point.y / H * 100}%` }}>
+      {children}
+    </div>
+  )
+}
+
 // Bars of tournaments played per session (channel request). Follows the shared
 // week/month/all chart period; average as a dashed guide, last session in gold.
 const SessionMttChart = memo(function SessionMttChart({ meta, period, lang, t }) {
   const isMobile = useIsMobile()
   const [hoverIdx, setHoverIdx] = useState(null)
+  const svgRef = useRef(null)
   const rows = useMemo(() => {
     const hist = [...(meta?.brHistory || [])].sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0))
     const withMtt = hist.map((row, i) => ({
@@ -3649,7 +3777,7 @@ const SessionMttChart = memo(function SessionMttChart({ meta, period, lang, t })
         </div>
       </div>
       <div className="pace-chart-wrap" onMouseLeave={() => setHoverIdx(null)}>
-        <svg className="pace-chart smtt-chart" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={t('smtt_title')}>
+        <svg ref={svgRef} className="pace-chart smtt-chart" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={t('smtt_title')}>
           <rect x={pad.left} y={pad.top} width={plotW} height={plotH} rx="10" className="pace-plot-bg"/>
           {[maxMtt, Math.round(maxMtt / 2)]
             .filter(v => Math.abs(yOf(v) - avgY) >= 12)
@@ -3697,7 +3825,8 @@ const SessionMttChart = memo(function SessionMttChart({ meta, period, lang, t })
           const diff = Math.round(hover.r.mtt - avg)
           const clampedPct = Math.min(88, Math.max(12, hoverPct))
           return (
-            <div className="smtt-tooltip" style={{ left:`${clampedPct}%`, bottom:`${H - yOf(hover.r.mtt) + 10}px` }}>
+            <SmttTooltip svgRef={svgRef} W={W} H={H} point={{ x:xOf(hover.i) + barW / 2, y:yOf(hover.r.mtt), halfWidth:barW / 2 }}
+              fallbackLeftPct={clampedPct} contentKey={hover.i}>
               <div className="smtt-tooltip-date">{fmtDateShortLang(hover.r.timestamp, lang)}</div>
               <div className="smtt-tooltip-mtt">{fmtInt(hover.r.mtt)} {t('sr_mtt_short')}
                 <span className={`smtt-tooltip-diff ${diff >= 0 ? 'pos' : 'neg'}`}>
@@ -3707,7 +3836,7 @@ const SessionMttChart = memo(function SessionMttChart({ meta, period, lang, t })
               {hover.r.profit != null && (
                 <div className={`smtt-tooltip-profit ${hover.r.profit >= 0 ? 'pos' : 'neg'}`}>{fk(hover.r.profit)}</div>
               )}
-            </div>
+            </SmttTooltip>
           )
         })()}
       </div>

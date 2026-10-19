@@ -1228,7 +1228,8 @@ html{scroll-behavior:smooth}
 .light .smtt-bar.hover{fill:rgba(25,80,120,.9)}
 .smtt-bar.last.hover{fill:#ffe08a}
 .smtt-bar.max.hover{fill:rgba(150,240,160,.95)}
-.smtt-tooltip{position:absolute;transform:translate(-50%,0);z-index:25;pointer-events:none;
+/* no-layout fallback: 10px above the bar top; the measured placement sets left/top and transform:none inline */
+.smtt-tooltip{position:absolute;transform:translate(-50%,calc(-100% - 10px));z-index:25;pointer-events:none;
   background:var(--chart-callout-bg);border:1px solid var(--chart-callout-stroke);border-radius:8px;
   padding:7px 9px;font-family:'Roboto Mono',monospace;white-space:nowrap;
   box-shadow:0 6px 18px rgba(0,0,0,.4)}
