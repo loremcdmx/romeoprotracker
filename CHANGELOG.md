@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 1.14.12 — 2026-10-19
+
+- Jumps inside the page (day rows, the "N new posts" bubble, pagination) now land below the pinned header on desktop and phones instead of hiding the top of the target post.
+- On phones held sideways only the top bar stays pinned; the progress bar scrolls away so the header no longer takes more than a third of the screen.
+
 ## 1.14.11 — 2026-10-19
 
 - Light theme: ratings, likes and the chart pills now reach readable contrast; the period pills, filter pill, hero badge and the active page / mobile menu buttons use a deeper red that carries white text; resting feed actions, the hourly-rate hint and the empty pace card are readable.

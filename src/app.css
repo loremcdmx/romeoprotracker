@@ -21,8 +21,11 @@
   /* Sticky header stack: .topbar (z100) plus .marathon-progress, which sticks at
      --progress-top and is --progress-h tall (measured; 104px once it stacks on
      phones, see the <=720px block). Anything that sticks below the stack
-     (.new-posts-bubble) offsets itself by --sticky-stack-h instead of a guess. */
-  --progress-top:40px;--progress-h:70px;
+     (.new-posts-bubble) or must land under it (in-page jumps, .jump-target)
+     offsets itself by --sticky-stack-h instead of a guess. Short landscape
+     viewports pin the topbar only (--topbar-h: 44px row + 1px border), see the
+     max-height block next to .marathon-progress. */
+  --progress-top:40px;--progress-h:70px;--topbar-h:45px;
   --sticky-stack-h:calc(var(--progress-top) + var(--progress-h));
 }
 html,body,#root{min-height:100%;background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-size:12px;line-height:1.5}
@@ -712,6 +715,19 @@ html{scroll-behavior:smooth}
   :root{--progress-h:104px}
   .marathon-progress-inner{grid-template-columns:1fr;gap:8px;padding:8px 12px 10px}
 }
+/* Short landscape viewports (phones on their side: 568x320, 667x375, 812x375):
+   the two-row stack would pin 110-144px, 30-45% of the screen. Keep only the
+   topbar sticky, let the progress bar scroll away, and point --sticky-stack-h at
+   the topbar so the new-posts bubble and the jump offset follow. */
+@media(max-height:500px) and (orientation:landscape){
+  :root{--sticky-stack-h:var(--topbar-h)}
+  .marathon-progress{position:static}
+}
+/* Where in-page jumps (goToPost, goToNewPosts, scrollToPost, goPage) put their
+   target: 12px under the pinned stack. scroll-margin is in the element's own
+   units, so inside #root it is scaled by the 0.85-1.25 desktop zoom exactly like
+   the stack, which a fixed pixel offset in JS never was. */
+.jump-target,.filter-bar{scroll-margin-top:calc(var(--sticky-stack-h) + 12px)}
 
 /* ─── SESSION PILL on chart ─────────────────────────────────────────────── */
 .mc-pill{

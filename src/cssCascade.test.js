@@ -83,8 +83,14 @@ function holds(cond, env) {
     if (/prefers-reduced-motion/.test(c)) return false
     const max = c.match(/\(max-width:(\d+)px\)/)
     const min = c.match(/\(min-width:(\d+)px\)/)
-    if (!max && !min) return false
+    const maxH = c.match(/\(max-height:(\d+)px\)/)
+    const orient = c.match(/\(orientation:(landscape|portrait)\)/)
+    if (!max && !min && !maxH && !orient) return false
+    // height features need env.height; an env without one never matches them
+    if ((maxH || orient) && env.height === undefined) return false
     return (!max || env.width <= +max[1]) && (!min || env.width >= +min[1])
+      && (!maxH || env.height <= +maxH[1])
+      && (!orient || (env.width > env.height ? 'landscape' : 'portrait') === orient[1])
   }
   // the only @supports in app.css is the negated overflow-x:clip fallback
   return /^@supportsnot\(/i.test(c) ? env.clip === false : true
@@ -247,6 +253,85 @@ describe('app.css cascade guards', () => {
       const bubbleTop = px(value($('.new-posts-bubble'), 'top', env), $('.new-posts-bubble'), env)
       expect(barTop).toBe(40)
       expect(bubbleTop).toBe(barTop + barH + 8)
+    })
+  })
+
+  describe('jump offset follows the sticky stack, short landscape pins the topbar only (tails T2 a/b)', () => {
+    const CHAIN = '<div id="root"><header class="topbar"></header><div class="marathon-progress"></div><div class="filter-bar"></div><main class="page"><div id="post-1" class="jump-target"></div><button class="new-posts-bubble"></button></main></div>'
+    const env = (width, height, extra = {}) => ({ width, height, clip: true, ...extra })
+    const stackOf = (e) => px('var(--sticky-stack-h)', document.documentElement, e)
+    const pos = (sel, e) => value($(sel), 'position', e)
+
+    // [width, height, stack]: stack = topbar 45 (landscape) or --progress-top 40 + bar 70/104
+    const LANDSCAPE = [[667, 375, 45], [812, 375, 45], [568, 320, 45], [932, 430, 45], [1280, 480, 45], [740, 500, 45]]
+    const UNCHANGED = [[375, 812, 144], [320, 640, 144], [414, 896, 144], [768, 1024, 110], [1024, 768, 110], [1280, 800, 110], [1920, 1080, 110],
+      [812, 501, 110], [667, 501, 144], [375, 500, 144], [320, 480, 144]]
+
+    it.each(LANDSCAPE)('%ix%i landscape: stack is the topbar only (%ipx), the progress bar scrolls away, the topbar stays pinned', (w, h, stack) => {
+      for (const light of [false, true]) {
+        mount(CHAIN, { light })
+        const e = env(w, h)
+        expect(stackOf(e)).toBe(stack)
+        expect(pos('.marathon-progress', e)).toBe('static')
+        expect(pos('.topbar', e)).toBe('sticky')
+        expect(px(value($('.topbar'), 'top', e), $('.topbar'), e)).toBe(0)
+      }
+    })
+
+    it.each(UNCHANGED)('%ix%i keeps the two-row pinned stack (%ipx) and both bars sticky', (w, h, stack) => {
+      for (const light of [false, true]) {
+        mount(CHAIN, { light })
+        const e = env(w, h)
+        expect(stackOf(e)).toBe(stack)
+        expect(pos('.marathon-progress', e)).toBe('sticky')
+        expect(pos('.topbar', e)).toBe('sticky')
+        expect(px(value($('.marathon-progress'), 'top', e), $('.marathon-progress'), e)).toBe(40)
+      }
+    })
+
+    it.each([[375, 812], [768, 1024], [1280, 800], [667, 375]])('--topbar-h is the real topbar at %ix%i: the 44px row plus its 1px bottom border', (w, h) => {
+      mount('<header class="topbar"><div class="topbar-inner"></div></header>')
+      const e = env(w, h)
+      const row = px(value($('.topbar-inner'), 'height', e), $('.topbar-inner'), e)
+      const border = parseFloat(value($('.topbar'), 'border-bottom', e))
+      expect(row + border).toBe(px('var(--topbar-h)', document.documentElement, e))
+    })
+
+    it('an env without a height never matches the height query (older call sites stay on the portrait/desktop rules)', () => {
+      mount(CHAIN)
+      expect(stackOf({ width: 667, clip: true })).toBe(144)
+      expect(pos('.marathon-progress', { width: 667, clip: true })).toBe('sticky')
+    })
+
+    it.each([...LANDSCAPE, ...UNCHANGED])('%ix%i: the new-posts bubble pins 8px under whatever is pinned (stack %ipx)', (w, h, stack) => {
+      mount(CHAIN)
+      const e = env(w, h)
+      expect(px(value($('.new-posts-bubble'), 'top', e), $('.new-posts-bubble'), e)).toBe(stack + 8)
+    })
+
+    // goToPost / goToNewPosts / scrollToPost land on .jump-target (the post
+    // wrapper), goPage on .filter-bar: both leave 12px under the pinned stack.
+    // The old JS offsets were a fixed 80px (post) and 60px (filter bar) from the
+    // viewport top, below the 94-137px desktop and 144px phone stack.
+    it.each([...LANDSCAPE, ...UNCHANGED])('%ix%i: jump targets keep %ipx + 12px clear of the top', (w, h, stack) => {
+      mount(CHAIN)
+      const e = env(w, h)
+      for (const sel of ['.jump-target', '.filter-bar']) {
+        const v = value($(sel), 'scroll-margin-top', e)
+        expect(v, `${sel} has a scroll-margin-top`).toBeDefined()
+        expect(px(v, $(sel), e), `${sel} @${w}x${h}`).toBe(stack + 12)
+      }
+    })
+
+    it('every in-page jump goes through the one helper, with no fixed pixel offset left in App.jsx', () => {
+      expect(APP_JSX.match(/\.scrollIntoView\(/g)).toHaveLength(1)
+      expect(APP_JSX).toMatch(/function scrollToJumpTarget\(el\) \{\s*el\.scrollIntoView\(\{ behavior: scrollBehavior\(\), block: 'start' \}\)/)
+      expect(APP_JSX).not.toMatch(/window\.scrollTo\(/)
+      expect(APP_JSX).not.toMatch(/block:\s*'center'/)
+      // the definition plus its four callers: scrollToPost, goPage, goToPost, goToNewPosts
+      expect(APP_JSX.match(/scrollToJumpTarget\(/g)).toHaveLength(5)
+      // the post wrapper that goToPost / goToNewPosts / scrollToPost look up by id carries the class
+      expect(APP_JSX).toMatch(/id=\{`post-\$\{p\.id\}`\} className="jump-target"/)
     })
   })
 

@@ -2346,7 +2346,7 @@ function scrollToPost(p) {
   if (!p?.id) return
   const el = document.getElementById(`post-${p.id}`)
   if (!el) return
-  el.scrollIntoView({ behavior:scrollBehavior(), block:'center' })
+  scrollToJumpTarget(el)
   el.classList.add('post-highlight')
   setTimeout(() => el.classList.remove('post-highlight'), 1800)
 }
@@ -2884,6 +2884,15 @@ const avatarError = e => {
 const scrollBehavior = () =>
   (typeof window !== 'undefined' && typeof window.matchMedia === 'function'
     && window.matchMedia('(prefers-reduced-motion: reduce)').matches) ? 'auto' : 'smooth'
+
+// Every in-page jump (to a feed post, to the first new post, to the filter bar
+// on a page change) ends the same way: target's top edge just under the pinned
+// header stack. The offset is not computed here: .jump-target / .filter-bar carry
+// a scroll-margin-top built from --sticky-stack-h in app.css, so it is the real
+// stack at every width, #root zoom and orientation, and the browser does the math.
+function scrollToJumpTarget(el) {
+  el.scrollIntoView({ behavior: scrollBehavior(), block: 'start' })
+}
 
 function FilterBar({ sortBy, setSortBy, search, setSearch, showSearch, setShowSearch,
                      romeoOnly, setRomeoOnly, minLikes, setMinLikes,
@@ -4229,11 +4238,13 @@ export default function App() {
 
   const goPage = p => {
     setPage(p)
-    const filterBar = document.querySelector('.filter-bar')
-    if (filterBar) {
-      const top = filterBar.getBoundingClientRect().top + window.scrollY - 60
-      window.scrollTo({ top: Math.max(0, top), behavior: scrollBehavior() })
-    }
+    // After React commits the new page, like goToPost: a smooth scroll started
+    // inside this click handler was cancelled by the commit in WebKit about
+    // every other time, leaving the reader at the bottom of the old page.
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      const filterBar = document.querySelector('.filter-bar')
+      if (filterBar) scrollToJumpTarget(filterBar)
+    }))
   }
 
   // Сохраняем позицию чтения
@@ -4248,10 +4259,8 @@ export default function App() {
     const doScroll = () => {
       const el = document.getElementById(`post-${p.id}`)
       if (!el) return
-      const rect = el.getBoundingClientRect()
-      // Place post ~80px from top of viewport (below topbar), not centered
-      const target = window.scrollY + rect.top - 80
-      window.scrollTo({ top: target, behavior: scrollBehavior() })
+      // Post top just under the sticky header stack, not centered
+      scrollToJumpTarget(el)
       el.classList.remove('post-highlight')
       void el.offsetWidth // reflow so animation restarts
       el.classList.add('post-highlight')
@@ -4289,28 +4298,27 @@ export default function App() {
     return { count, firstIdx }
   }, [newPostIds, feedPosts])
 
+  // Only the bubble calls this, and it renders while newInFeed.count > 0, which
+  // means at least one new post is in feedPosts (firstIdx !== -1). Posts the
+  // filters hide never reach it: count ignores them, so there is nothing to dismiss.
   const goToNewPosts = useCallback(() => {
-    if (!newPostIds.length) return
-    // Find the first new post in current feedPosts order
+    // The first new post in current feedPosts order
     const firstNewIdx = newInFeed.firstIdx
-    if (firstNewIdx !== -1) {
-      const targetPage = Math.floor(firstNewIdx / perPage) + 1
-      setPage(targetPage)
-      // Mark as seen
-      clearNewPosts(posts)
-      // Scroll to the post after page renders
-      const postId = feedPosts[firstNewIdx].id
-      requestAnimationFrame(() => {
-        const el = document.getElementById(`post-${postId}`)
-        if (el) el.scrollIntoView({ behavior: scrollBehavior(), block: 'center' })
-      })
-    } else {
-      // New posts might be filtered out — just dismiss
-      clearNewPosts(posts)
-    }
-  }, [clearNewPosts, newPostIds, newInFeed, feedPosts, perPage, posts])
+    if (firstNewIdx === -1) return
+    const targetPage = Math.floor(firstNewIdx / perPage) + 1
+    setPage(targetPage)
+    // Mark as seen
+    clearNewPosts(posts)
+    // Scroll to the post after page renders
+    const postId = feedPosts[firstNewIdx].id
+    requestAnimationFrame(() => {
+      const el = document.getElementById(`post-${postId}`)
+      if (el) scrollToJumpTarget(el)
+    })
+  }, [clearNewPosts, newInFeed, feedPosts, perPage, posts])
 
-  // При смене вкладки сбрасываем на страницу с последним прочитанным постом
+  // A tab switch resets the feed to page 1. navigatedRef also keeps the one-time
+  // reading-position restore from overriding that if the posts load afterwards.
   const switchTab = (tab) => {
     setActiveTab(tab)
     navigatedRef.current = true
@@ -4712,7 +4720,7 @@ export default function App() {
                   <Paginator page={safePage} totalPages={totalPages} onPage={goPage}
                     perPage={perPage} onPerPage={setPerPage} total={feedPosts.length} lang={lang} />
                   {pagedPosts.map((p,i)=>(
-                    <div key={p.id||p.url} id={`post-${p.id}`}
+                    <div key={p.id||p.url} id={`post-${p.id}`} className="jump-target"
                       onMouseEnter={()=>{ if(i===pagedPosts.length-1) saveReadPos('feed',p.id) }}>
                       <PostCard p={p}
                         favorites={favorites} onFav={toggleFav}

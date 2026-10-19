@@ -2239,6 +2239,26 @@ describe('App', () => {
       await waitFor(() => expect(document.getElementById('post-romeo-old')).toHaveClass('post-highlight'))
     })
 
+    it('puts the target post at the top edge through scroll-margin, not a fixed 80px offset under the sticky stack', async () => {
+      const scrollIntoView = vi.spyOn(Element.prototype, 'scrollIntoView').mockImplementation(() => {})
+      await mount([...fillers, mkPost('romeo-old', 'Romeopro', { timestamp: oldDay, likes: 50, text: 'Old Romeo report' })])
+      openDay(oldDay)
+      const row = await waitFor(() => {
+        const el = document.querySelector('.chart-wrap .day-events .day-event-clickable')
+        expect(el).toBeTruthy()
+        return el
+      })
+      fireEvent.click(row)
+      await waitFor(() => expect(document.getElementById('post-romeo-old')).toHaveClass('post-highlight'))
+      const post = document.getElementById('post-romeo-old')
+      const at = scrollIntoView.mock.contexts.indexOf(post)
+      expect(at, 'scrollIntoView was called on the post wrapper').toBeGreaterThanOrEqual(0)
+      expect(scrollIntoView.mock.calls[at][0]).toEqual({ behavior: 'smooth', block: 'start' })
+      // .jump-target is what carries scroll-margin-top: calc(var(--sticky-stack-h) + 12px) in app.css
+      expect(post).toHaveClass('jump-target')
+      expect(window.scrollTo).not.toHaveBeenCalled()
+    })
+
     it('opens the forum post when a tooltip row points at a post the feed filters hide', async () => {
       const open = vi.spyOn(window, 'open').mockImplementation(() => null)
       // 1 like < default minimum of 3, so the feed does not list it
