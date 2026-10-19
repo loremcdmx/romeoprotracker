@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 1.14.17 — 2026-10-19
+
+- WebKit: numeric filters now finish focus scrolling after selecting their value, so keyboard focus stays visible even with smooth page scrolling enabled.
+
 ## 1.14.16 — 2026-10-19
 
 - Keyboard focus stays below the pinned header, with no extra scrolling in fixed menus or tooltips.

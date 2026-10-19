@@ -362,9 +362,10 @@ describe('app.css cascade guards', () => {
 
     it('every in-page jump goes through the one helper, with no fixed pixel offset left in App.jsx', () => {
       // one smooth request, in scrollToJumpTarget; the other two scrollIntoView calls are
-      // snapToJumpTarget's instant re-ask (and its fallback for engines without 'instant')
+      // snapToJumpTarget's instant re-ask (and its fallback for engines without 'instant').
+      // The fourth call finishes native focus scrolling of numeric filter inputs.
       expect(APP_JSX.match(/\.scrollIntoView\(\{ behavior: scrollBehavior\(\)/g)).toHaveLength(1)
-      expect(APP_JSX.match(/\.scrollIntoView\(/g)).toHaveLength(3)
+      expect(APP_JSX.match(/\.scrollIntoView\(/g)).toHaveLength(4)
       expect(APP_JSX).toMatch(/function scrollToJumpTarget\(el\) \{\s*el\.scrollIntoView\(\{ behavior: scrollBehavior\(\), block: 'start' \}\)\s*settleOnJumpTarget\(el\)/)
       expect(APP_JSX).toMatch(/function snapToJumpTarget\(el\) \{\s*try \{ el\.scrollIntoView\(\{ behavior: 'instant', block: 'start' \}\) \}/)
       expect(APP_JSX).not.toMatch(/window\.scrollTo\(/)

@@ -1568,17 +1568,22 @@ describe('App', () => {
     expect(screen.getByLabelText(translate('ru', 'filter_reputation_from'))).toBeInTheDocument()
   })
 
-  it('lets keyboard focus scroll numeric filters before selecting their value', async () => {
+  it('selects numeric filters and finishes their native focus scroll', async () => {
     render(<App />)
     await screen.findAllByText('Romeopro')
     for (const id of ['filter-min-likes', 'filter-min-reputation']) {
       const input = document.getElementById(id)
-      const select = vi.spyOn(input, 'select')
+      const calls = []
+      const select = vi.spyOn(input, 'select').mockImplementation(() => calls.push('select'))
+      const scroll = vi.spyOn(input, 'scrollIntoView').mockImplementation(opts => calls.push(opts))
       input.focus()
-      // Synchronous select() cancels WebKit's native focus scroll.
       expect(select).not.toHaveBeenCalled()
-      await waitFor(() => expect(select).toHaveBeenCalledOnce())
+      // Even deferred select() cancels WebKit's smooth native focus scroll.
+      // Re-align only this input, after selection, using its CSS scroll margin.
+      await waitFor(() => expect(scroll).toHaveBeenCalledOnce())
+      expect(calls).toEqual(['select', { behavior: 'instant', block: 'nearest' }])
       select.mockRestore()
+      scroll.mockRestore()
     }
   })
 
@@ -1587,11 +1592,14 @@ describe('App', () => {
     await screen.findAllByText('Romeopro')
     const input = document.getElementById('filter-min-likes')
     const select = vi.spyOn(input, 'select')
+    const scroll = vi.spyOn(input, 'scrollIntoView')
     input.focus()
     input.blur()
     await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))
     expect(select).not.toHaveBeenCalled()
+    expect(scroll).not.toHaveBeenCalled()
     select.mockRestore()
+    scroll.mockRestore()
   })
 
   it('shows newest posts first by default', async () => {
