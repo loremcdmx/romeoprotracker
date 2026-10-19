@@ -10,10 +10,13 @@ const MONTHS_SHORT_BY_LANG = {
   es: ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'],
 }
 
-export function fmtDateShortLang(ts, lang) {
+// withYear appends a two-digit year ("10 мар 27"), the same short style the
+// monthly chart uses once its range crosses a calendar year.
+export function fmtDateShortLang(ts, lang, withYear = false) {
   const parts = warsawParts(ts)
   if (!parts) return '—'
-  return `${parts.day} ${(MONTHS_SHORT_BY_LANG[lang] || MONTHS_SHORT_BY_LANG.ru)[parts.month - 1]}`
+  const day = `${parts.day} ${(MONTHS_SHORT_BY_LANG[lang] || MONTHS_SHORT_BY_LANG.ru)[parts.month - 1]}`
+  return withYear ? `${day} ${String(parts.year).slice(-2)}` : day
 }
 
 export const LANG_DICT = {

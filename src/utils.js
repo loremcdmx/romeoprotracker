@@ -45,22 +45,42 @@ export function timeAgo(timestamp, lang = 'ru') {
   return pl(valueOf(31536000), ['год','года','лет']) + ' назад'
 }
 
+// Compact money body for a non-negative amount: "500", "12.3k", "1.24M".
+// The k tier stops at 999 950: from there toFixed(1) would print "1000.0k", so
+// that range is promoted to M ("1.00M") instead.
+const compactMoney = abs => {
+  if (abs >= 999_950) return (abs / 1_000_000).toFixed(2) + 'M'
+  if (abs >= 1_000)   return (abs / 1_000).toFixed(1) + 'k'
+  return String(abs)
+}
+
 export const fmtBR = n => {
   if (!n && n !== 0) return '—'
-  const abs = Math.abs(n)
   const s = n < 0 ? '-' : n > 0 ? '+' : ''
-  if (abs >= 1_000_000) return s + (abs/1_000_000).toFixed(2) + 'M$'
-  if (abs >= 1_000)     return s + (abs/1_000).toFixed(1) + 'k$'
-  return s + abs + '$'
+  return s + compactMoney(Math.abs(n)) + '$'
 }
 
 export const fmtNum = n => {
   if (!n && n !== 0) return '—'
-  const abs = Math.abs(n)
-  if (abs >= 1_000_000) return (abs/1_000_000).toFixed(2) + 'M$'
-  if (abs >= 1_000)     return (abs/1_000).toFixed(1) + 'k$'
-  return abs + '$'
+  return compactMoney(Math.abs(n)) + '$'
 }
+
+// "$"-prefixed short label for chart axes and badges: "$402.5k", "$1.24M".
+// kDigits / mDigits cap the decimals of the k and M tiers (trailing zeros are
+// dropped); a k value that would round up to 1000 is promoted to M. Never
+// prints "$1000k" or "$1235k".
+export const fmtMoneyShort = (v, kDigits = 0, mDigits = 2) => {
+  if (typeof v !== 'number' || !Number.isFinite(v)) return '—'
+  const a = Math.abs(v)
+  const sign = v < 0 ? '-' : ''
+  if (a < 1_000) return `${sign}$${a}`
+  const k = Number((a / 1_000).toFixed(kDigits))
+  if (k < 1_000) return `${sign}$${k}k`
+  return `${sign}$${Number((a / 1_000_000).toFixed(mDigits))}M`
+}
+
+// Y-axis tick: exact for the round values the axes use ($500, $402.5k, $1.002M).
+export const fmtMoneyTick = v => fmtMoneyShort(v, 3, 6)
 
 // Целое число с тонким пробелом как разделитель тысяч
 export const fmtInt = n => {
@@ -70,23 +90,19 @@ export const fmtInt = n => {
 
 // Точный формат со знаком — для профита, чтобы он стоял рядом с БР
 // в одном масштабе (258 122$ / +248 122$), а не в сокращённом (+248.1k$).
+// Тысячи группируются на каждом разряде: +1 234 567$, а не +1234 567$.
 export const fmtExactSigned = n => {
   if (!n && n !== 0) return '—'
   const rounded = Math.round(n)
   const sign = rounded < 0 ? '-' : rounded > 0 ? '+' : ''
-  const abs = Math.abs(rounded)
-  const body = abs >= 1000
-    ? Math.floor(abs / 1000) + ' ' + String(abs % 1000).padStart(3, '0')
-    : String(abs)
-  return sign + body + '$'
+  return sign + fmtInt(Math.abs(rounded)) + '$'
 }
 
 // Точный формат БР до доллара
 export const fmtExact = n => {
   if (!n && n !== 0) return '—'
   const rounded = Math.round(n)
-  if (rounded >= 1000) return Math.floor(rounded / 1000) + '\u202F' + String(rounded % 1000).padStart(3, '0') + '$'
-  return rounded + '$'
+  return (rounded < 0 ? '-' : '') + fmtInt(Math.abs(rounded)) + '$'
 }
 
 // All date formatting is pinned to Europe/Warsaw so every visitor sees the
@@ -128,11 +144,28 @@ export function fmtDateShort(timestamp) {
   return `${p.day} ${MONTHS_SHORT[p.month - 1]}`
 }
 
-export function fmtDateTimeLang(timestamp, lang = 'ru') {
+// withYear adds the full year after the month ("10 марта 2027, 12:30"); callers
+// pass it when the surrounding range crosses a calendar year.
+export function fmtDateTimeLang(timestamp, lang = 'ru', withYear = false) {
   const p = warsawParts(timestamp)
   if (!p) return '—'
   const months = MONTHS_FULL_BY_LANG[lang] || MONTHS_FULL_BY_LANG.ru
-  return `${p.day} ${months[p.month - 1]}, ${p.hour}:${p.minute}`
+  return `${p.day} ${months[p.month - 1]}${withYear ? ` ${p.year}` : ''}, ${p.hour}:${p.minute}`
+}
+
+// True when the timestamps (UTC epoch seconds) fall in more than one Warsaw
+// calendar year. Charts use it to add a short year to month/date labels so the
+// same month of two different years never reads as one.
+export function spansMultipleYears(timestamps) {
+  let min = Infinity
+  let max = -Infinity
+  for (const ts of timestamps) {
+    if (!(ts > 0)) continue
+    if (ts < min) min = ts
+    if (ts > max) max = ts
+  }
+  if (min === Infinity) return false
+  return warsawParts(min).year !== warsawParts(max).year
 }
 
 // Report header only ("Day 187:" / "День #5"), quotes ignored - one definition
@@ -159,7 +192,7 @@ export function extractBR(text) {
 export const fk = (n, withSign = true) => {
   const a = Math.abs(n)
   const s = withSign ? (n < 0 ? '-' : n > 0 ? '+' : '') : ''
-  return a >= 1000 ? s + (a / 1000).toFixed(1) + 'k$' : s + a + '$'
+  return s + compactMoney(a) + '$'
 }
 
 // The exact marathon account, not "any nick containing romeopro".
@@ -189,7 +222,10 @@ export const extractQuoteBody = t => {
   return (nl !== -1 ? inner.slice(nl + 1) : inner).replace(/\[\/QUOTE\].*/,'').trim()
 }
 
-export const fkAbs = v => v >= 1000 ? `${(v/1000).toFixed(1)}k$` : `${Math.round(v)}$`
+export const fkAbs = v => {
+  const a = Math.abs(v)
+  return a >= 1000 ? (v < 0 ? '-' : '') + compactMoney(a) + '$' : `${Math.round(v)}$`
+}
 
 export function dedupBrHistory(hist) {
   if (!hist?.length) return hist

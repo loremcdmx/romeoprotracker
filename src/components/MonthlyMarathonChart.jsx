@@ -1,5 +1,5 @@
 import { memo, useEffect, useMemo, useState } from 'react'
-import { fmtInt, fmtExact, fmtExactSigned, warsawParts } from '../utils.js'
+import { fmtInt, fmtExact, fmtExactSigned, fmtMoneyTick, warsawParts } from '../utils.js'
 import { fmtDateShortLang } from '../i18n.js'
 import { useIsMobile } from '../hooks/useIsMobile.js'
 import { groupMarathonMonths } from '../marathonMonths.js'
@@ -30,7 +30,6 @@ export default memo(function MonthlyMarathonChart({ allPoints, period, setPeriod
   const isPartial = point => isCurrent(point) || (period !== 'all' && cutoffParts && monthNumber(point) === monthNumber(cutoffParts))
   const W = isMobile ? 360 : 700
   const H = isMobile ? 405 : 335
-  const left = isMobile ? 48 : 58
   const right = W - 18
   const top = 20
   const plotBottom = isMobile ? 225 : 190
@@ -38,9 +37,6 @@ export default memo(function MonthlyMarathonChart({ allPoints, period, setPeriod
   const volumeBottom = isMobile ? 369 : 309
   const first = months[0]
   const last = months.at(-1)
-  const monthSpan = first && last ? monthNumber(last) - monthNumber(first) + 1 : 1
-  const cellWidth = (right - left) / monthSpan
-  const x = point => left + (monthNumber(point) - monthNumber(first) + .5) * cellWidth
   const values = months.length ? [first.brPrev, ...months.map(point => point.br)] : [0, 1]
   const dataMin = Math.min(...values)
   const dataMax = Math.max(...values)
@@ -55,6 +51,12 @@ export default memo(function MonthlyMarathonChart({ allPoints, period, setPeriod
   const tickStep = niceStep((max - min) / 5)
   const ticks = []
   for (let value = Math.ceil(min / tickStep) * tickStep; value < max; value += tickStep) ticks.push(value)
+  // The gutter follows the widest tick label ('$402.5k', '$1.25M'), same
+  // 6.5 units per glyph as the session chart; labels end 10 units left of the plot.
+  const left = Math.max(isMobile ? 48 : 58, ...ticks.map(value => Math.ceil(14 + fmtMoneyTick(value).length * 6.5)))
+  const monthSpan = first && last ? monthNumber(last) - monthNumber(first) + 1 : 1
+  const cellWidth = (right - left) / monthSpan
+  const x = point => left + (monthNumber(point) - monthNumber(first) + .5) * cellWidth
   const volumeMax = Math.max(1, ...months.map(point => point.tournaments || 0))
   const barWidth = Math.min(isMobile ? 22 : 30, cellWidth * .52)
   const hasMultipleYears = first && last && first.year !== last.year
@@ -75,7 +77,7 @@ export default memo(function MonthlyMarathonChart({ allPoints, period, setPeriod
         <rect x={left} y={top} width={right - left} height={plotBottom - top} rx="10" className="mc-plot-bg"/>
         {ticks.map(value => <g key={value}>
           <line x1={left} x2={right} y1={y(value)} y2={y(value)} className="mc-grid"/>
-          <text x={left - 10} y={y(value) + 3} className="mc-yaxis-label">{value >= 1000 ? `$${value / 1000}k` : `$${value}`}</text>
+          <text x={left - 10} y={y(value) + 3} className="mc-yaxis-label">{fmtMoneyTick(value)}</text>
         </g>)}
         <line x1={left} x2={right} y1={plotBottom} y2={plotBottom} className="mc-axis-line"/>
         {months.map((point, index) => {

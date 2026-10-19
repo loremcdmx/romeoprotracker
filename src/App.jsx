@@ -2,9 +2,9 @@ import { useState, useEffect, useLayoutEffect, useMemo, useRef, useCallback, mem
 import { Analytics } from '@vercel/analytics/react'
 import {
   timeAgo, fmtBR, fmtNum, fmtInt, fmtExact, fmtExactSigned, fmtDateShort, extractDay, extractBR,
-  fk, fkAbs, ROMEO_RE, autoCloseQuotes, stripQuoteTags, extractQuoteBody,
+  fk, fkAbs, fmtMoneyShort, fmtMoneyTick, ROMEO_RE, autoCloseQuotes, stripQuoteTags, extractQuoteBody,
   pl, plural,
-  warsawDayKey, warsawParts, fmtDateTimeLang,
+  warsawDayKey, warsawParts, fmtDateTimeLang, spansMultipleYears,
 } from './utils.js'
 import { createTranslator, DEFAULT_LANG, FORUM_WORD, LANG_DICT, fmtDateShortLang } from './i18n.js'
 import { computeFixedPopupLayout, computeSvgTooltipLayout, computeTouchSheetLayout, findHoverListIndexAtPoint, getZoomedViewportMetrics, watchPopupContentLoad } from './floating.js'
@@ -917,6 +917,10 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
     const filtered = allPoints.filter(p => (p.timestamp||0) >= cutoff)
     return filtered.length >= 2 ? filtered : allPoints
   }, [allPoints, period])
+  // Same rule as the monthly chart: once the shown range crosses a calendar
+  // year, month names and date tags get a short "yy" so 2026 and 2027 never
+  // read as the same month.
+  const hasMultipleYears = useMemo(() => spansMultipleYears(points.map(p => p.timestamp)), [points])
 
   useEffect(() => {
     if (pathRef.current) setPathLen(pathRef.current.getTotalLength())
@@ -950,14 +954,6 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
   const maxV = isZoomedView ? dataMax + rangePad : dataMax * 1.05
   const yOf = v => pT + (1-(v-minV)/(maxV-minV)) * (plotBottom-pT)
 
-  const fmtMoneyTick = v => {
-    if (v >= 1_000_000) return `$${Number((v / 1_000_000).toFixed(3))}M`
-    if (v >= 1000) {
-      const k = v / 1000
-      return `$${Number.isInteger(k) ? k : k.toFixed(1)}k`
-    }
-    return `$${v}`
-  }
   // Continue the 1/2/5 sequence as bankroll grows. The old $50k ceiling
   // fell back to $2k at a $400k range, drawing hundreds of overlapping labels.
   const yTicks = (() => {
@@ -1034,7 +1030,7 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
         i,
         p,
         x:coords[i]?.x,
-        label:months[parts.month - 1],
+        label:`${months[parts.month - 1]}${hasMultipleYears ? ` ${String(parts.year).slice(-2)}` : ''}`,
         year:parts.year,
       }]
     }).filter(tick => Number.isFinite(tick.x))
@@ -1053,7 +1049,7 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
         labelX:clampNumber((tick.x + spanEnd) / 2, pL + 14, plotRight - 14),
       }
     })
-    const minLabelGap = isMobile ? 58 : 44
+    const minLabelGap = isMobile ? 58 : hasMultipleYears ? 64 : 44
     const minSpan = isMobile ? 30 : 20
     const kept = []
     withSpan.forEach((tick, k) => {
@@ -1224,9 +1220,9 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
         if (prevBR < mark && points[i].br >= mark) {
           put(i, {
             kind:'milestone',
-            main:`$${Math.round(mark / 1000)}k`,
+            main:fmtMoneyShort(mark, 0, 3),
             priority:mark >= 100000 ? 112 : 92 + mark / milestoneStep,
-            note:`$${Math.round(mark / 1000)}k`,
+            note:fmtMoneyShort(mark, 0, 3),
           })
           break
         }
@@ -1243,7 +1239,7 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
           if (stayedAboveStart) {
             put(i, {
               kind:'recovery',
-              main:`$${Math.round(startBR / 1000)}k`,
+              main:fmtMoneyShort(startBR),
               priority:96,
               notes:[recoveryText],
             })
@@ -1290,7 +1286,7 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
       .filter(note => note !== item.main)
       .filter(note => !(String(item.kind || '').includes('best') && String(note).trim().startsWith('$')))
       .slice(0, String(item.kind || '').includes('range-start') ? 2 : 1)
-      .concat(fmtDateShortLang(item.p.timestamp, lang))
+      .concat(fmtDateShortLang(item.p.timestamp, lang, hasMultipleYears))
       .join(' · ')
     const intervalFor = item => {
       const mainWidth = String(item.main || '').length * (isMobile ? 7.4 : 7.1)
@@ -1398,13 +1394,15 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
 
     const formatBestDay = value => {
       const absolute = Math.abs(value)
+      // toFixed(0) below would print "$1000k" from 999 500 up.
+      if (absolute >= 999_500) return `${value >= 0 ? '+' : '−'}${fmtMoneyShort(absolute)}`
       const precision = absolute < 100000 && absolute % 1000 !== 0 ? 1 : 0
       const amount = absolute >= 1000
         ? `${(absolute / 1000).toFixed(precision)}k`
         : `${Math.round(absolute)}`
       return `${value >= 0 ? '+' : '−'}$${amount}`
     }
-    const startLabel = `$${Number.isInteger(startBR / 1000) ? startBR / 1000 : (startBR / 1000).toFixed(1)}k`
+    const startLabel = fmtMoneyShort(startBR, 1)
     const recoveryLabel = lang === 'en'
       ? `TURNAROUND ${startLabel}`
       : lang === 'es'
@@ -1418,7 +1416,7 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
         p:points[i],
         point:coords[i],
         primary,
-        secondary:fmtDateShortLang(points[i].timestamp, lang),
+        secondary:fmtDateShortLang(points[i].timestamp, lang, hasMultipleYears),
       }
     }
 
@@ -1628,7 +1626,7 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
       badgeW,
       badgeH,
       label:eventLabel('peak'),
-      value:`$${Math.round(points[peakIdx].br / 1000)}k`,
+      value:fmtMoneyShort(points[peakIdx].br),
     }
   })()
 
@@ -2108,7 +2106,7 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
         {tip && (() => {
           const positive = (tip.profit ?? 0) >= 0
           const dotFill = positive ? (light ? '#2e8b3a' : '#4caf50') : (light ? '#c8362e' : '#e53935')
-          const tagText = fmtDateShortLang(tip.p.timestamp, lang)
+          const tagText = fmtDateShortLang(tip.p.timestamp, lang, hasMultipleYears)
           const tagW = tagText.length * 6.1 + 12
           const tagX = clampNumber(tip.x, pL + tagW / 2, W - pR - tagW / 2)
           return <>
@@ -2161,7 +2159,7 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
             }}>
               {fk(tip.profit)}
             </div>
-            <div style={{fontWeight:700,color:'var(--white)',fontSize:13,marginBottom:5,paddingRight:64}}>{fmtDateTimeLang(tip.p.timestamp, lang)}</div>
+            <div style={{fontWeight:700,color:'var(--white)',fontSize:13,marginBottom:5,paddingRight:64}}>{fmtDateTimeLang(tip.p.timestamp, lang, hasMultipleYears)}</div>
             {/* Compact stat row (hstat-style): BR and the cumulative MTT total —
                 the counter readers use to measure streak length in tournaments. */}
             <div style={{display:'flex',gap:14,margin:'1px 0',marginBottom:tip.p.tournaments?5:roomDeltas.length?8:5}}>
@@ -2190,7 +2188,7 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
               <div className="mc-session-breakdown">
                 {tip.sessions.map((s, idx) => (
                   <div key={`${s.p.timestamp || idx}-${idx}`} className="mc-session-row">
-                    <span className="mc-session-date">{fmtDateShortLang(s.p.timestamp, lang)}</span>
+                    <span className="mc-session-date">{fmtDateShortLang(s.p.timestamp, lang, hasMultipleYears)}</span>
                     <span className={s.profit >= 0 ? 'mc-session-profit pos' : 'mc-session-profit neg'}>{fk(s.profit)}</span>
                     <span className="mc-session-mtt">{s.tournaments ? `${fmtInt(s.tournaments)} MTT` : '—'}</span>
                   </div>
@@ -3740,6 +3738,7 @@ const SessionMttChart = memo(function SessionMttChart({ meta, period, lang, t })
     const filtered = withMtt.filter(r => r.timestamp >= cutoff)
     return filtered.length >= 2 ? filtered : withMtt
   }, [meta, period])
+  const hasMultipleYears = useMemo(() => spansMultipleYears(rows.map(r => r.timestamp)), [rows])
 
   if (rows.length < 2) return null
 
@@ -3802,7 +3801,7 @@ const SessionMttChart = memo(function SessionMttChart({ meta, period, lang, t })
             const tx = anchor === 'start' ? Math.max(cx - 4, pad.left) : anchor === 'end' ? Math.min(cx + 4, W - pad.right) : cx
             return (
               <text key={`tick-${i}`} className="smtt-x-label" x={tx} y={H - 7} textAnchor={anchor}>
-                {fmtDateShortLang(rows[i].timestamp, lang)}
+                {fmtDateShortLang(rows[i].timestamp, lang, hasMultipleYears)}
               </text>
             )
           })}
@@ -3827,7 +3826,7 @@ const SessionMttChart = memo(function SessionMttChart({ meta, period, lang, t })
           return (
             <SmttTooltip svgRef={svgRef} W={W} H={H} point={{ x:xOf(hover.i) + barW / 2, y:yOf(hover.r.mtt), halfWidth:barW / 2 }}
               fallbackLeftPct={clampedPct} contentKey={hover.i}>
-              <div className="smtt-tooltip-date">{fmtDateShortLang(hover.r.timestamp, lang)}</div>
+              <div className="smtt-tooltip-date">{fmtDateShortLang(hover.r.timestamp, lang, hasMultipleYears)}</div>
               <div className="smtt-tooltip-mtt">{fmtInt(hover.r.mtt)} {t('sr_mtt_short')}
                 <span className={`smtt-tooltip-diff ${diff >= 0 ? 'pos' : 'neg'}`}>
                   {` ${diff >= 0 ? '+' : ''}${fmtInt(diff)} ${t('smtt_vs_avg')}`}
