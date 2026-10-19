@@ -58,7 +58,13 @@ export function usePostsData() {
   const [newPostIds, setNewPostIds] = useState([])
 
   const loadData = useCallback(async ({ silent = false } = {}) => {
-    if (!silent && errorRef.current) { errorRef.current = null; setError(null) }
+    if (!silent) {
+      if (errorRef.current) { errorRef.current = null; setError(null) }
+      // Retry from the error screen: nothing is loaded yet, so show the
+      // loading state. Without it the page falls through to the dashboard with
+      // no data (BR 0, "run the scraper") until the request finishes.
+      if (latestMetaRef.current == null) setLoading(true)
+    }
 
     try {
       const { posts: nextPosts = [], meta: nextMeta = {} } = await fetchPublicData()
