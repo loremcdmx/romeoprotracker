@@ -150,7 +150,10 @@ export function fmtDateTimeLang(timestamp, lang = 'ru', withYear = false) {
   const p = warsawParts(timestamp)
   if (!p) return '—'
   const months = MONTHS_FULL_BY_LANG[lang] || MONTHS_FULL_BY_LANG.ru
-  return `${p.day} ${months[p.month - 1]}${withYear ? ` ${p.year}` : ''}, ${p.hour}:${p.minute}`
+  // Spanish dates take "de" between day and month ("7 de abril") and before the year
+  const joiner = lang === 'es' ? ' de ' : ' '
+  const year = withYear ? `${joiner}${p.year}` : ''
+  return `${p.day}${joiner}${months[p.month - 1]}${year}, ${p.hour}:${p.minute}`
 }
 
 // True when the timestamps (UTC epoch seconds) fall in more than one Warsaw

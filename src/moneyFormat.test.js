@@ -191,7 +191,7 @@ describe('fmtDateTimeLang with a year', () => {
   it.each([
     ['ru', '10 марта 2027, 13:00'],
     ['en', '10 March 2027, 13:00'],
-    ['es', '10 marzo 2027, 13:00'],
+    ['es', '10 de marzo de 2027, 13:00'],
   ])('adds the full year in %s', (lang, expected) => {
     expect(fmtDateTimeLang(MARCH_2027, lang, true)).toBe(expected)
   })
@@ -199,7 +199,7 @@ describe('fmtDateTimeLang with a year', () => {
   it('is unchanged without the flag', () => {
     expect(fmtDateTimeLang(MARCH_2027, 'ru')).toBe('10 марта, 13:00')
     expect(fmtDateTimeLang(MARCH_2027, 'en')).toBe('10 March, 13:00')
-    expect(fmtDateTimeLang(MARCH_2027, 'es')).toBe('10 marzo, 13:00')
+    expect(fmtDateTimeLang(MARCH_2027, 'es')).toBe('10 de marzo, 13:00')
   })
 })
 

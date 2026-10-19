@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 1.14.9 — 2026-10-19
+
+- One definition of "MTT per session" everywhere (sidebar, mobile strip, week/month stats, session chart): sessions with a counted tournament total. The all-time figure moves from 215 to 219.
+- Pace widget: a week or month with no reports shows an empty card instead of disappearing; rates read "$/MTT" in English and Spanish; Russian projection unit declines correctly; the trend note says "completed steps only"; the tail step never repeats the previous step's label; the tempo counter no longer jumps back mid-animation.
+- Monthly chart keeps the selected month through background refreshes and shows an accurate message for empty windows.
+- Footer dates are zero-padded; Spanish dates read "7 de abril".
+- One bad cumulative total or a report without a bankroll no longer distorts the pace numbers or the hero.
+
 ## 1.14.8 — 2026-10-19
 
 - Money is formatted correctly at any size: exact amounts group every thousand (1 234 567$), compact labels switch to millions ($1.23M, never "1000.0k"), including chart axes, the peak badge and milestone labels.

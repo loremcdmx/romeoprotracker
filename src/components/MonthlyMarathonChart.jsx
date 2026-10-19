@@ -22,7 +22,11 @@ export default memo(function MonthlyMarathonChart({ allPoints, period, setPeriod
     return groupMarathonMonths(period === 'all' ? normalized : normalized.filter(point => point.timestamp >= cutoff))
   }, [normalized, period])
   const [activeKey, setActiveKey] = useState(null)
-  useEffect(() => setActiveKey(null), [months])
+  // A background refresh rebuilds `months` with identical content, so the
+  // reader's selection stays; it is dropped only once that month is gone.
+  useEffect(() => {
+    if (activeKey && !months.some(point => point.key === activeKey)) setActiveKey(null)
+  }, [months, activeKey])
   const active = months.find(point => point.key === activeKey) || months.at(-1)
   const today = warsawParts(Date.now() / 1000)
   const cutoffParts = warsawParts(Date.now() / 1000 - (period === 'week' ? 7 : 30) * 86400)
@@ -72,7 +76,7 @@ export default memo(function MonthlyMarathonChart({ allPoints, period, setPeriod
   return <div className="marathon-chart mc-monthly" data-testid="marathon-monthly-chart">
     <MarathonChartControls {...{period, setPeriod, grouping, setGrouping, t}}/>
     <p className="mc-view-hint">{t(period === 'all' ? 'chart_month_hint' : 'chart_month_period_hint')}</p>
-    {!months.length ? <div className="empty-state">{t('empty_data_scraper')}</div> : <>
+    {!months.length ? <div className="empty-state">{t(allPoints.length && period !== 'all' ? 'chart_no_reports_period' : 'empty_data_scraper')}</div> : <>
       <svg className="mc-svg mc-month-svg" viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`${t('chart_marathon')}: ${t('chart_months')}`}>
         <rect x={left} y={top} width={right - left} height={plotBottom - top} rx="10" className="mc-plot-bg"/>
         {ticks.map(value => <g key={value}>
@@ -113,7 +117,7 @@ export default memo(function MonthlyMarathonChart({ allPoints, period, setPeriod
         <dl>
           <div><dt>{t('chart_month_br')}</dt><dd>{fmtExact(active.br)}</dd></div>
           <div><dt>{t('chart_br_change')}</dt><dd className={active.profit >= 0 ? 'mc-month-profit-pos' : 'mc-month-profit-neg'}>{fmtExactSigned(active.profit)}</dd></div>
-          <div><dt>{period === 'all' ? t('chart_month_distance') : t('chart_period_distance')}</dt><dd>{fmtInt(active.tournaments)} {unit}</dd></div>
+          <div><dt>{period === 'all' ? t('chart_month_distance') : t('chart_month_distance_filtered')}</dt><dd>{fmtInt(active.tournaments)} {unit}</dd></div>
           <div><dt>{t('chart_total_distance')}</dt><dd>{fmtInt(active.totalTournaments)} {unit}</dd></div>
         </dl>
       </div>
