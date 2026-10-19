@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 1.14.6 — 2026-10-19
+
+- On phones the top bar and progress bar stay pinned while you scroll again; the "N new posts" bubble sits just below them.
+- Tablets and narrow windows (721-980 px) get the stat strip and the top-liked posts list instead of losing them.
+- Light theme: key numbers, rates and chart tooltips reach readable contrast, hidden chart dots stay hidden, the active page button and the top-posts period pill keep their red fill.
+- The image viewer stays inside the screen on very wide displays and opens above hover popups.
+
 ## 1.14.5 — 2026-10-19
 
 - Ignored authors are hidden everywhere the same way: feed, chart hover tooltip, expanded day lists and top-author picks; matching ignores case and surrounding spaces.

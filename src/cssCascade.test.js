@@ -1,0 +1,380 @@
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
+import { beforeEach, describe, expect, it } from 'vitest'
+
+// ─── a tiny CSS cascade ──────────────────────────────────────────────────────
+// Not a browser: for one DOM element it finds which declaration of a property
+// wins among the rules of app.css (!important, then specificity, then source
+// order), evaluating @media/@supports against a given viewport. That is the
+// layer the bugs guarded here lived in: a 3-class light rule beating a 2-class
+// state rule, a 720px block starting too late for the 980px sidebar, overflow
+// on html/body, a z-index that was never compared with the other layers.
+// String greps cannot see any of those. Real-browser measurements for the same
+// fixes (Chromium + WebKit) are in the commit message.
+
+const CSS = readFileSync(resolve(__dirname, 'app.css'), 'utf8')
+const APP_JSX = readFileSync(resolve(__dirname, 'App.jsx'), 'utf8')
+
+function splitTop(text, sep) {
+  const out = []
+  let depth = 0
+  let cur = ''
+  for (const ch of text) {
+    if (ch === '(' || ch === '[') depth++
+    else if (ch === ')' || ch === ']') depth--
+    if (ch === sep && depth === 0) { out.push(cur); cur = '' } else cur += ch
+  }
+  out.push(cur)
+  return out.map((s) => s.trim()).filter(Boolean)
+}
+
+function parseDecls(body) {
+  const decls = []
+  for (const part of splitTop(body, ';')) {
+    const i = part.indexOf(':')
+    if (i < 0) continue
+    const prop = part.slice(0, i).trim().toLowerCase()
+    const raw = part.slice(i + 1).trim()
+    const important = /!\s*important\s*$/i.test(raw)
+    const value = raw.replace(/!\s*important\s*$/i, '').trim()
+    if (prop === 'overflow') {
+      const [x, y = x] = value.split(/\s+/)
+      decls.push({ prop: 'overflow-x', value: x, important }, { prop: 'overflow-y', value: y, important })
+    } else {
+      decls.push({ prop, value, important })
+    }
+  }
+  return decls
+}
+
+function parseRules(css) {
+  const text = css.replace(/\/\*[\s\S]*?\*\//g, '')
+  const rules = []
+  const walk = (src, conds) => {
+    let i = 0
+    while (i < src.length) {
+      const open = src.indexOf('{', i)
+      if (open < 0) break
+      const prelude = src.slice(i, open).trim()
+      let depth = 1
+      let j = open + 1
+      while (j < src.length && depth) {
+        if (src[j] === '{') depth++
+        else if (src[j] === '}') depth--
+        j++
+      }
+      const body = src.slice(open + 1, j - 1)
+      if (/^@(media|supports)/i.test(prelude)) walk(body, [...conds, prelude])
+      else if (!prelude.startsWith('@')) {
+        rules.push({ selectors: splitTop(prelude, ','), decls: parseDecls(body), conds, order: rules.length })
+      }
+      i = j
+    }
+  }
+  walk(text, [])
+  return rules
+}
+
+const RULES = parseRules(CSS)
+
+function holds(cond, env) {
+  const c = cond.replace(/\s+/g, '')
+  if (/^@media/i.test(c)) {
+    if (/prefers-reduced-motion/.test(c)) return false
+    const max = c.match(/\(max-width:(\d+)px\)/)
+    const min = c.match(/\(min-width:(\d+)px\)/)
+    if (!max && !min) return false
+    return (!max || env.width <= +max[1]) && (!min || env.width >= +min[1])
+  }
+  // the only @supports in app.css is the negated overflow-x:clip fallback
+  return /^@supportsnot\(/i.test(c) ? env.clip === false : true
+}
+
+function specificity(selector) {
+  let s = selector
+  const attrs = (s.match(/\[[^\]]*\]/g) || []).length
+  s = s.replace(/\[[^\]]*\]/g, '')
+  const ids = (s.match(/#[\w-]+/g) || []).length
+  const pseudoEl = (s.match(/::[\w-]+/g) || []).length
+  s = s.replace(/::[\w-]+(\([^)]*\))?/g, '').replace(/:where\([^)]*\)/g, '')
+  s = s.replace(/:(?:not|is)\(/g, '(')
+  const classes = (s.match(/\.[\w-]+/g) || []).length
+  const pseudoCls = (s.match(/:[\w-]+(\([^)]*\))?/g) || []).length
+  const types = (s.replace(/[.#:][\w-]+/g, ' ').replace(/[>+~*()]/g, ' ').match(/(^|\s)[a-zA-Z][\w-]*/g) || []).length
+  return [ids, classes + attrs + pseudoCls, types + pseudoEl]
+}
+
+function beats(a, b) {
+  if (a.important !== b.important) return a.important
+  for (let k = 0; k < 3; k++) if (a.spec[k] !== b.spec[k]) return a.spec[k] > b.spec[k]
+  return a.order > b.order
+}
+
+// winning declaration among the given property names (one "family", e.g.
+// background + background-color), or null
+function cascade(el, props, env) {
+  let best = null
+  for (const rule of RULES) {
+    if (!rule.conds.every((c) => holds(c, env))) continue
+    for (const sel of rule.selectors) {
+      let hit = false
+      try { hit = el.matches(sel) } catch { hit = false }
+      if (!hit) continue
+      const spec = specificity(sel)
+      rule.decls.forEach((d, k) => {
+        if (!props.includes(d.prop)) return
+        const cand = { ...d, spec, order: rule.order * 1000 + k, sel }
+        if (!best || beats(cand, best)) best = cand
+      })
+    }
+  }
+  return best
+}
+
+const value = (el, prop, env) => cascade(el, [prop], env)?.value
+
+function customProp(el, name, env) {
+  for (let n = el; n; n = n.parentElement) {
+    const c = cascade(n, [name], env)
+    if (c) return c.value
+  }
+  return undefined
+}
+
+function resolveVars(v, el, env) {
+  return v.replace(/var\(\s*(--[\w-]+)\s*(?:,\s*([^)]*))?\)/g, (_, name, fallback) => {
+    const found = customProp(el, name, env)
+    if (found === undefined) return fallback !== undefined ? fallback.trim() : ''
+    return resolveVars(found, el, env)
+  })
+}
+
+function px(v, el, env) {
+  const expr = resolveVars(v, el, env).replace(/calc/g, '').replace(/px/g, '')
+  if (!/^[\d\s+\-*/().]+$/.test(expr)) throw new Error(`not a px expression: ${v}`)
+  return Function(`"use strict";return (${expr})`)()
+}
+
+function mount(html, { light = false } = {}) {
+  document.documentElement.className = light ? 'light' : ''
+  document.body.innerHTML = html
+}
+const $ = (sel) => document.querySelector(sel)
+
+// WCAG 2.x contrast
+const rgb = (hex) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16))
+const lum = (hex) => {
+  const [r, g, b] = rgb(hex).map((v) => { const c = v / 255; return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4 })
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b
+}
+const contrast = (a, b) => { const [hi, lo] = [lum(a), lum(b)].sort((x, y) => y - x); return (hi + 0.05) / (lo + 0.05) }
+
+const phone = { width: 375, clip: true }
+const wide = { width: 1280, clip: true }
+
+beforeEach(() => {
+  document.documentElement.className = ''
+  document.body.innerHTML = ''
+})
+
+describe('app.css cascade guards', () => {
+  it('sanity: the mini cascade resolves a known dark/light pair', () => {
+    mount('<div class="hstat"><div class="hstat-value green"></div></div>')
+    const el = $('.hstat-value')
+    expect(resolveVars(value(el, 'color', wide), el, wide)).toBe('#66bb6a')
+    mount('<div class="hstat"><div class="hstat-value green"></div></div>', { light: true })
+    expect(resolveVars(value($('.hstat-value'), 'color', wide), $('.hstat-value'), wide)).toBe('#27682c')
+    expect(RULES.length).toBeGreaterThan(100)
+  })
+
+  describe('sticky header (CSS-1)', () => {
+    const STICKY_CHAIN = '<div id="root"><header class="topbar"></header><div class="marathon-progress"></div><main class="page"><div><button class="new-posts-bubble"></button></div></main></div>'
+    const scrollers = new Set(['hidden', 'auto', 'scroll'])
+
+    it.each([320, 375, 414, 720, 721, 980, 1280])('no ancestor of a sticky element becomes a scroll container at %ipx', (width) => {
+      mount(STICKY_CHAIN)
+      const env = { width, clip: true }
+      for (const el of [document.documentElement, document.body, $('#root'), $('.page'), $('.page > div')]) {
+        for (const axis of ['overflow-x', 'overflow-y']) {
+          // overflow:hidden on html AND body made body a (non-scrolling) scroll
+          // container, so .topbar/.marathon-progress never stuck at <=720px
+          expect(scrollers.has(value(el, axis, env)), `${el.tagName}${el.id ? '#' + el.id : ''}.${el.className} ${axis} @${width}px`).toBe(false)
+        }
+      }
+    })
+
+    it('clips horizontal overflow on phones with overflow-x:clip, hidden only where clip is unsupported', () => {
+      mount(STICKY_CHAIN)
+      expect(value(document.documentElement, 'overflow-x', phone)).toBe('clip')
+      expect(value(document.body, 'overflow-x', phone)).toBe('clip')
+      const old = { width: 375, clip: false }
+      expect(value(document.documentElement, 'overflow-x', old)).toBe('hidden')
+      expect(value(document.body, 'overflow-x', old)).toBe('hidden')
+    })
+  })
+
+  describe('new-posts bubble sits below the sticky stack (CSS-4 / SH-8)', () => {
+    // Measured in Chromium and WebKit at 320-2560px, ru/en/es, week/month/all:
+    // .marathon-progress is 70px tall (69-71 with sub-pixel zoom) from 721px up
+    // and 104px once its grid stacks at <=720px. If the bar's layout changes,
+    // update --progress-h in app.css and these numbers together.
+    it.each([[375, 104], [720, 104], [721, 70], [820, 70], [1280, 70], [1920, 70]])('at %ipx the bubble starts 8px under a %ipx progress bar', (width, barH) => {
+      mount('<div id="root"><header class="topbar"></header><div class="marathon-progress"></div><main class="page"><div><button class="new-posts-bubble"></button></div></main></div>')
+      const env = { width, clip: true }
+      const barTop = px(value($('.marathon-progress'), 'top', env), $('.marathon-progress'), env)
+      const bubbleTop = px(value($('.new-posts-bubble'), 'top', env), $('.new-posts-bubble'), env)
+      expect(barTop).toBe(40)
+      expect(bubbleTop).toBe(barTop + barH + 8)
+    })
+  })
+
+  describe('721-980px keeps what the hidden sidebar carried (CSS-6 / SH-7)', () => {
+    const FEED = '<aside class="sidebar"></aside><div class="hero"><div class="hero-stats"></div></div><div class="mobile-stats"><div class="mobile-stat"><div class="mobile-stat-value"></div></div></div><div class="mobile-stats-note"></div><div class="mobile-top-posts"><div class="mobile-top-header"></div><a class="mobile-top-item"></a></div>'
+    const show = (width) => {
+      mount(FEED)
+      const env = { width, clip: true }
+      const d = (sel) => value($(sel), 'display', env)
+      return { sidebar: d('.sidebar'), heroStats: d('.hero-stats'), stats: d('.mobile-stats'), note: d('.mobile-stats-note'), top: d('.mobile-top-posts'), topHeader: d('.mobile-top-header'), topItem: d('.mobile-top-item') }
+    }
+
+    it.each([375, 720, 721, 768, 820, 900, 980])('at %ipx the stat strip and top list replace the hero tiles and the sidebar', (width) => {
+      expect(show(width)).toEqual({ sidebar: 'none', heroStats: 'none', stats: 'grid', note: 'block', top: 'block', topHeader: 'flex', topItem: 'flex' })
+    })
+
+    it.each([981, 1280, 1920])('at %ipx the sidebar is back and the strip/list are hidden', (width) => {
+      const s = show(width)
+      expect(s.sidebar).not.toBe('none')
+      expect(s).toMatchObject({ heroStats: 'grid', stats: 'none', note: 'none', top: 'none' })
+    })
+
+    it('uses 3 columns on tablets and 2 on phones', () => {
+      mount(FEED)
+      expect(value($('.mobile-stats'), 'grid-template-columns', { width: 768, clip: true })).toMatch(/^repeat\(3,/)
+      expect(value($('.mobile-stats'), 'grid-template-columns', phone)).toMatch(/^repeat\(2,/)
+    })
+  })
+
+  describe('light theme accents (CSS-2)', () => {
+    const light = (width = 1280) => ({ width, clip: true })
+    const surfaces = () => {
+      mount('<div></div>', { light: true })
+      const root = document.documentElement
+      const v = (n) => customProp(root, n, light())
+      // page, card, red-tinted badge, and the two stops of the hero gradient
+      return [v('--bg'), v('--bg2'), v('--red-dim'), '#f3e9e6', '#ece8e0']
+    }
+    const colourOf = (html, sel, env, prop) => {
+      mount(html, { light: true })
+      const el = $(sel)
+      const v = value(el, prop, env)
+      return v === undefined ? undefined : resolveVars(v, el, env)
+    }
+
+    const CASES = [
+      ['hero profit', '<div class="hstat"><div class="hstat-value green"></div></div>', '.hstat-value'],
+      ['hero day/rank', '<div class="hstat"><div class="hstat-value gold"></div></div>', '.hstat-value'],
+      ['hero loss', '<div class="hstat"><div class="hstat-value red"></div></div>', '.hstat-value'],
+      ['sidebar row green', '<div class="srow"><span class="srow-val green"></span></div>', '.srow-val'],
+      ['mobile stat green', '<div class="mobile-stat"><div class="mobile-stat-value green"></div></div>', '.mobile-stat-value', 'color', 768],
+      ['mobile stat gold', '<div class="mobile-stat"><div class="mobile-stat-value gold"></div></div>', '.mobile-stat-value', 'color', 768],
+      ['feed likes +', '<div class="pc-foot"><span class="pc-likes pos"></span></div>', '.pc-likes'],
+      ['feed likes -', '<div class="pc-foot"><span class="pc-likes neg"></span></div>', '.pc-likes'],
+      ['bankroll badge', '<div class="pc-foot"><span class="pc-br"></span></div>', '.pc-br'],
+      ['forum link', '<div class="sblock"><div class="sblock-body"><a href="#"></a></div></div>', '.sblock-body a'],
+      ['marathon tooltip profit +', '<div class="mc-tooltip"><span class="mc-session-profit pos"></span></div>', '.mc-session-profit'],
+      ['marathon tooltip profit -', '<div class="mc-tooltip"><span class="mc-session-profit neg"></span></div>', '.mc-session-profit'],
+      ['pace unit', '<section class="pace-widget"><div class="pace-summary-panel marathon-progress-side"><div class="mps-item"><span class="mps-value tempo-val"><span class="tempo-unit"></span></span></div></div></section>', '.tempo-unit'],
+      ['pace trend rate +', '<section class="pace-widget"><div class="pace-summary-panel marathon-progress-side"><div class="mps-item"><span class="mps-value"><span class="pace-rate-value pos"></span></span></div></div></section>', '.pace-rate-value'],
+      ['pace trend rate -', '<section class="pace-widget"><div class="pace-summary-panel marathon-progress-side"><div class="mps-item"><span class="mps-value"><span class="pace-rate-value neg"></span></span></div></div></section>', '.pace-rate-value'],
+      ['pace chart value +', '<section class="pace-widget"><svg><g class="pace-segment pos"><text class="pace-chart-value pos"></text></g></svg></section>', '.pace-chart-value', 'fill'],
+      ['pace chart value -', '<section class="pace-widget"><svg><g class="pace-segment neg"><text class="pace-chart-value neg"></text></g></svg></section>', '.pace-chart-value', 'fill'],
+    ]
+
+    it.each(CASES)('%s reaches 4.5:1 on every light surface', (_label, html, sel, prop = 'color', width = 1280) => {
+      const fg = colourOf(html, sel, light(width), prop)
+      expect(String(fg), `${_label} resolves to a plain hex colour`).toMatch(/^#[0-9a-f]{6}$/i)
+      for (const bg of surfaces()) expect(contrast(fg, bg), `${_label} ${fg} on ${bg}`).toBeGreaterThanOrEqual(4.5)
+    })
+
+    it('the --green-hi token behind the inline bankroll colour is AA in light and unchanged in dark', () => {
+      mount('<div></div>', { light: true })
+      const fg = customProp(document.documentElement, '--green-hi', light())
+      for (const bg of surfaces()) expect(contrast(fg, bg), `--green-hi ${fg} on ${bg}`).toBeGreaterThanOrEqual(4.5)
+      mount('<div></div>')
+      expect(customProp(document.documentElement, '--green-hi', wide)).toBe('#66bb6a')
+    })
+
+    it('keeps the dark pace tooltip readable inside the light theme', () => {
+      mount('<section class="pace-widget"><div class="pace-point-tooltip"><b class="pos"></b><b class="neg"></b></div></section>', { light: true })
+      for (const sel of ['.pos', '.neg']) {
+        const el = $(`.pace-point-tooltip ${sel}`)
+        const fg = resolveVars(value(el, 'color', light()), el, light())
+        expect(contrast(fg, '#121212'), `${sel} ${fg} on the dark tooltip`).toBeGreaterThanOrEqual(4.5)
+      }
+    })
+
+    it('leaves the dark theme accents exactly as they were', () => {
+      const dark = { width: 1280, clip: true }
+      const pick = (html, sel, prop = 'color') => { mount(html); const el = $(sel); return resolveVars(value(el, prop, dark), el, dark) }
+      expect(pick('<div class="hstat"><div class="hstat-value green"></div></div>', '.hstat-value')).toBe('#66bb6a')
+      expect(pick('<div class="hstat"><div class="hstat-value gold"></div></div>', '.hstat-value')).toBe('#ffb300')
+      expect(pick('<div class="pc-foot"><span class="pc-likes pos"></span></div>', '.pc-likes')).toBe('#4caf50')
+      expect(pick('<div class="pc-foot"><span class="pc-br"></span></div>', '.pc-br')).toBe('#ff5252')
+      expect(pick('<section class="pace-widget"><text class="pace-chart-value pos"></text></section>', '.pace-chart-value', 'fill')).toBe('#7ee787')
+      expect(pick('<section class="pace-widget"><div class="pace-summary-panel marathon-progress-side"><div class="mps-item"><span class="mps-value tempo-val"><span class="tempo-unit"></span></span></div></div></section>', '.tempo-unit')).toBe('rgba(220,220,220,.62)')
+    })
+  })
+
+  describe('session dots in the light theme (CSS-5)', () => {
+    // the app marks dots it thins out as minor + hidden; a plain hidden one is covered too
+    const DOTS = '<svg class="mc-svg"><circle class="mc-dot mc-dot-minor mc-dot-hidden"></circle><circle class="mc-dot mc-dot-hidden"></circle><circle class="mc-dot mc-dot-minor"></circle><circle class="mc-dot"></circle></svg>'
+    it.each([['light', 1280, true], ['light', 375, true], ['dark', 1280, false], ['dark', 375, false]])('%s theme at %ipx: hidden dots stay invisible and minor dots keep no outline', (_name, width, isLight) => {
+      mount(DOTS, { light: isLight })
+      const env = { width, clip: true }
+      for (const el of document.querySelectorAll('.mc-dot-hidden')) expect(value(el, 'opacity', env), el.getAttribute('class')).toBe('0')
+      for (const el of document.querySelectorAll('.mc-dot-minor')) expect(value(el, 'stroke', env), el.getAttribute('class')).toBe('none')
+      // an ordinary dot still gets the theme ring
+      expect(value($('.mc-svg .mc-dot:not(.mc-dot-hidden):not(.mc-dot-minor)'), 'stroke', env)).not.toBe('none')
+    })
+  })
+
+  describe('light theme period pills (tablet exposure of the mobile top list)', () => {
+    it.each([375, 768, 980])('the active top-posts period keeps its red fill in the light theme at %ipx', (width) => {
+      mount('<div class="mobile-top-posts"><div class="mobile-top-periods"><button class="mobile-top-period active"></button><button class="mobile-top-period"></button></div></div>', { light: true })
+      const env = { width, clip: true }
+      const fill = cascade($('.mobile-top-period.active'), ['background', 'background-color'], env)
+      expect(fill.value).toBe('var(--red)')
+    })
+  })
+
+  describe('light theme pagination (same cascade trap as the dots)', () => {
+    it.each([[true], [false]])('the active page button keeps its red fill (light=%s)', (isLight) => {
+      mount('<nav><button class="page-btn active"></button><button class="page-btn"></button></nav>', { light: isLight })
+      expect(cascade($('.page-btn.active'), ['background', 'background-color'], wide).value).toBe('var(--red)')
+      expect(cascade($('.page-btn:not(.active)'), ['background', 'background-color'], wide).value).toBe('var(--bg2)')
+    })
+  })
+
+  describe('lightbox (CSS-7 / CSS-8)', () => {
+    it('is the topmost layer, above every other z-index in the stylesheet and the inline 9999 popups', () => {
+      const lightbox = Number(value(Object.assign(document.body.appendChild(document.createElement('div')), { className: 'lightbox' }), 'z-index', wide))
+      const others = []
+      for (const rule of RULES) {
+        if (rule.selectors.includes('.lightbox')) continue
+        for (const d of rule.decls) if (d.prop === 'z-index' && /^\d+$/.test(d.value)) others.push(Number(d.value))
+      }
+      for (const m of APP_JSX.matchAll(/zIndex:\s*(\d+)/g)) others.push(Number(m[1]))
+      expect(Math.max(...others)).toBeGreaterThanOrEqual(9999)
+      expect(lightbox).toBeGreaterThan(Math.max(...others))
+    })
+
+    it.each([[1920, 'max-width'], [1920, 'max-height'], [375, 'max-width'], [375, 'max-height']])('at %ipx the image %s is a share of the overlay, not vw/vh', (width, prop) => {
+      // #root is zoomed 0.85-1.25 on desktop and vw/vh caps are scaled by that
+      // zoom (92vh -> 115vh at 1.25), which cropped tall screenshots
+      mount('<div id="root"><div class="lightbox"><img></div></div>')
+      const v = value($('.lightbox img'), prop, { width, clip: true })
+      expect(v).toMatch(/%$/)
+      expect(v).not.toMatch(/v[wh]/)
+    })
+  })
+})

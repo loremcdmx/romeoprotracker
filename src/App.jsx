@@ -4355,7 +4355,7 @@ export default function App() {
                       format={fmtExact}
                       render={(v) => {
                         const up = v >= (stats.startBR || 10000)
-                        const color = up ? '#66bb6a' : 'var(--red2)'
+                        const color = up ? 'var(--green-hi)' : 'var(--red2)'
                         const glow  = up ? 'rgba(102,187,106,.28)' : 'rgba(239,83,80,.28)'
                         return (
                           <span style={{
@@ -4404,7 +4404,7 @@ export default function App() {
                       format={fmtExact}
                       render={(v)=>{
                         const up = v >= (stats.startBR || 10000)
-                        const color = up ? '#66bb6a' : 'var(--red2)'
+                        const color = up ? 'var(--green-hi)' : 'var(--red2)'
                         const glow  = up ? 'rgba(102,187,106,.28)' : 'rgba(239,83,80,.28)'
                         return <span style={{color,fontVariantNumeric:'tabular-nums',letterSpacing:'-0.02em',textShadow:`0 0 12px ${glow}`,transition:'color .2s, text-shadow .2s'}}>{fmtExact(v)}</span>
                       }}/>,
