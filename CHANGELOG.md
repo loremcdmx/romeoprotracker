@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 1.14.15 — 2026-10-19
+
+- Light theme: the remaining text below readable contrast is fixed (the "last" session chip, the partial pace labels, phone Y-axis labels, the sidebar top-posts period buttons and the footer version tags); the activity chart's period buttons are real classes with the deeper red in light.
+- The dark theme is unchanged.
+
 ## 1.14.14 — 2026-10-19
 
 - Scraper: a persistent Anthropic API refusal (invalid key, no credit) now raises a GitHub warning annotation once per run instead of staying silent; the README explains how to recover a given-up bankroll session.

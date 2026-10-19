@@ -2582,7 +2582,7 @@ function ActivityChart({ posts, favorites, ignored, onFav, onIgnore, onUnignore,
           <div style={{display:'flex',gap:4,marginLeft:'auto'}}>
             {Object.keys(PERIOD_DAYS).map(k => (
               <button type="button" key={k} onClick={()=>setPeriod(k)} aria-pressed={period===k}
-                style={{background:period===k?'var(--red)':'var(--bg3)',border:'1px solid '+(period===k?'var(--red)':'var(--border2)'),borderRadius:4,color:period===k?'#fff':'var(--dim2)',fontSize:10,padding:'4px 8px',cursor:'pointer',fontFamily:'inherit',fontWeight:600}}>
+                className={'ac-period ac-period-mobile'+(period===k?' active':'')}>
                 {PERIOD_LABELS[k]}
               </button>
             ))}
@@ -2709,7 +2709,7 @@ function ActivityChart({ posts, favorites, ignored, onFav, onIgnore, onUnignore,
         <div style={{display:'flex',gap:4,marginLeft:'auto'}}>
           {Object.keys(PERIOD_DAYS).map(k => (
             <button type="button" key={k} onClick={()=>setPeriod(k)} aria-pressed={period===k}
-              style={{background:period===k?'var(--red)':'var(--bg3)',border:'1px solid '+(period===k?'var(--red)':'var(--border2)'),borderRadius:4,color:period===k?'#fff':'var(--dim2)',fontSize:10,padding:'3px 7px',cursor:'pointer',fontFamily:'inherit',fontWeight:600}}>
+              className={'ac-period'+(period===k?' active':'')}>
               {PERIOD_LABELS[k]}
             </button>
           ))}

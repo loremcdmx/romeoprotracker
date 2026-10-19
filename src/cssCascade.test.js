@@ -601,6 +601,244 @@ describe('app.css cascade guards', () => {
     })
   })
 
+  describe('light theme AA: the last text below 4.5:1 (U1)', () => {
+    const BG = ['background', 'background-color', 'background-image']
+    const env = (width = 1280, extra = {}) => ({ width, clip: true, ...extra })
+    const resolved = (el, props, e) => { const c = cascade(el, props, e); return c && resolveVars(c.value, el, e) }
+    const token = (name, isLight = true) => { mount('<div></div>', { light: isLight }); return customProp(document.documentElement, name, wide) }
+    // cards the day-event rows sit on: plain, the red tint of a Romeo row, the green tint of a session row, the hovered (--bg2) row
+    const dayCards = () => {
+      const bg3 = token('--bg3'); const bg2 = token('--bg2')
+      const tintOf = (cls) => { mount(`<div class="day-event ${cls}"></div>`, { light: true }); return colourTokens(resolved($('.day-event'), BG, wide))[0] }
+      return [bg3, over(tintOf('day-event-romeo'), bg3), over(tintOf('day-event-session'), bg3), bg2]
+    }
+
+    it('the "last: N" chip in the session widget is AA on its chip background', () => {
+      for (const width of [320, 375, 1280]) {
+        mount('<div class="section-head"><span class="section-count smtt-last-chip"></span></div>', { light: true })
+        const el = $('.smtt-last-chip')
+        const e = env(width)
+        // .light .section-count (2 classes, earlier) must not win the colour: the chip rule is the later 2-class rule
+        expect(cascade(el, ['color'], e).sel).toBe('.light .smtt-last-chip')
+        const fg = resolved(el, ['color'], e)
+        const bg = resolved(el, ['background', 'background-color'], e)
+        expect(fg).toMatch(/^#[0-9a-f]{6}$/i)
+        expect(contrast(fg, bg), `chip ${fg} on ${bg} @${width}`).toBeGreaterThanOrEqual(4.5)
+        for (const surface of [token('--bg'), token('--bg2')]) expect(contrast(fg, surface), `chip ${fg} on ${surface}`).toBeGreaterThanOrEqual(4.5)
+      }
+    })
+
+    it('the x label of a partial pace segment is AA with its opacity applied', () => {
+      const surfaces = ['#f9f7f3', '#f8f6f2', token('--bg2'), '#f3f1ed']
+      for (const width of [320, 375, 768, 1280]) {
+        mount('<section class="pace-widget"><svg><g class="pace-segment pos partial"><text class="pace-x-label"></text></g></svg></section>', { light: true })
+        const el = $('.pace-x-label')
+        const e = env(width)
+        const fg = resolved(el, ['fill'], e)
+        const opacity = Number(resolved(el, ['opacity'], e))
+        for (const bg of surfaces) expect(contrast(over(fg, bg, opacity), bg), `${fg} x${opacity} on ${bg} @${width}`).toBeGreaterThanOrEqual(4.5)
+      }
+    })
+
+    it('the y labels of the marathon chart keep AA on phones, where the media rule dims them', () => {
+      const surfaces = [token('--bg2'), token('--bg')]
+      for (const width of [320, 375, 720, 721, 1280]) {
+        mount('<svg class="mc-svg"><g class="mc-y-tick"><text class="mc-yaxis-label"></text></g></svg>', { light: true })
+        const el = $('.mc-yaxis-label')
+        const e = env(width)
+        const fg = resolved(el, ['fill'], e)
+        const opacity = Number(resolved(el, ['opacity'], e))
+        for (const bg of surfaces) expect(contrast(over(fg, bg, opacity), bg), `${fg} x${opacity} on ${bg} @${width}`).toBeGreaterThanOrEqual(4.5)
+      }
+    })
+
+    it.each([
+      ['likes pill', '<div class="day-event day-event-reply"><span class="day-event-likes"></span></div>', '.day-event-likes', true],
+      ['positive result pill', '<div class="day-event day-event-session"><span class="day-event-pill pos"></span></div>', '.day-event-pill', true],
+      ['negative result pill', '<div class="day-event day-event-session"><span class="day-event-pill neg"></span></div>', '.day-event-pill', true],
+      ['Romeo author', '<div class="day-event day-event-romeo"><span class="day-event-author"></span></div>', '.day-event-author', false],
+      ['session author', '<div class="day-event day-event-session"><span class="day-event-author"></span></div>', '.day-event-author', false],
+    ])('day-event %s is AA on every card the row can sit on', (label, html, sel, hasPillBg) => {
+      const cards = dayCards()
+      for (const width of [375, 1280]) {
+        mount(html, { light: true })
+        const el = $(sel)
+        const e = env(width)
+        const fg = resolved(el, ['color'], e)
+        expect(fg, `${label} resolves to a plain hex colour`).toMatch(/^#[0-9a-f]{6}$/i)
+        const pill = hasPillBg ? resolved(el, ['background', 'background-color'], e) : null
+        for (const card of cards) {
+          const bg = pill ? over(pill, card) : card
+          expect(contrast(fg, bg), `${label} ${fg} on ${bg} @${width}`).toBeGreaterThanOrEqual(4.5)
+        }
+      }
+    })
+
+    it('the positive month profit in the marathon month details is AA on the card and the page', () => {
+      for (const width of [375, 1280]) {
+        mount('<div class="mc-month-details"><dl><dd class="mc-month-profit-pos"></dd></dl></div>', { light: true })
+        const fg = resolved($('dd'), ['color'], env(width))
+        for (const s of [token('--bg2'), token('--bg')]) expect(contrast(fg, s), `month profit + ${fg} on ${s} @${width}`).toBeGreaterThanOrEqual(4.5)
+      }
+    })
+
+    it('the negative month profit stays AA on the chart card', () => {
+      mount('<div class="mc-month-details"><dl><dd class="mc-month-profit-neg"></dd></dl></div>', { light: true })
+      const fg = resolved($('dd'), ['color'], env())
+      expect(contrast(fg, token('--bg2')), `month profit - ${fg}`).toBeGreaterThanOrEqual(4.5)
+    })
+
+    it.each([['last'], ['recovery'], ['best'], ['worst']])('the %s x-axis sub label is AA on the chart card', (tone) => {
+      for (const width of [375, 1280]) {
+        mount(`<svg><g class="mc-x-tick ${tone}"><text class="mc-xaxis-label-sub"></text></g></svg>`, { light: true })
+        const fg = resolved($('.mc-xaxis-label-sub'), ['fill'], env(width))
+        expect(contrast(fg, token('--bg2')), `${tone} sub label ${fg} @${width}`).toBeGreaterThanOrEqual(4.5)
+      }
+    })
+
+    // the pulse that flashes for 700ms when the tempo changes: in the sticky progress bar, and inside the pace panel
+    it.each([
+      ['progress bar', '<div class="marathon-progress"><div class="marathon-progress-side"><span class="mps-value tempo-val pulse"></span></div></div>'],
+      ['pace panel', '<section class="pace-widget"><div class="pace-summary-panel marathon-progress-side"><span class="mps-value tempo-val pulse"></span></div></section>'],
+    ])('the tempo value pulse in the %s is AA', (_label, html) => {
+      for (const width of [375, 1280]) {
+        mount(html, { light: true })
+        const fg = resolved($('.tempo-val'), ['color'], env(width))
+        for (const s of [token('--bg'), token('--bg2'), '#f1eee9']) expect(contrast(fg, s), `tempo pulse ${fg} on ${s} @${width}`).toBeGreaterThanOrEqual(4.5)
+      }
+    })
+
+    // measured wrongly once: the contrast scan hid <text> fills but not <tspan> fills, so the glyph ink was averaged into the
+    // "background" (203,222,205) and read 3.55-3.78. On the real plate (rgba(255,255,255,.96)) both are AA already; this keeps them so.
+    it.each([
+      ['milestone callout value', '<svg><g class="mc-milestone-callout"><text class="mc-milestone-label"><tspan class="mc-milestone-primary"></tspan></text></g></svg>', '.mc-milestone-primary'],
+      ['milestone callout date', '<svg><g class="mc-milestone-callout"><text class="mc-milestone-label"><tspan class="mc-milestone-secondary"></tspan></text></g></svg>', '.mc-milestone-secondary'],
+      ['peak callout "PEAK" kicker', '<svg><g class="mc-peak-callout"><text class="mc-peak-callout-text"><tspan class="mc-peak-callout-kicker"></tspan></text></g></svg>', '.mc-peak-callout-kicker'],
+    ])('%s is AA on the callout plate over every light surface', (label, html, sel) => {
+      const surfaces = [token('--bg'), token('--bg2'), token('--red-dim'), '#f3e9e6', '#ece8e0', '#f9f7f3']
+      for (const width of [375, 1280]) {
+        mount(html, { light: true })
+        const el = $(sel)
+        const e = env(width)
+        const fg = resolved(el, ['fill'], e)
+        const plate = customProp(document.documentElement, '--chart-callout-bg', e)
+        for (const surface of surfaces) {
+          const bg = over(plate, surface)
+          expect(contrast(fg, bg), `${label} ${fg} on ${bg} @${width}`).toBeGreaterThanOrEqual(4.5)
+        }
+      }
+    })
+
+    describe('white on red fills that still read --red', () => {
+      const ACTIVE = [
+        ['activity period (desktop)', '<div><button class="ac-period active"></button></div>', '.ac-period'],
+        ['activity period (phone)', '<div><button class="ac-period ac-period-mobile active"></button></div>', '.ac-period'],
+        ['settings choice', '<div class="settings-choice-group"><button class="active"></button></div>', '.settings-choice-group button'],
+      ]
+      const CASES = ACTIVE.flatMap(([label, html, sel]) => [320, 375, 768, 1280].flatMap((w) => [false, true].map((hover) => [label, w, hover, html, sel])))
+
+      it.each(CASES)('%s at %ipx (hover=%s): white on a solid red fill that is >=4.5:1 in light, the old --red in dark', (label, width, hover, html, sel) => {
+        const e = env(width, { hover })
+        const html2 = hover ? html.replace('class="', 'class="is-hover ') : html
+        mount(html2, { light: true })
+        let el = $(sel)
+        const text = resolved(el, ['color'], e)
+        const fill = resolved(el, BG, e)
+        expect(text.toLowerCase()).toBe('#fff')
+        expect(fill, `${label} fill`).toMatch(/^#[0-9a-f]{6}$/i)
+        expect(contrast(toHex(toRGBA(text)), fill), `${label} ${text} on ${fill}`).toBeGreaterThanOrEqual(4.5)
+        expect(resolved(el, ['border-color'], e), `${label} rim matches the fill`).toBe(fill)
+        mount(html2, { light: false })
+        el = $(sel)
+        expect(cascade(el, BG, e).value, `${label} dark fill`).toBe('var(--red)')
+        expect(cascade(el, ['border-color'], e).value, `${label} dark rim`).toBe('var(--red)')
+        expect(resolved(el, ['color'], e).toLowerCase()).toBe('#fff')
+      })
+
+      it('the inactive activity period buttons look as the inline style made them, in both themes', () => {
+        for (const isLight of [false, true]) {
+          for (const [cls, padding] of [['ac-period', '3px 7px'], ['ac-period ac-period-mobile', '4px 8px']]) {
+            mount(`<div><button class="${cls}"></button></div>`, { light: isLight })
+            const el = $('.ac-period')
+            const get = (p) => cascade(el, [p], env()).value
+            expect(cascade(el, BG, env()).value, `${cls} light=${isLight}`).toBe('var(--bg3)')
+            expect(get('border')).toBe('1px solid var(--border2)')
+            expect(get('color')).toBe('var(--dim2)')
+            expect(get('border-radius')).toBe('4px')
+            expect(get('font-size')).toBe('10px')
+            expect(get('font-weight')).toBe('600')
+            expect(get('font-family')).toBe('inherit')
+            expect(get('cursor')).toBe('pointer')
+            expect(get('padding')).toBe(padding)
+          }
+        }
+      })
+
+      it('no inline style is left on the activity chart period buttons (an inline background cannot be overridden by .light)', () => {
+        const parts = APP_JSX.split('{PERIOD_LABELS[k]}')
+        expect(parts).toHaveLength(3) // the phone list and the desktop list
+        for (const part of parts.slice(0, -1)) {
+          const tag = part.slice(part.lastIndexOf('<button'))
+          expect(tag).not.toMatch(/style=/)
+          expect(tag).toMatch(/className=\{'ac-period/)
+        }
+        expect(APP_JSX).not.toMatch(/period===k\?'var\(--red\)'/)
+      })
+    })
+
+    describe('inline var(--red) the CSS re-binds per group (the inline style itself is not ours to move)', () => {
+      it('the sidebar top-posts period buttons read a red that carries white text in light, and the old --red in dark', () => {
+        // the buttons are inline: background/border var(--red), color #fff when active
+        expect(APP_JSX).toMatch(/background:sideTopPeriod===k\?'var\(--red\)'.*border:'1px solid '\+\(sideTopPeriod===k\?'var\(--red\)'.*color:sideTopPeriod===k\?'#fff'/)
+        for (const width of [375, 768, 1280]) {
+          mount('<div class="forum-top-head"><div class="forum-top-periods"><button></button></div></div>', { light: true })
+          const fill = resolveVars('var(--red)', $('.forum-top-periods button'), env(width))
+          expect(contrast('#ffffff', fill), `white on ${fill} @${width}`).toBeGreaterThanOrEqual(4.5)
+        }
+        mount('<div class="forum-top-head"><div class="forum-top-periods"><button></button></div></div>')
+        expect(resolveVars('var(--red)', $('.forum-top-periods button'), wide)).toBe('#e53935')
+      })
+
+      it('the footer changelog version tags read a red that is AA on the light surfaces, the old --red in dark', () => {
+        expect(APP_JSX).toMatch(/<span style=\{\{fontSize:9,color:'var\(--red\)'/)
+        const surfaces = [token('--bg'), token('--bg2'), token('--bg3')]
+        for (const width of [375, 1280]) {
+          mount('<footer><div><span></span></div></footer>', { light: true })
+          const fg = resolveVars('var(--red)', $('footer span'), env(width))
+          for (const bg of surfaces) expect(contrast(fg, bg), `${fg} on ${bg} @${width}`).toBeGreaterThanOrEqual(4.5)
+        }
+        mount('<footer><div><span></span></div></footer>')
+        expect(resolveVars('var(--red)', $('footer span'), wide)).toBe('#e53935')
+      })
+    })
+
+    it('leaves every dark-theme value touched here exactly as it was', () => {
+      const dark = (width = 1280) => env(width)
+      const get = (html, sel, props, width) => { mount(html); const el = $(sel); return resolved(el, props, dark(width)) }
+      expect(get('<div class="section-head"><span class="section-count smtt-last-chip"></span></div>', '.smtt-last-chip', ['color'])).toBe('#ffb300')
+      expect(get('<div class="section-head"><span class="section-count smtt-last-chip"></span></div>', '.smtt-last-chip', ['border-color'])).toBe('rgba(255,210,77,.35)')
+      const xl = '<section class="pace-widget"><svg><g class="pace-segment pos partial"><text class="pace-x-label"></text></g></svg></section>'
+      expect(get(xl, '.pace-x-label', ['opacity'])).toBe('.64')
+      expect(get(xl, '.pace-x-label', ['fill'])).toBe('rgba(230,230,230,.86)')
+      const yl = '<svg class="mc-svg"><g class="mc-y-tick"><text class="mc-yaxis-label"></text></g></svg>'
+      expect(get(yl, '.mc-yaxis-label', ['opacity'], 375)).toBe('.84')
+      expect(get(yl, '.mc-yaxis-label', ['opacity'], 1280)).toBe('.92')
+      expect(get(yl, '.mc-yaxis-label', ['fill'], 375)).toBe('#b8b8b8')
+      expect(get('<div class="day-event day-event-reply"><span class="day-event-likes"></span></div>', '.day-event-likes', ['color'])).toBe('#ffb74d')
+      expect(get('<div class="day-event day-event-session"><span class="day-event-pill pos"></span></div>', '.day-event-pill', ['color'])).toBe('#66bb6a')
+      expect(get('<div class="day-event day-event-session"><span class="day-event-pill neg"></span></div>', '.day-event-pill', ['color'])).toBe('#ef5350')
+      expect(get('<div class="day-event day-event-romeo"><span class="day-event-author"></span></div>', '.day-event-author', ['color'])).toBe('#e53935')
+      expect(get('<div class="day-event day-event-session"><span class="day-event-author"></span></div>', '.day-event-author', ['color'])).toBe('#e53935')
+      expect(get('<div class="mc-month-details"><dl><dd class="mc-month-profit-pos"></dd></dl></div>', 'dd', ['color'])).toBe('#76d982')
+      expect(get('<svg><g class="mc-x-tick last"><text class="mc-xaxis-label-sub"></text></g></svg>', '.mc-xaxis-label-sub', ['fill'])).toBe('#f3d88b')
+      expect(get('<svg><g class="mc-x-tick recovery"><text class="mc-xaxis-label-sub"></text></g></svg>', '.mc-xaxis-label-sub', ['fill'])).toBe('#b7dfba')
+      expect(get('<svg><g class="mc-x-tick best"><text class="mc-xaxis-label-sub"></text></g></svg>', '.mc-xaxis-label-sub', ['fill'])).toBe('#bee8c2')
+      expect(get('<div class="marathon-progress"><div class="marathon-progress-side"><span class="mps-value tempo-val pulse"></span></div></div>', '.tempo-val', ['color'])).toBe('#ffd479')
+      expect(get('<svg><g class="mc-milestone-callout"><text class="mc-milestone-label"><tspan class="mc-milestone-primary"></tspan></text></g></svg>', '.mc-milestone-primary', ['fill'])).toBe('#75cf70')
+      expect(get('<svg><g class="mc-peak-callout"><text class="mc-peak-callout-text"><tspan class="mc-peak-callout-kicker"></tspan></text></g></svg>', '.mc-peak-callout-kicker', ['fill'])).toBe('#ffb300')
+    })
+  })
+
   describe('lightbox (CSS-7 / CSS-8)', () => {
     it('is the topmost layer, above every other z-index in the stylesheet and the inline 9999 popups', () => {
       const lightbox = Number(value(Object.assign(document.body.appendChild(document.createElement('div')), { className: 'lightbox' }), 'z-index', wide))

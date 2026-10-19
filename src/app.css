@@ -191,6 +191,10 @@ button,select,input,summary{font:inherit}
 .chart-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:16px;position:relative}
 .chart-svg{width:100%;overflow:visible}
 .chart-label{font-size:9px;fill:var(--axis-y-muted);font-family:'Inter',system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-weight:500;font-variant-numeric:tabular-nums;letter-spacing:.01em}
+/* the chart's own period buttons (were inline styles, which no .light rule can reach: #fff on --red is 4.23:1) */
+.ac-period{background:var(--bg3);border:1px solid var(--border2);border-radius:4px;color:var(--dim2);font-family:inherit;font-size:10px;font-weight:600;padding:3px 7px;cursor:pointer}
+.ac-period-mobile{padding:4px 8px}
+.ac-period.active{background:var(--red);border-color:var(--red);color:#fff}
 .activity-mobile-date{font-size:10.5px;font-family:'Inter',system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-weight:500;font-variant-numeric:tabular-nums;letter-spacing:.01em;white-space:nowrap}
 
 /* GLOBAL FILTER BAR */
@@ -462,6 +466,13 @@ button,select,input,summary{font:inherit}
 .light .page-btn.active{background:var(--red-fill);border-color:var(--red-fill)}
 .light .mobile-top-period.active{background:var(--red-fill);border-color:var(--red-fill)}
 .light .mobile-menu-nav button.active,.light .mobile-menu-languages button.active{background:var(--red-fill);border-color:var(--red-fill)}
+.light .settings-choice-group button.active{background:var(--red-fill);border-color:var(--red-fill)}
+.light .ac-period.active{background:var(--red-fill);border-color:var(--red-fill)}
+/* the sidebar's top-posts period buttons carry an inline background/border of var(--red) (white text on it is 4.23:1);
+   an inline style cannot be overridden from here, so the token they read is re-bound for the group instead */
+.light .forum-top-periods{--red:var(--red-fill)}
+/* footer changelog version tags: inline color var(--red) is 3.46:1 on --bg at 9px; same re-binding, to the red used for light-theme red text */
+.light footer{--red:var(--red2)}
 .light .perpage-select{background:var(--bg3);color:var(--white)}
 .light .post-card{background:var(--bg2);border-color:var(--border)}
 .light .post-card:hover{border-color:var(--border2)}
@@ -567,7 +578,7 @@ button,select,input,summary{font:inherit}
 .day-event-romeo .day-event-author,
 .day-event-session .day-event-author{color:#e53935}
 .light .day-event-romeo .day-event-author,
-.light .day-event-session .day-event-author{color:#c62828}
+.light .day-event-session .day-event-author{color:#962420}
 .day-event-meta{color:var(--dim)}
 .day-event-quote{color:var(--dim2);font-style:italic;display:block;margin-top:2px}
 .day-event-likes{
@@ -577,7 +588,7 @@ button,select,input,summary{font:inherit}
   background:rgba(255,183,77,.15);color:#ffb74d;
   border:1px solid rgba(255,183,77,.25);
 }
-.light .day-event-likes{background:rgba(230,140,0,.12);color:#b8860b;border-color:rgba(230,140,0,.25)}
+.light .day-event-likes{background:rgba(230,140,0,.12);color:#6f4a00;border-color:rgba(230,140,0,.25)}
 .day-event-pill{
   display:inline-block;font-family:'Roboto Mono',monospace;
   font-size:10px;font-weight:700;
@@ -585,8 +596,8 @@ button,select,input,summary{font:inherit}
 }
 .day-event-pill.pos{background:rgba(76,175,80,.18);color:#66bb6a;border:1px solid rgba(76,175,80,.3)}
 .day-event-pill.neg{background:rgba(229,57,53,.18);color:#ef5350;border:1px solid rgba(229,57,53,.3)}
-.light .day-event-pill.pos{background:rgba(76,175,80,.15);color:#2e7d32;border-color:rgba(76,175,80,.35)}
-.light .day-event-pill.neg{background:rgba(229,57,53,.12);color:#c62828;border-color:rgba(229,57,53,.35)}
+.light .day-event-pill.pos{background:rgba(76,175,80,.15);color:#1b5e20;border-color:rgba(76,175,80,.35)}
+.light .day-event-pill.neg{background:rgba(229,57,53,.12);color:#962420;border-color:rgba(229,57,53,.35)}
 .day-event-br{
   display:inline-block;font-family:'Roboto Mono',monospace;
   font-size:9.5px;color:var(--dim);margin-left:6px;
@@ -685,7 +696,7 @@ html{scroll-behavior:smooth}
 .mps-rate-inline{font-size:9px;color:#c9a46a;font-weight:600;font-family:'Roboto Mono',monospace;opacity:.8;font-variant-numeric:tabular-nums}
 .tempo-val{position:relative;transition:color .3s, text-shadow .3s}
 .tempo-val.pulse{color:#ffd479;text-shadow:0 0 10px rgba(255,212,121,.55)}
-.light .tempo-val.pulse{color:#b8860b;text-shadow:0 0 8px rgba(184,134,11,.35)}
+.light .tempo-val.pulse{color:#8a5b00;text-shadow:0 0 8px rgba(184,134,11,.35)}
 .mps-divider{width:1px;background:var(--border);margin:2px 0}
 .pace-summary-panel.marathon-progress-side .mps-divider{background:linear-gradient(180deg,transparent,rgba(255,255,255,.12),transparent);margin:7px 0}
 .light .marathon-progress{background:linear-gradient(180deg,rgba(235,232,226,.98),rgba(235,232,226,.92));box-shadow:0 8px 24px rgba(0,0,0,.08)}
@@ -897,7 +908,7 @@ html{scroll-behavior:smooth}
 .smtt-avg-chip{color:#7bdcff;background:rgba(123,220,255,.08);border-color:rgba(123,220,255,.3);font-weight:600}
 .light .smtt-avg-chip{color:#25639b;background:rgba(37,99,155,.07);border-color:rgba(37,99,155,.3)}
 .smtt-last-chip{color:var(--gold,#ffd24d);border-color:rgba(255,210,77,.35)}
-.light .smtt-last-chip{color:#8a5b00;border-color:rgba(138,91,0,.3)}
+.light .smtt-last-chip{color:#755400;border-color:rgba(138,91,0,.3)}
 .light .smtt-bar{fill:rgba(37,99,155,.45)}
 .light .smtt-bar:hover{fill:rgba(37,99,155,.75)}
 .light .smtt-bar.max{fill:rgba(46,125,50,.6)}
@@ -1181,7 +1192,7 @@ html{scroll-behavior:smooth}
    .light override would lose to). The dark pace tooltip above re-pins its own. */
 .light .pace-widget{--pace-green:#27682c;--pace-red:#b3342c;--pace-gold:#8a5b00}
 .light .pace-summary-panel .tempo-unit{color:var(--dim)}
-.light .pace-segment.partial .pace-chart-value{opacity:.9}
+.light .pace-segment.partial .pace-chart-value,.light .pace-segment.partial .pace-x-label{opacity:.9}
 /* sticky progress bar readability in light theme */
 .light .marathon-progress-label b{color:#8a5b00;text-shadow:none}
 .light .mps-rate-inline{color:#755400;opacity:1}
@@ -1200,13 +1211,15 @@ html{scroll-behavior:smooth}
 /* marathon x-axis special ticks were near-invisible in light theme */
 .light .mc-x-tick.start .mc-xaxis-label-main{fill:var(--axis-x)}
 .light .mc-x-tick.milestone .mc-xaxis-label-main,.light .mc-x-tick.last .mc-xaxis-label-main{fill:#8a5b00}
-.light .mc-x-tick.last .mc-xaxis-label-sub{fill:#8a6a20}
+.light .mc-x-tick.last .mc-xaxis-label-sub{fill:#836519}
 .light .mc-x-tick.recovery .mc-xaxis-label-main,.light .mc-x-tick.best .mc-xaxis-label-main{fill:#29752f}
-.light .mc-x-tick.recovery .mc-xaxis-label-sub,.light .mc-x-tick.best .mc-xaxis-label-sub{fill:#4a7a4e}
+.light .mc-x-tick.recovery .mc-xaxis-label-sub,.light .mc-x-tick.best .mc-xaxis-label-sub{fill:#467549}
 .light .mc-x-tick.worst .mc-xaxis-label-main{fill:#b3342c}
 .light .mc-x-tick.worst .mc-xaxis-label-sub{fill:#a5554f}
 .light .pace-zero{stroke:rgba(70,60,45,.30)}
 .light{--axis-y-muted:#6c655a}
+/* phones dim the y labels to .84, which is 4.47:1 here; the desktop .92 is 5.4:1 (this 2-class rule beats the 1-class media rule) */
+.light .mc-yaxis-label{opacity:.92}
 /* marathon tooltip room deltas via theme-aware classes */
 .tip-stat{font-weight:600}
 .tip-stat.pos{color:#66bb6a}
@@ -1330,7 +1343,7 @@ html{scroll-behavior:smooth}
 .mc-monthly .mc-distance-summary{margin-top:10px}
 .light .mc-month-volume{fill:#367d92}
 .light .mc-month-volume.partial{stroke:#367d92}
-.light .mc-month-details dd.mc-month-profit-pos{color:#2e8b3a}
+.light .mc-month-details dd.mc-month-profit-pos{color:#27682c}
 .light .mc-month-details dd.mc-month-profit-neg{color:#c8362e}
 @media(max-width:720px){
   .mc-chart-head .section-count{margin-left:0}
