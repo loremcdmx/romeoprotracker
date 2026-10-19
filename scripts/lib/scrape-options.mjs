@@ -9,6 +9,7 @@ export function parseScrapeOptions(argv = [], env = process.env) {
   let mode = env.SCRAPE_MODE || 'normal'
   let dryRun = isTruthy(env.SCRAPE_DRY_RUN) || isTruthy(env.DRY_RUN)
   let noPush = isTruthy(env.SCRAPE_NO_PUSH) || isTruthy(env.NO_PUSH)
+  let pruneForce = isTruthy(env.SCRAPE_PRUNE_FORCE)
 
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i]
@@ -18,6 +19,10 @@ export function parseScrapeOptions(argv = [], env = process.env) {
     }
     if (arg === '--no-push') {
       noPush = true
+      continue
+    }
+    if (arg === '--prune-force') {
+      pruneForce = true
       continue
     }
     if (arg === '--mode') {
@@ -40,5 +45,6 @@ export function parseScrapeOptions(argv = [], env = process.env) {
     mode,
     dryRun,
     noPush: noPush || dryRun,
+    pruneForce,
   }
 }

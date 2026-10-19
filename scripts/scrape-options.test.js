@@ -7,6 +7,7 @@ describe('parseScrapeOptions', () => {
       mode: 'full',
       dryRun: false,
       noPush: false,
+      pruneForce: false,
     })
   })
 
@@ -15,6 +16,7 @@ describe('parseScrapeOptions', () => {
       mode: 'reextract',
       dryRun: false,
       noPush: true,
+      pruneForce: false,
     })
   })
 
@@ -23,6 +25,7 @@ describe('parseScrapeOptions', () => {
       mode: 'normal',
       dryRun: true,
       noPush: true,
+      pruneForce: false,
     })
   })
 
@@ -31,7 +34,14 @@ describe('parseScrapeOptions', () => {
       mode: 'translate',
       dryRun: false,
       noPush: false,
+      pruneForce: false,
     })
+  })
+
+  it('accepts --prune-force and SCRAPE_PRUNE_FORCE, off by default', () => {
+    expect(parseScrapeOptions(['--mode=full'], {}).pruneForce).toBe(false)
+    expect(parseScrapeOptions(['--mode=full', '--prune-force'], {}).pruneForce).toBe(true)
+    expect(parseScrapeOptions([], { SCRAPE_PRUNE_FORCE: '1' }).pruneForce).toBe(true)
   })
 
   it('rejects invalid modes', () => {
