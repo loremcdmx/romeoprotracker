@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import App from './App.jsx'
@@ -412,5 +414,102 @@ describe('new posts bubble', () => {
 
     fireEvent.change(numInput('filter_min_likes'), { target: { value: '3' } })
     await waitFor(() => expect(bubble()).toBeNull())
+  })
+})
+
+// A jump (page change, "N new posts" bubble, activity day row) ends with the
+// target's top edge under the pinned header stack. The 94-144px offset is a CSS
+// scroll-margin-top on .jump-target / .filter-bar (cssCascade.test.js checks the
+// numbers per viewport), so the app only has to scroll the right element to the
+// top edge: block 'start', not the old fixed 60px / 80px window.scrollTo offsets
+// and not 'center' (which hides the top of a post taller than the free space).
+describe('jumps scroll the target to the top edge', () => {
+  const spy = window.HTMLElement.prototype.scrollIntoView
+  const jumpsTo = (el) => {
+    const at = spy.mock.contexts.indexOf(el)
+    return at === -1 ? null : spy.mock.calls[at][0]
+  }
+
+  beforeEach(() => {
+    localStorage.clear()
+    fetchPublicData.mockReset()
+    spy.mockClear()
+    pollCount = 0
+    Object.defineProperty(window, 'innerWidth', { value: 1280, writable: true })
+  })
+
+  it('a page change scrolls the filter bar to the top edge, after the new page is committed', async () => {
+    // what the feed shows at the moment each scroll call is made
+    const firstCardAtScroll = []
+    spy.mockImplementation(function () {
+      if (this.classList.contains('filter-bar')) firstCardAtScroll.push(cardAuthors()[0])
+    })
+    try {
+      await renderApp(makePosts(60))
+      clickPage(2)
+      await waitFor(() => expect(activePage()).toBe('2'))
+      await waitFor(() => expect(jumpsTo(document.querySelector('.filter-bar'))).not.toBeNull())
+      expect(jumpsTo(document.querySelector('.filter-bar'))).toEqual({ behavior: 'smooth', block: 'start' })
+      // not from inside the click handler (the old page, User0, was still on screen):
+      // WebKit cancelled a smooth scroll started there about every other time
+      expect(firstCardAtScroll).toEqual(['User20'])
+    } finally {
+      spy.mockImplementation(() => {})
+    }
+  })
+
+  it('the new-posts bubble scrolls the first new post wrapper to the top edge', async () => {
+    const posts = makePosts(30)
+    await renderApp(posts)
+    await poll([...posts, makeFresh('hit-1', { likes: 9 })])
+    await waitFor(() => expect(bubble()).not.toBeNull())
+    fireEvent.click(bubble())
+    await waitFor(() => expect(bubble()).toBeNull())
+    const wrapper = document.getElementById('post-hit-1')
+    await waitFor(() => expect(jumpsTo(wrapper)).not.toBeNull())
+    expect(jumpsTo(wrapper)).toEqual({ behavior: 'smooth', block: 'start' })
+    expect(wrapper).toHaveClass('jump-target')
+  })
+})
+
+// goToNewPosts used to end in a "just dismiss" else branch for new posts the
+// feed filters hide. The bubble only renders for newInFeed.count > 0, so that
+// branch could not run: these cases drive every filter state through the real UI.
+describe('goToNewPosts has no dismiss-only path', () => {
+  beforeEach(() => {
+    localStorage.clear()
+    fetchPublicData.mockReset()
+    pollCount = 0
+    Object.defineProperty(window, 'innerWidth', { value: 1280, writable: true })
+  })
+
+  // two new posts: 0 likes and 1 like; min-likes decides how many the feed shows
+  it.each([['3', 0], ['1', 1], ['0', 2]])('min-likes %s: the bubble exists exactly when a new post is in the feed (%i)', async (minLikes, visible) => {
+    const posts = makePosts(30)
+    await renderApp(posts)
+    await poll([...posts, makeFresh('low-1', { likes: 0 }), makeFresh('low-2', { likes: 1 })])
+    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 20)) })
+    fireEvent.change(numInput('filter_min_likes'), { target: { value: minLikes } })
+    if (!visible) {
+      await act(async () => { await new Promise((resolve) => setTimeout(resolve, 20)) })
+      expect(bubble()).toBeNull()
+      return
+    }
+    await waitFor(() => expect(bubble()).not.toBeNull())
+    expect(bubble().textContent).toBe(visible === 1 ? '1 новый пост!' : '2 новых поста!')
+    fireEvent.click(bubble())
+    await waitFor(() => expect(bubble()).toBeNull())
+    expect(cardAuthors().some((name) => name.startsWith('Freshlow-'))).toBe(true)
+  })
+
+  it('the source keeps the single path: no else branch in goToNewPosts, no stale tab-switch comment', () => {
+    const src = readFileSync(resolve(__dirname, 'App.jsx'), 'utf8')
+    const body = src.match(/const goToNewPosts = useCallback\(\(\) => \{[\s\S]*?\n  \}, \[/)?.[0]
+    expect(body, 'goToNewPosts found').toBeTruthy()
+    expect(body).not.toMatch(/\belse\b/)
+    expect(body).not.toMatch(/dismiss/i)
+    const tab = src.match(/\/\/[^\n]*\n(?:\s*\/\/[^\n]*\n)*\s*const switchTab = /)?.[0] ?? ''
+    expect(tab, 'switchTab comment found').not.toBe('')
+    expect(tab).not.toMatch(/last read post|последним прочитанным/)
   })
 })

@@ -59,3 +59,9 @@ if (typeof window !== 'undefined' && !window.matchMedia) {
     dispatchEvent: () => false,
   })
 }
+
+// jsdom doesn't implement scrollIntoView; in-page jumps (goToPost, goPage, ...)
+// call it. Tests that care about the call spy on or replace this no-op.
+if (typeof Element !== 'undefined' && typeof Element.prototype.scrollIntoView !== 'function') {
+  Element.prototype.scrollIntoView = function scrollIntoView() {}
+}
