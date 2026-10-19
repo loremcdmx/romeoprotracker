@@ -9,10 +9,19 @@ export function hasUsableBankroll(row) {
   return Number.isFinite(row?.brAfter)
 }
 
+// A history row is a plain object. A null, a number, a string or a nested array
+// inside brHistory is mis-parsed JSON, never a report.
+export function isHistoryRow(row) {
+  return row != null && typeof row === 'object' && !Array.isArray(row)
+}
+
 // Returns the same array when every row is usable, so memoised consumers keep
-// their identity on the common path.
+// their identity on the common path. A history that is present but not an array
+// ({} or a string) holds no reports at all: every consumer would otherwise call
+// array methods on it.
 export function sanitizeBrHistory(brHistory) {
-  if (!Array.isArray(brHistory)) return brHistory
+  if (brHistory == null) return brHistory
+  if (!Array.isArray(brHistory)) return []
   const clean = brHistory.filter(hasUsableBankroll)
   return clean.length === brHistory.length ? brHistory : clean
 }

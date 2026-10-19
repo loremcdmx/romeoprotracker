@@ -1,7 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
-import { hasUsableBankroll, sanitizeBrHistory, sanitizeMeta, trustedCumulativeTotals } from './historyGuards.js'
+import { hasUsableBankroll, isHistoryRow, sanitizeBrHistory, sanitizeMeta, trustedCumulativeTotals } from './historyGuards.js'
 import { dedupBrHistory } from './utils.js'
 
 const REAL_META = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../data/meta.json'), 'utf8'))
@@ -15,6 +15,19 @@ describe('sanitizeBrHistory', () => {
     expect(sanitizeBrHistory(input).map(row => row?.id)).toEqual(['a', 'g'])
     expect(hasUsableBankroll(good)).toBe(true)
     expect(hasUsableBankroll({ brAfter: '11000' })).toBe(false)
+  })
+
+  it('drops null and non-object rows, and treats a history that is not an array as empty', () => {
+    const good = { id: 'a', brAfter: 11000 }
+    const mixed = [null, good, undefined, 5, 'x', [], [good], true]
+    expect(sanitizeBrHistory(mixed)).toEqual([good])
+    expect([null, good, 5, 'x', [], undefined, {}].map(isHistoryRow)).toEqual([false, true, false, false, false, false, true])
+    for (const notAList of [{}, { length: 2 }, 'abc', 5, true]) {
+      expect(sanitizeBrHistory(notAList)).toEqual([])
+      expect(sanitizeMeta({ bankroll: 1, brHistory: notAList })).toEqual({ bankroll: 1, brHistory: [] })
+    }
+    expect(sanitizeBrHistory(undefined)).toBeUndefined()
+    expect(sanitizeBrHistory(null)).toBeNull()
   })
 
   it('returns the very same array and meta object when nothing is dropped', () => {

@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 1.14.10 — 2026-10-19
+
+- Monthly distances no longer inflate when one cumulative total is too low (same trusted-run rule the pace widgets use); real-data months are identical.
+- The pace split can no longer freeze the page on an absurd per-session count; a malformed (non-object) bankroll-history row no longer crashes the app.
+- The English projection unit reads "MTT" for exactly one tournament; the monthly chart cannot throw on a bad language tag; a zero bankroll no longer shows a stale number next to a different profit.
+
 ## 1.14.9 — 2026-10-19
 
 - One definition of "MTT per session" everywhere (sidebar, mobile strip, week/month stats, session chart): sessions with a counted tournament total. The all-time figure moves from 215 to 219.

@@ -1,5 +1,8 @@
+import fs from 'node:fs'
+import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { groupMarathonMonths, normalizeMarathonDistance } from './marathonMonths.js'
+import { dedupBrHistory } from './utils.js'
 
 const timestamp = date => Date.parse(date) / 1000
 const point = (id, date, br, brPrev, totalTournaments = null, tournaments = null) => ({
@@ -60,16 +63,113 @@ describe('normalizeMarathonDistance', () => {
     ])
   })
 
-  it('marks a backwards cumulative delta unknown while retaining the authoritative total', () => {
+  it('marks a delta unknown when the reported fallback overshoots the next official total, keeping that total', () => {
     expect(distances([
       { totalTournaments: 3000 },
-      { totalTournaments: 2800, tournaments: 200 },
-      { totalTournaments: 3200, tournaments: 900 },
+      { totalTournaments: 3100, tournaments: 100 },
+      { totalTournaments: 2800, tournaments: 900 },
+      { totalTournaments: 3200, tournaments: 50 },
     ])).toEqual([
       { cumulativeMTT: 3000, distanceMTT: 3000 },
-      { cumulativeMTT: 2800, distanceMTT: null },
-      { cumulativeMTT: 3200, distanceMTT: 400 },
+      { cumulativeMTT: 3100, distanceMTT: 100 },
+      { cumulativeMTT: 4000, distanceMTT: 900 },
+      { cumulativeMTT: 3200, distanceMTT: null },
     ])
+  })
+
+  it('does not let a too-low total become the baseline of the next row (monthly distance was inflated)', () => {
+    // true totals 1000, 1200, 1450, 1500; the third report lost a digit (145)
+    const rows = [
+      { totalTournaments: 1000 },
+      { totalTournaments: 1200, tournaments: 200 },
+      { totalTournaments: 145, tournaments: 250 },
+      { totalTournaments: 1500, tournaments: 50 },
+    ]
+    expect(distances(rows)).toEqual([
+      { cumulativeMTT: 1000, distanceMTT: 1000 },
+      { cumulativeMTT: 1200, distanceMTT: 200 },
+      { cumulativeMTT: 1450, distanceMTT: 250 },
+      { cumulativeMTT: 1500, distanceMTT: 50 },
+    ])
+    // the rows add up to the official end total again
+    expect(distances(rows).reduce((sum, row) => sum + row.distanceMTT, 0)).toBe(1500)
+  })
+
+  it('does not let a too-high total swallow the next rows', () => {
+    expect(distances([
+      { totalTournaments: 1000 },
+      { totalTournaments: 1200, tournaments: 200 },
+      { totalTournaments: 95000, tournaments: 250 },
+      { totalTournaments: 1500, tournaments: 50 },
+    ])).toEqual([
+      { cumulativeMTT: 1000, distanceMTT: 1000 },
+      { cumulativeMTT: 1200, distanceMTT: 200 },
+      { cumulativeMTT: 1450, distanceMTT: 250 },
+      { cumulativeMTT: 1500, distanceMTT: 50 },
+    ])
+  })
+
+  it('leaves a distrusted total with no reported count unknown and restores the baseline on the next official total', () => {
+    expect(distances([
+      { totalTournaments: 1000 },
+      { totalTournaments: 1200 },
+      { totalTournaments: 145 },
+      { totalTournaments: 1500 },
+      { totalTournaments: 1600 },
+    ])).toEqual([
+      { cumulativeMTT: 1000, distanceMTT: 1000 },
+      { cumulativeMTT: 1200, distanceMTT: 200 },
+      { cumulativeMTT: null, distanceMTT: null },
+      { cumulativeMTT: 1500, distanceMTT: null },
+      { cumulativeMTT: 1600, distanceMTT: 100 },
+    ])
+  })
+
+  it('treats a 0 total as the archive start only: a later 0 is a mis-read like any disagreeing total', () => {
+    expect(distances([{ totalTournaments: 0 }, { totalTournaments: 0 }, { totalTournaments: 100 }]))
+      .toEqual([
+        { cumulativeMTT: 0, distanceMTT: 0 },
+        { cumulativeMTT: 0, distanceMTT: 0 },
+        { cumulativeMTT: 100, distanceMTT: 100 },
+      ])
+    expect(distances([
+      { totalTournaments: 100 },
+      { totalTournaments: 200 },
+      { totalTournaments: 0 },
+      { totalTournaments: 300 },
+    ])).toEqual([
+      { cumulativeMTT: 100, distanceMTT: 100 },
+      { cumulativeMTT: 200, distanceMTT: 100 },
+      { cumulativeMTT: null, distanceMTT: null },
+      { cumulativeMTT: 300, distanceMTT: null },
+    ])
+  })
+
+  it('does not let one bad total inflate a month (the monthly chart reads these distances)', () => {
+    const months = groupMarathonMonths(normalizeMarathonDistance([
+      point('jan', '2026-01-15T12:00:00Z', 11000, 10000, 1000),
+      point('feb', '2026-02-15T12:00:00Z', 12000, 11000, 1200, 200),
+      point('mar', '2026-03-15T12:00:00Z', 13000, 12000, 145, 250),
+      point('apr', '2026-04-15T12:00:00Z', 14000, 13000, 1500, 50),
+    ]))
+    // 145 is not a baseline: march keeps its reported 250 and april only the
+    // 50 left to the next official total (it used to get 1355)
+    expect(months.map(({ key, tournaments, totalTournaments }) => ({ key, tournaments, totalTournaments })))
+      .toEqual([
+        { key: '2026-01', tournaments: 1000, totalTournaments: 1000 },
+        { key: '2026-02', tournaments: 200, totalTournaments: 1200 },
+        { key: '2026-03', tournaments: 250, totalTournaments: 1450 },
+        { key: '2026-04', tournaments: 50, totalTournaments: 1500 },
+      ])
+  })
+
+  it('ignores null and non-object rows instead of throwing', () => {
+    expect(distances([null, { totalTournaments: 100 }, undefined, 5, 'row', [], { totalTournaments: 250 }]))
+      .toEqual([
+        { cumulativeMTT: 100, distanceMTT: 100 },
+        { cumulativeMTT: 250, distanceMTT: 150 },
+      ])
+    expect(normalizeMarathonDistance([null])).toEqual([])
   })
 
   it('keeps malformed counts unknown instead of coercing or replacing them with reported counts', () => {
@@ -180,5 +280,31 @@ describe('groupMarathonMonths', () => {
     expect(groupMarathonMonths([])).toEqual([])
     expect(groupMarathonMonths()).toEqual([])
     expect(groupMarathonMonths([{ timestamp: null }, { timestamp: NaN }, { timestamp: Infinity }])).toEqual([])
+  })
+})
+
+describe('the real archive', () => {
+  // Same rows the chart gets: deduplicated, chronological, mapped like buildMarathonPoints.
+  const REAL_META = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../data/meta.json'), 'utf8'))
+  const realPoints = () => dedupBrHistory(REAL_META.brHistory).map((h, i, arr) => ({
+    id: h.id, br: h.brAfter, brPrev: i === 0 ? REAL_META.startBankroll : arr[i - 1].brAfter,
+    timestamp: h.timestamp, tournaments: h.tournaments ?? null, totalTournaments: h.totalTournaments ?? null,
+  }))
+
+  it('keeps every row distance equal to the plain cumulative delta (no real total is distrusted)', () => {
+    const points = realPoints()
+    const normalized = normalizeMarathonDistance(points)
+    expect(normalized.length).toBeGreaterThan(100)
+    normalized.forEach((row, i) => {
+      expect(row.cumulativeMTT).toBe(points[i].totalTournaments)
+      expect(row.distanceMTT).toBe(points[i].totalTournaments - (i === 0 ? 0 : points[i - 1].totalTournaments))
+    })
+  })
+
+  it('has monthly distances that add up to the official end total', () => {
+    const months = groupMarathonMonths(normalizeMarathonDistance(realPoints()))
+    expect(months.every(month => month.tournaments != null)).toBe(true)
+    const points = realPoints()
+    expect(months.reduce((sum, month) => sum + month.tournaments, 0)).toBe(points.at(-1).totalTournaments)
   })
 })

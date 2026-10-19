@@ -1,6 +1,6 @@
 import { memo, useEffect, useMemo, useState } from 'react'
 import { fmtInt, fmtExact, fmtExactSigned, fmtMoneyTick, warsawParts } from '../utils.js'
-import { fmtDateShortLang } from '../i18n.js'
+import { DEFAULT_LANG, fmtDateShortLang } from '../i18n.js'
 import { useIsMobile } from '../hooks/useIsMobile.js'
 import { groupMarathonMonths } from '../marathonMonths.js'
 import MarathonChartControls from './MarathonChartControls.jsx'
@@ -12,7 +12,17 @@ const MONTHS = {
 }
 const compactMTT = value => value == null ? '—' : value >= 1000 ? `${(value / 1000).toFixed(value % 1000 ? 1 : 0)}k` : String(value)
 const monthNumber = point => Number(point.year) * 12 + point.month - 1
-const monthName = (point, lang) => new Intl.DateTimeFormat(lang, { month:'long', year:'numeric', timeZone:'Europe/Warsaw' }).format(new Date(point.timestamp * 1000))
+// A language tag the browser rejects (RangeError) must never take the render
+// down: fall back to the default language, then to the month key.
+const monthName = (point, lang) => {
+  const date = new Date(point.timestamp * 1000)
+  for (const tag of typeof lang === 'string' ? [lang, DEFAULT_LANG] : [DEFAULT_LANG]) {
+    try {
+      return new Intl.DateTimeFormat(tag, { month:'long', year:'numeric', timeZone:'Europe/Warsaw' }).format(date)
+    } catch { /* invalid tag: try the next one */ }
+  }
+  return point.key
+}
 
 export default memo(function MonthlyMarathonChart({ allPoints, period, setPeriod, grouping, setGrouping, lang, t, light }) {
   const isMobile = useIsMobile()
