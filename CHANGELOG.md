@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 1.14.3 — 2026-10-19
+
+- The page no longer goes blank when the browser blocks site data or a saved setting is corrupt; a friendly error screen with Reload and Reset-settings buttons catches any other crash.
+- Favourites, ignore list and filters no longer get overwritten by an older open tab; changes made in one tab now reach the others.
+- Loading is bounded: a stalled download times out, a fresher source is no longer cut off after 1.4 s (waits up to 8 s), and a hung mirror no longer delays every returning visit.
+- The footer's "scraper ran" time follows scraper heartbeat commits; a cache stamped by a clock that was ahead (or holding invalid data) is ignored.
+- "Retry" on the error screen shows the loader instead of an empty dashboard; Google Fonts no longer block the first paint.
+
 ## 1.14.2 — 2026-10-19
 
 - Scraper: only the exact `Romeopro` account counts as the marathon author; look-alike nicks can no longer set the day, bankroll or BR history.

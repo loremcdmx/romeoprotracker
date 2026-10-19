@@ -6,7 +6,7 @@ import {
   pl, plural,
   warsawDayKey, warsawParts, fmtDateTimeLang,
 } from './utils.js'
-import { createTranslator, DEFAULT_LANG, FORUM_WORD, fmtDateShortLang } from './i18n.js'
+import { createTranslator, DEFAULT_LANG, FORUM_WORD, LANG_DICT, fmtDateShortLang } from './i18n.js'
 import { computeFixedPopupLayout, findHoverListIndexAtPoint } from './floating.js'
 import { useIsMobile } from './hooks/useIsMobile.js'
 import { useExclusiveHoverPopup } from './hooks/useExclusiveHoverPopup.js'
@@ -3724,11 +3724,13 @@ export default function App() {
   const mobileMenuRef = useRef(null)
   const [theme, setTheme] = usePersistentState('rpt_theme', 'dark', {
     serialize: String,
-    deserialize: (raw) => raw || 'dark',
+    deserialize: (raw) => (raw === 'light' ? 'light' : 'dark'),
   })
   const [lang, setLang] = usePersistentState('rpt_lang', DEFAULT_LANG, {
     serialize: String,
-    deserialize: (raw) => raw || DEFAULT_LANG,
+    // Enum-like stored values are checked against the supported set: an unknown
+    // tag would reach Intl.DateTimeFormat as a locale and throw during render.
+    deserialize: (raw) => (Object.prototype.hasOwnProperty.call(LANG_DICT, raw) ? raw : DEFAULT_LANG),
   })
   const t = useMemo(() => createTranslator(lang), [lang])
   const appVersionLabel = `v${String(__APP_VERSION__).replace(/\.0$/, '')}`
@@ -3736,7 +3738,7 @@ export default function App() {
   // "oldest first" default once, while future choices remain persistent.
   const [sortBy, setSortBy] = usePersistentState('rpt_sortby_v2', 'date_desc', {
     serialize: String,
-    deserialize: (raw) => raw || 'date_desc',
+    deserialize: (raw) => (['date_desc', 'date_asc', 'likes'].includes(raw) ? raw : 'date_desc'),
   })
   const [search,  setSearch]  = useState('')
   const [showSearch, setShowSearch] = useState(false)
@@ -3759,7 +3761,12 @@ export default function App() {
   })
 
   // Позиция чтения — запоминаем последний прочитанный пост на каждой вкладке
-  const [readPos, setReadPos] = usePersistentState('rpt_readpos', {})
+  const [readPos, setReadPos] = usePersistentState('rpt_readpos', {}, {
+    deserialize: (raw) => {
+      const parsed = JSON.parse(raw)
+      return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {}
+    },
+  })
   const [ignored, setIgnored] = usePersistentState('rpt_ignored', new Set(), {
     serialize: (value) => JSON.stringify([...value]),
     deserialize: (raw) => new Set(JSON.parse(raw || '[]')),
@@ -3871,7 +3878,7 @@ export default function App() {
   // Period for marathon chart & tempo estimates — lifted up so progress bar can react.
   const [chartPeriod, setChartPeriod] = usePersistentState('rpt_chart_period', 'all', {
     serialize: String,
-    deserialize: (raw) => raw || 'all',
+    deserialize: (raw) => (['all', 'week', 'month'].includes(raw) ? raw : 'all'),
   })
 
   const [paceBinSize, setPaceBinSize] = usePersistentState('rpt_pace_bin_size', PACE_BIN_SIZE, {

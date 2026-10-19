@@ -58,6 +58,13 @@ Runtime data is resolved from multiple sources:
 
 The client compares freshness (`max(meta.lastUpdated, meta.postsChangedAt)`) across successful sources and keeps the freshest payload instead of trusting the first response. That avoids stale Vercel assets when code deploys and scraper commits move at different cadences.
 
+How that works in `src/storage.js`:
+
+- **Cold load / changed data.** Every source downloads `meta.json` and `posts.min.json` in parallel. The first complete source starts a settle window (1.4 s) for the others; slower sources are then aborted so a stalled host cannot hold the page up. The exception is a source whose already-downloaded `meta.json` is newer than the winner's: it is awaited past the settle window, up to an overall cap of 8 s from the start of the load. A slower but fresher source therefore wins over a stale first responder instead of being aborted on every poll; if it never delivers, the winner is used when the cap runs out.
+- **Warm revalidation.** A cache older than 60 s (`CACHE_TTL`) is revalidated by probing only `meta.json`. The probe does not wait for the slowest source: it stops as soon as one answer shows newer data than the cache, or one settle window after the first answer. A cache whose timestamp lies in the future (more than 5 s ahead, i.e. written by a clock that was wrong) counts as stale.
+- **Timeouts.** Each request has 6.5 s to start answering. The timer stays armed while the body is read: `meta.json` has another 6.5 s after the headers, the multi-MB posts payload 30 s, so a connection that stalls mid-download fails the attempt instead of hanging every later poll and Retry.
+- **Heartbeat-only scraper commits** change just `meta.lastScrapeRun`. They do not count as newer data (the posts are not downloaded again), but the probe carries the newest `lastScrapeRun` into the cached meta in memory so the footer's "scraper ran" time and dot stay current.
+
 Vercel uses `scripts/vercel-ignore-build.mjs` as its ignored build step. Data-only scraper commits are skipped on Vercel because the deployed client can read fresher JSON directly from GitHub raw; source, dependency, config, and public asset changes still build normally.
 
 ## Scraper
