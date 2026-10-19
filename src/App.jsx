@@ -2944,11 +2944,15 @@ function settleOnJumpTarget(el) {
   requestAnimationFrame(tick)
 }
 
-// WebKit must finish its native focus scroll before select() runs.
+// WebKit's select() can cancel even an already-started native smooth focus
+// scroll. Select first, then finish only this input's nearest alignment. Its CSS
+// scroll-margin keeps it below the pinned header without moving a visible input.
 function selectFilterOnFocus(event) {
   const input = event.currentTarget
   requestAnimationFrame(() => {
-    if (document.activeElement === input) input.select()
+    if (document.activeElement !== input) return
+    input.select()
+    input.scrollIntoView({ behavior: 'instant', block: 'nearest' })
   })
 }
 
