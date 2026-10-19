@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 1.14.16 — 2026-10-19
+
+- Keyboard focus stays below the pinned header, with no extra scrolling in fixed menus or tooltips.
+- Feed and activity-day jumps finish at the requested post even when WebKit interrupts smooth scrolling while images load. User input cancels the adjustment.
+- Numeric filters keep their value selection while remaining visible during keyboard navigation in WebKit.
+
 ## 1.14.15 — 2026-10-19
 
 - Light theme: the remaining text below readable contrast is fixed (the "last" session chip, the partial pace labels, phone Y-axis labels, the sidebar top-posts period buttons and the footer version tags); the activity chart's period buttons are real classes with the deeper red in light.

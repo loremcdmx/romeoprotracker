@@ -734,11 +734,26 @@ html{scroll-behavior:smooth}
   :root{--sticky-stack-h:var(--topbar-h)}
   .marathon-progress{position:static}
 }
-/* Where in-page jumps (goToPost, goToNewPosts, scrollToPost, goPage) put their
+/* Where in-page jumps (goToPost, goToNewPosts, goPage) put their
    target: 12px under the pinned stack. scroll-margin is in the element's own
    units, so inside #root it is scaled by the 0.85-1.25 desktop zoom exactly like
    the stack, which a fixed pixel offset in JS never was. */
 .jump-target,.filter-bar{scroll-margin-top:calc(var(--sticky-stack-h) + 12px)}
+/* Keyboard focus (WCAG 2.4.11 Focus Not Obscured): Tab / focus() scrolled a control
+   only into the viewport, which left it behind the pinned stack. The same margin on
+   every focusable makes the browser's own focus scrolling stop 12px below the stack,
+   at any width, #root zoom and orientation. :where() keeps it at zero specificity,
+   so a class that sets its own scroll-margin-top still wins. */
+:where(a,button,input,select,textarea,summary,[tabindex]){scroll-margin-top:calc(var(--sticky-stack-h) + 12px)}
+/* No margin where the control is itself pinned or lives in a scroller of its own:
+   the topbar and the new-posts bubble stay put, so the margin only dragged the page
+   up to 150px (or 4px) when they got focus, and in the fixed tooltips/popups it made
+   Shift+Tab over-scroll their content. They keep the browser's default. */
+.topbar :where(a,button,input,select,textarea,summary,[tabindex]),
+.chart-tooltip :where(a,button,input,select,textarea,summary,[tabindex]),
+.mc-tooltip :where(a,button,input,select,textarea,summary,[tabindex]),
+.sidebar-popup :where(a,button,input,select,textarea,summary,[tabindex]),
+.new-posts-bubble{scroll-margin-top:0}
 
 /* ─── SESSION PILL on chart ─────────────────────────────────────────────── */
 .mc-pill{

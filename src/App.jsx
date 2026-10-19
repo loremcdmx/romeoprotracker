@@ -2344,24 +2344,13 @@ function makeDayEvents(ps, ignored) {
   return events
 }
 
-function scrollToPost(p) {
-  if (!p?.id) return
-  const el = document.getElementById(`post-${p.id}`)
-  if (!el) return
-  scrollToJumpTarget(el)
-  el.classList.add('post-highlight')
-  setTimeout(() => el.classList.remove('post-highlight'), 1800)
-}
-
-
 function DayEventsList({ events, compact, onPostClick, setLightbox, lang = _lang }) {
   if (!events.length) return null
   const romeo = _t('day_romeo')
   const brLbl = _t('day_br_label')
   const handleClick = (e, ev) => {
     if (e.target.closest('.day-event-thumb')) return
-    if (onPostClick) onPostClick(ev.post)
-    else scrollToPost(ev.post)
+    onPostClick?.(ev.post)
   }
   const thumb = (src) => (
     <img src={src} alt="" className="day-event-thumb" loading="lazy"
@@ -2894,6 +2883,73 @@ const scrollBehavior = () =>
 // stack at every width, #root zoom and orientation, and the browser does the math.
 function scrollToJumpTarget(el) {
   el.scrollIntoView({ behavior: scrollBehavior(), block: 'start' })
+  settleOnJumpTarget(el)
+}
+
+// A smooth scroll is only a request. WebKit drops one that is in flight when the
+// page height changes under it, and a jump that swaps the feed page does that on
+// its own: the new cards' lazy images and avatars load while it runs, so it could
+// stop hundreds of px short with the post left above the viewport (Playwright
+// WebKit, about 1 jump in 12, on the same page too). So once the page has held
+// still, ask for the same place again, instantly: a no-op when the jump landed, the
+// missing stretch when it did not. It repeats a few times because that snap can
+// bring more lazy images into range. The reader's own wheel / touch / key / pointer
+// input, a newer jump, or the target leaving the DOM ends it at once.
+const SETTLE_QUIET_FRAMES = 6
+const SETTLE_MIN_MS = 250
+const SETTLE_MAX_MS = 5000
+const SETTLE_MAX_SNAPS = 4
+const SETTLE_CANCEL_EVENTS = ['wheel', 'touchstart', 'pointerdown', 'keydown']
+let cancelSettle = null
+
+function snapToJumpTarget(el) {
+  try { el.scrollIntoView({ behavior: 'instant', block: 'start' }) }
+  catch { el.scrollIntoView({ block: 'start' }) } // engines that predate 'instant'
+}
+
+function settleOnJumpTarget(el) {
+  if (typeof window === 'undefined' || typeof window.requestAnimationFrame !== 'function') return
+  cancelSettle?.()
+  let done = false
+  let still = 0
+  let snaps = 0
+  let seen = ''
+  const t0 = performance.now()
+  const finish = () => {
+    if (done) return
+    done = true
+    SETTLE_CANCEL_EVENTS.forEach(ev => window.removeEventListener(ev, finish))
+    if (cancelSettle === finish) cancelSettle = null
+  }
+  cancelSettle = finish
+  SETTLE_CANCEL_EVENTS.forEach(ev => window.addEventListener(ev, finish, { passive: true }))
+  const tick = () => {
+    if (done) return
+    if (!el.isConnected || performance.now() - t0 > SETTLE_MAX_MS) return finish()
+    // "holding still" = neither the scroll offset nor the page height moved
+    const now = `${window.scrollY}|${document.documentElement.scrollHeight}`
+    still = now === seen ? still + 1 : 0
+    seen = now
+    if (still < SETTLE_QUIET_FRAMES || performance.now() - t0 < SETTLE_MIN_MS) {
+      requestAnimationFrame(tick)
+      return
+    }
+    const before = window.scrollY
+    snapToJumpTarget(el)
+    if (Math.abs(window.scrollY - before) <= 1 || ++snaps >= SETTLE_MAX_SNAPS) return finish()
+    still = 0
+    seen = ''
+    requestAnimationFrame(tick)
+  }
+  requestAnimationFrame(tick)
+}
+
+// WebKit must finish its native focus scroll before select() runs.
+function selectFilterOnFocus(event) {
+  const input = event.currentTarget
+  requestAnimationFrame(() => {
+    if (document.activeElement === input) input.select()
+  })
 }
 
 function FilterBar({ sortBy, setSortBy, search, setSearch, showSearch, setShowSearch,
@@ -2926,7 +2982,7 @@ function FilterBar({ sortBy, setSortBy, search, setSearch, showSearch, setShowSe
         <span>{tr('filter_likes_from')}</span>
         <input id="filter-min-likes" className="filter-num" type="number" min="0" value={minLikes}
           title={tr('filter_min_likes')}
-          onChange={e=>setMinLikes(+e.target.value||0)} onFocus={e=>e.target.select()}/>
+          onChange={e=>setMinLikes(+e.target.value||0)} onFocus={selectFilterOnFocus}/>
       </label>
       )}
       {ruControls && (
@@ -2934,7 +2990,7 @@ function FilterBar({ sortBy, setSortBy, search, setSearch, showSearch, setShowSe
         <span>{tr('filter_reputation_from')}</span>
         <input id="filter-min-reputation" className="filter-num" type="number" min="0" step="100" value={minRating}
           title={tr('filter_min_rep')}
-          onChange={e=>setMinRating(+e.target.value||0)} onFocus={e=>e.target.select()}/>
+          onChange={e=>setMinRating(+e.target.value||0)} onFocus={selectFilterOnFocus}/>
       </label>
       )}
       <button type="button" className={`filter-pill filter-search-toggle ${showSearch?'on':'off'}`}

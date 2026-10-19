@@ -309,7 +309,7 @@ describe('app.css cascade guards', () => {
       expect(px(value($('.new-posts-bubble'), 'top', e), $('.new-posts-bubble'), e)).toBe(stack + 8)
     })
 
-    // goToPost / goToNewPosts / scrollToPost land on .jump-target (the post
+    // goToPost / goToNewPosts land on .jump-target (the post
     // wrapper), goPage on .filter-bar: both leave 12px under the pinned stack.
     // The old JS offsets were a fixed 80px (post) and 60px (filter bar) from the
     // viewport top, below the 94-137px desktop and 144px phone stack.
@@ -323,15 +323,71 @@ describe('app.css cascade guards', () => {
       }
     })
 
+    // Keyboard focus (WCAG 2.4.11): Tab / focus() only scrolled a control into the
+    // viewport, which left it behind the pinned stack. The browser's own focus scroll
+    // honours scroll-margin-top, so the same value on every focusable (zoom-aware,
+    // unlike an html scroll-padding-top) keeps it 12px below the stack.
+    const FOCUSABLES = ['a[href]', 'button', 'input', 'select', 'textarea', 'summary', 'div[tabindex]', 'g[tabindex]']
+    const FOCUS_HTML = '<div id="root"><header class="topbar"></header><div class="marathon-progress"></div><main class="page"><div id="post-1" class="jump-target"><a href="#">l</a><button>b</button><input><select></select><textarea></textarea><details><summary>s</summary></details><div tabindex="0">d</div><svg><g tabindex="0"></g></svg><span>plain</span></div></main></div>'
+
+    it.each([...LANDSCAPE, ...UNCHANGED])('%ix%i: every focusable keeps focus scrolling %ipx + 12px clear of the top', (w, h, stack) => {
+      for (const light of [false, true]) {
+        mount(FOCUS_HTML, { light })
+        const e = env(w, h)
+        for (const sel of FOCUSABLES) {
+          const el = $(`#post-1 ${sel}`)
+          const v = value(el, 'scroll-margin-top', e)
+          expect(v, `${sel} has a scroll-margin-top`).toBeDefined()
+          expect(px(v, el, e), `${sel} @${w}x${h}`).toBe(stack + 12)
+        }
+        // only focus targets carry it: it must not become a blanket margin on plain content
+        expect(value($('#post-1 span'), 'scroll-margin-top', e)).toBeUndefined()
+      }
+    })
+
+    // Focusing a control that is itself pinned must not scroll the page (the margin
+    // dragged it up by up to 150px, measured in Chromium and WebKit), and a control
+    // inside a fixed popup that scrolls on its own must not over-scroll the popup.
+    const PINNED = '<div id="root"><header class="topbar"><div class="topbar-inner"><button class="topbar-tab"></button><a href="#">a</a><details class="mobile-menu"><summary>m</summary><div class="mobile-menu-panel"><button>x</button></div></details></div></header><div class="marathon-progress"></div><main class="page"><button class="new-posts-bubble"></button><div class="chart-tooltip"><div tabindex="0">t</div><button>c</button></div><div class="mc-tooltip"><a href="#">m</a></div><div class="sidebar-popup"><a href="#">s</a><button>p</button></div></main></div>'
+    it.each([...LANDSCAPE, ...UNCHANGED])('%ix%i: controls in the topbar, the new-posts bubble and the fixed popups keep the browser default', (w, h) => {
+      mount(PINNED)
+      const e = env(w, h)
+      for (const sel of ['.topbar-tab', '.topbar a', '.topbar summary', '.mobile-menu-panel button', '.new-posts-bubble', '.chart-tooltip div[tabindex]', '.chart-tooltip button', '.mc-tooltip a', '.sidebar-popup a', '.sidebar-popup button']) {
+        const el = $(sel)
+        const v = value(el, 'scroll-margin-top', e)
+        expect(v, `${sel} is reset`).toBeDefined()
+        expect(px(v, el, e), `${sel} @${w}x${h}`).toBe(0)
+      }
+    })
+
     it('every in-page jump goes through the one helper, with no fixed pixel offset left in App.jsx', () => {
-      expect(APP_JSX.match(/\.scrollIntoView\(/g)).toHaveLength(1)
-      expect(APP_JSX).toMatch(/function scrollToJumpTarget\(el\) \{\s*el\.scrollIntoView\(\{ behavior: scrollBehavior\(\), block: 'start' \}\)/)
+      // one smooth request, in scrollToJumpTarget; the other two scrollIntoView calls are
+      // snapToJumpTarget's instant re-ask (and its fallback for engines without 'instant')
+      expect(APP_JSX.match(/\.scrollIntoView\(\{ behavior: scrollBehavior\(\)/g)).toHaveLength(1)
+      expect(APP_JSX.match(/\.scrollIntoView\(/g)).toHaveLength(3)
+      expect(APP_JSX).toMatch(/function scrollToJumpTarget\(el\) \{\s*el\.scrollIntoView\(\{ behavior: scrollBehavior\(\), block: 'start' \}\)\s*settleOnJumpTarget\(el\)/)
+      expect(APP_JSX).toMatch(/function snapToJumpTarget\(el\) \{\s*try \{ el\.scrollIntoView\(\{ behavior: 'instant', block: 'start' \}\) \}/)
       expect(APP_JSX).not.toMatch(/window\.scrollTo\(/)
       expect(APP_JSX).not.toMatch(/block:\s*'center'/)
-      // the definition plus its four callers: scrollToPost, goPage, goToPost, goToNewPosts
-      expect(APP_JSX.match(/scrollToJumpTarget\(/g)).toHaveLength(5)
-      // the post wrapper that goToPost / goToNewPosts / scrollToPost look up by id carries the class
+      // the definition plus its three callers: goPage, goToPost, goToNewPosts
+      expect(APP_JSX.match(/scrollToJumpTarget\(/g)).toHaveLength(4)
+      // the post wrapper that goToPost / goToNewPosts look up by id carries the class
       expect(APP_JSX).toMatch(/id=\{`post-\$\{p\.id\}`\} className="jump-target"/)
+    })
+
+    // scrollToPost was the fallback of DayEventsList for a missing onPostClick. It was
+    // dead code: DayEventsList is private to App.jsx, ActivityChart (its only parent)
+    // is rendered once with goToPost, and its tooltip hands over its own wrapper.
+    it('has no scrollToPost fallback: every DayEventsList gets onPostClick and ActivityChart is handed goToPost', () => {
+      expect(APP_JSX).not.toMatch(/scrollToPost/)
+      expect(APP_JSX).not.toMatch(/^export[^\n]*DayEventsList/m)
+      const uses = [...APP_JSX.matchAll(/<DayEventsList\b/g)].map((m) => APP_JSX.slice(m.index, APP_JSX.indexOf('/>', m.index)))
+      expect(uses).toHaveLength(3)
+      for (const jsx of uses) expect(jsx, 'a DayEventsList without onPostClick would click through to nothing').toMatch(/onPostClick=\{/)
+      const charts = [...APP_JSX.matchAll(/<ActivityChart\b/g)].map((m) => APP_JSX.slice(m.index, APP_JSX.indexOf('/>', m.index)))
+      expect(charts).toHaveLength(1)
+      expect(charts[0]).toMatch(/onPostClick=\{goToPost\}/)
+      expect(APP_JSX).toMatch(/const goToPost = useCallback\(/)
     })
   })
 

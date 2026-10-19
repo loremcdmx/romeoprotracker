@@ -1568,6 +1568,32 @@ describe('App', () => {
     expect(screen.getByLabelText(translate('ru', 'filter_reputation_from'))).toBeInTheDocument()
   })
 
+  it('lets keyboard focus scroll numeric filters before selecting their value', async () => {
+    render(<App />)
+    await screen.findAllByText('Romeopro')
+    for (const id of ['filter-min-likes', 'filter-min-reputation']) {
+      const input = document.getElementById(id)
+      const select = vi.spyOn(input, 'select')
+      input.focus()
+      // Synchronous select() cancels WebKit's native focus scroll.
+      expect(select).not.toHaveBeenCalled()
+      await waitFor(() => expect(select).toHaveBeenCalledOnce())
+      select.mockRestore()
+    }
+  })
+
+  it('does not select a numeric filter after focus has moved away', async () => {
+    render(<App />)
+    await screen.findAllByText('Romeopro')
+    const input = document.getElementById('filter-min-likes')
+    const select = vi.spyOn(input, 'select')
+    input.focus()
+    input.blur()
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))
+    expect(select).not.toHaveBeenCalled()
+    select.mockRestore()
+  })
+
   it('shows newest posts first by default', async () => {
     render(<App />)
     await screen.findAllByText('Romeopro')
@@ -2257,6 +2283,86 @@ describe('App', () => {
       // .jump-target is what carries scroll-margin-top: calc(var(--sticky-stack-h) + 12px) in app.css
       expect(post).toHaveClass('jump-target')
       expect(window.scrollTo).not.toHaveBeenCalled()
+    })
+
+    // WebKit drops a smooth scroll that is in flight when the page height changes
+    // under it, and a jump that swaps the feed page loads lazy images while it runs
+    // (Playwright WebKit: about 1 jump in 12 stopped hundreds of px short, the post
+    // left above the viewport). Once the page holds still the app asks for the same
+    // place again, instantly: a no-op when it landed, the missing stretch when not.
+    describe('a jump the browser cut short is finished once the page holds still', () => {
+      // jsdom never scrolls: scrollY is whatever the fake browser below says
+      const fakeScroll = (start, onRequest) => {
+        const saved = Object.getOwnPropertyDescriptor(window, 'scrollY')
+        const state = { y: start }
+        Object.defineProperty(window, 'scrollY', { configurable: true, get: () => state.y })
+        const spy = vi.spyOn(Element.prototype, 'scrollIntoView').mockImplementation(function (opts) { onRequest(opts, state) })
+        const restore = () => { if (saved) Object.defineProperty(window, 'scrollY', saved); else delete window.scrollY }
+        return { state, spy, restore }
+      }
+      const instants = (spy) => spy.mock.calls.filter(([o]) => o?.behavior === 'instant')
+      const jumpFromDayRow = async () => {
+        await mount([...fillers, mkPost('romeo-old', 'Romeopro', { timestamp: oldDay, likes: 50, text: 'Old Romeo report' })])
+        openDay(oldDay)
+        const row = await waitFor(() => {
+          const el = document.querySelector('.chart-wrap .day-events .day-event-clickable')
+          expect(el).toBeTruthy()
+          return el
+        })
+        fireEvent.click(row)
+        await waitFor(() => expect(document.getElementById('post-romeo-old')).toHaveClass('post-highlight'))
+      }
+      const pause = (ms) => new Promise((r) => setTimeout(r, ms))
+
+      it('re-asks instantly until the post is in place, then stops', async () => {
+        const { spy, restore } = fakeScroll(5000, (opts, st) => {
+          if (opts.behavior === 'smooth') st.y -= 40                    // WebKit dropped the animation 40px in
+          else if (opts.behavior === 'instant') st.y = Math.min(st.y, 2000) // the place the post really is at
+        })
+        try {
+          await jumpFromDayRow()
+          // 1st snap moves 4960 -> 2000, the 2nd finds it in place and ends the loop
+          await waitFor(() => expect(instants(spy)).toHaveLength(2), { timeout: 3000 })
+          await pause(500)
+          expect(instants(spy)).toHaveLength(2)
+          const post = document.getElementById('post-romeo-old')
+          expect(spy.mock.contexts.every((el) => el === post)).toBe(true)
+          expect(spy.mock.calls[0][0]).toEqual({ behavior: 'smooth', block: 'start' })
+          expect(instants(spy).every(([o]) => o.block === 'start')).toBe(true)
+        } finally { restore() }
+      })
+
+      it('only checks once, without moving anything, when the smooth scroll landed', async () => {
+        const { spy, restore } = fakeScroll(5000, (opts, st) => { if (opts.behavior === 'smooth') st.y = 2000 })
+        try {
+          await jumpFromDayRow()
+          await waitFor(() => expect(instants(spy)).toHaveLength(1), { timeout: 3000 })
+          await pause(500)
+          expect(instants(spy)).toHaveLength(1)
+        } finally { restore() }
+      })
+
+      it('lets go as soon as the reader scrolls', async () => {
+        const { spy, restore } = fakeScroll(5000, (opts, st) => { if (opts.behavior === 'smooth') st.y -= 40 })
+        try {
+          await jumpFromDayRow()
+          window.dispatchEvent(new Event('wheel'))
+          await pause(700)
+          expect(instants(spy)).toHaveLength(0)
+        } finally { restore() }
+      })
+
+      it('lets go when a newer jump takes over', async () => {
+        const { spy, restore } = fakeScroll(5000, (opts, st) => { if (opts.behavior === 'smooth') st.y = 2000 })
+        try {
+          await jumpFromDayRow()
+          // the same day row again: the first settle is replaced, so one check in total
+          fireEvent.click(document.querySelector('.chart-wrap .day-events .day-event-clickable'))
+          await waitFor(() => expect(instants(spy)).toHaveLength(1), { timeout: 3000 })
+          await pause(500)
+          expect(instants(spy)).toHaveLength(1)
+        } finally { restore() }
+      })
     })
 
     it('opens the forum post when a tooltip row points at a post the feed filters hide', async () => {
