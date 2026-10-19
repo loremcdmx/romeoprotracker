@@ -3971,32 +3971,50 @@ export default function App() {
       }),
   [posts, favorites, ignored, lang, minLikes, minRating, romeoOnly, searchNeedle, sortBy])
 
-  // При смене фильтров — умный сброс страницы
-  // Если были в конце — остаёмся в конце, если в начале — в начале
-  useEffect(() => {
-    const currentTotal = Math.max(1, Math.ceil(feedPosts.length / perPage))
-    if (page >= currentTotal - 1) {
-      // Были близко к концу — идём на новый конец
-      setPage(currentTotal)
-    } else if (page > 1) {
-      // Были в середине — пересчитываем позицию пропорционально
-      const ratio = (page - 1) / Math.max(1, currentTotal - 1)
-      setPage(Math.max(1, Math.round(ratio * currentTotal)))
-    }
-    // Если page === 1 — ничего не делаем, остаёмся на 1
-  }, [ignored, favorites, search, sortBy, romeoOnly, minLikes, minRating]) // eslint-disable-line
+  const totalPages = Math.max(1, Math.ceil(feedPosts.length / perPage))
+  // The page the reader actually sees. `page` goes stale whenever the feed
+  // shrinks under it (language switch, poll, ignore, ...), so slicing and the
+  // paginator read this clamped value, never the raw state.
+  const safePage = Math.min(Math.max(1, page), totalPages)
 
-  // Восстанавливаем позицию чтения при первой загрузке постов
+  // The reading position may be restored once, for the first non-empty feed,
+  // and only while the reader has not navigated (changed a filter or tab) yet.
+  const readPosRestoredRef = useRef(false)
+  const navigatedRef = useRef(false)
+
+  // New search / sort / filters describe a different list, so start at page 1.
+  // Favorites, ignores, language and polling only change the list under the
+  // reader: the page stays and is clamped to totalPages instead.
+  const feedFiltersRef = useRef([searchNeedle, sortBy, romeoOnly, minLikes, minRating])
   useEffect(() => {
-    if (!feedPosts.length || !readPos.feed) return
+    const next = [searchNeedle, sortBy, romeoOnly, minLikes, minRating]
+    const changed = next.some((v, i) => v !== feedFiltersRef.current[i])
+    feedFiltersRef.current = next
+    if (!changed) return
+    navigatedRef.current = true
+    setPage(1)
+  }, [searchNeedle, sortBy, romeoOnly, minLikes, minRating])
+
+  // Keep the stored page valid too, so a stale value cannot resurface later
+  // (language switched back, favorites toggled, ...). An empty feed keeps it.
+  // Functional update: in the commit where a filter change also queued
+  // setPage(1) above, this clamp must apply to that 1, not to the stale page.
+  useEffect(() => {
+    if (feedPosts.length && page !== safePage) setPage(p => Math.min(Math.max(1, p), totalPages))
+  }, [feedPosts.length, page, safePage, totalPages])
+
+  // Восстанавливаем позицию чтения — один раз, когда посты впервые появились
+  useEffect(() => {
+    if (readPosRestoredRef.current || !feedPosts.length) return
+    readPosRestoredRef.current = true
+    if (navigatedRef.current || !readPos.feed) return
     const idx = feedPosts.findIndex(p => p.id === readPos.feed)
     if (idx !== -1) setPage(Math.floor(idx / perPage) + 1)
-  }, [feedPosts.length]) // только когда посты впервые появились
+  }, [feedPosts.length]) // guarded by readPosRestoredRef: runs its body once
 
-  const totalPages = Math.max(1, Math.ceil(feedPosts.length / perPage))
   const pagedPosts = useMemo(() =>
-    feedPosts.slice((page-1)*perPage, page*perPage),
-  [feedPosts, page, perPage])
+    feedPosts.slice((safePage-1)*perPage, safePage*perPage),
+  [feedPosts, safePage, perPage])
 
   const goPage = p => {
     setPage(p)
@@ -4032,16 +4050,32 @@ export default function App() {
     const idx = feedPosts.findIndex(x => x.id === p.id)
     if (idx !== -1) {
       const targetPage = Math.floor(idx / perPage) + 1
-      if (targetPage !== page) setPage(targetPage)
+      if (targetPage !== safePage) setPage(targetPage)
     }
     // Double rAF lets React commit the page/tab change before we measure
     requestAnimationFrame(() => requestAnimationFrame(doScroll))
-  }, [activeTab, feedPosts, perPage, page])
+  }, [activeTab, feedPosts, perPage, safePage])
+
+  // The hook reports every unseen id, but minLikes / romeoOnly / ignored /
+  // search / language can keep a new post out of the feed. Count and jump to
+  // only the ones the reader can actually see, in feed order.
+  const newInFeed = useMemo(() => {
+    if (!newPostIds.length) return { count: 0, firstIdx: -1 }
+    const fresh = new Set(newPostIds)
+    let count = 0
+    let firstIdx = -1
+    feedPosts.forEach((p, i) => {
+      if (!fresh.has(p.id)) return
+      count += 1
+      if (firstIdx === -1) firstIdx = i
+    })
+    return { count, firstIdx }
+  }, [newPostIds, feedPosts])
 
   const goToNewPosts = useCallback(() => {
     if (!newPostIds.length) return
     // Find the first new post in current feedPosts order
-    const firstNewIdx = feedPosts.findIndex(p => newPostIds.includes(p.id))
+    const firstNewIdx = newInFeed.firstIdx
     if (firstNewIdx !== -1) {
       const targetPage = Math.floor(firstNewIdx / perPage) + 1
       setPage(targetPage)
@@ -4057,11 +4091,12 @@ export default function App() {
       // New posts might be filtered out — just dismiss
       clearNewPosts(posts)
     }
-  }, [clearNewPosts, newPostIds, feedPosts, perPage, posts])
+  }, [clearNewPosts, newPostIds, newInFeed, feedPosts, perPage, posts])
 
   // При смене вкладки сбрасываем на страницу с последним прочитанным постом
   const switchTab = (tab) => {
     setActiveTab(tab)
+    navigatedRef.current = true
     setPage(1)
     mobileMenuRef.current?.removeAttribute('open')
   }
@@ -4453,15 +4488,15 @@ export default function App() {
                 minRating={minRating} setMinRating={setMinRating}
                 count={feedPosts.length} showSort={true} t={t} lang={lang}
               />
-              {newPostIds.length > 0 && activeTab === 'feed' && (
+              {newInFeed.count > 0 && activeTab === 'feed' && (
                 <button className="new-posts-bubble" onClick={goToNewPosts}>
-                  {newPostIds.length} {lang==='ru' ? plural(newPostIds.length, ['новый пост','новых поста','новых постов']) : (newPostIds.length === 1 ? t('new_posts_badge_singular') : t('new_posts_badge_many'))}!
+                  {newInFeed.count} {lang==='ru' ? plural(newInFeed.count, ['новый пост','новых поста','новых постов']) : (newInFeed.count === 1 ? t('new_posts_badge_singular') : t('new_posts_badge_many'))}!
                 </button>
               )}
               {feedPosts.length===0
                 ? <div className="empty-state">{t('empty_no_posts_filters')}</div>
                 : <>
-                  <Paginator page={page} totalPages={totalPages} onPage={goPage}
+                  <Paginator page={safePage} totalPages={totalPages} onPage={goPage}
                     perPage={perPage} onPerPage={setPerPage} total={feedPosts.length} lang={lang} />
                   {pagedPosts.map((p,i)=>(
                     <div key={p.id||p.url} id={`post-${p.id}`}
@@ -4471,7 +4506,7 @@ export default function App() {
                         onIgnore={addIgnore} setLightbox={setLightbox} lang={lang}/>
                     </div>
                   ))}
-                  <Paginator page={page} totalPages={totalPages} onPage={goPage}
+                  <Paginator page={safePage} totalPages={totalPages} onPage={goPage}
                     perPage={perPage} onPerPage={setPerPage} total={feedPosts.length} lang={lang} />
                   {lang==='ru' && <ActivityChart posts={posts}
                     favorites={favorites} ignored={ignored} onFav={toggleFav}

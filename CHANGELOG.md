@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 1.14.4 — 2026-10-19
+
+- Feed: a search or filter that leaves 21-40 results opens page 1 (it used to jump to page 2); starring or ignoring a post keeps your page.
+- Auto-refresh no longer drags you back to the saved reading position; the position is restored once, on load.
+- Switching language from a deep page lands on a valid page instead of an empty feed.
+- The "N new posts" bubble counts only posts your current filters actually show, and hides when there are none.
+
 ## 1.14.3 — 2026-10-19
 
 - The page no longer goes blank when the browser blocks site data or a saved setting is corrupt; a friendly error screen with Reload and Reset-settings buttons catches any other crash.
