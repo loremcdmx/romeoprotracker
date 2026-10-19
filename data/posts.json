@@ -172134,7 +172134,7 @@
     "date": "18 октября, 05:45",
     "timestamp": 1792295145,
     "text": "Day 187:",
-    "likes": 122,
+    "likes": 123,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_10_2026/post-6195-1792295136f9e_thumb.webp"
     ],
@@ -172298,7 +172298,7 @@
     "date": "18 октября, 17:47",
     "timestamp": 1792338459,
     "text": "[QUOTE]S19msv73M|S19msv73M @ 15.10.26\nЗаранее определить победителя в турнире или чемпионате не составляет особого труда. Самые обычнейшие кулеры (я их называю подставами) - один из таких способов.[/QUOTE]Привет, я работаю в службе поддержке покерка\n\nКак же меня бесит, что  мы в ответ на твои маты определили тебя победителем турнира, а ты зачем то сыграл 4бет кол с JQo. Там через 3 раздачи у тебя должны были быть тузы в короли в дамы на твою просьбу, но ты почему то не сыграл пас префлоп",
-    "likes": 24,
+    "likes": 27,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -172399,5 +172399,59 @@
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8314156"
+  },
+  {
+    "id": "8314162",
+    "author": "Romeopro",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/2/6/6/26670.jpg",
+    "rating": 25707,
+    "msgCount": 4262,
+    "regData": "16 лет на сайте",
+    "date": "19 октября, 05:12",
+    "timestamp": 1792379549,
+    "text": "Day 188:",
+    "likes": 1,
+    "images": [
+      "https://static-forum.gipsyteam.ru/monthly_10_2026/post-6195-1792379544ce54_thumb.webp"
+    ],
+    "videos": [],
+    "brBefore": 436927,
+    "brAfter": 448853,
+    "sessionResult": 11926,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8314162",
+    "rooms": {
+      "before": {
+        "gg": 435490,
+        "ps": 1188,
+        "king": 232,
+        "coin": 17,
+        "lux": 0
+      },
+      "after": {
+        "gg": 447416,
+        "ps": 1188,
+        "king": 232,
+        "coin": 17,
+        "lux": 0
+      }
+    }
+  },
+  {
+    "id": "8314163",
+    "author": "markusil",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/1/7/5/2/175211.webp",
+    "rating": null,
+    "msgCount": 6,
+    "regData": "9 лет на сайте",
+    "date": "19 октября, 05:19",
+    "timestamp": 1792379976,
+    "text": "Рома- машина! Ни одного второго места. Всё хэндзапы тащит, если доходит до финала. У него нет раннерапов.",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8314163"
   }
 ]
