@@ -2211,8 +2211,6 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
       {tip && (() => {
         const pct=tip.x/W*100, right=pct>60
         const roomDeltas = tip.p.rooms ? CHART_ROOMS.map(r=>({...r,v:(tip.p.rooms.after[r.key]||0)-(tip.p.rooms.before[r.key]||0)})).filter(r=>r.v!==0) : []
-        const pillColor  = tip.profit >= 0 ? '#66bb6a' : '#ff5252'
-        const pillBorder = tip.profit >= 0 ? 'rgba(102,187,106,.25)' : 'rgba(255,82,82,.25)'
         const mobileStyle = isMobile ? {
           position:'fixed',
           // before the first measurement: the legacy above-the-finger anchor
@@ -2234,11 +2232,9 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
           <div ref={sheetRef} className={`mc-tooltip ${tipVisible ? 'is-visible' : ''}`} style={{...mobileStyle, position: isMobile ? 'fixed' : 'absolute', pointerEvents: isMobile ? 'auto' : 'none'}}
             onClick={e => e.stopPropagation()}>
             {/* Pill — всегда в правом верхнем углу тултипа */}
-            <div className="mc-pill" style={{
+            <div className={`mc-pill ${tip.profit >= 0 ? 'pos' : 'neg'}`} style={{
               position:'absolute', top:12, right:12,
               transform:'none',
-              color: pillColor,
-              borderColor: pillBorder,
             }}>
               {fk(tip.profit)}
             </div>
@@ -2812,9 +2808,9 @@ function ActivityChart({ posts, favorites, ignored, onFav, onIgnore, onUnignore,
                   <div key={a.name} style={{fontSize:11,color:'var(--dim2)',display:'flex',justifyContent:'space-between',gap:8,lineHeight:1.6}}>
                     <span style={{color:'var(--text)'}}>{a.name}</span>
                     <span style={{fontSize:10,fontFamily:"'Roboto Mono',monospace",display:'inline-flex',alignItems:'center',gap:6}}>
-                      {a.bestLikes > 0 && <span style={{color:'#ffb74d'}}>+{a.bestLikes} 👍</span>}
-                      <span style={{color:'#4caf50',display:'inline-flex',alignItems:'center',gap:2}}>
-                        <svg viewBox="0 0 12 10" style={{width:9,height:8,fill:'#4caf50',flexShrink:0}}>
+                      {a.bestLikes > 0 && <span className="ac-likes">+{a.bestLikes} 👍</span>}
+                      <span className="ac-rating" style={{display:'inline-flex',alignItems:'center',gap:2}}>
+                        <svg viewBox="0 0 12 10" style={{width:9,height:8,fill:'currentColor',flexShrink:0}}>
                           <rect x="0" y="6" width="2.5" height="4"/>
                           <rect x="3.2" y="3" width="2.5" height="7"/>
                           <rect x="6.4" y="1" width="2.5" height="9"/>
@@ -3293,10 +3289,10 @@ const PostCard = memo(function PostCard({ p, favorites, ignored, onFav, onIgnore
             {p.msgCount && <span>{lang==='ru' ? `${fmtInt(p.msgCount)} ${plural(p.msgCount, ['пост','поста','постов'])}` : `${fmtInt(p.msgCount)} ${_t('posts_word')}`}</span>}
             {p.regData  && <span>· {formatRegData(p.regData, lang)}</span>}
             {p.rating != null && (
-              <><span>·</span><a href={ratingUrl} target="_blank" rel="noreferrer"
-                style={{color:p.rating>=0?'#4caf50':'#ff5252',display:'inline-flex',alignItems:'center',gap:2,textDecoration:'none'}}
+              <><span>·</span><a href={ratingUrl} target="_blank" rel="noreferrer" className={`pc-rating ${p.rating>=0?'pos':'neg'}`}
+                style={{display:'inline-flex',alignItems:'center',gap:2,textDecoration:'none'}}
                 onClick={e=>e.stopPropagation()}>
-                <svg viewBox="0 0 12 10" style={{width:11,height:10,fill:p.rating>=0?'#4caf50':'#ff5252',flexShrink:0,marginLeft:3}}>
+                <svg viewBox="0 0 12 10" style={{width:11,height:10,fill:'currentColor',flexShrink:0,marginLeft:3}}>
                   <rect x="0" y="6" width="2.5" height="4"/>
                   <rect x="3.2" y="3" width="2.5" height="7"/>
                   <rect x="6.4" y="1" width="2.5" height="9"/>
