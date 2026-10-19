@@ -19,6 +19,7 @@ import { placePaceValueLabels } from './paceLabels.js'
 import { buildGlobalAuthorCounts, pickTopAuthors } from './activityAuthors.js'
 import { addIgnoredAuthor, isIgnoredAuthor, removeIgnoredAuthor } from './ignoredAuthors.js'
 import { normalizeMarathonDistance } from './marathonMonths.js'
+import { hasUsableBankroll, sanitizeMeta, trustedCumulativeTotals } from './historyGuards.js'
 import MarathonChartControls from './components/MarathonChartControls.jsx'
 import MonthlyMarathonChart from './components/MonthlyMarathonChart.jsx'
 
@@ -88,8 +89,9 @@ function computePaceWindow(sorted, predicate, startBR, fallbackTotal = null) {
   if (!tournaments) {
     const firstIdx = indexed[0].idx
     const lastIdx = indexed[indexed.length - 1].idx
-    const beforeTotal = firstIdx > 0 ? sorted[firstIdx - 1]?.totalTournaments || 0 : 0
-    const lastTotal = sorted[lastIdx]?.totalTournaments || fallbackTotal || 0
+    const totals = trustedCumulativeTotals(sorted)
+    const beforeTotal = previousTrustedTotal(totals, firstIdx)
+    const lastTotal = totals[lastIdx] || fallbackTotal || 0
     tournaments = Math.max(0, lastTotal - beforeTotal)
   }
 
@@ -103,24 +105,57 @@ function computePaceWindow(sorted, predicate, startBR, fallbackTotal = null) {
   }
 }
 
+function previousTrustedTotal(totals, idx) {
+  for (let i = idx - 1; i >= 0; i--) {
+    if (totals[i]) return totals[i]
+  }
+  return 0
+}
+
 // Cumulative totals are the authoritative MTT source (same one the hero counter
 // shows), so every widget sums to the same number. Per-session reported counts
-// are only trusted when no cumulative context exists.
+// are only trusted when no cumulative context exists. A total that disagrees
+// with its neighbours (decreasing, non-finite) counts as "no cumulative on this
+// row", so one mis-read value cannot become the baseline of the next delta.
 function historySessionTournaments(row, sorted, idx) {
-  const total = row?.totalTournaments || 0
-  let prevTotal = 0
-  for (let i = idx - 1; i >= 0; i--) {
-    const t = sorted[i]?.totalTournaments
-    if (t) { prevTotal = t; break }
-  }
+  const totals = trustedCumulativeTotals(sorted)
+  const total = totals[idx] || 0
+  const prevTotal = previousTrustedTotal(totals, idx)
   if (total && prevTotal) return Math.max(0, total - prevTotal)
   if (total) return row?.tournaments || total
   // No cumulative on this row: if a later row has one, its delta will absorb
   // this session — counting the reported number here would double it.
   for (let i = idx + 1; i < sorted.length; i++) {
-    if (sorted[i]?.totalTournaments) return 0
+    if (totals[i]) return 0
   }
   return row?.tournaments || 0
+}
+
+// One definition of "MTT per session" for the sidebar, the mobile strip, the
+// week/month stats and the session-MTT widget. A session counts when its
+// cumulative-first tournament delta is positive; a report whose cumulative did
+// not move has no known count, so it is in neither the sum nor the divisor.
+function buildSessionMttRows(sorted) {
+  return sorted
+    .map((row, idx) => ({
+      timestamp:row.timestamp || 0,
+      mtt:historySessionTournaments(row, sorted, idx),
+      profit:row.sessionResult ?? null,
+    }))
+    .filter(r => r.mtt > 0)
+}
+
+// Week/month keep the rows inside the window, falling back to everything when
+// fewer than two sessions are inside — exactly what the session chart plots.
+function pickSessionMttWindow(rows, period, nowSec = Math.floor(Date.now() / 1000)) {
+  if (period === 'all' || !rows.length) return rows
+  const cutoff = nowSec - (period === 'week' ? 7 : 30) * 86400
+  const inside = rows.filter(r => r.timestamp >= cutoff)
+  return inside.length >= 2 ? inside : rows
+}
+
+function averageSessionMtt(rows) {
+  return rows.length ? rows.reduce((sum, r) => sum + r.mtt, 0) / rows.length : null
 }
 
 function buildPaceSegments(sorted, predicate, startBR, binSize = PACE_BIN_SIZE) {
@@ -164,17 +199,27 @@ function buildPaceSegments(sorted, predicate, startBR, binSize = PACE_BIN_SIZE) 
   })
 
   flush()
-  return segments.map((seg, idx) => ({
+  const labelled = segments.map((seg, idx) => ({
     ...seg,
     index:idx,
     label:formatPaceSegmentLabel(seg.endMtt, binSize),
   }))
+  // A partial tail that ends a few MTT past a step boundary rounds to the very
+  // label of the full chunk before it ("5k" twice): add digits until it differs.
+  const tail = labelled[labelled.length - 1]
+  const before = labelled[labelled.length - 2]
+  if (tail && before && !tail.full) {
+    for (let digits = 3; tail.label === before.label && digits <= 6; digits++) {
+      tail.label = formatPaceSegmentLabel(tail.endMtt, binSize, digits)
+    }
+  }
+  return labelled
 }
 
-function formatPaceSegmentLabel(endMtt, binSize) {
-  if (Math.abs(endMtt % binSize) < 0.01) return `${Math.round(endMtt / 1000)}k`
+function formatPaceSegmentLabel(endMtt, binSize, minDigits = 0) {
+  if (!minDigits && Math.abs(endMtt % binSize) < 0.01) return `${Math.round(endMtt / 1000)}k`
   const thousands = endMtt / 1000
-  const digits = thousands < 10 ? 2 : 1
+  const digits = minDigits || (thousands < 10 ? 2 : 1)
   return `${Number(thousands.toFixed(digits))}k`
 }
 
@@ -365,7 +410,10 @@ function computePaceMetrics({ meta, stats, period, binSize = PACE_BIN_SIZE, targ
     })()
   const current = computePaceWindow(sorted, currentPredicate, startBR, totalTournaments)
 
-  if (!current?.tournaments) return current ? { current, period, target, remaining:Math.max(0, target - stats.br) } : null
+  // No report inside the week/month window: keep a stub so the widget can say so
+  // instead of vanishing together with its own period switch.
+  if (!current) return { empty:true, current:null, period, target, remaining:Math.max(0, target - stats.br) }
+  if (!current.tournaments) return { current, period, target, remaining:Math.max(0, target - stats.br) }
 
   let previous = null
   if (period !== 'all' && PACE_PERIOD_SECONDS[period]) {
@@ -419,7 +467,7 @@ function PaceRateValue({ value, unit, className = '', animate = true }) {
   return <span className={`pace-rate-value ${tone} ${pulse ? 'pulse' : ''} ${className}`}>{formatDollarPerMTT(animated, unit)}</span>
 }
 
-function PaceMiniChart({ segments, binSize, unit, t, light = false }) {
+function PaceMiniChart({ segments, binSize, unit, countUnit = unit, t, light = false }) {
   const [hovered, setHovered] = useState(null)
   useEffect(() => setHovered(null), [segments])
   // Must stay above the early return so the hook order never changes.
@@ -633,7 +681,7 @@ function PaceMiniChart({ segments, binSize, unit, t, light = false }) {
           )}
           <div className="pace-point-tooltip-row">
             <span>{t('pace_tip_tournaments')}</span>
-            <b>{fmtInt(Math.round(hovered.seg.tournaments))} {unit}</b>
+            <b>{fmtInt(Math.round(hovered.seg.tournaments))} {countUnit}</b>
           </div>
           <div className="pace-point-tooltip-formula">
             <span className="pace-formula-label">{t('pace_tip_formula')}</span>
@@ -646,7 +694,32 @@ function PaceMiniChart({ segments, binSize, unit, t, light = false }) {
 }
 
 const PaceWidget = memo(function PaceWidget({ pace, period, setPeriod, binSize, setBinSize, lang, t, light = false }) {
-  if (!pace?.current) return null
+  if (!pace) return null
+
+  const periodToggle = (
+    <div className="pace-periods">
+      {[['week', t('period_week')], ['month', t('period_month')], ['all', t('period_all')]].map(([key, label]) => (
+        <button type="button" key={key} className={`mc-period ${period === key ? 'active' : ''}`}
+          aria-pressed={period === key} onClick={() => setPeriod(key)}>
+          {label}
+        </button>
+      ))}
+    </div>
+  )
+
+  if (!pace.current) {
+    return (
+      <section className="pace-widget" data-testid="pace-widget" data-empty="true">
+        <div className="pace-head">
+          <div>
+            <h2 className="section-title">{t('pace_title')}</h2>
+          </div>
+          {periodToggle}
+        </div>
+        <div className="pace-chart-empty" role="status">{t('pace_empty_period')}</div>
+      </section>
+    )
+  }
 
   const currentRate = pace.rate
   const prevRate = pace.previous?.rate
@@ -654,6 +727,9 @@ const PaceWidget = memo(function PaceWidget({ pace, period, setPeriod, binSize, 
   const isNegative = currentRate != null && currentRate < 0
   const paceRateLabel = period === 'all' ? t('pace_rate_all') : t('pace_rate_now')
   const mttUnit = t('sr_mtt_short')
+  // Rates read "+10.5$/MTT" (singular); only counts take the plural label.
+  const rateUnit = t('mtt_unit_singular')
+  const projectionUnit = n => lang === 'ru' ? plural(n, ['турнир', 'турнира', 'турниров']) : t('pace_projection_unit')
   const finishTarget = pace.finishMTT || pace.bustMTT || null
   const showHistory = prevRate != null
   const showTrend = pace.trend?.endRate != null
@@ -664,14 +740,7 @@ const PaceWidget = memo(function PaceWidget({ pace, period, setPeriod, binSize, 
         <div>
           <h2 className="section-title">{t('pace_title')}</h2>
         </div>
-        <div className="pace-periods">
-          {[['week', t('period_week')], ['month', t('period_month')], ['all', t('period_all')]].map(([key, label]) => (
-            <button type="button" key={key} className={`mc-period ${period === key ? 'active' : ''}`}
-              aria-pressed={period === key} onClick={() => setPeriod(key)}>
-              {label}
-            </button>
-          ))}
-        </div>
+        {periodToggle}
       </div>
 
       <div className="pace-dashboard">
@@ -679,21 +748,21 @@ const PaceWidget = memo(function PaceWidget({ pace, period, setPeriod, binSize, 
           <div className="mps-item pace-rate-item">
             <span className="mps-label">{paceRateLabel}</span>
             <span className="mps-value-row">
-              <PaceRateValue value={currentRate} unit={mttUnit} className="mps-value" animate={false}/>
+              <PaceRateValue value={currentRate} unit={rateUnit} className="mps-value" animate={false}/>
             </span>
             <span className="pace-summary-note">{fmtBR(pace.current.profit)} / {fmtInt(pace.current.tournaments)} {mttUnit}</span>
           </div>
           <div className="mps-divider"/>
           <div className="mps-item pace-projection-item">
             <span className="mps-label">{isNegative ? t('pace_to_zero') : t('pace_finish')}</span>
-            {finishTarget ? <TempoValue target={finishTarget} title={t('pace_at_current')} animate={false} suffix={` ${t('pace_projection_unit')}`}/> : <span className="mps-value">—</span>}
+            {finishTarget ? <TempoValue target={finishTarget} title={t('pace_at_current')} animate={false} suffix={n => ` ${projectionUnit(n)}`}/> : <span className="mps-value">—</span>}
           </div>
           {showTrend && <>
             <div className="mps-divider"/>
             <div className="mps-item pace-trend-item">
               <span className="mps-label">{t('pace_trend_card')}</span>
               <span className="mps-value">
-                <PaceRateValue value={pace.trend.endRate} unit={mttUnit} animate={false}/>
+                <PaceRateValue value={pace.trend.endRate} unit={rateUnit} animate={false}/>
               </span>
               <span className="pace-summary-note">{t('pace_trend_note')}</span>
             </div>
@@ -703,9 +772,9 @@ const PaceWidget = memo(function PaceWidget({ pace, period, setPeriod, binSize, 
             <div className="mps-item pace-history-item">
               <span className="mps-label">{t('pace_rate_prev')}</span>
               <span className="mps-value">
-                <PaceRateValue value={prevRate} unit={mttUnit} animate={false}/>
+                <PaceRateValue value={prevRate} unit={rateUnit} animate={false}/>
               </span>
-              <span className="pace-summary-note">{`${t('pace_delta')}: ${formatDollarPerMTT(deltaRate, mttUnit)}`}</span>
+              <span className="pace-summary-note">{`${t('pace_delta')}: ${formatDollarPerMTT(deltaRate, rateUnit)}`}</span>
             </div>
           </>}
         </div>
@@ -721,10 +790,10 @@ const PaceWidget = memo(function PaceWidget({ pace, period, setPeriod, binSize, 
           </div>
           {showTrend && <div className={`pace-trend-legend ${pace.trend.rising ? 'rising' : 'falling'}`}>
             <span className="pace-trend-swatch" aria-hidden="true"/>
-            <span className="pace-trend-label">{t('pace_trend_label')} {formatPaceAxisTick(pace.trend.endRate, mttUnit)}</span>
+            <span className="pace-trend-label">{t('pace_trend_label')} {formatPaceAxisTick(pace.trend.endRate, rateUnit)}</span>
           </div>}
         </div>
-        <PaceMiniChart segments={pace.segments} binSize={binSize} unit={mttUnit} t={t} light={light}/>
+        <PaceMiniChart segments={pace.segments} binSize={binSize} unit={rateUnit} countUnit={mttUnit} t={t} light={light}/>
       </div>
     </section>
   )
@@ -803,7 +872,7 @@ function MarathonMilestoneCallout({ milestone, type, isMobile, W, pL, pR, pT, pl
 function buildMarathonPoints(posts, meta, startBR) {
   if (meta?.brHistory?.length) {
     return meta.brHistory
-      .slice()
+      .filter(hasUsableBankroll)
       .sort((a,b) => (a.timestamp||0)-(b.timestamp||0))
       .map((h,i,arr) => ({
         id:h.id,
@@ -3308,9 +3377,11 @@ function TempoValue({ target, title, animate = true, suffix = '' }) {
     }
     prev.current = target
   }, [animate, target])
+  const shown = Math.round(v)
+  const tail = typeof suffix === 'function' ? suffix(shown) : suffix
   return (
     <span className={`mps-value tempo-val ${pulse?'pulse':''}`} title={title}>
-      ~{fmtInt(Math.round(v))}{suffix && <span className="tempo-unit">{suffix}</span>}
+      ~{fmtInt(shown)}{tail && <span className="tempo-unit">{tail}</span>}
     </span>
   )
 }
@@ -3727,16 +3798,8 @@ const SessionMttChart = memo(function SessionMttChart({ meta, period, lang, t })
   const svgRef = useRef(null)
   const rows = useMemo(() => {
     const hist = [...(meta?.brHistory || [])].sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0))
-    const withMtt = hist.map((row, i) => ({
-      timestamp:row.timestamp || 0,
-      // same cumulative-first rule as the pace widget and hero counter
-      mtt:historySessionTournaments(row, hist, i),
-      profit:row.sessionResult ?? null,
-    })).filter(r => r.mtt > 0)
-    if (period === 'all' || !withMtt.length) return withMtt
-    const cutoff = Math.floor(Date.now() / 1000) - (period === 'week' ? 7 : 30) * 86400
-    const filtered = withMtt.filter(r => r.timestamp >= cutoff)
-    return filtered.length >= 2 ? filtered : withMtt
+    // same rows and window as the sidebar average (cumulative-first, positive deltas)
+    return pickSessionMttWindow(buildSessionMttRows(hist), period)
   }, [meta, period])
   const hasMultipleYears = useMemo(() => spansMultipleYears(rows.map(r => r.timestamp)), [rows])
 
@@ -3748,7 +3811,7 @@ const SessionMttChart = memo(function SessionMttChart({ meta, period, lang, t })
   const plotW = W - pad.left - pad.right
   const plotH = H - pad.top - pad.bottom
   const maxMtt = Math.max(...rows.map(r => r.mtt))
-  const avg = rows.reduce((sum, r) => sum + r.mtt, 0) / rows.length
+  const avg = averageSessionMtt(rows)
   const yOf = v => pad.top + (1 - v / maxMtt) * plotH
   const gap = rows.length > 60 ? .6 : 1.4
   const step = plotW / rows.length
@@ -3845,7 +3908,10 @@ const SessionMttChart = memo(function SessionMttChart({ meta, period, lang, t })
 
 // ─── APP ─────────────────────────────────────────────────────────────────────
 export default function App() {
-  const { posts, meta, loading, error, newPostIds, refresh, clearNewPosts } = usePostsData()
+  const { posts, meta: rawMeta, loading, error, newPostIds, refresh, clearNewPosts } = usePostsData()
+  // One bad report (no finite bankroll) must not poison the hero, the progress
+  // bar and the charts; the guard keeps the same object when nothing is dropped.
+  const meta = useMemo(() => sanitizeMeta(rawMeta), [rawMeta])
   // Below 980px the sidebar is hidden and the FF banner moves into the feed.
   // Render only the visible one so the hidden copy doesn't mount a second chip.
   const isNarrow = useIsMobile(980)
@@ -3966,7 +4032,8 @@ export default function App() {
     // Точный БР из brHistory (приоритет)
     const brHistory = meta?.brHistory
     if (brHistory?.length) {
-      const last = [...brHistory].sort((a,b)=>(a.timestamp||0)-(b.timestamp||0)).slice(-1)[0]
+      const sortedHistory = [...brHistory].sort((a,b)=>(a.timestamp||0)-(b.timestamp||0))
+      const last = sortedHistory[sortedHistory.length - 1]
       const br = last.brAfter
       const profit = br - startBR
       const totalTourneys = meta?.totalTournaments || null
@@ -3975,9 +4042,9 @@ export default function App() {
       const sessionsCount = brHistory.length
       const positiveSessions = brHistory.filter(h => (h.sessionResult||0) > 0).length
       const winRate = sessionsCount ? positiveSessions / sessionsCount : null
-      const avgMTT = (totalTourneys && sessionsCount)
-        ? Math.round(totalTourneys / sessionsCount)
-        : null
+      // same definition as the session chart and the week/month stats
+      const sessionMttAvg = averageSessionMtt(buildSessionMttRows(sortedHistory))
+      const avgMTT = sessionMttAvg != null ? Math.round(sessionMttAvg) : null
 
       // День из текста постов Ромео (как он сам нумерует), fallback на кол-во сессий
       const romeoByDate = posts.filter(p => ROMEO_RE.test(p.author)).sort((a,b) => (b.timestamp||0)-(a.timestamp||0))
@@ -4034,7 +4101,11 @@ export default function App() {
     const positive = sub.filter(h => (h.sessionResult || 0) > 0).length
     // cumulative-first, like every other MTT figure on the page
     let totalMTT = sub.reduce((s, h, k) => s + historySessionTournaments(h, sorted, insideIdx + k), 0)
-    const avgMTT = totalMTT ? Math.round(totalMTT / sub.length) : null
+    // average of the very rows the session chart plots; null while the chart
+    // falls back to the whole archive, so the sidebar keeps the all-time value
+    const allMttRows = buildSessionMttRows(sorted)
+    const windowMttRows = pickSessionMttWindow(allMttRows, chartPeriod)
+    const avgMTT = windowMttRows !== allMttRows ? Math.round(averageSessionMtt(windowMttRows)) : null
     const profit = sub.reduce((s, h) => s + (h.sessionResult || 0), 0)
     return {
       sessionsCount: sub.length,
@@ -4421,16 +4492,18 @@ export default function App() {
                   <span className="mps-label">{t('left')}</span>
                   <span className="mps-value">{fmtInt(remaining)}$</span>
                 </div>
-                {(mttNeeded || mttToBust) && <>
+                {(mttNeeded || mttToBust || pace?.empty) && <>
                   <div className="mps-divider"/>
                   <div className="mps-item">
                     <span className="mps-label">{tempoLabel}</span>
                     <span className="mps-value-row">
-                      <TempoValue target={mttNeeded || mttToBust} title={tempoTitle}/>
+                      {pace?.empty
+                        ? <span className="mps-value" title={t('pace_empty_period')}>—</span>
+                        : <TempoValue target={mttNeeded || mttToBust} title={tempoTitle}/>}
                       {dollarPerMTT != null && (
                         <span className="mps-rate-inline" title={isLosing ? t('losing_warning') : t('dollar_per_mtt_title')}>
                           {(() => {
-                            return formatDollarPerMTT(dollarPerMTT, t('sr_mtt_short'))
+                            return formatDollarPerMTT(dollarPerMTT, t('mtt_unit_singular'))
                           })()}
                         </span>
                       )}
@@ -4793,9 +4866,10 @@ export default function App() {
                   const now = warsawParts(Math.floor(Date.now() / 1000))
                   const sameDay = now && w.day === now.day && w.month === now.month && w.year === now.year
                   const time = `${w.hour}:${w.minute}`
+                  const pad2 = n => String(n).padStart(2, '0')
                   return sameDay
                     ? `${t('footer_today_at')} ${time}`
-                    : `${w.day}.${w.month} ${t('footer_at')} ${time}`
+                    : `${pad2(w.day)}.${pad2(w.month)} ${t('footer_at')} ${time}`
                 }
                 const mins = Math.round((Date.now() - scrapeTs) / 60000)
                 // GitHub cron actually fires every ~28 min median — thresholds

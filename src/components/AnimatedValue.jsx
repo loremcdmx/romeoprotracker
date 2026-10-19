@@ -31,6 +31,10 @@ export function useTweenValue(target, duration = 650) {
       const ease = 1 - Math.pow(1 - p, 3)
       const v = from + (target - from) * ease
       setVal(v)
+      // Track what is on screen, so a retarget mid-flight (period switched
+      // again, data refresh) continues from this number instead of jumping
+      // back to where the interrupted tween started.
+      fromRef.current = v
       if (p < 1) raf = requestAnimationFrame(tick)
       else fromRef.current = target
     }

@@ -432,7 +432,7 @@ describe('App', () => {
     expect(within(widget).getByText('изменение: +1$/МТТ')).toBeInTheDocument()
     expect(within(widget).queryByText(/при текущем темпе/)).not.toBeInTheDocument()
     await waitFor(() => {
-      expect(widget.querySelector('.pace-projection-item .tempo-val')?.textContent?.replace(/\s/g, '')).toBe('~1661334турниров')
+      expect(widget.querySelector('.pace-projection-item .tempo-val')?.textContent?.replace(/\s/g, '')).toBe('~1661334турнира')
     })
     expect(within(widget).getAllByText('2k').length).toBeGreaterThanOrEqual(1)
     expect(within(widget).queryByText('1k')).not.toBeInTheDocument()
