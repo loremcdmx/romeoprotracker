@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 1.14.11 — 2026-10-19
+
+- Light theme: ratings, likes and the chart pills now reach readable contrast; the period pills, filter pill, hero badge and the active page / mobile menu buttons use a deeper red that carries white text; resting feed actions, the hourly-rate hint and the empty pace card are readable.
+- The dark theme is unchanged (checked pixel by pixel at four widths).
+
 ## 1.14.10 — 2026-10-19
 
 - Monthly distances no longer inflate when one cumulative total is too low (same trusted-run rule the pace widgets use); real-data months are identical.

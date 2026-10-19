@@ -230,7 +230,7 @@ button,select,input,summary{font:inherit}
 .pc-author-meta{font-size:10px;color:var(--dim);display:flex;gap:6px;flex-wrap:wrap;margin-top:1px}
 .pc-date{margin-left:auto;font-size:10px;color:var(--dim);font-family:'Roboto Mono',monospace;flex-shrink:0}
 .pc-actions{display:flex;gap:4px;flex-shrink:0}
-.pc-action{width:32px;height:32px;background:none;border:1px solid transparent;border-radius:8px;cursor:pointer;font-size:14px;padding:0;opacity:.5;transition:opacity .15s,border-color .15s,background .15s;color:var(--text)}
+.pc-action{width:32px;height:32px;background:none;border:1px solid transparent;border-radius:8px;cursor:pointer;font-size:14px;padding:0;opacity:var(--pc-action-rest,.5);transition:opacity .15s,border-color .15s,background .15s;color:var(--text)}
 .pc-action:hover,.pc-action.on{opacity:1}
 .pc-action:hover{background:var(--bg3);border-color:var(--border)}
 .pc-body{padding:10px 14px;font-size:12px;color:var(--text);line-height:1.6;overflow-wrap:anywhere}
@@ -248,6 +248,9 @@ button,select,input,summary{font:inherit}
 .pc-foot{display:flex;align-items:center;gap:10px;padding:7px 14px;border-top:1px solid var(--border)}
 .pc-likes{font-size:12px;font-weight:600;font-family:'Roboto Mono',monospace}
 .pc-likes.pos{color:var(--green)}.pc-likes.neg{color:var(--red2)}.pc-likes.zero{color:var(--dim)}
+/* author reputation link: was an inline #4caf50 / #ff5252 (2.5:1 on the light card, and no stylesheet rule can beat an inline colour).
+   --green / --red2 are exactly those two colours in the dark theme and the AA ones in the light theme. */
+.pc-rating.pos{color:var(--green)}.pc-rating.neg{color:var(--red2)}
 .pc-br{background:var(--red-dim);color:var(--red2);border:1px solid #e5393540;border-radius:3px;padding:1px 7px;font-size:11px;font-weight:700;font-family:'Roboto Mono',monospace}
 .pc-link{font-size:11px;color:var(--dim);margin-left:auto}.pc-link:hover{color:var(--red2)}
 
@@ -434,6 +437,10 @@ button,select,input,summary{font:inherit}
   --bg-popup:#f4f1ea;--border-popup:#d4cfc4;
   --bg-quote:#e7e3da;--border-quote:#d0ccc1;--text-quote:#635f58;
   --bg-tag:#e7e3da;--shadow-popup:0 8px 32px rgba(0,0,0,.12);
+  /* --red (#e53935) carries white text at only 4.23:1; --red-fill is the solid red for white-on-red controls (5.62:1) */
+  --red-fill:#c62828;
+  /* resting opacity of the feed's star/ignore buttons: .5 is 2.96:1 here, .7 is 5.2:1 (a token, so :hover / .on keep opacity:1) */
+  --pc-action-rest:.7;
   color-scheme:light;
 }
 .light html,body,#root{background:var(--bg)}
@@ -449,7 +456,9 @@ button,select,input,summary{font:inherit}
 .light .filter-num,.light .feed-search,.light .feed-select{background:var(--bg3);color:var(--white)}
 .light .settings-select,.light .ignore-input{background:var(--bg3);color:var(--white)}
 .light .page-btn{background:var(--bg2)}
-.light .page-btn.active{background:var(--red)}
+.light .page-btn.active{background:var(--red-fill);border-color:var(--red-fill)}
+.light .mobile-top-period.active{background:var(--red-fill);border-color:var(--red-fill)}
+.light .mobile-menu-nav button.active,.light .mobile-menu-languages button.active{background:var(--red-fill);border-color:var(--red-fill)}
 .light .perpage-select{background:var(--bg3);color:var(--white)}
 .light .post-card{background:var(--bg2);border-color:var(--border)}
 .light .post-card:hover{border-color:var(--border2)}
@@ -515,6 +524,10 @@ button,select,input,summary{font:inherit}
 .chart-tooltip::-webkit-scrollbar{width:8px}
 .chart-tooltip::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:4px}
 .light .chart-tooltip{background:rgba(255,255,255,0.80);border-color:rgba(0,0,0,0.08);box-shadow:0 4px 20px rgba(0,0,0,.1)}
+/* activity tooltip author rows (were inline #4caf50 / #ffb74d, 1.7-2.7:1 on the light panel; the panel is dark only in the dark theme) */
+.ac-rating{color:var(--green)}
+.ac-likes{color:#ffb74d}
+.light .ac-likes{color:var(--gold)}
 
 /* ─── DAY EVENTS LIST ───────────────────────────────────────────────────── */
 .day-events{display:flex;flex-direction:column;gap:8px}
@@ -678,7 +691,7 @@ html{scroll-behavior:smooth}
 .light .pace-widget{background:linear-gradient(180deg,rgba(255,255,255,.55),rgba(255,255,255,.2)),var(--bg2);border-color:rgba(78,68,54,.18);box-shadow:inset 0 1px 0 rgba(255,255,255,.72),0 8px 22px rgba(70,58,40,.08)}
 .light .pace-widget .section-title{color:var(--white);text-shadow:none}
 .light .pace-widget .mc-period{color:var(--dim2);background:rgba(255,255,255,.3);border-color:var(--border)}
-.light .pace-widget .mc-period.active{color:#fff;background:var(--red);border-color:var(--red)}
+.light .pace-widget .mc-period.active{color:#fff;background:var(--red-fill);border-color:var(--red-fill)}
 .light .pace-summary-panel.marathon-progress-side{background:rgba(255,255,255,.44);border-color:var(--border);box-shadow:inset 0 1px 0 rgba(255,255,255,.68)}
 .light .pace-summary-panel.marathon-progress-side .mps-item{background:linear-gradient(180deg,rgba(255,255,255,.68),rgba(244,241,234,.72));border-color:rgba(78,68,54,.13);box-shadow:inset 0 1px 0 rgba(255,255,255,.8)}
 .light .pace-summary-panel .mps-label,.light .pace-summary-panel .pace-trend-item .mps-label{color:#514b43}
@@ -709,6 +722,10 @@ html{scroll-behavior:smooth}
   box-shadow:0 2px 8px rgba(0,0,0,.4);
 }
 .light .mc-pill{background:rgba(255,255,255,0.92);border-color:rgba(0,0,0,0.12);box-shadow:0 2px 8px rgba(0,0,0,.1)}
+/* session sign: was inline #66bb6a / #ff5252 (2.4-3.2:1 on the light pill). Same specificity as .light .mc-pill and
+   later in the file, so the tinted border keeps beating the neutral light one exactly as the inline one did. */
+.mc-pill.pos{color:var(--green-hi);border-color:rgba(102,187,106,.25)}
+.mc-pill.neg{color:var(--red2);border-color:rgba(255,82,82,.25)}
 .mc-session-breakdown{
   display:flex;flex-direction:column;gap:3px;
   margin:3px 0 8px;padding:7px 0;
@@ -1144,7 +1161,15 @@ html{scroll-behavior:smooth}
 .light .pace-segment.partial .pace-chart-value{opacity:.9}
 /* sticky progress bar readability in light theme */
 .light .marathon-progress-label b{color:#8a5b00;text-shadow:none}
-.light .mps-rate-inline{color:#755400}
+.light .mps-rate-inline{color:#755400;opacity:1}
+/* white-on-red controls in the light theme: --red (#e53935) is 4.23:1 under white and the dark-theme gradient's light end
+   (#ef5350) is 3.49:1. Only the fills change; the extra .light class is what lets each rule beat its base rule
+   (.hero-badge 1 class, .filter-pill.on and .mc-period.active 2 classes, so 2 vs 1 and 3 vs 2). */
+.light .hero-badge{background:var(--red-fill)}
+.light .filter-pill.on{background:var(--red-fill);border-color:var(--red-fill)}
+.light .mc-period.active{background:linear-gradient(180deg,#cd2f2c,#b92724);border-color:#a62220}
+/* the empty-period card's dashed outline was rgba(255,255,255,.09): white on cream, 1.01:1 */
+.light .pace-chart-empty{border-color:#847d70}
 /* FF banner stats + peak kicker in light theme */
 .light .ff-banner-stat-label{color:#5d5573}
 .light .ff-banner-stat-val{color:#7a5400}

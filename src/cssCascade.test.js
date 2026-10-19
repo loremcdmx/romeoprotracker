@@ -118,7 +118,8 @@ function cascade(el, props, env) {
     if (!rule.conds.every((c) => holds(c, env))) continue
     for (const sel of rule.selectors) {
       let hit = false
-      try { hit = el.matches(sel) } catch { hit = false }
+      // a state, not a pointer: env.hover evaluates `:hover` as the class `.is-hover` on the element
+      try { hit = el.matches(env.hover ? sel.replace(/:hover/g, '.is-hover') : sel) } catch { hit = false }
       if (!hit) continue
       const spec = specificity(sel)
       rule.decls.forEach((d, k) => {
@@ -168,6 +169,27 @@ const lum = (hex) => {
   return 0.2126 * r + 0.7152 * g + 0.0722 * b
 }
 const contrast = (a, b) => { const [hi, lo] = [lum(a), lum(b)].sort((x, y) => y - x); return (hi + 0.05) / (lo + 0.05) }
+
+// colours with alpha: "#rgb", "#rrggbb", rgb()/rgba() -> [r, g, b, a]
+function toRGBA(v) {
+  const s = String(v).trim()
+  let m = s.match(/^#([0-9a-f]{6})$/i)
+  if (m) return [0, 2, 4].map((i) => parseInt(m[1].slice(i, i + 2), 16)).concat(1)
+  m = s.match(/^#([0-9a-f]{3})$/i)
+  if (m) return [0, 1, 2].map((i) => parseInt(m[1][i] + m[1][i], 16)).concat(1)
+  m = s.match(/^rgba?\(\s*([\d.]+)[\s,]+([\d.]+)[\s,]+([\d.]+)(?:[\s,/]+([\d.]+))?\s*\)$/i)
+  if (m) return [+m[1], +m[2], +m[3], m[4] === undefined ? 1 : +m[4]]
+  throw new Error(`not a colour: ${v}`)
+}
+const toHex = ([r, g, b]) => '#' + [r, g, b].map((x) => Math.round(x).toString(16).padStart(2, '0')).join('')
+// the colour a (possibly translucent) foreground actually paints over an opaque background
+const over = (fg, bg, opacity = 1) => {
+  const [r, g, b, a] = toRGBA(fg)
+  const k = a * opacity
+  const B = toRGBA(bg)
+  return toHex([r * k + B[0] * (1 - k), g * k + B[1] * (1 - k), b * k + B[2] * (1 - k)])
+}
+const colourTokens = (v) => String(v).match(/#[0-9a-f]{3,8}\b|rgba?\([^)]*\)/gi) || []
 
 const phone = { width: 375, clip: true }
 const wide = { width: 1280, clip: true }
@@ -288,6 +310,13 @@ describe('app.css cascade guards', () => {
       ['pace trend rate -', '<section class="pace-widget"><div class="pace-summary-panel marathon-progress-side"><div class="mps-item"><span class="mps-value"><span class="pace-rate-value neg"></span></span></div></div></section>', '.pace-rate-value'],
       ['pace chart value +', '<section class="pace-widget"><svg><g class="pace-segment pos"><text class="pace-chart-value pos"></text></g></svg></section>', '.pace-chart-value', 'fill'],
       ['pace chart value -', '<section class="pace-widget"><svg><g class="pace-segment neg"><text class="pace-chart-value neg"></text></g></svg></section>', '.pace-chart-value', 'fill'],
+      // inline #4caf50 / #ff5252 / #ffb74d / #66bb6a in App.jsx moved onto classes so the theme can re-tune them
+      ['author rating +', '<div class="pc-author-meta"><a class="pc-rating pos"></a></div>', '.pc-rating'],
+      ['author rating -', '<div class="pc-author-meta"><a class="pc-rating neg"></a></div>', '.pc-rating'],
+      ['activity tooltip rating', '<div class="chart-tooltip"><span class="ac-rating"></span></div>', '.ac-rating'],
+      ['activity tooltip likes', '<div class="chart-tooltip"><span class="ac-likes"></span></div>', '.ac-likes'],
+      ['marathon tooltip pill +', '<div class="mc-tooltip"><div class="mc-pill pos"></div></div>', '.mc-pill'],
+      ['marathon tooltip pill -', '<div class="mc-tooltip"><div class="mc-pill neg"></div></div>', '.mc-pill'],
     ]
 
     it.each(CASES)('%s reaches 4.5:1 on every light surface', (_label, html, sel, prop = 'color', width = 1280) => {
@@ -343,15 +372,147 @@ describe('app.css cascade guards', () => {
       mount('<div class="mobile-top-posts"><div class="mobile-top-periods"><button class="mobile-top-period active"></button><button class="mobile-top-period"></button></div></div>', { light: true })
       const env = { width, clip: true }
       const fill = cascade($('.mobile-top-period.active'), ['background', 'background-color'], env)
-      expect(fill.value).toBe('var(--red)')
+      // solid red that carries white text at AA (--red-fill), still a red fill and not cream
+      expect(fill.value).toBe('var(--red-fill)')
     })
   })
 
   describe('light theme pagination (same cascade trap as the dots)', () => {
     it.each([[true], [false]])('the active page button keeps its red fill (light=%s)', (isLight) => {
       mount('<nav><button class="page-btn active"></button><button class="page-btn"></button></nav>', { light: isLight })
-      expect(cascade($('.page-btn.active'), ['background', 'background-color'], wide).value).toBe('var(--red)')
+      expect(cascade($('.page-btn.active'), ['background', 'background-color'], wide).value).toBe(isLight ? 'var(--red-fill)' : 'var(--red)')
       expect(cascade($('.page-btn:not(.active)'), ['background', 'background-color'], wide).value).toBe('var(--bg2)')
+    })
+  })
+
+  describe('light theme leftovers: white-on-red fills, resting icons, rate hint, empty card', () => {
+    const lightEnv = (width = 1280) => ({ width, clip: true })
+    const BG = ['background', 'background-color', 'background-image']
+    const resolved = (el, props, env) => { const c = cascade(el, props, env); return c && resolveVars(c.value, el, env) }
+    // same cream surfaces as the accent table above, plus the pale card the pace widget paints (#f8f6f2)
+    const surfacesOf = () => {
+      mount('<div></div>', { light: true })
+      const root = document.documentElement
+      const v = (n) => customProp(root, n, lightEnv())
+      return [v('--bg'), v('--bg2'), v('--red-dim'), '#f3e9e6', '#ece8e0', '#f8f6f2']
+    }
+
+    const FILLS = [
+      ['hero badge', '<div class="hero-name"><span class="hero-badge"></span></div>', '.hero-badge'],
+      ['filter pill (on)', '<div class="filter-bar"><button class="filter-pill filter-romeo on"></button></div>', '.filter-pill'],
+      ['marathon period (active)', '<div class="mc-periods"><button class="mc-period active"></button></div>', '.mc-period'],
+      ['pace period (active)', '<section class="pace-widget"><div class="pace-periods"><button class="mc-period active"></button></div></section>', '.mc-period'],
+      ['page button (active)', '<nav><button class="page-btn active"></button></nav>', '.page-btn'],
+      ['mobile top period (active)', '<div class="mobile-top-posts"><div class="mobile-top-periods"><button class="mobile-top-period active"></button></div></div>', '.mobile-top-period'],
+      ['mobile menu nav button (active)', '<div class="mobile-menu-nav"><button class="active"></button></div>', '.mobile-menu-nav button'],
+      ['mobile menu language button (active)', '<div class="mobile-menu-languages"><button class="active"></button></div>', '.mobile-menu-languages button'],
+    ]
+    // the mobile top list exists below 980px only (the sidebar carries it above)
+    const widthsFor = (label) => (label.startsWith('mobile top') ? [320, 375, 768] : [320, 375, 768, 1280])
+    const FILL_CASES = FILLS.flatMap(([label, html, sel]) => widthsFor(label).map((w) => [label, w, html, sel]))
+
+    it.each(FILL_CASES)('%s at %ipx: white text on a red fill that is >=4.5:1 at every gradient stop', (label, width, html, sel) => {
+      mount(html, { light: true })
+      const el = $(sel)
+      const env = lightEnv(width)
+      const text = toHex(toRGBA(resolved(el, ['color'], env)))
+      const stops = colourTokens(resolved(el, BG, env))
+      expect(stops.length, `${label} has a colour background`).toBeGreaterThan(0)
+      for (const stop of stops) {
+        const [r, g, b] = toRGBA(stop)
+        // still the theme's red (the CSS-5 trap painted these cream, which white cannot be read on)
+        expect(r > g * 2 && r > b * 2, `${label} ${stop} is red`).toBe(true)
+        expect(contrast(text, toHex(toRGBA(stop))), `${label} ${text} on ${stop}`).toBeGreaterThanOrEqual(4.5)
+      }
+    })
+
+    it.each([
+      ['filter pill (on)', '<div class="filter-bar"><button class="filter-pill filter-romeo on"></button></div>', '.filter-pill'],
+      ['page button (active)', '<nav><button class="page-btn active"></button></nav>', '.page-btn'],
+      ['mobile top period (active)', '<div class="mobile-top-posts"><div class="mobile-top-periods"><button class="mobile-top-period active"></button></div></div>', '.mobile-top-period'],
+      ['mobile menu nav button (active)', '<div class="mobile-menu-nav"><button class="active"></button></div>', '.mobile-menu-nav button'],
+    ])('%s has a rim in the same red as its fill in light (no brighter outline)', (_label, html, sel) => {
+      mount(html, { light: true })
+      const el = $(sel)
+      const env = lightEnv(768)
+      expect(resolved(el, ['border-color'], env)).toBe(resolved(el, BG, env))
+    })
+
+    it.each([[true], [false]])('an active period button hovered keeps white text, as it did before (light=%s)', (isLight) => {
+      for (const html of ['<div class="mc-periods"><button class="mc-period active is-hover"></button></div>', '<section class="pace-widget"><div class="pace-periods"><button class="mc-period active is-hover"></button></div></section>']) {
+        mount(html, { light: isLight })
+        const el = $('.mc-period')
+        expect(resolved(el, ['color'], { ...lightEnv(), hover: true })).toBe('#fff')
+      }
+    })
+
+    it('the feed star/ignore buttons rest at an AA opacity in light, and hover / .on still reach 1', () => {
+      const surfaces = surfacesOf() // before mounting: it remounts the body
+      mount('<div class="pc-actions"><button class="pc-action"></button><button class="pc-action on"></button><button class="pc-action is-hover"></button></div>', { light: true })
+      const [rest, on, hover] = document.querySelectorAll('.pc-action')
+      const env = lightEnv()
+      const opacityOf = (el, e = env) => Number(resolved(el, ['opacity'], e))
+      const text = resolved(rest, ['color'], env)
+      expect(text).toMatch(/^#[0-9a-f]{6}$/i)
+      for (const bg of surfaces) {
+        // the pre-fix .5 painted #2a2824 at 2.96:1 on the card
+        expect(contrast(over(text, bg, opacityOf(rest)), bg), `rest on ${bg}`).toBeGreaterThanOrEqual(4.5)
+      }
+      expect(opacityOf(on)).toBe(1)
+      expect(opacityOf(hover, { ...env, hover: true })).toBe(1)
+    })
+
+    it('the inline rate hint beside the projection is AA on the light surfaces, opacity included', () => {
+      const surfaces = surfacesOf()
+      mount('<span class="mps-value-row"><span class="mps-rate-inline"></span></span>', { light: true })
+      const el = $('.mps-rate-inline')
+      const env = lightEnv()
+      const colour = resolved(el, ['color'], env)
+      const opacity = Number(resolved(el, ['opacity'], env))
+      for (const bg of [...surfaces, '#f3f1ed']) expect(contrast(over(colour, bg, opacity), bg), `${colour} x${opacity} on ${bg}`).toBeGreaterThanOrEqual(4.5)
+    })
+
+    it.each([320, 375, 768, 1280])('the empty-period card keeps a visible dashed outline in light at %ipx', (width) => {
+      const surfaces = surfacesOf()
+      mount('<section class="pace-widget"><div class="pace-chart-empty"></div></section>', { light: true })
+      const el = $('.pace-chart-empty')
+      const env = lightEnv(width)
+      const border = resolved(el, ['border', 'border-color'], env)
+      expect(border).toMatch(/dashed|^#/)
+      const outline = colourTokens(border).at(-1)
+      // a boundary needs 3:1 against what it sits on; the pre-fix white 9% was 1.01:1
+      for (const bg of surfaces) expect(contrast(over(outline, bg), bg), `${outline} on ${bg}`).toBeGreaterThanOrEqual(3)
+    })
+
+    it('keeps the tinted pill border that the inline style used to force over the neutral light one', () => {
+      for (const isLight of [true, false]) {
+        for (const [tone, border] of [['pos', 'rgba(102,187,106,.25)'], ['neg', 'rgba(255,82,82,.25)']]) {
+          mount(`<div class="mc-tooltip"><div class="mc-pill ${tone}"></div></div>`, { light: isLight })
+          const el = $('.mc-pill')
+          expect(cascade(el, ['border', 'border-color'], wide).value, `${tone} light=${isLight}`).toBe(border)
+        }
+      }
+    })
+
+    it('leaves every dark-theme value touched here exactly as it was', () => {
+      const dark = { width: 1280, clip: true }
+      const get = (html, sel, props) => { mount(html); const el = $(sel); return resolved(el, props, dark) }
+      // moved from inline styles to classes: the dark colours are the literals they replaced
+      expect(get('<div class="pc-author-meta"><a class="pc-rating pos"></a></div>', '.pc-rating', ['color'])).toBe('#4caf50')
+      expect(get('<div class="pc-author-meta"><a class="pc-rating neg"></a></div>', '.pc-rating', ['color'])).toBe('#ff5252')
+      expect(get('<div class="chart-tooltip"><span class="ac-rating"></span></div>', '.ac-rating', ['color'])).toBe('#4caf50')
+      expect(get('<div class="chart-tooltip"><span class="ac-likes"></span></div>', '.ac-likes', ['color'])).toBe('#ffb74d')
+      expect(get('<div class="mc-tooltip"><div class="mc-pill pos"></div></div>', '.mc-pill', ['color'])).toBe('#66bb6a')
+      expect(get('<div class="mc-tooltip"><div class="mc-pill neg"></div></div>', '.mc-pill', ['color'])).toBe('#ff5252')
+      // light-only overrides must not leak into dark
+      expect(get('<div class="hero-name"><span class="hero-badge"></span></div>', '.hero-badge', BG)).toBe('#e53935')
+      expect(get('<div class="filter-bar"><button class="filter-pill on"></button></div>', '.filter-pill', BG)).toBe('#e53935')
+      expect(colourTokens(get('<div class="mc-periods"><button class="mc-period active"></button></div>', '.mc-period', BG))).toEqual(['#ef5350', '#d73c39'])
+      expect(colourTokens(get('<section class="pace-widget"><div class="pace-periods"><button class="mc-period active"></button></div></section>', '.mc-period', BG))).toEqual(['#ef5350', '#d73c39'])
+      expect(get('<div class="pc-actions"><button class="pc-action"></button></div>', '.pc-action', ['opacity'])).toBe('.5')
+      expect(get('<span class="mps-value-row"><span class="mps-rate-inline"></span></span>', '.mps-rate-inline', ['opacity'])).toBe('.8')
+      expect(get('<span class="mps-value-row"><span class="mps-rate-inline"></span></span>', '.mps-rate-inline', ['color'])).toBe('#c9a46a')
+      expect(get('<section class="pace-widget"><div class="pace-chart-empty"></div></section>', '.pace-chart-empty', ['border', 'border-color'])).toBe('1px dashed rgba(255,255,255,.09)')
     })
   })
 
