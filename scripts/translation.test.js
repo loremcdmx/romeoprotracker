@@ -74,7 +74,7 @@ describe('translation helpers', () => {
     expect(logSpy).toHaveBeenCalledTimes(1)
   })
 
-  it('preserves an existing translation when only one target language succeeds', async () => {
+  it('preserves an existing translation of the SAME text when only one target language succeeds', async () => {
     const fetchImpl = vi.fn()
       .mockResolvedValueOnce({
         ok: true,
@@ -86,18 +86,57 @@ describe('translation helpers', () => {
         text: async () => 'Service unavailable',
       })
 
+    const text = 'Это достаточно длинный пост для перевода.'
+    // an earlier run translated only Spanish for this exact text
     const post = {
-      text: 'Это достаточно длинный пост для перевода.',
-      translations: { en: 'Old English', es: 'Viejo español' },
+      text,
+      translations: { ...textSignature(text), en: null, es: 'Viejo español' },
     }
     const changed = await translatePost(post, { apiKey: 'test', fetchImpl })
 
     expect(changed).toBe(true)
     expect(post.translations).toEqual({
-      ...textSignature(post.text),
+      ...textSignature(text),
       en: 'Fresh English',
       es: 'Viejo español',
     })
+  })
+
+  it('does not keep a translation of the OLD text when the post was edited and a language fails (SCR-5)', async () => {
+    const fetchImpl = vi.fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ content: [{ text: 'Fresh English' }] }),
+      })
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 529,
+        text: async () => 'Overloaded',
+      })
+
+    const oldText = 'Сегодня сыграл 300 турниров, итог плюс две тысячи долларов.'
+    const post = {
+      text: 'Сегодня сыграл 300 турниров, итог МИНУС две тысячи долларов!!',
+      translations: { ...textSignature(oldText), en: 'result PLUS', es: 'resultado MÁS' },
+    }
+    expect(needsTranslation(post)).toBe(true)
+    const changed = await translatePost(post, { apiKey: 'test', fetchImpl })
+
+    expect(changed).toBe(true)
+    expect(post.translations).toEqual({ ...textSignature(post.text), en: 'Fresh English', es: null })
+    // the gap is visible to the next run, so Spanish is retried
+    expect(needsTranslation(post)).toBe(true)
+  })
+
+  it('an edit that fails in both languages keeps the post queued', async () => {
+    const fetchImpl = vi.fn().mockResolvedValue({ ok: false, status: 529, text: async () => 'Overloaded' })
+    const oldText = 'Это достаточно длинный пост для перевода.'
+    const post = {
+      text: `${oldText} И он изменился.`,
+      translations: { ...textSignature(oldText), en: 'Old', es: 'Viejo' },
+    }
+    expect(await translatePost(post, { apiKey: 'test', fetchImpl })).toBe(false)
+    expect(needsTranslation(post)).toBe(true)
   })
 
   it('does not call the API for short or already translated up-to-date posts', async () => {

@@ -12,6 +12,7 @@ import { useIsMobile } from './hooks/useIsMobile.js'
 import { useExclusiveHoverPopup } from './hooks/useExclusiveHoverPopup.js'
 import { usePersistentState } from './hooks/usePersistentState.js'
 import { usePostsData } from './hooks/usePostsData.js'
+import { safeEmbedUrls } from '../scripts/lib/embed-url.mjs'
 import AnimatedValue, { useTweenValue } from './components/AnimatedValue.jsx'
 import { buildPaceTrend, computePaceTrendStats } from './paceTrend.js'
 import { buildGlobalAuthorCounts, pickTopAuthors } from './activityAuthors.js'
@@ -3167,9 +3168,9 @@ const PostCard = memo(function PostCard({ p, favorites, ignored, onFav, onIgnore
           ))}
         </div>
       )}
-      {p.videos?.length>0 && (
+      {safeEmbedUrls(p.videos).length>0 && (
         <div className="pc-videos">
-          {p.videos.map((src,j)=>(
+          {safeEmbedUrls(p.videos).map((src,j)=>(
             <div key={j} className="pc-video">
               <iframe src={src} title={_t('video_iframe_title')} loading="lazy" allowFullScreen frameBorder="0"
                 style={{width:'100%',aspectRatio:'16/9',border:0,borderRadius:8,background:'#000'}}/>
@@ -3179,7 +3180,7 @@ const PostCard = memo(function PostCard({ p, favorites, ignored, onFav, onIgnore
       )}
       {(() => {
         const stripped = stripQuoteTags(p.text || '').replace(/\[VIDEO\]/g, '').trim()
-        if (stripped.length === 0 && !p.images?.length && !p.videos?.length) {
+        if (stripped.length === 0 && !p.images?.length && !safeEmbedUrls(p.videos).length) {
           return (
             <a href={p.url} target="_blank" rel="noreferrer" className="pc-broken-link"
               onClick={e=>e.stopPropagation()}>

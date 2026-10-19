@@ -70,10 +70,16 @@ export async function translatePost(post, options) {
   if (!en && !es) return false
 
   const signature = textSignature(post.text)
+  // A language whose call failed may fall back to its stored translation only
+  // when that translation was made for exactly this text. After a forum edit
+  // the old one describes different words, and keeping it under the new
+  // signature would hide the gap from needsTranslation forever.
+  const tr = post.translations
+  const sameText = tr?.srcLen === signature.srcLen && tr?.srcHead === signature.srcHead
   post.translations = {
     ...signature,
-    en: en || post.translations?.en || null,
-    es: es || post.translations?.es || null,
+    en: en || (sameText ? tr.en : null) || null,
+    es: es || (sameText ? tr.es : null) || null,
   }
 
   return true

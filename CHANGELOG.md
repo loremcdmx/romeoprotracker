@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+## 1.14.2 — 2026-10-19
+
+- Scraper: only the exact `Romeopro` account counts as the marathon author; look-alike nicks can no longer set the day, bankroll or BR history.
+- "Day N" is read only from the start of the author's own post (quotes ignored).
+- A bankroll session is no longer dropped after API outages: 429/5xx/network errors do not use up the retry budget, and giving up now flags the post and turns the run red.
+- `reextract` aborts before wiping anything when the API key is missing and writes nothing if extraction fails; model output is validated before it reaches the history.
+- Edited forum posts now update the stored text; a full scan removes posts deleted on the forum (capped at 50 or 1%, never Romeo's own); a page that parses to zero posts fails the run instead of stamping a fresh heartbeat.
+- Embedded videos are limited to https players from an allow-list, checked by both scraper and page.
+
 ## 1.14.1 — 2026-10-19
 
 - The deploy ignore step now builds when the last deployed commit is unknown and counts deleted or renamed files, so a code change can no longer be skipped as "data only".

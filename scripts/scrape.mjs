@@ -5,13 +5,16 @@
  *
  * Modes (set via SCRAPE_MODE env var or --mode):
  *   "normal"    — scan last 5 pages: add new posts + update likes on recent posts (default, every 30 min)
- *   "full"      — scan ALL pages: update likes on every post (every 6 hours)
- *   "reextract" — re-extract BR data from ALL Romeo posts with images (clears brHistory, reprocesses everything)
+ *   "full"      — scan ALL pages: update likes/text on every post and drop posts the forum
+ *                 no longer lists (capped, see --prune-force; Romeo's own posts are never dropped)
+ *   "reextract" — re-extract BR data from ALL Romeo posts with images and replace brHistory
+ *                 (needs ANTHROPIC_API_KEY; writes nothing unless every post succeeded)
  *   "translate" — fill en/es translations on all Romeo posts that are missing them (backfill)
  *
  * Safety flags:
  *   --dry-run / SCRAPE_DRY_RUN=1 — fetch + parse, but do not write files or run git
  *   --no-push / SCRAPE_NO_PUSH=1 — write local files, but skip git pull / commit / push
+ *   --prune-force / SCRAPE_PRUNE_FORCE=1 — full mode only: lift the cap (min(50, 1%) posts per run) on removals
  *
  * Also: if Romeo posted images → sends to Claude API (vision) to extract BR data.
  * Also: Romeo posts get machine-translated to en/es (Haiku) on normal runs
@@ -23,13 +26,17 @@ import { execSync, execFileSync } from 'child_process'
 import { createHash } from 'crypto'
 import * as cheerio from 'cheerio'
 import { computeMarathonDay, extractMarathonDay } from './lib/marathon-integrity.mjs'
+import { ROMEO_AUTHOR_RE } from './lib/romeo-identity.mjs'
+import { isSafeEmbedUrl } from './lib/embed-url.mjs'
+import { isPostSpecificApiError, validateBrExtraction } from './lib/br-extraction.mjs'
+import { planPrune, pruneLimit } from './lib/prune.mjs'
 import { needsTranslation, translatePost } from './lib/translation.mjs'
 import { parseScrapeOptions } from './lib/scrape-options.mjs'
 
 const FORUM_URL = 'https://forum.gipsyteam.ru/index.php?viewtopic=181676'
-const ROMEO_RE  = /romeopro/i
+const ROMEO_RE  = ROMEO_AUTHOR_RE   // exact account match, shared with the client
 const DELAY_MS  = 500        // polite delay between page fetches
-const { mode: MODE, dryRun: DRY_RUN, noPush: NO_PUSH } = parseScrapeOptions(process.argv.slice(2), process.env)
+const { mode: MODE, dryRun: DRY_RUN, noPush: NO_PUSH, pruneForce: PRUNE_FORCE } = parseScrapeOptions(process.argv.slice(2), process.env)
 
 // ─── UTILS ───────────────────────────────────────────────────────────────────
 
@@ -88,6 +95,11 @@ async function persistScrapeOutputs({
 }
 
 function sleep(ms) { return new Promise(r => setTimeout(r, ms)) }
+
+// Log-friendly id list: everything for short lists, first `max` plus a count otherwise.
+function idList(ids, max = 100) {
+  return ids.length <= max ? ids.join(', ') : `${ids.slice(0, max).join(', ')} … (+${ids.length - max} more)`
+}
 
 function htmlToText($el, $) {
   let html = $.html($el)
@@ -186,7 +198,11 @@ function parsePosts(html) {
     bodyEl.find('figure.media iframe, figure iframe').each(function () {
       if ($(this).closest('blockquote').length) return
       const src = $(this).attr('src')
-      if (src) videos.push(src)
+      if (!src) return
+      // Only https embeds from known player hosts are kept; javascript:/data:/
+      // http:/unknown hosts never reach the dataset (the client re-checks).
+      if (isSafeEmbedUrl(src)) videos.push(src)
+      else console.log(`  ⚠ dropped embed with a non-allow-listed src (${String(src).slice(0, 60)}) in post ${postId}`)
     })
 
     let text = htmlToText(bodyEl, $)
@@ -256,7 +272,17 @@ function findLastSt(html) {
 
 // ─── LIKES UPDATE ────────────────────────────────────────────────────────────
 
-function updateLikes(existingPosts, scrapedPosts) {
+// A scraped body shorter than half of a stored body (100+ chars) is treated as a
+// degraded page (stub, partial render, block text), not as an edit: the stored
+// text stays and the id is reported. Real edits and parser improvements
+// lengthen or barely change a body.
+const TEXT_SHRINK_MIN_STORED = 100
+const TEXT_SHRINK_RATIO = 0.5
+
+// Returns the number of posts whose likes changed. Ids of posts whose BODY was
+// refreshed / refused as a suspicious shrink are pushed to `text.edited` /
+// `text.shrunk` when given.
+function updateLikes(existingPosts, scrapedPosts, text = { edited: [], shrunk: [] }) {
   const scrapedById = new Map(scrapedPosts.map(p => [p.id, p]))
   let updated = 0
 
@@ -278,9 +304,20 @@ function updateLikes(existingPosts, scrapedPosts) {
     // Sync videos (added by scraper fix — backfill on existing posts)
     if (scraped.videos && JSON.stringify(scraped.videos) !== JSON.stringify(post.videos || [])) {
       post.videos = scraped.videos
-      // Re-import text too so [VIDEO] markers appear in posts that were
-      // scraped before figure handling existed.
-      if (scraped.text && scraped.text !== post.text) post.text = scraped.text
+    }
+    // Sync the body: forum edits and parser improvements used to be ignored
+    // after the first import (text was refreshed only as a side effect of a
+    // videos change). An empty scrape never replaces a stored body. A changed
+    // body changes the translation signature, so needsTranslation re-queues
+    // exactly the Romeo posts whose text moved.
+    if (scraped.text && scraped.text !== post.text) {
+      const stored = post.text || ''
+      if (stored.length >= TEXT_SHRINK_MIN_STORED && scraped.text.length < stored.length * TEXT_SHRINK_RATIO) {
+        text.shrunk.push(post.id)
+      } else {
+        post.text = scraped.text
+        text.edited.push(post.id)
+      }
     }
     // Update date to absolute form
     if (scraped.date && scraped.date !== post.date) {
@@ -297,20 +334,30 @@ function updateLikes(existingPosts, scrapedPosts) {
 
 // ─── CLAUDE VISION (BR extraction) ──────────────────────────────────────────
 
-// Sentinel returned by extractBrFromImages when extraction failed for a
-// transient/recoverable reason (API error, empty response, bad JSON). The post
-// should be retried on a later run rather than permanently marked brChecked.
-// A plain `null` return means "definitively no BR data in these images".
+// extractBrFromImages results besides real data:
+//   null                  "definitively no BR data in these images" (model said skip)
+//   BR_EXTRACT_RETRY      the model ANSWERED but the answer is unusable (not JSON,
+//                         fails validation) or the request itself is bad for this
+//                         post (400/413 about the images). Counts against the
+//                         post's attempt budget.
+//   BR_EXTRACT_TRANSIENT  no verdict about the post: missing key, network error,
+//                         429/5xx/529, 401/402/403/404, low credit. Never counts
+//                         against the budget - an API outage must not use up the
+//                         attempts of a good screenshot.
 const BR_EXTRACT_RETRY = Symbol('br-extract-retry')
-// After this many consecutive transient failures, stop retrying a post so a
-// genuinely unreadable screenshot can't trigger an unbounded API spend.
+const BR_EXTRACT_TRANSIENT = Symbol('br-extract-transient')
+// After this many unusable answers for one post, stop retrying it so a
+// genuinely unreadable screenshot can't trigger an unbounded API spend. Giving
+// up is never silent: see processPostBr (brGaveUp flag, error annotation, red run).
 const BR_MAX_ATTEMPTS = 6
+// Posts the retry budget was exhausted on during this run (reported at the end).
+const brGaveUp = []
 
 async function extractBrFromImages(post, lastBrHistory) {
   const apiKey = process.env.ANTHROPIC_API_KEY
   if (!apiKey) {
     console.log('  ⚠ ANTHROPIC_API_KEY not set, skipping BR extraction')
-    return null
+    return BR_EXTRACT_TRANSIENT
   }
 
   const brImages = post.images.filter(url =>
@@ -354,8 +401,9 @@ async function extractBrFromImages(post, lastBrHistory) {
     }))
   ]
 
+  let res
   try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'x-api-key': apiKey,
@@ -368,40 +416,48 @@ async function extractBrFromImages(post, lastBrHistory) {
         messages: [{ role: 'user', content }],
       })
     })
+  } catch (e) {
+    console.log(`  ⚠ Claude API network error: ${e.message}`)
+    return BR_EXTRACT_TRANSIENT
+  }
 
-    if (!res.ok) {
-      const err = await res.text()
-      console.log(`  ⚠ Claude API error ${res.status}: ${err.substring(0, 200)}`)
-      return BR_EXTRACT_RETRY
-    }
+  if (!res.ok) {
+    const err = await res.text().catch(() => '')
+    console.log(`  ⚠ Claude API error ${res.status}: ${err.substring(0, 200)}`)
+    return isPostSpecificApiError(res.status, err) ? BR_EXTRACT_RETRY : BR_EXTRACT_TRANSIENT
+  }
 
-    const data = await res.json()
-    const text = data.content?.[0]?.text?.trim()
-    if (!text) return BR_EXTRACT_RETRY
+  let data
+  try {
+    data = await res.json()
+  } catch (e) {
+    console.log(`  ⚠ Claude API response was not JSON: ${e.message}`)
+    return BR_EXTRACT_TRANSIENT
+  }
 
-    const jsonStr = text.replace(/^```json\n?/, '').replace(/\n?```$/, '')
-    const parsed = JSON.parse(jsonStr)
-    if (parsed.skip) return null
+  const text = data?.content?.[0]?.text?.trim()
+  if (!text) {
+    console.log('  ⚠ Claude API answer had no text')
+    return BR_EXTRACT_RETRY
+  }
 
-    const parseRooms = (r) => ({
-      gg: r?.gg ?? 0, ps: r?.ps ?? 0, king: r?.king ?? 0, coin: r?.coin ?? 0, lux: r?.lux ?? 0,
-    })
-
-    return {
-      brBefore: parsed.brBefore,
-      brAfter: parsed.brAfter,
-      sessionResult: parsed.brAfter - parsed.brBefore,
-      rooms: {
-        before: parseRooms(parsed.roomsBefore),
-        after: parseRooms(parsed.roomsAfter),
-      },
-      tournaments: parsed.tournaments || null,
-      totalTournaments: parsed.totalTournaments || null,
-    }
+  let parsed
+  try {
+    parsed = JSON.parse(text.replace(/^```json\n?/, '').replace(/\n?```$/, ''))
   } catch (e) {
     console.log(`  ⚠ Claude API parse error: ${e.message}`)
     return BR_EXTRACT_RETRY
   }
+  if (parsed && typeof parsed === 'object' && parsed.skip) return null
+
+  // The model's numbers become the headline bankroll: nothing is trusted until
+  // types, ranges and the chain with neighbouring sessions check out.
+  const checked = validateBrExtraction(parsed, { history: lastBrHistory, timestamp: post.timestamp })
+  if (!checked.ok) {
+    console.log(`  ⚠ Claude API answer rejected: ${checked.reason}`)
+    return BR_EXTRACT_RETRY
+  }
+  return checked.value
 }
 
 // ─── COMPACT WRITER ─────────────────────────────────────────────────────────
@@ -463,7 +519,7 @@ async function main() {
   }
 
   // Load existing data
-  const posts = JSON.parse(await readFile('data/posts.json', 'utf-8'))
+  let posts = JSON.parse(await readFile('data/posts.json', 'utf-8'))
   const meta = JSON.parse(await readFile('data/meta.json', 'utf-8'))
   const knownIds = new Set(posts.map(p => p.id))
   console.log(`📊 Existing: ${posts.length} posts, ${meta.brHistory.length} BR entries`)
@@ -496,21 +552,18 @@ async function main() {
     return
   }
 
-  // Reextract mode: clear brHistory and re-process all Romeo posts with images
+  // Reextract mode: rebuild brHistory from every Romeo post with images.
+  // Destructive by nature, so: it refuses to start without an API key, builds
+  // the new history on the side, and touches posts/meta/files ONLY after every
+  // post resolved. Any failure (API trouble, unreadable answer) aborts with
+  // nothing written - the old code wiped history up front and published the
+  // wipe (bankroll $10,000, empty chart) when the key was missing or the API
+  // failed.
   if (isReextract) {
-    console.log('🔄 Clearing brHistory and re-extracting all BR data...')
-    meta.brHistory = []
-    meta.bankroll = 10000
-    meta.totalTournaments = 0
-
-    // Clear BR fields on all posts
-    for (const p of posts) {
-      p.brBefore = null
-      p.brAfter = null
-      p.sessionResult = null
-      p.rooms = null
-      p.brChecked = false
+    if (!process.env.ANTHROPIC_API_KEY) {
+      throw new Error('reextract needs ANTHROPIC_API_KEY - refusing to start, nothing was changed')
     }
+    console.log('🔄 Re-extracting all BR data (nothing is written until every post succeeded)...')
 
     // Get all Romeo posts with images, sorted by timestamp
     const romeoPosts = posts.filter(p =>
@@ -518,27 +571,21 @@ async function main() {
     ).sort((a, b) => a.timestamp - b.timestamp)
 
     console.log(`🎰 Processing ${romeoPosts.length} Romeo posts with images...`)
+    const newHistory = []
+    const extracted = new Map()   // post id -> BR data, or null for "no BR data"
     for (const p of romeoPosts) {
       console.log(`🎰 [reextract] Romeo post ${p.id} (${p.date}) — ${p.images.length} images...`)
-      const brData = await extractBrFromImages(p, meta.brHistory)
-      if (brData === BR_EXTRACT_RETRY) {
-        // Transient failure during full re-extract: leave for a later run, do
-        // not poison the post with a permanent brChecked flag.
-        console.log(`  ↻ BR extraction failed for ${p.id} — leaving unchecked for retry`)
-        continue
+      const brData = await extractBrFromImages(p, newHistory)
+      if (brData === BR_EXTRACT_RETRY || brData === BR_EXTRACT_TRANSIENT) {
+        throw new Error(`reextract aborted at post ${p.id}: BR extraction failed - nothing was written`)
       }
+      extracted.set(p.id, brData)
       if (!brData) {
         console.log('  ℹ No BR data — marking as checked')
-        p.brChecked = true
         continue
       }
 
-      p.brBefore = brData.brBefore
-      p.brAfter = brData.brAfter
-      p.sessionResult = brData.sessionResult
-      p.rooms = brData.rooms
-
-      meta.brHistory.push({
+      newHistory.push({
         id: p.id,
         date: p.date,
         timestamp: p.timestamp,
@@ -550,15 +597,42 @@ async function main() {
         tournaments: brData.tournaments,
         ...(brData.totalTournaments != null ? { totalTournaments: brData.totalTournaments } : {})
       })
-
-      meta.bankroll = brData.brAfter
-      if (brData.totalTournaments != null) {
-        meta.totalTournaments = brData.totalTournaments
-      }
-      meta.lastUpdated = new Date().toISOString()
-
       console.log(`  ✅ BR: $${brData.brBefore} → $${brData.brAfter} (${brData.sessionResult >= 0 ? '+' : ''}${brData.sessionResult})`)
     }
+
+    if (newHistory.length === 0) {
+      throw new Error('reextract aborted: no BR data extracted from any post - refusing to publish an empty history')
+    }
+    if (newHistory.length < meta.brHistory.length) {
+      console.log(`⚠ reextract produced ${newHistory.length} BR entries, the previous history had ${meta.brHistory.length}`)
+    }
+
+    // Every post resolved: now (and only now) replace the stored BR state.
+    for (const p of posts) {
+      p.brBefore = null
+      p.brAfter = null
+      p.sessionResult = null
+      p.rooms = null
+      p.brChecked = false
+      delete p.brAttempts
+      delete p.brGaveUp
+    }
+    for (const p of romeoPosts) {
+      const brData = extracted.get(p.id)
+      if (!brData) {
+        p.brChecked = true
+        continue
+      }
+      p.brBefore = brData.brBefore
+      p.brAfter = brData.brAfter
+      p.sessionResult = brData.sessionResult
+      p.rooms = brData.rooms
+    }
+    meta.brHistory = newHistory
+    const lastBr = newHistory[newHistory.length - 1]
+    meta.bankroll = lastBr.brAfter
+    meta.totalTournaments = [...newHistory].reverse().find(h => h.totalTournaments != null)?.totalTournaments ?? 0
+    meta.lastUpdated = new Date().toISOString()
 
     const msg = `scraper: reextract ${meta.brHistory.length} BR entries, BR → $${meta.bankroll} (total ${posts.length})`
     await persistScrapeOutputs({
@@ -576,8 +650,9 @@ async function main() {
   const firstPageHtml = await fetchPage(firstPageUrl)
   const lastSt = findLastSt(firstPageHtml)
   if (!lastSt) {
-    console.log('⚠ Could not find last page')
-    return
+    // No pager means this is not the thread page (markup change, block or
+    // maintenance page). A quiet exit 0 looked like a healthy run.
+    throw new Error('Could not find the last page (pager missing) - forum markup changed or request blocked; nothing was written')
   }
 
   // Build list of pages to scan
@@ -600,13 +675,27 @@ async function main() {
   // Scrape pages
   const allScraped = []
   const newPosts = []
+  let pagesFetched = 0
   for (let i = 0; i < pagesToScan.length; i++) {
     const url = pagesToScan[i]
     if (i % 20 === 0 || !isFullScan) console.log(`📄 Page ${i + 1}/${pagesToScan.length}: ${url}`)
     // Reuse already-fetched first page
     const html = (url === firstPageUrl) ? firstPageHtml : await fetchPage(url)
     const pagePosts = parsePosts(html)
+    if (pagePosts.length === 0) {
+      // Every page of this thread holds posts. Zero parsed posts means the
+      // markup changed or we were served a block page: fail the run before
+      // anything (including the lastScrapeRun heartbeat) is written. The only
+      // exception is the newest page, which can hold nothing but hidden posts;
+      // if the markup is really broken the next (older) page fails the run.
+      const pageSt = Number(url.match(/[?&]st=(\d+)/)?.[1] || 0)
+      if (pageSt !== lastSt) {
+        throw new Error(`Parsed 0 posts from ${url} - forum markup changed or request blocked; nothing was written`)
+      }
+      console.log(`  ⚠ newest page ${url} has no visible posts, continuing`)
+    }
     allScraped.push(...pagePosts)
+    pagesFetched++
 
     let pageHasNew = false
     for (const p of pagePosts) {
@@ -625,15 +714,54 @@ async function main() {
     if (url !== firstPageUrl) await sleep(DELAY_MS)
   }
 
-  // Update likes on existing posts
-  const likesUpdated = updateLikes(posts, allScraped)
+  // Update likes (and edited text) on existing posts
+  const textChanges = { edited: [], shrunk: [] }
+  const likesUpdated = updateLikes(posts, allScraped, textChanges)
+  const textEdited = textChanges.edited
   if (likesUpdated > 0) {
     console.log(`👍 Likes: ${likesUpdated} posts updated`)
+  }
+  if (textEdited.length > 0) {
+    console.log(`✏ Text: ${textEdited.length} posts refreshed from the forum`)
+  }
+  if (textChanges.shrunk.length > 0) {
+    console.log(`::warning::Text refresh skipped for ${textChanges.shrunk.length} post(s) whose forum body is less than half of the stored one (degraded page?): ${idList(textChanges.shrunk, 20)}`)
+  }
+
+  // Reconcile deletions - full scans only, and only when EVERY page was
+  // fetched and parsed (a failed page throws above, so reaching this point
+  // means a complete scan). Romeo's own posts are never auto-removed: they feed
+  // brHistory and the day counter. Removal is capped (see pruneLimit) unless
+  // --prune-force is given.
+  const pruned = []
+  if (isFullScan && pagesFetched === pagesToScan.length) {
+    const plan = planPrune({
+      posts,
+      scrapedIds: new Set(allScraped.map(p => p.id)),
+      isKept: p => ROMEO_RE.test(p.author),
+    })
+    if (plan.kept.length > 0) {
+      console.log(`ℹ ${plan.kept.length} Romeo post(s) no longer listed on the forum are kept: ${idList(plan.kept)}`)
+    }
+    if (plan.missing.length > 0) {
+      const limit = pruneLimit(posts.length)
+      if (plan.missing.length > limit && !PRUNE_FORCE) {
+        console.log(`::warning::Prune refused: ${plan.missing.length} stored posts are not on the forum, more than the safe limit of ${limit} per run. Re-run with --prune-force if this is real. ids: ${idList(plan.missing)}`)
+      } else {
+        const drop = new Set(plan.missing)
+        posts = posts.filter(p => !drop.has(p.id))
+        pruned.push(...plan.missing)
+        console.log(`🗑 Removed ${pruned.length} post(s) the forum no longer lists: ${idList(pruned)}`)
+      }
+    }
   }
 
   if (newPosts.length > 0) {
     console.log(`🆕 Found ${newPosts.length} new posts`)
   }
+
+  // Retry bookkeeping that must be committed even when nothing else changed.
+  let brStateChanged = false
 
   // Helper: run BR extraction for a post and update meta
   async function processPostBr(p, label) {
@@ -643,14 +771,26 @@ async function main() {
     }
     console.log(`🎰 ${label} Romeo post ${p.id} has ${p.images.length} images — analyzing...`)
     const brData = await extractBrFromImages(p, meta.brHistory)
+    if (brData === BR_EXTRACT_TRANSIENT) {
+      // API/network/account trouble says nothing about this post: no attempt is
+      // spent, the post simply stays eligible for the next run.
+      console.log(`  ↻ BR extraction postponed for ${p.id} (API/network problem) — will retry next run`)
+      return false
+    }
     if (brData === BR_EXTRACT_RETRY) {
-      // Transient failure (API error / empty / bad JSON). Leave the post
-      // eligible for retry instead of permanently marking it brChecked, but
-      // bound retries so a genuinely unreadable image can't hammer the API.
+      // The model answered but the answer is unusable (not JSON, failed
+      // validation) or the request is bad for this post. Bounded, so a
+      // genuinely unreadable image can't hammer the API.
       p.brAttempts = (p.brAttempts || 0) + 1
+      brStateChanged = true
       if (p.brAttempts >= BR_MAX_ATTEMPTS) {
-        console.log(`  ⚠ BR extraction failed ${p.brAttempts}× for ${p.id} — giving up, marking as checked`)
+        // Stop retrying, but never silently: the post carries brGaveUp, the log
+        // gets an error annotation and the run finishes red (see the end of
+        // main). Recovery: delete brChecked/brGaveUp/brAttempts on the post.
         p.brChecked = true
+        p.brGaveUp = new Date().toISOString()
+        brGaveUp.push(p.id)
+        console.log(`::error::BR extraction gave up on post ${p.id} after ${p.brAttempts} unusable answers - its session is NOT in the bankroll history`)
       } else {
         console.log(`  ↻ BR extraction failed (attempt ${p.brAttempts}/${BR_MAX_ATTEMPTS}) for ${p.id} — will retry next run`)
       }
@@ -794,6 +934,7 @@ async function main() {
   // Check if anything changed
   const hasRetries = retryPosts.length > 0 && metaUpdated
   const hasRealChanges = newPosts.length > 0 || likesUpdated > 0 || metaUpdated || translated > 0
+    || textEdited.length > 0 || pruned.length > 0 || brStateChanged
   const hasChanges = hasRealChanges || heartbeatDue
   if (!hasChanges) {
     console.log('✅ No changes')
@@ -819,6 +960,9 @@ async function main() {
   const parts = []
   if (newPosts.length > 0) parts.push(`+${newPosts.length} posts`)
   if (likesUpdated > 0) parts.push(`likes: ${likesUpdated} updated`)
+  if (textEdited.length > 0) parts.push(`text: ${textEdited.length} refreshed`)
+  if (pruned.length > 0) parts.push(`-${pruned.length} removed`)
+  if (brStateChanged && !metaUpdated) parts.push('BR retry state')
   if (hasRetries) parts.push(`retried ${retryPosts.length} BR`)
   if (metaUpdated) parts.push(`BR → $${meta.bankroll}`)
   if (translated > 0) parts.push(`translated ${translated}`)
@@ -864,7 +1008,16 @@ async function notifyFailure(error) {
   }
 }
 
-main().catch(async e => {
+main().then(async () => {
+  // Persisting already happened; the red run is the visible alarm for a BR post
+  // the scraper had to give up on.
+  if (brGaveUp.length > 0) {
+    const e = new Error(`BR extraction gave up on post(s) ${brGaveUp.join(', ')} - flagged brGaveUp in data/posts.json`)
+    console.error('❌', e.message)
+    await notifyFailure(e)
+    process.exitCode = 1
+  }
+}).catch(async e => {
   console.error('❌ Fatal:', e.message)
   await notifyFailure(e)
   process.exit(1)

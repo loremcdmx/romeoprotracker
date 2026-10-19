@@ -1,9 +1,6 @@
-export const ROMEO_AUTHOR_RE = /romeopro/i
+import { ROMEO_AUTHOR_RE, extractMarathonDay } from './romeo-identity.mjs'
 
-export function extractMarathonDay(text) {
-  const match = String(text || '').match(/(?:[Дд]ень|[Dd]ay)\s*#?\s*(\d+)/i)
-  return match ? Number(match[1]) : null
-}
+export { ROMEO_AUTHOR_RE, extractMarathonDay }
 
 export function latestRomeoDay(posts = []) {
   const romeoPosts = posts

@@ -1,3 +1,5 @@
+import { ROMEO_AUTHOR_RE, extractMarathonDay } from '../scripts/lib/romeo-identity.mjs'
+
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
 // Russian plural picker. Usage: plural(n, ['сессия','сессии','сессий']).
 // Returns the correct form for n: 1 → [0], 2-4 → [1], 0/5+/11-14 → [2].
@@ -133,9 +135,10 @@ export function fmtDateTimeLang(timestamp, lang = 'ru') {
   return `${p.day} ${months[p.month - 1]}, ${p.hour}:${p.minute}`
 }
 
+// Report header only ("Day 187:" / "День #5"), quotes ignored - one definition
+// shared with the scraper, see scripts/lib/romeo-identity.mjs.
 export function extractDay(text) {
-  const m = text?.match(/(?:[Дд]ень|[Dd]ay)\s*#?\s*(\d+)/i)
-  return m ? parseInt(m[1]) : null
+  return extractMarathonDay(text)
 }
 
 export function extractBR(text) {
@@ -159,7 +162,8 @@ export const fk = (n, withSign = true) => {
   return a >= 1000 ? s + (a / 1000).toFixed(1) + 'k$' : s + a + '$'
 }
 
-export const ROMEO_RE = /romeopro/i
+// The exact marathon account, not "any nick containing romeopro".
+export const ROMEO_RE = ROMEO_AUTHOR_RE
 
 export const autoCloseQuotes = t => {
   const open  = (t.match(/\[QUOTE\]/gi)||[]).length
