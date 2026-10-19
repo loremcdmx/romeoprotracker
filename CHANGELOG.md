@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 1.14.5 — 2026-10-19
+
+- Ignored authors are hidden everywhere the same way: feed, chart hover tooltip, expanded day lists and top-author picks; matching ignores case and surrounding spaces.
+- Rows in the expanded day list on desktop now open the post (switching feed page); a post hidden by your filters opens on the forum instead of doing nothing.
+
 ## 1.14.4 — 2026-10-19
 
 - Feed: a search or filter that leaves 21-40 results opens page 1 (it used to jump to page 2); starring or ignoring a post keeps your page.

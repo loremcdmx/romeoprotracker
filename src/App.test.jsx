@@ -1,9 +1,10 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import App from './App.jsx'
 import * as responsive from './hooks/useIsMobile.js'
 import { translate } from './i18n.js'
 import { fetchPublicData } from './storage.js'
+import { warsawDayKey } from './utils.js'
 
 vi.mock('./storage.js', () => ({
   fetchPublicData: vi.fn(),
@@ -2190,6 +2191,153 @@ describe('App', () => {
         .map((st) => st.getAttribute('stop-color') || st.getAttribute('stopColor'))
       expect(stopColors.some((c) => c === '#2e8b3a' || c === '#c8362e')).toBe(true)
       expect(stopColors).not.toContain('#76d982')
+    })
+  })
+
+  describe('activity day events and ignored authors', () => {
+    const now = Math.floor(Date.now() / 1000)
+    const mkPost = (id, author, over = {}) => ({
+      id, author, text: `text of ${id}`, likes: 10, timestamp: now - 3600, date: 'x', avatar: null,
+      rating: 1000, msgCount: 10, regData: '2021', images: [], url: `https://forum.gipsyteam.ru/${id}`, ...over,
+    })
+    const mount = async (posts) => {
+      fetchPublicData.mockResolvedValue({ ...makeMockData(), posts })
+      render(<App />)
+      await screen.findByTestId('pace-widget')
+    }
+    const barFor = (ts) => [...document.querySelectorAll('[role="button"][aria-label]')]
+      .find((bar) => bar.getAttribute('aria-label').startsWith(`${warsawDayKey(ts)}:`))
+    const activePage = () => document.querySelector('.pagination .page-btn.active')?.textContent
+    const openDay = (ts) => fireEvent.click(barFor(ts))
+    const hoverDay = async (ts) => {
+      fireEvent.mouseEnter(barFor(ts))
+      await waitFor(() => expect(document.querySelector('.chart-tooltip')).toBeTruthy())
+      return document.querySelector('.chart-tooltip')
+    }
+    // a Romeo report ten days back that sits on feed page 3 behind 40 newer posts
+    const oldDay = now - 10 * 86400
+    const fillers = Array.from({ length: 40 }, (_, i) => mkPost(`filler-${i}`, `Filler${i}`, { timestamp: now - i * 60 }))
+
+    beforeEach(() => {
+      vi.spyOn(window, 'scrollTo').mockImplementation(() => {})
+    })
+    afterEach(() => {
+      vi.restoreAllMocks()
+    })
+
+    it('expanded day rows navigate to the post and switch the feed page like mobile does', async () => {
+      await mount([...fillers, mkPost('romeo-old', 'Romeopro', { timestamp: oldDay, likes: 50, text: 'Old Romeo report' })])
+      expect(activePage()).toBe('1')
+      openDay(oldDay)
+      const row = await waitFor(() => {
+        const el = document.querySelector('.chart-wrap .day-events .day-event-clickable')
+        expect(el).toBeTruthy()
+        return el
+      })
+      fireEvent.click(row)
+      await waitFor(() => expect(activePage()).toBe('3'))
+      await waitFor(() => expect(document.getElementById('post-romeo-old')).toHaveClass('post-highlight'))
+    })
+
+    it('opens the forum post when a tooltip row points at a post the feed filters hide', async () => {
+      const open = vi.spyOn(window, 'open').mockImplementation(() => null)
+      // 1 like < default minimum of 3, so the feed does not list it
+      await mount([...fillers, mkPost('romeo-low', 'Romeopro', { timestamp: oldDay, likes: 1, text: 'Quiet Romeo note' })])
+      expect(document.getElementById('post-romeo-low')).toBeNull()
+      const tip = await hoverDay(oldDay)
+      fireEvent.click(tip.querySelector('.day-event-clickable'))
+      expect(open).toHaveBeenCalledWith('https://forum.gipsyteam.ru/romeo-low', '_blank', 'noopener')
+      expect(activePage()).toBe('1')
+    })
+
+    it('does the same from the expanded day list', async () => {
+      const open = vi.spyOn(window, 'open').mockImplementation(() => null)
+      await mount([...fillers, mkPost('romeo-low', 'Romeopro', { timestamp: oldDay, likes: 1, text: 'Quiet Romeo note' })])
+      openDay(oldDay)
+      const row = await waitFor(() => {
+        const el = document.querySelector('.chart-wrap .day-events .day-event-clickable')
+        expect(el).toBeTruthy()
+        return el
+      })
+      fireEvent.click(row)
+      expect(open).toHaveBeenCalledWith('https://forum.gipsyteam.ru/romeo-low', '_blank', 'noopener')
+    })
+
+    describe('ignored authors', () => {
+      const secret = 'SECRET-TROLL-TEXT you are all wrong'
+      const dayPosts = () => [
+        mkPost('d-romeo', 'Romeopro', { likes: 80, rating: 25707, text: 'Daily update' }),
+        mkPost('d-troll', 'Troll', { likes: 30, rating: 30000, text: secret }),
+        mkPost('d-nice', 'NiceGuy', { likes: 12, rating: 20000, text: 'nice message' }),
+      ]
+
+      it('keeps an ignored author out of the hover tooltip and the expanded day list', async () => {
+        localStorage.setItem('rpt_ignored', JSON.stringify(['Troll']))
+        await mount(dayPosts())
+        const tip = await hoverDay(now - 3600)
+        expect(tip.textContent).toContain('NiceGuy')
+        expect(tip.textContent).not.toContain('Troll')
+        expect(tip.textContent).not.toContain('SECRET-TROLL-TEXT')
+        fireEvent.click(barFor(now - 3600))
+        await waitFor(() => expect(document.querySelector('.chart-wrap .day-events')).toBeTruthy())
+        expect(document.querySelector('.chart-wrap .day-events').textContent).not.toContain('SECRET-TROLL-TEXT')
+        // the day's own post list keeps its stub, never the ignored body
+        expect(document.body.textContent).not.toContain('SECRET-TROLL-TEXT')
+      })
+
+      it('applies the same rule on the mobile day view', async () => {
+        vi.spyOn(responsive, 'useIsMobile').mockReturnValue(true)
+        localStorage.setItem('rpt_ignored', JSON.stringify(['Troll']))
+        await mount(dayPosts())
+        fireEvent.click(barFor(now - 3600))
+        await waitFor(() => expect(document.querySelector('.chart-wrap .day-events')).toBeTruthy())
+        expect(document.body.textContent).not.toContain('SECRET-TROLL-TEXT')
+        expect(document.querySelector('.chart-wrap .day-events').textContent).toContain('NiceGuy')
+      })
+
+      it('refreshes the tooltip as soon as an author is ignored', async () => {
+        await mount(dayPosts())
+        const before = await hoverDay(now - 3600)
+        expect(before.textContent).toContain('NiceGuy')
+        fireEvent.mouseLeave(document.querySelector('.chart-svg'))
+        fireEvent.click(within(findPostCardByAuthor('NiceGuy')).getByTitle(translate('ru', 'pc_ignore')))
+        await waitFor(() => expect(findPostCardByAuthor('NiceGuy')).toBeNull())
+        // let the previous tooltip close, then open it again for the same day
+        await waitFor(() => expect(document.querySelector('.chart-tooltip')).toBeNull(), { timeout: 2000 })
+        const after = await hoverDay(now - 3600)
+        expect(after.textContent).not.toContain('NiceGuy')
+        expect(after.textContent).not.toContain('nice message')
+      })
+
+      it('matches a manually added name regardless of case and surrounding spaces', async () => {
+        await mount(dayPosts())
+        fireEvent.click(screen.getAllByText(translate('ru', 'tab_settings'))[0])
+        fireEvent.change(screen.getByPlaceholderText(translate('ru', 'settings_add_author')), {
+          target: { value: '  TROLL ' },
+        })
+        fireEvent.click(screen.getByRole('button', { name: translate('ru', 'settings_add_btn') }))
+        // shown as typed (trimmed), hides nothing extra and adds no duplicate
+        expect(document.querySelector('.ignore-list').textContent).toContain('TROLL')
+        expect(JSON.parse(localStorage.getItem('rpt_ignored'))).toEqual(['TROLL'])
+        fireEvent.click(screen.getAllByText(translate('ru', 'tab_feed'))[0])
+        await screen.findAllByText('NiceGuy')
+        expect(findPostCardByAuthor('Troll')).toBeNull()
+        expect(document.body.textContent).not.toContain('SECRET-TROLL-TEXT')
+        expect(findPostCardByAuthor('NiceGuy')).not.toBeNull()
+      })
+
+      it('honours an existing stored list whatever its casing, and restores every spelling', async () => {
+        localStorage.setItem('rpt_ignored', JSON.stringify(['troll']))
+        await mount(dayPosts())
+        expect(findPostCardByAuthor('Troll')).toBeNull()
+        expect(document.body.textContent).not.toContain('SECRET-TROLL-TEXT')
+        // the stub in the day list offers "restore" with the post's own spelling
+        fireEvent.click(barFor(now - 3600))
+        const restore = await screen.findByRole('button', { name: translate('ru', 'pc_unignore') })
+        fireEvent.click(restore)
+        await waitFor(() => expect(findPostCardByAuthor('Troll')).not.toBeNull())
+        expect(JSON.parse(localStorage.getItem('rpt_ignored'))).toEqual([])
+      })
     })
   })
 })
