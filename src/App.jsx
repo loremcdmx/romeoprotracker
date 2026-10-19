@@ -50,6 +50,9 @@ const MARATHON_TARGET = 10_000_000
 const PACE_PERIOD_SECONDS = { week:7 * 86400, month:30 * 86400 }
 const PACE_BIN_SIZE = 2000
 const PACE_BIN_OPTIONS = [1000, 2000, 5000, 10000]
+// One marathon session never comes near this many MTT; a larger per-report value
+// (1e9, Infinity from "1e999" in the JSON) is a mis-read and counts as "no data".
+const MAX_SESSION_MTT = 100_000
 
 function parsePaceBinSize(value) {
   const parsed = Number(value)
@@ -117,7 +120,14 @@ function previousTrustedTotal(totals, idx) {
 // are only trusted when no cumulative context exists. A total that disagrees
 // with its neighbours (decreasing, non-finite) counts as "no cumulative on this
 // row", so one mis-read value cannot become the baseline of the next delta.
+// A count that is not finite, not positive or above MAX_SESSION_MTT is "no data"
+// (0): it can neither freeze the pace split nor drown the rate.
 function historySessionTournaments(row, sorted, idx) {
+  const count = reportedSessionTournaments(row, sorted, idx)
+  return Number.isFinite(count) && count > 0 && count <= MAX_SESSION_MTT ? count : 0
+}
+
+function reportedSessionTournaments(row, sorted, idx) {
   const totals = trustedCumulativeTotals(sorted)
   const total = totals[idx] || 0
   const prevTotal = previousTrustedTotal(totals, idx)
@@ -158,7 +168,11 @@ function averageSessionMtt(rows) {
   return rows.length ? rows.reduce((sum, r) => sum + r.mtt, 0) / rows.length : null
 }
 
-function buildPaceSegments(sorted, predicate, startBR, binSize = PACE_BIN_SIZE) {
+export function buildPaceSegments(sorted, predicate, startBR, binSize = PACE_BIN_SIZE) {
+  if (!(binSize >= 1) || !Number.isFinite(binSize)) binSize = PACE_BIN_SIZE
+  // A session of at most MAX_SESSION_MTT crosses at most this many bin edges,
+  // so the split below ends however hostile the row (and however it got here).
+  const maxSplitSteps = Math.ceil(MAX_SESSION_MTT / binSize) + 2
   const segments = []
   let active = { profit:0, tournaments:0 }
 
@@ -188,7 +202,7 @@ function buildPaceSegments(sorted, predicate, startBR, binSize = PACE_BIN_SIZE) 
 
     // Reports are session-level, so split session profit proportionally when it crosses a bin.
     let left = tournaments
-    while (left > 0) {
+    for (let step = 0; left > 0 && step < maxSplitSteps; step++) {
       const room = binSize - active.tournaments
       const take = Math.min(room, left)
       active.tournaments += take
@@ -729,7 +743,7 @@ const PaceWidget = memo(function PaceWidget({ pace, period, setPeriod, binSize, 
   const mttUnit = t('sr_mtt_short')
   // Rates read "+10.5$/MTT" (singular); only counts take the plural label.
   const rateUnit = t('mtt_unit_singular')
-  const projectionUnit = n => lang === 'ru' ? plural(n, ['турнир', 'турнира', 'турниров']) : t('pace_projection_unit')
+  const projectionUnit = n => lang === 'ru' ? plural(n, ['турнир', 'турнира', 'турниров']) : n === 1 ? t('mtt_unit_singular') : t('pace_projection_unit')
   const finishTarget = pace.finishMTT || pace.bustMTT || null
   const showHistory = prevRate != null
   const showTrend = pace.trend?.endRate != null
@@ -4328,7 +4342,9 @@ export default function App() {
   }, [setIgnored])
 
   // ── ANIMATED COUNTER ─────────────────────────────────────────────────────
-  const brVal  = stats?.br || meta?.bankroll || 0
+  // A bankroll of exactly 0 is a real report, not a missing one: `||` would swap
+  // it for meta.bankroll and show that beside the profit computed from the 0.
+  const brVal  = stats?.br ?? meta?.bankroll ?? 0
   // Remember the last BR the user saw on their previous visit, so the animation
   // starts from that value (not from marathon start) and highlights only what
   // changed since then. Captured once on mount; persisted after each animation.

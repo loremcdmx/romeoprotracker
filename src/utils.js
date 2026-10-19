@@ -1,4 +1,5 @@
 import { ROMEO_AUTHOR_RE, extractMarathonDay } from '../scripts/lib/romeo-identity.mjs'
+import { isHistoryRow } from './historyGuards.js'
 
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
 // Russian plural picker. Usage: plural(n, ['сессия','сессии','сессий']).
@@ -232,7 +233,9 @@ export const fkAbs = v => {
 
 export function dedupBrHistory(hist) {
   if (!hist?.length) return hist
-  const sorted = [...hist].sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0))
+  // A null / non-object row would throw on the first property read; it is not a
+  // report, so it leaves the history here, before anything sorts or merges it.
+  const sorted = Array.from(hist).filter(isHistoryRow).sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0))
   const out = []
 
   for (const entry of sorted) {

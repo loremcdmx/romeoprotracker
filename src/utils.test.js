@@ -256,6 +256,29 @@ describe('dedupBrHistory', () => {
 
     expect(result).toHaveLength(2)
   })
+
+  it('drops null and non-object rows instead of throwing, and keeps merging the real ones', () => {
+    const rows = [
+      null,
+      { id: 'b', timestamp: 200, brBefore: 1000, brAfter: 1200, tournaments: 15 },
+      undefined, 7, 'row', true, [],
+      { id: 'a', timestamp: 100, brBefore: 1000, brAfter: 1100, tournaments: 10 },
+      { id: 'c', timestamp: 300, brBefore: 1200, brAfter: 1300 },
+    ]
+    expect(() => dedupBrHistory(rows)).not.toThrow()
+    expect(dedupBrHistory(rows).map(row => row.id)).toEqual(['b', 'c'])
+    expect(dedupBrHistory([null, 3])).toEqual([])
+    expect(rows).toHaveLength(9)
+  })
+
+  it('keeps its falsy / empty contract and never throws on a history that is not an array', () => {
+    const empty = []
+    expect(dedupBrHistory(empty)).toBe(empty)
+    expect(dedupBrHistory(undefined)).toBeUndefined()
+    expect(dedupBrHistory(null)).toBeNull()
+    expect(dedupBrHistory({ length: 3 })).toEqual([])
+    expect(dedupBrHistory('abc')).toEqual([])
+  })
 })
 
 // ─── ROMEO_RE ────────────────────────────────────────────────────────────────
