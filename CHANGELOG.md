@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 1.14.7 — 2026-10-19
+
+- Tooltips and labels stay inside the screen and their cards: the phone long-press tooltip no longer loses its date header, the "tournaments per session" tooltip no longer sticks out of the card, and the activity and top-posts popups are placed again once their images load.
+- The PEAK badge never covers a milestone plate, and the pace chart's value labels no longer collide with the axis labels.
+
 ## 1.14.6 — 2026-10-19
 
 - On phones the top bar and progress bar stay pinned while you scroll again; the "N new posts" bubble sits just below them.
