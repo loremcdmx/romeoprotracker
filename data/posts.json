@@ -172134,7 +172134,7 @@
     "date": "18 октября, 05:45",
     "timestamp": 1792295145,
     "text": "Day 187:",
-    "likes": 136,
+    "likes": 141,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_10_2026/post-6195-1792295136f9e_thumb.webp"
     ],
@@ -172298,7 +172298,7 @@
     "date": "18 октября, 17:47",
     "timestamp": 1792338459,
     "text": "[QUOTE]S19msv73M|S19msv73M @ 15.10.26\nЗаранее определить победителя в турнире или чемпионате не составляет особого труда. Самые обычнейшие кулеры (я их называю подставами) - один из таких способов.[/QUOTE]Привет, я работаю в службе поддержке покерка\n\nКак же меня бесит, что  мы в ответ на твои маты определили тебя победителем турнира, а ты зачем то сыграл 4бет кол с JQo. Там через 3 раздачи у тебя должны были быть тузы в короли в дамы на твою просьбу, но ты почему то не сыграл пас префлоп",
-    "likes": 46,
+    "likes": 47,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -172372,7 +172372,7 @@
     "date": "19 октября, 02:55",
     "timestamp": 1792371304,
     "text": "",
-    "likes": 30,
+    "likes": 36,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_10_2026/post-187091-1792371300563e.png"
     ],
@@ -172410,7 +172410,7 @@
     "date": "19 октября, 05:12",
     "timestamp": 1792379549,
     "text": "Day 188:",
-    "likes": 42,
+    "likes": 47,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_10_2026/post-6195-1792379544ce54_thumb.webp"
     ],
@@ -172446,7 +172446,7 @@
     "date": "19 октября, 05:19",
     "timestamp": 1792379976,
     "text": "Рома- машина! Ни одного второго места. Всё хэндзапы тащит, если доходит до финала. У него нет раннерапов.",
-    "likes": 1,
+    "likes": 2,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -172471,5 +172471,41 @@
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8314200"
+  },
+  {
+    "id": "8314282",
+    "author": "MVSRussia",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/6/5/6/65661.jpg",
+    "rating": 12976,
+    "msgCount": 4200,
+    "regData": "15 лет на сайте",
+    "date": "19 октября, 11:04",
+    "timestamp": 1792400699,
+    "text": "[QUOTE]markusil|markusil @ 19.10.26\nВсё хэндзапы тащит[/QUOTE]И хэндэхохи.",
+    "likes": 1,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8314282"
+  },
+  {
+    "id": "8314292",
+    "author": "Ievgenii_Potylchak",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/1/7/5/9/175926.webp",
+    "rating": 8,
+    "msgCount": 13,
+    "regData": "1 день на сайте",
+    "date": "19 октября, 11:19",
+    "timestamp": 1792401596,
+    "text": "Как математика меня в этом марафоне больше всего цепляет не профит, а 55% плюсовых сессий. Это почти монетка — и при этом +$439K с $10K. Лучшая иллюстрация того, что в MTT решает не процент плюсовых дней, а размер заносов.\n\n \n\nРоман, вопрос: при ~216 турнирах в день как вы решаете, что сессия закончена — по времени, по количеству или по состоянию?",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8314292"
   }
 ]
