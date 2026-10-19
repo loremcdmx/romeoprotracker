@@ -107,11 +107,10 @@ export function diffBase(env = process.env, exists = commitExists, fetchMissing 
     }
   }
 
-  if (exists('HEAD^')) {
-    return { base: 'HEAD^', source: 'HEAD^' }
-  }
-
-  return { base: '', source: 'no diff base' }
+  // Without VERCEL_GIT_PREVIOUS_SHA we cannot know what was last deployed.
+  // Diffing HEAD^ would judge only the tip commit, so an undeployed src/
+  // change followed by a data/docs-only commit would be skipped. Fail open.
+  return { base: '', source: 'no VERCEL_GIT_PREVIOUS_SHA (last deployed commit unknown)' }
 }
 
 export function changedFiles(env = process.env) {
@@ -120,10 +119,13 @@ export function changedFiles(env = process.env) {
     return { ok: false, files: [], source: base.source }
   }
 
+  // No --diff-filter and no rename detection: a deleted file (public asset,
+  // src module) and the old path of a renamed file must count as changes, or
+  // `git mv src/x.js docs/x.js` would look like a docs-only commit.
   const output = runGit([
     'diff',
     '--name-only',
-    '--diff-filter=ACMRTUXB',
+    '--no-renames',
     base.base,
     'HEAD',
     '--',

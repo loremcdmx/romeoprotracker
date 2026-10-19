@@ -3,6 +3,7 @@ import { fireEvent, render, screen, within } from '@testing-library/react'
 import App from './App.jsx'
 import { translate } from './i18n.js'
 import { fetchPublicData } from './storage.js'
+import { labelLeftEdge } from './test-label-bounds.js'
 
 vi.mock('./storage.js', () => ({ fetchPublicData: vi.fn() }))
 vi.mock('@vercel/analytics/react', () => ({ Analytics: () => null }))
@@ -67,7 +68,8 @@ function assertReadableAxis(chart) {
   labels.forEach(label => {
     expect(Number.isFinite(Number(label.getAttribute('x')))).toBe(true)
     expect(Number.isFinite(Number(label.getAttribute('y')))).toBe(true)
-    expect(Number(label.getAttribute('x'))).toBeGreaterThan(0)
+    // Right-aligned at x: the left edge must stay on the canvas or it is clipped.
+    expect(labelLeftEdge(label)).toBeGreaterThanOrEqual(0)
   })
   positions.forEach((position, index) => {
     expect(Number.isFinite(position)).toBe(true)

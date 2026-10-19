@@ -55,5 +55,11 @@ jobs:
       - name: Run scraper
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          # Optional failure alert (scripts/scrape.mjs notifyFailure). An unset
+          # secret arrives as an empty string, which the scraper treats as
+          # "not configured", so nothing breaks until these are filled in.
+          SCRAPE_ALERT_WEBHOOK: ${{ secrets.SCRAPE_ALERT_WEBHOOK }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
           TZ: Europe/Warsaw
         run: node scripts/scrape.mjs

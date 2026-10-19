@@ -2,6 +2,7 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import App from './App.jsx'
 import { fetchPublicData } from './storage.js'
+import { labelLeftEdge } from './test-label-bounds.js'
 
 vi.mock('./storage.js', () => ({ fetchPublicData: vi.fn() }))
 vi.mock('@vercel/analytics/react', () => ({ Analytics: () => null }))
@@ -90,9 +91,11 @@ describe('mobile chart geometry', () => {
     await screen.findByTestId('pace-widget')
 
     const svg = container.querySelector('.pace-chart')
-    const label = svg.querySelector('.pace-y-label')
-    expect(label).not.toBeNull()
-    // Y ticks are right-aligned at gridLeft - 13; keep that anchor on-canvas.
-    expect(Number(label.getAttribute('x'))).toBeGreaterThan(0)
+    const labels = [...svg.querySelectorAll('.pace-y-label')]
+    expect(labels.length).toBeGreaterThan(0)
+    // Y ticks are right-aligned at gridLeft - 13, so a label is clipped when
+    // its left edge (anchor minus text width) falls left of the canvas. An
+    // `x > 0` check cannot notice that: it holds for any positive gutter.
+    labels.forEach(label => expect(labelLeftEdge(label)).toBeGreaterThanOrEqual(0))
   })
 })

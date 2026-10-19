@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 1.14.1 — 2026-10-19
+
+- The deploy ignore step now builds when the last deployed commit is unknown and counts deleted or renamed files, so a code change can no longer be skipped as "data only".
+- `robots.txt` has real line breaks (it contained a literal `\n`).
+- The scraper workflow passes the optional alert secrets through; nothing changes until they are set.
+- New tests pin Warsaw time conversion across the 2026-10-25 DST change, the footer "today" logic and the Y-axis gutter width.
+
 ## 1.14.0 — 2026-10-04
 
 - Faster feed loading, cache reuse and chart rendering; author counts are indexed once per archive update.
