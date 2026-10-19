@@ -12,12 +12,18 @@
   --chart-line-rail:rgba(4,7,5,.78);--chart-callout-bg:rgba(25,25,25,.96);--chart-callout-stroke:rgba(255,255,255,.12);
   --chart-callout-value:#f3f3f3;--chart-callout-muted:#a6a6a6;--chart-callout-accent:#75cf70;
   --chart-callout-leader:rgba(255,255,255,.5);--chart-callout-anchor:#f1f1f1;
-  --green:#4caf50;--gold:#ffb300;--white:#f0f0f0;
+  --green:#4caf50;--green-hi:#66bb6a;--gold:#ffb300;--white:#f0f0f0;
   --focus:#ffd54f;
   --r:6px;
   --bg-popup:#1c1c1c;--border-popup:#333;
   --bg-quote:#151515;--border-quote:#2a2a2a;--text-quote:#5a5a5a;
   --bg-tag:#1e1e1e;--shadow-popup:0 8px 32px rgba(0,0,0,.9);
+  /* Sticky header stack: .topbar (z100) plus .marathon-progress, which sticks at
+     --progress-top and is --progress-h tall (measured; 104px once it stacks on
+     phones, see the <=720px block). Anything that sticks below the stack
+     (.new-posts-bubble) offsets itself by --sticky-stack-h instead of a guess. */
+  --progress-top:40px;--progress-h:70px;
+  --sticky-stack-h:calc(var(--progress-top) + var(--progress-h));
 }
 html,body,#root{min-height:100%;background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-size:12px;line-height:1.5}
 html{overflow-x:clip;color-scheme:dark}
@@ -74,7 +80,7 @@ button,select,input,summary{font:inherit}
 .hstat{background:#ffffff08;border:1px solid var(--border);border-radius:5px;padding:10px;text-align:center}
 .hstat-label{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px}
 .hstat-value{font-size:22px;font-weight:700;color:var(--white);font-family:'Roboto Mono',ui-monospace,monospace;line-height:1.2;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
-.hstat-value.green{color:#66bb6a}.hstat-value.gold{color:var(--gold)}.hstat-value.red{color:var(--red2)}
+.hstat-value.green{color:var(--green-hi)}.hstat-value.gold{color:var(--gold)}.hstat-value.red{color:var(--red2)}
 @media (max-width:720px){.hstat-value{font-size:19px}}
 .hstat-sub{font-size:10px;color:var(--dim);margin-top:3px}
 
@@ -134,6 +140,9 @@ button,select,input,summary{font:inherit}
 .mc-svg .mc-dot-minor{opacity:.82}
 .light .mc-svg .mc-dot-minor{opacity:.85}
 .mc-svg .mc-dot-hidden{opacity:0}
+/* the light-only minor-dot rule above is 3 classes and would otherwise win
+   over the 2-class hidden rule, bringing back dots the app hides */
+.light .mc-svg .mc-dot-hidden{opacity:0}
 .mc-svg g[data-start]:hover .mc-dot,.mc-svg g[data-start].is-hovered .mc-dot{opacity:1}
 .mc-svg g[data-start]:hover .mc-dot-grouped-ring,.mc-svg g[data-start].is-hovered .mc-dot-grouped-ring{opacity:.42}
 .mc-milestone-callout{pointer-events:none;filter:drop-shadow(0 3px 8px rgba(0,0,0,.42))}
@@ -251,7 +260,7 @@ button,select,input,summary{font:inherit}
 .srow:last-child{border-bottom:none}
 .srow-key{color:var(--dim2)}
 .srow-val{font-weight:600;font-family:'Roboto Mono',monospace;color:var(--white)}
-.srow-val.green{color:#66bb6a}.srow-val.gold{color:var(--gold)}.srow-val.red{color:var(--red2)}
+.srow-val.green{color:var(--green-hi)}.srow-val.gold{color:var(--gold)}.srow-val.red{color:var(--red2)}
 .srow-note{font-size:9px;color:var(--dim);font-style:italic;padding:6px 0 0;border-top:1px dashed var(--border);margin-top:4px;line-height:1.3}
 .forum-top-head{display:flex;flex-direction:column;align-items:center;gap:8px;padding:12px 14px;border-top:1px solid var(--border);border-bottom:1px solid var(--border);background:linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,.02));font-size:12px;font-weight:800;color:var(--white);text-transform:uppercase;letter-spacing:.08em}
 .forum-top-periods{display:flex;gap:4px;text-transform:none;letter-spacing:0}
@@ -396,14 +405,23 @@ button,select,input,summary{font:inherit}
 .btn-sm:hover{border-color:#555;color:var(--white)}
 .btn-sm:disabled{opacity:.45;cursor:not-allowed}
 
-.lightbox{position:fixed;inset:0;background:#000d;display:flex;align-items:center;justify-content:center;z-index:500;cursor:zoom-out}
-.lightbox img{max-width:92vw;max-height:92vh;border-radius:4px;box-shadow:0 0 60px rgba(0,0,0,.8)}
+/* z-index above every popup/tooltip (the sidebar hover popup and .chart-tooltip
+   sit at 9999) so an image opened from them is never half covered */
+.lightbox{position:fixed;inset:0;background:#000d;display:flex;align-items:center;justify-content:center;z-index:10000;cursor:zoom-out}
+/* % of the fixed overlay, not vw/vh: #root carries a zoom (0.85-1.25) that
+   scales vw/vh caps too, so 92vh became 115vh at zoom 1.25 and cropped tall
+   screenshots; the overlay itself is always exactly the viewport */
+.lightbox img{max-width:92%;max-height:92%;border-radius:4px;box-shadow:0 0 60px rgba(0,0,0,.8)}
 
 /* ─── WHITE THEME ─────────────────────────────────────────────────────── */
 .light{
   --bg:#ebe8e2;--bg2:#f4f1ea;--bg3:#e1ddd5;
   --border:#c9c3b7;--border2:#9f988b;
   --text:#2a2824;--dim:#625d56;--dim2:#45413c;--focus:#8f5700;
+  /* accents re-tuned for the cream surfaces: the dark-theme values sat at
+     1.2-2.8:1 here; these are >=4.7:1 on --bg/--bg2/--red-dim.
+     --green-hi is the brighter green of the headline numbers (hero, strip, bankroll) */
+  --green:#27682c;--green-hi:#27682c;--red2:#b3342c;--gold:#8a5b00;
   --axis-x:#26231f;--axis-x-muted:#524d46;
   --axis-y:#5c554b;--axis-y-muted:#7b7469;
   --chart-grid:rgba(70,60,45,.12);--chart-grid-strong:rgba(70,60,45,.22);
@@ -431,6 +449,7 @@ button,select,input,summary{font:inherit}
 .light .filter-num,.light .feed-search,.light .feed-select{background:var(--bg3);color:var(--white)}
 .light .settings-select,.light .ignore-input{background:var(--bg3);color:var(--white)}
 .light .page-btn{background:var(--bg2)}
+.light .page-btn.active{background:var(--red)}
 .light .perpage-select{background:var(--bg3);color:var(--white)}
 .light .post-card{background:var(--bg2);border-color:var(--border)}
 .light .post-card:hover{border-color:var(--border2)}
@@ -596,7 +615,7 @@ html{scroll-behavior:smooth}
 
 /* ─── PROGRESS BAR ─────────────────────────────────────────────────────── */
 .marathon-progress{
-  position:sticky;top:40px;z-index:99;width:100%;
+  position:sticky;top:var(--progress-top);z-index:99;width:100%;
   background:linear-gradient(180deg,rgba(17,17,17,.98),rgba(17,17,17,.92));
   border-bottom:1px solid var(--border);
   box-shadow:0 8px 24px rgba(0,0,0,.26);
@@ -677,6 +696,7 @@ html{scroll-behavior:smooth}
 .light .pace-x-caption{fill:#70695f;text-shadow:none}
 .light .pace-chart-value{paint-order:stroke;stroke:rgba(255,255,255,.75);stroke-width:2px;text-shadow:none}
 @media(max-width:720px){
+  :root{--progress-h:104px}
   .marathon-progress-inner{grid-template-columns:1fr;gap:8px;padding:8px 12px 10px}
 }
 
@@ -701,8 +721,8 @@ html{scroll-behavior:smooth}
 }
 .mc-session-date{color:var(--dim2);min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .mc-session-profit{font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
-.mc-session-profit.pos{color:#66bb6a}
-.mc-session-profit.neg{color:#ff5252}
+.mc-session-profit.pos{color:var(--green-hi)}
+.mc-session-profit.neg{color:var(--red2)}
 .mc-session-mtt{color:var(--dim);font-variant-numeric:tabular-nums;white-space:nowrap}
 .light .mc-session-breakdown{border-top-color:rgba(0,0,0,.10);border-bottom-color:rgba(0,0,0,.08)}
 
@@ -886,8 +906,13 @@ html{scroll-behavior:smooth}
    MOBILE — полностью отдельная вёрстка (≤720px)
    ═══════════════════════════════════════════════════ */
 @media(max-width:720px){
-  html{overflow-x:hidden;font-size:16px}
-  body{overflow-x:hidden}
+  /* overflow-x:clip, not hidden: with hidden on both html and body, body turns
+     into a (non-scrolling) scroll container and every position:sticky
+     descendant (topbar, progress bar, new-posts bubble) loses its viewport
+     anchor. clip crops the same way without creating a scroll container. */
+  html{overflow-x:clip;font-size:16px}
+  body{overflow-x:clip}
+  @supports not (overflow-x:clip){html,body{overflow-x:hidden}}
   *{max-width:100%;box-sizing:border-box}
   img{max-width:100%;height:auto}
   .page{display:block !important;padding:0 0 calc(18px + env(safe-area-inset-bottom,0px)) 0;max-width:100vw;overflow-x:clip}
@@ -909,12 +934,20 @@ html{scroll-behavior:smooth}
   .hero-name{font-size:17px;font-weight:700;margin-bottom:2px}
   .hero-badge{font-size:10px;padding:2px 6px}
   .hero-desc{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:calc(100vw - 120px)}
+}
+
+/* The sidebar collapses at 980px (see above), so what it carried moves into the
+   feed from there on: the stat strip replaces the hero tiles (it also holds the
+   avg-MTT and win-rate figures plus the period note) and the top-liked list
+   replaces the sidebar block. These used to start at 720px, which left
+   721-980px (iPad portrait, narrow windows) with neither. */
+@media(max-width:980px){
   .hero-stats{display:none}
 
   /* MOBILE STATS STRIP — replaces hero-stats */
   .mobile-stats{
-    display:grid !important;grid-template-columns:repeat(2,1fr);gap:8px;
-    margin:10px 12px 0;
+    display:grid !important;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;
+    margin:0 0 10px;
   }
   .mobile-stat{
     background:var(--bg2);border:1px solid var(--border);border-radius:10px;
@@ -922,15 +955,15 @@ html{scroll-behavior:smooth}
   }
   .mobile-stat-label{font-size:10px;color:var(--dim);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px}
   .mobile-stat-value{font-size:18px;font-weight:700;color:var(--white);font-family:'Roboto Mono',monospace}
-  .mobile-stat-value.green{color:#66bb6a}
+  .mobile-stat-value.green{color:var(--green-hi)}
   .mobile-stat-value.red{color:var(--red2)}
   .mobile-stat-value.gold{color:var(--gold)}
-  .mobile-stats-note{display:block !important;font-size:10px;color:var(--dim);font-style:italic;margin:6px 14px 0;line-height:1.3;text-align:center}
+  .mobile-stats-note{display:block !important;font-size:10px;color:var(--dim);font-style:italic;margin:0 0 10px;line-height:1.3;text-align:center}
 
   /* MOBILE TOP POSTS */
   .mobile-top-posts{
     display:block !important;
-    margin:10px 12px 0;background:var(--bg2);border:1px solid var(--border);
+    margin:10px 0 14px;background:var(--bg2);border:1px solid var(--border);
     border-radius:12px;overflow:hidden;
   }
   .mobile-top-header{
@@ -962,6 +995,14 @@ html{scroll-behavior:smooth}
   .mobile-top-author{display:block;font-size:12px;font-weight:600;color:var(--dim2);margin-bottom:3px}
   .mobile-top-text{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;font-size:14px;color:var(--text);overflow:hidden;line-height:1.4}
   .mobile-top-likes{color:var(--green);font-size:14px;font-weight:700;flex-shrink:0;font-family:'Roboto Mono',monospace}
+}
+
+@media(max-width:720px){
+  /* phones: the strip and the list sit inside the 12px gutters instead of the
+     tablet's .page padding */
+  .mobile-stats{grid-template-columns:repeat(2,1fr);margin:10px 12px 0}
+  .mobile-stats-note{margin:6px 14px 0}
+  .mobile-top-posts{margin:10px 12px 0}
 
   .pace-widget{margin:10px 8px 0;border-radius:14px;padding:12px 10px}
   .pace-head{flex-direction:column;gap:10px;margin-bottom:10px}
@@ -1066,16 +1107,15 @@ html{scroll-behavior:smooth}
 }
 
 /* Light theme mobile overrides */
-@media(max-width:720px){
+@media(max-width:980px){
   .light .mobile-stat{background:var(--bg2);border-color:var(--border)}
   .light .mobile-top-posts{background:var(--bg2);border-color:var(--border)}
   .light .mobile-top-header{background:var(--bg3);border-bottom-color:var(--border)}
   .light .mobile-top-item{border-bottom-color:var(--border)}
-  .light .mobile-top-period{background:var(--bg2);border-color:var(--border)}
 }
 
 /* New posts bubble */
-.new-posts-bubble{position:sticky;top:48px;z-index:50;display:block;margin:8px auto;padding:8px 20px;background:var(--red);color:#fff;border:none;border-radius:20px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;box-shadow:0 2px 12px rgba(229,57,53,.4);animation:bubble-in .3s ease;transition:transform .15s,box-shadow .15s}
+.new-posts-bubble{position:sticky;top:calc(var(--sticky-stack-h) + 8px);z-index:50;display:block;margin:8px auto;padding:8px 20px;background:var(--red);color:#fff;border:none;border-radius:20px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;box-shadow:0 2px 12px rgba(229,57,53,.4);animation:bubble-in .3s ease;transition:transform .15s,box-shadow .15s}
 .new-posts-bubble:hover{transform:scale(1.05);box-shadow:0 4px 20px rgba(229,57,53,.5)}
 @keyframes bubble-in{from{opacity:0;transform:scale(.8)}to{opacity:1;transform:scale(1)}}
 .light .new-posts-bubble{background:#d32f2f;box-shadow:0 2px 12px rgba(211,47,47,.3)}
@@ -1095,7 +1135,13 @@ html{scroll-behavior:smooth}
 /* ─── AUDIT SWEEP FIXES (light theme, focus, motion) ─────────────────────── */
 /* pace drill-down tooltip keeps its dark panel in light theme — re-pin the
    text vars inside so descendants stay readable on the dark background */
-.light .pace-point-tooltip{--dim:#9a9a9a;--dim2:#c6c6c6;--white:#f2f2f2;--text:#e2e2e2;color:#c6c6c6}
+.light .pace-point-tooltip{--dim:#9a9a9a;--dim2:#c6c6c6;--white:#f2f2f2;--text:#e2e2e2;color:#c6c6c6;--pace-green:#7ee787;--pace-red:#ff746c;--pace-gold:#ffd479}
+/* light theme: accent colours that were hard-coded for the dark surfaces (or
+   live in --pace-* tokens declared on .pace-widget itself, which a plain
+   .light override would lose to). The dark pace tooltip above re-pins its own. */
+.light .pace-widget{--pace-green:#27682c;--pace-red:#b3342c;--pace-gold:#8a5b00}
+.light .pace-summary-panel .tempo-unit{color:var(--dim)}
+.light .pace-segment.partial .pace-chart-value{opacity:.9}
 /* sticky progress bar readability in light theme */
 .light .marathon-progress-label b{color:#8a5b00;text-shadow:none}
 .light .mps-rate-inline{color:#755400}
@@ -1197,6 +1243,8 @@ html{scroll-behavior:smooth}
 
 /* minor session dots: present but quiet until hovered */
 .mc-dot-minor{stroke:none}
+/* .light .mc-dot (2 classes) would otherwise ring every minor dot in --bg2 */
+.light .mc-dot-minor{stroke:none}
 
 /* Marathon grouping and the distance lane share the existing chart palette. */
 .mc-chart-head{margin-bottom:6px;flex-wrap:wrap}
