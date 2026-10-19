@@ -458,6 +458,32 @@ describe('jumps scroll the target to the top edge', () => {
     }
   })
 
+  it('a page change the browser cut short is finished instantly once the page holds still', async () => {
+    // WebKit drops a smooth scroll when lazy images change the page height under it;
+    // the shared jump helper asks again, instantly, after the page stops moving
+    const saved = Object.getOwnPropertyDescriptor(window, 'scrollY')
+    let y = 4000
+    Object.defineProperty(window, 'scrollY', { configurable: true, get: () => y })
+    spy.mockImplementation(function (opts) {
+      if (!this.classList.contains('filter-bar')) return
+      if (opts.behavior === 'smooth') y -= 30                      // dropped 30px in
+      else if (opts.behavior === 'instant') y = Math.min(y, 1000)  // where the filter bar really is
+    })
+    const instants = () => spy.mock.calls.filter(([o]) => o?.behavior === 'instant')
+    try {
+      await renderApp(makePosts(60))
+      clickPage(2)
+      await waitFor(() => expect(activePage()).toBe('2'))
+      // 1st snap 3970 -> 1000, 2nd finds it in place
+      await waitFor(() => expect(instants()).toHaveLength(2), { timeout: 3000 })
+      expect(y).toBe(1000)
+      expect(spy.mock.contexts.filter((el) => el.classList?.contains('filter-bar'))).toHaveLength(3)
+    } finally {
+      if (saved) Object.defineProperty(window, 'scrollY', saved); else delete window.scrollY
+      spy.mockImplementation(() => {})
+    }
+  })
+
   it('the new-posts bubble scrolls the first new post wrapper to the top edge', async () => {
     const posts = makePosts(30)
     await renderApp(posts)
