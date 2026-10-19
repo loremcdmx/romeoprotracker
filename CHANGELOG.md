@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 1.14.13 — 2026-10-19
+
+- Numbers that are not finite in a bankroll report (for example 1e999) no longer draw NaN charts or print "Infinity"; a count below one tournament counts as no data.
+- A bust state (BR 0) no longer prints a stray "0" at the top of the page.
+- The trusted-total tie case now settles by the reported session counts instead of always preferring the later report.
+
 ## 1.14.12 — 2026-10-19
 
 - Jumps inside the page (day rows, the "N new posts" bubble, pagination) now land below the pinned header on desktop and phones instead of hiding the top of the target post.
