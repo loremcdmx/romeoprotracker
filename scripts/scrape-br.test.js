@@ -1,7 +1,10 @@
 // Flow tests: the REAL scripts/scrape.mjs against a mocked forum + mocked
 // Anthropic (see test-support/). Bankroll extraction, retry budget, reextract
 // and author identity. Each test spawns the scraper in a throwaway directory.
+import fs from 'node:fs'
+import { resolve } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import { validateMarathonIntegrity } from './lib/marathon-integrity.mjs'
 import { baseMeta, pageHtml, runScrape, storedPost } from './test-support/scrape-sandbox.mjs'
 
 vi.setConfig({ testTimeout: 60_000 })
@@ -156,6 +159,227 @@ describe('SCR-1: API trouble never spends the retry budget', () => {
     const after = r.posts.find(p => p.id === '20')
     expect(after.brAttempts).toBe(5)
     expect(after.brChecked).toBeFalsy()
+  })
+})
+
+describe('SCR-1b: a persistent API refusal is free but never silent', () => {
+  // A fresh heartbeat (and a day counter that already matches the 'Day 6:'
+  // posts) means nothing else forces a write, so "untouched" is a real statement
+  // about the data files, not just about some fields.
+  const fresh = meta => ({ ...meta, day: 6, lastScrapeRun: new Date().toISOString() })
+  const warnings = r => r.output.split('\n').filter(l => l.startsWith('::warning::BR extraction'))
+
+  it.each([
+    ['HTTP 401 (dead key)', { status: 401, raw: '{"error":{"message":"invalid x-api-key"}}' }, 'HTTP 401'],
+    ['HTTP 402', { status: 402, raw: 'payment required' }, 'HTTP 402'],
+    ['HTTP 403', { status: 403, raw: '{"error":{"message":"forbidden"}}' }, 'HTTP 403'],
+    ['HTTP 400 low credit balance', { status: 400, raw: '{"error":{"type":"invalid_request_error","message":"Your credit balance is too low to access the Anthropic API."}}' }, 'credit balance'],
+  ])('%s: one ::warning:: annotation, run stays green, data and budget untouched', (_label, response, expected) => {
+    const post = romeoPost({ brAttempts: 2 })
+    const r = run({
+      posts: [post], meta: fresh(metaWithHistory()), apiKey: 'k',
+      anthropic: { vision: [response] }, pages: pagesFor([post]),
+    })
+    expect(r.count('vision')).toBe(1)
+    expect(warnings(r)).toHaveLength(1)
+    expect(warnings(r)[0]).toContain(expected)
+    expect(r.status).toBe(0)
+    expect(r.output).not.toContain('::error::')
+    expect(r.untouched).toBe(true)          // posts.json, meta.json, posts.min.json byte-identical
+  })
+
+  it('several posts failing in the same run still produce ONE annotation', () => {
+    const posts = [romeoPost({ id: 20, timestamp: NOW }), romeoPost({ id: 21, timestamp: NOW + 10 }), romeoPost({ id: 22, timestamp: NOW + 20 })]
+    const r = run({
+      posts, meta: fresh(metaWithHistory()), apiKey: 'k',
+      anthropic: { vision: [{ status: 402, raw: 'payment required' }] }, pages: pagesFor(posts),
+    })
+    expect(r.count('vision')).toBe(3)       // every post was tried
+    expect(warnings(r)).toHaveLength(1)     // ... but the run says it once
+    expect(r.status).toBe(0)
+    expect(r.untouched).toBe(true)
+  })
+
+  it('the warning does not stand in the way of recovery: the next healthy run records the session', () => {
+    const post = romeoPost()
+    const down = run({ posts: [post], meta: metaWithHistory(), apiKey: 'k', anthropic: { vision: [{ status: 401, raw: 'bad key' }] }, pages: pagesFor([post]) })
+    expect(warnings(down)).toHaveLength(1)
+    const healthy = run({ posts: down.posts, meta: down.meta, apiKey: 'k', anthropic: { vision: [{ text: okBr() }] }, pages: pagesFor(down.posts) })
+    expect(warnings(healthy)).toHaveLength(0)
+    expect(healthy.meta.brHistory.map(h => h.id)).toEqual(['10', '20'])
+  })
+
+  it.each([
+    ['HTTP 500', { status: 500, raw: 'boom' }],
+    ['HTTP 429', { status: 429, raw: 'slow down' }],
+    ['HTTP 529 overloaded', { status: 529, raw: 'overloaded' }],
+    ['network error', { throw: true }],
+    ['HTTP 400 about the image itself', { status: 400, raw: '{"error":{"message":"Could not process image"}}' }],
+    ['unusable answer', { text: 'I cannot read the image' }],
+  ])('no annotation for %s (clears by itself or is the post own problem)', (_label, response) => {
+    const post = romeoPost()
+    const r = run({
+      posts: [post], meta: metaWithHistory(), apiKey: 'k',
+      anthropic: { vision: [response] }, pages: pagesFor([post]),
+    })
+    expect(r.count('vision')).toBe(1)
+    expect(warnings(r)).toHaveLength(0)
+  })
+
+  it('a missing key stays a plain log line (forks legitimately run without one)', () => {
+    const post = romeoPost()
+    const r = run({ posts: [post], meta: metaWithHistory(), pages: pagesFor([post]) })
+    expect(r.output).toContain('ANTHROPIC_API_KEY not set')
+    expect(r.output).not.toContain('::warning::')
+  })
+})
+
+describe('SCR-1c: the README recovery for a given-up session works as written', () => {
+  // A legitimate 5.7x session (10 500 -> 60 000): outside the 0.2..5 limit, so the
+  // scraper rejected it 6 times and gave up. The next session (60 000 -> 61 000)
+  // was rejected as well, because it does not chain to the last accepted entry.
+  const GAVE_UP = { brChecked: true, brAttempts: 6, brGaveUp: '2026-10-18T12:00:00.000Z' }
+  const swing = () => romeoPost({ id: 20, timestamp: NOW, text: 'Day 6:', ...GAVE_UP })
+  const after = () => romeoPost({ id: 21, timestamp: NOW + 86_400, text: 'Day 7:', ...GAVE_UP })
+  const swingAnswer = { text: okBr({ brBefore: 10500, brAfter: 60000, totalTournaments: 1100 }) }
+  const afterAnswer = { text: okBr({ brBefore: 60000, brAfter: 61000, totalTournaments: 1200 }) }
+  const handEntry = {
+    id: '20', date: '16 октября, 05:08', timestamp: NOW, brBefore: 10500, brAfter: 60000, sessionResult: 49500,
+    rooms: { before: { gg: 10500, ps: 0, king: 0, coin: 0, lux: 0 }, after: { gg: 60000, ps: 0, king: 0, coin: 0, lux: 0 } },
+    url: 'https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=20', tournaments: 90, totalTournaments: 1100,
+  }
+  const cleared = p => { const { brChecked, brAttempts, brGaveUp, ...rest } = p; return rest }
+
+  it('the old advice alone (clear the flags) does not help for a swing outside the limits', () => {
+    const r = run({
+      posts: [cleared(swing())], meta: metaWithHistory(), apiKey: 'k',
+      anthropic: { vision: [swingAnswer] }, pages: pagesFor([swing()]),
+    })
+    expect(r.count('vision')).toBe(1)
+    expect(r.output).toContain('implausible session swing')
+    expect(r.meta.brHistory.map(h => h.id)).toEqual(['10'])
+    expect(r.posts.find(p => p.id === '20').brAttempts).toBe(1)
+  })
+
+  it('a hand-added brHistory entry is picked up: no API call, post and headline synced', () => {
+    const meta = metaWithHistory()
+    meta.brHistory.push({ ...handEntry, sessionResult: 1 })   // a wrong sessionResult is recomputed too
+    const r = run({
+      posts: [cleared(swing())], meta, apiKey: 'k',
+      anthropic: { vision: [{ status: 500, raw: 'must not be called' }] }, pages: pagesFor([swing()]),
+    })
+    expect(r.count('vision')).toBe(0)
+    expect(r.status).toBe(0)
+    const post = r.posts.find(p => p.id === '20')
+    expect(post).toMatchObject({ brBefore: 10500, brAfter: 60000, sessionResult: 49500 })
+    expect(r.meta.bankroll).toBe(60000)
+    expect(r.meta.totalTournaments).toBe(1100)
+    expect(r.meta.brHistory.map(h => [h.id, h.sessionResult])).toEqual([['10', 500], ['20', 49500]])
+  })
+
+  it('reextract is no way around the limits either: it aborts at that post and writes nothing', () => {
+    const posts = [
+      storedPost({ id: 10, author: 'Romeopro', timestamp: NOW - 86_400, text: 'Day 5:', images: [IMG], brBefore: 10000, brAfter: 10500, sessionResult: 500 }),
+      swing(),
+    ]
+    const r = run({
+      posts, meta: metaWithHistory(), apiKey: 'k', args: ['--mode=reextract', '--no-push'],
+      anthropic: { vision: [{ text: okBr({ brBefore: 10000, brAfter: 10500, totalTournaments: 1000 }) }, swingAnswer] },
+    })
+    expect(r.status).not.toBe(0)
+    expect(r.output).toContain('implausible session swing')
+    expect(r.output).toContain('reextract aborted at post 20')
+    expect(r.untouched).toBe(true)
+  })
+
+  // README steps 3-7 as code. `npm run check` ends with the integrity smoke, so a
+  // human who follows the text must be able to make it pass, and a scraper run on the
+  // hand-edited state must converge on a state that passes too.
+  const smoke = (posts, meta) => validateMarathonIntegrity({ posts, meta }).errors
+  // meta.day comes from the latest 'Day N' label among the posts, which the scraper
+  // already read while the sessions were given up, so it is 7 before any hand edit.
+  const givenUpMeta = () => ({ ...metaWithHistory(), day: 7 })
+  // README step 4, literally: bankroll = last entry's brAfter, totalTournaments = its total
+  const alignHeadline = (meta) => {
+    const last = [...meta.brHistory].sort((a, b) => a.timestamp - b.timestamp).at(-1)
+    meta.bankroll = last.brAfter
+    if (last.totalTournaments != null) meta.totalTournaments = last.totalTournaments
+  }
+
+  it('README steps 3-7: after step 4 the hand-edited state passes the integrity smoke; without it exactly the two headline values fail', () => {
+    const meta = givenUpMeta()
+    expect(smoke([swing(), after()], meta)).toEqual([])   // the state the owner starts from is consistent
+
+    meta.brHistory.push(handEntry)                         // step 3
+    const edited = [cleared(swing()), cleared(after())]    // steps 5-6
+    expect(smoke(edited, meta)).toEqual([
+      'meta.bankroll 10500 does not match last brAfter 60000',
+      'meta.totalTournaments 1000 does not match last BR total 1100',
+    ])
+
+    alignHeadline(meta)                                    // step 4
+    expect(meta).toMatchObject({ bankroll: 60000, totalTournaments: 1100, day: 7 })
+    expect(smoke(edited, meta)).toEqual([])
+  })
+
+  // Two shapes of the hand-edited state: just the entry (the scraper has nothing new to
+  // read, so only its headline repair can fix meta) or also a later given-up post that
+  // it reads on the way (that read sets the headline itself).
+  it.each([
+    ['only the entry, step 4 done by hand', { later: false, aligned: true }],
+    ['only the entry, step 4 skipped (the run repairs the headline)', { later: false, aligned: false }],
+    ['entry + a later post, step 4 done by hand', { later: true, aligned: true }],
+    ['entry + a later post, step 4 skipped', { later: true, aligned: false }],
+  ])('a scraper run on the hand-edited state ends in a state that passes the integrity smoke: %s', (_label, { later, aligned }) => {
+    const live = later ? [swing(), after()] : [swing()]
+    const meta = { ...metaWithHistory(), day: later ? 7 : 6 }
+    meta.brHistory.push(handEntry)
+    if (aligned) alignHeadline(meta)
+    const r = run({
+      posts: live.map(cleared), meta, apiKey: 'k',
+      anthropic: { vision: later ? [afterAnswer] : [] }, pages: pagesFor(live),
+    })
+    expect(r.status).toBe(0)
+    expect(r.count('vision')).toBe(later ? 1 : 0)
+    expect(r.meta).toMatchObject(later
+      ? { bankroll: 61000, totalTournaments: 1200, day: 7 }
+      : { bankroll: 60000, totalTournaments: 1100, day: 6 })
+    expect(smoke(r.posts, r.meta)).toEqual([])
+  })
+
+  it('the README example entry has the shape the scraper itself writes, and its step 4 names the headline fields', () => {
+    const readme = fs.readFileSync(resolve('README.md'), 'utf8')
+    const section = readme.slice(readme.indexOf('### Recovering from a given-up BR session'))
+    expect(section.length).toBeGreaterThan(0)
+    const example = JSON.parse(/^[ \t]*```json\n([\s\S]*?)\n[ \t]*```/m.exec(section)[1])
+
+    const ok = run({
+      posts: [romeoPost()], meta: metaWithHistory(), apiKey: 'k',
+      anthropic: { vision: [{ text: okBr() }] }, pages: pagesFor([romeoPost()]),
+    })
+    const written = ok.meta.brHistory.find(h => h.id === '20')
+    expect(Object.keys(example).sort()).toEqual(Object.keys(written).sort())
+    expect(Object.keys(example.rooms).sort()).toEqual(Object.keys(written.rooms).sort())
+    expect(Object.keys(example.rooms.before).sort()).toEqual(Object.keys(written.rooms.before).sort())
+    expect(example.sessionResult).toBe(example.brAfter - example.brBefore)
+
+    const step4 = section.split('\n').find(l => l.startsWith('4. '))
+    expect(step4).toMatch(/`bankroll`[^\n]*`brAfter`[^\n]*`totalTournaments`/)
+  })
+
+  it('then clearing the flags on the later posts lets them through (they chain to the new entry)', () => {
+    const meta = metaWithHistory()
+    meta.brHistory.push(handEntry)
+    // without the cleared flags the later post stays given up and is not retried
+    const stuck = run({ posts: [cleared(swing()), after()], meta, apiKey: 'k', anthropic: { vision: [afterAnswer] }, pages: pagesFor([swing(), after()]) })
+    expect(stuck.count('vision')).toBe(0)
+    expect(stuck.meta.brHistory.map(h => h.id)).toEqual(['10', '20'])
+
+    const r = run({ posts: [cleared(swing()), cleared(after())], meta, apiKey: 'k', anthropic: { vision: [afterAnswer] }, pages: pagesFor([swing(), after()]) })
+    expect(r.count('vision')).toBe(1)    // only the later post is read; 20 is already in the history
+    expect(r.meta.brHistory.map(h => [h.id, h.brBefore, h.brAfter])).toEqual([['10', 10000, 10500], ['20', 10500, 60000], ['21', 60000, 61000]])
+    expect(r.meta.bankroll).toBe(61000)
+    expect(r.posts.find(p => p.id === '21').brAttempts).toBeUndefined()
   })
 })
 

@@ -30,6 +30,28 @@ export function isPostSpecificApiError(status, bodyText = '') {
   return !ACCOUNT_LEVEL_MESSAGE.test(String(bodyText))
 }
 
+// The subset of account-level trouble that does NOT pass on its own: a dead or
+// revoked key, no access, no credit, a spending cap. (Rate limits and
+// "overloaded" are account-level too, but they clear within minutes, so they
+// are deliberately not here.) Such a failure never spends a post's retry
+// budget, which also makes it silent, so the scraper raises a visible
+// annotation for it (see persistentApiWarning).
+const PERSISTENT_ACCOUNT_MESSAGE = /credit balance|billing|usage limit|api[ _-]?key|authenticat|permission|workspace|organization/i
+
+// true = the API refuses us until a human fixes the key / credit / access.
+export function isPersistentApiError(status, bodyText = '') {
+  if (status === 401 || status === 402 || status === 403) return true
+  if (status !== 400) return false
+  return PERSISTENT_ACCOUNT_MESSAGE.test(String(bodyText))
+}
+
+// One GitHub Actions annotation line. The run stays green and no data changes:
+// this only makes a stale bankroll visible in the run summary.
+export function persistentApiWarning(status, bodyText = '') {
+  const detail = String(bodyText).replace(/\s+/g, ' ').trim().slice(0, 160).replace(/%/g, '%25')
+  return `::warning::BR extraction is blocked at the API level (HTTP ${status}${detail ? `: ${detail}` : ''}) - new bankroll screenshots are not being read, so the bankroll goes stale until the key / credit / access is fixed. No retry attempts are spent: the posts stay queued and are picked up automatically afterwards.`
+}
+
 const isNum = v => typeof v === 'number' && Number.isFinite(v)
 
 function fail(reason) {

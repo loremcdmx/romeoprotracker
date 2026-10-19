@@ -38,14 +38,19 @@ function clockOf(text) {
 }
 
 // The footer prints "today at <time>" only when the timestamp falls on the
-// current Europe/Warsaw calendar day; everything else gets a date. Each case
-// gives the UTC instant, its Warsaw time and whether it is "today" in Warsaw.
+// current Europe/Warsaw calendar day; everything else gets "DD.MM at <time>"
+// (Warsaw day first, then month, both zero-padded). Each case gives the UTC
+// instant, its Warsaw time, whether it is "today" in Warsaw and, if not, the
+// exact date text. Day and month differ in every dated case (24.10, 25.09,
+// 25.10, 05.03), so swapping them or dropping the padding changes the text.
 const CASES = [
-  ['00:05 Warsaw today, but the previous day in UTC', '2026-10-24T22:05:00Z', 0, 5, true],
-  ['ten minutes ago', '2026-10-25T09:50:00Z', 10, 50, true],
-  ['23:55 yesterday in Warsaw, the same UTC day as now', '2026-10-24T21:55:00Z', 23, 55, false],
-  ['the same day number in the previous month', '2026-09-25T09:50:00Z', 11, 50, false],
-  ['the same day and month a year ago', '2025-10-25T09:50:00Z', 11, 50, false],
+  ['00:05 Warsaw today, but the previous day in UTC', '2026-10-24T22:05:00Z', 0, 5, true, null],
+  ['ten minutes ago', '2026-10-25T09:50:00Z', 10, 50, true, null],
+  ['23:55 yesterday in Warsaw, the same UTC day as now', '2026-10-24T21:55:00Z', 23, 55, false, '24.10'],
+  ['the same day number in the previous month', '2026-09-25T09:50:00Z', 11, 50, false, '25.09'],
+  ['the same day and month a year ago', '2025-10-25T09:50:00Z', 11, 50, false, '25.10'],
+  ['single-digit day and month are zero-padded', '2026-03-05T12:30:00Z', 13, 30, false, '05.03'],
+  ['00:30 on the 5th in Warsaw, still the 4th in UTC', '2026-03-04T23:30:00Z', 0, 30, false, '05.03'],
 ]
 
 describe.each(['ru', 'en'])('footer freshness lines (%s)', lang => {
@@ -62,7 +67,7 @@ describe.each(['ru', 'en'])('footer freshness lines (%s)', lang => {
     vi.restoreAllMocks()
   })
 
-  it.each(CASES)('%s', async (_, iso, hour, minute, isToday) => {
+  it.each(CASES)('%s', async (_, iso, hour, minute, isToday, dateText) => {
     fetchPublicData.mockResolvedValue(makeData(Date.parse(iso)))
     const { container } = render(<App />)
     await screen.findByText(new RegExp(`^${escapeRe(t('footer_scraper_ran'))}:`))
@@ -74,8 +79,13 @@ describe.each(['ru', 'en'])('footer freshness lines (%s)', lang => {
     for (const line of lines) {
       expect(clockOf(line.textContent)).toEqual({ hour, minute })
       expect(clockOf(line.getAttribute('title'))).toEqual({ hour, minute })
-      if (isToday) expect(line.textContent).toContain(t('footer_today_at'))
-      else expect(line.textContent).not.toContain(t('footer_today_at'))
+      if (isToday) {
+        expect(line.textContent).toContain(t('footer_today_at'))
+      } else {
+        expect(line.textContent).not.toContain(t('footer_today_at'))
+        // exact "DD.MM <at> H:MM": day before month, zero-padded, Warsaw calendar
+        expect(line.textContent).toMatch(new RegExp(`: ${escapeRe(dateText)} ${escapeRe(t('footer_at'))} \\d{1,2}:\\d{2}$`))
+      }
     }
   })
 })

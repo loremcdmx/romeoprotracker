@@ -28,7 +28,7 @@ import * as cheerio from 'cheerio'
 import { computeMarathonDay, extractMarathonDay } from './lib/marathon-integrity.mjs'
 import { ROMEO_AUTHOR_RE } from './lib/romeo-identity.mjs'
 import { isSafeEmbedUrl } from './lib/embed-url.mjs'
-import { isPostSpecificApiError, validateBrExtraction } from './lib/br-extraction.mjs'
+import { isPersistentApiError, isPostSpecificApiError, persistentApiWarning, validateBrExtraction } from './lib/br-extraction.mjs'
 import { planPrune, pruneLimit } from './lib/prune.mjs'
 import { needsTranslation, translatePost } from './lib/translation.mjs'
 import { parseScrapeOptions } from './lib/scrape-options.mjs'
@@ -352,6 +352,15 @@ const BR_EXTRACT_TRANSIENT = Symbol('br-extract-transient')
 const BR_MAX_ATTEMPTS = 6
 // Posts the retry budget was exhausted on during this run (reported at the end).
 const brGaveUp = []
+// A persistent API refusal (401/402/403, no credit) is free - it never spends a
+// post's budget - but it must not be silent either: the run stays green and the
+// data untouched, so one ::warning:: annotation per run is the only signal.
+let persistentApiWarned = false
+function warnPersistentApiFailure(status, bodyText) {
+  if (persistentApiWarned) return
+  persistentApiWarned = true
+  console.log(persistentApiWarning(status, bodyText))
+}
 
 async function extractBrFromImages(post, lastBrHistory) {
   const apiKey = process.env.ANTHROPIC_API_KEY
@@ -424,6 +433,7 @@ async function extractBrFromImages(post, lastBrHistory) {
   if (!res.ok) {
     const err = await res.text().catch(() => '')
     console.log(`  ⚠ Claude API error ${res.status}: ${err.substring(0, 200)}`)
+    if (isPersistentApiError(res.status, err)) warnPersistentApiFailure(res.status, err)
     return isPostSpecificApiError(res.status, err) ? BR_EXTRACT_RETRY : BR_EXTRACT_TRANSIENT
   }
 
@@ -786,11 +796,11 @@ async function main() {
       if (p.brAttempts >= BR_MAX_ATTEMPTS) {
         // Stop retrying, but never silently: the post carries brGaveUp, the log
         // gets an error annotation and the run finishes red (see the end of
-        // main). Recovery: delete brChecked/brGaveUp/brAttempts on the post.
+        // main). Recovery: README, "Recovering from a given-up BR session".
         p.brChecked = true
         p.brGaveUp = new Date().toISOString()
         brGaveUp.push(p.id)
-        console.log(`::error::BR extraction gave up on post ${p.id} after ${p.brAttempts} unusable answers - its session is NOT in the bankroll history`)
+        console.log(`::error::BR extraction gave up on post ${p.id} after ${p.brAttempts} unusable answers - its session is NOT in the bankroll history (README: Recovering from a given-up BR session)`)
       } else {
         console.log(`  ↻ BR extraction failed (attempt ${p.brAttempts}/${BR_MAX_ATTEMPTS}) for ${p.id} — will retry next run`)
       }

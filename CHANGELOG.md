@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 1.14.14 — 2026-10-19
+
+- Scraper: a persistent Anthropic API refusal (invalid key, no credit) now raises a GitHub warning annotation once per run instead of staying silent; the README explains how to recover a given-up bankroll session.
+- On a cold load, when two data sources are equally fresh, the one with the newer scraper heartbeat wins, so the footer shows the true last-run time.
+- A failed refresh over a loaded dashboard shows a small dismissible strip with Retry instead of replacing the whole page with an error screen.
+
 ## 1.14.13 — 2026-10-19
 
 - Numbers that are not finite in a bankroll report (for example 1e999) no longer draw NaN charts or print "Infinity"; a count below one tournament counts as no data.

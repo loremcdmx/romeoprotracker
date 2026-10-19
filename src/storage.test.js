@@ -158,6 +158,72 @@ describe('fetchPublicData', () => {
     expect(result.posts[0].id).toBe('raw')
   })
 
+  describe('content tie between sources (cold load, no cache)', () => {
+    const content = { lastUpdated: '2026-04-19T02:00:00.000Z', postsChangedAt: '2026-04-19T02:00:00.000Z' }
+    const sources = ({ same, raw, rawContent = content, sameContent = content }) => vi.fn((url) => {
+      const href = String(url)
+      const isRaw = href.includes('raw.githubusercontent.com')
+      if (href.endsWith('/meta.json')) return jsonResponse({ ...(isRaw ? rawContent : sameContent), lastScrapeRun: isRaw ? raw : same })
+      if (href.endsWith('/posts.min.json')) return jsonResponse({ avatars: [], posts: [{ i: isRaw ? 'raw' : 'same', a: 'x', t: 1 }] })
+      throw new Error(`Unexpected fetch: ${href}`)
+    })
+
+    it('the source with the newer lastScrapeRun wins, not the first one to settle', async () => {
+      // same-origin (a stale Vercel snapshot) settles first and has the older heartbeat
+      vi.stubGlobal('fetch', sources({ same: '2026-04-19T02:10:00.000Z', raw: '2026-04-19T04:40:00.000Z' }))
+
+      const result = await fetchPublicData()
+
+      expect(result.meta.lastScrapeRun).toBe('2026-04-19T04:40:00.000Z')
+      expect(result.posts[0].id).toBe('raw')
+    })
+
+    it('an equal heartbeat keeps the first source that settled', async () => {
+      vi.stubGlobal('fetch', sources({ same: '2026-04-19T04:40:00.000Z', raw: '2026-04-19T04:40:00.000Z' }))
+
+      const result = await fetchPublicData()
+
+      expect(result.posts[0].id).toBe('same')
+    })
+
+    it('a missing heartbeat on one side never beats a present one, and never throws', async () => {
+      vi.stubGlobal('fetch', sources({ same: undefined, raw: '2026-04-19T04:40:00.000Z' }))
+      expect((await fetchPublicData()).posts[0].id).toBe('raw')
+    })
+
+    it('content freshness still outranks the heartbeat', async () => {
+      // raw carries newer posts but (artificially) an older heartbeat: content wins
+      vi.stubGlobal('fetch', sources({
+        same: '2026-04-19T09:00:00.000Z',
+        raw: '2026-04-19T04:40:00.000Z',
+        rawContent: { lastUpdated: '2026-04-19T03:00:00.000Z', postsChangedAt: '2026-04-19T03:00:00.000Z' },
+      }))
+
+      const result = await fetchPublicData()
+
+      expect(result.posts[0].id).toBe('raw')
+      expect(result.meta.lastUpdated).toBe('2026-04-19T03:00:00.000Z')
+    })
+
+    it('content freshness outranks the heartbeat when the newer-content source settled FIRST', async () => {
+      // same-origin settles first with the newer posts and the older heartbeat; raw
+      // settles second with older posts and a newer heartbeat. The heartbeat is only a
+      // tie-break between payloads that do not advance each other, so raw (stale
+      // content) must not displace same-origin here.
+      vi.stubGlobal('fetch', sources({
+        same: '2026-04-19T02:10:00.000Z',
+        sameContent: { lastUpdated: '2026-04-19T03:00:00.000Z', postsChangedAt: '2026-04-19T03:00:00.000Z' },
+        raw: '2026-04-19T04:40:00.000Z',
+        rawContent: { lastUpdated: '2026-04-19T02:00:00.000Z', postsChangedAt: '2026-04-19T02:00:00.000Z' },
+      }))
+
+      const result = await fetchPublicData()
+
+      expect(result.posts[0].id).toBe('same')
+      expect(result.meta.lastUpdated).toBe('2026-04-19T03:00:00.000Z')
+    })
+  })
+
   it('returns a working source instead of waiting forever for a stalled fallback', async () => {
     vi.stubGlobal('fetch', vi.fn((url) => {
       const href = String(url)

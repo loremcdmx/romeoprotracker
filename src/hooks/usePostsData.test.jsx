@@ -22,7 +22,7 @@ function makePayload({ posts = [], meta = {} } = {}) {
 }
 
 function PostsDataProbe() {
-  const { posts, meta, loading, error, refresh, newPostIds, clearNewPosts } = usePostsData()
+  const { posts, meta, loading, error, refresh, dismissError, newPostIds, clearNewPosts } = usePostsData()
 
   return (
     <div>
@@ -35,6 +35,7 @@ function PostsDataProbe() {
       <output data-testid="romeo-near-br">{String(posts.find((post) => post.id === 'romeo-near')?.brAfter ?? '')}</output>
       <button onClick={() => refresh().catch(() => {})}>refresh</button>
       <button onClick={() => clearNewPosts(posts)}>clear</button>
+      <button onClick={dismissError}>dismiss</button>
     </div>
   )
 }
@@ -149,6 +150,39 @@ describe('usePostsData', () => {
 
     expect(screen.getByTestId('post-ids')).toHaveTextContent('post-1')
     expect(screen.getByTestId('error').textContent).toBe('')
+  })
+
+  it('a failed manual refresh keeps the loaded data and reports the error; dismissError hides only the message', async () => {
+    fetchPublicData
+      .mockResolvedValueOnce(makePayload({
+        posts: [{ id: 'post-1', author: 'Romeopro', timestamp: 10000, brAfter: 11000 }],
+      }))
+      .mockRejectedValueOnce(new Error('offline'))
+    render(<PostsDataProbe />)
+    await waitFor(() => expect(screen.getByTestId('post-ids')).toHaveTextContent('post-1'))
+
+    fireEvent.click(screen.getByText('refresh'))
+    await waitFor(() => expect(screen.getByTestId('error')).toHaveTextContent('offline'))
+    expect(screen.getByTestId('loading')).toHaveTextContent('false')
+    expect(screen.getByTestId('post-ids')).toHaveTextContent('post-1')
+
+    fireEvent.click(screen.getByText('dismiss'))
+    expect(screen.getByTestId('error').textContent).toBe('')
+    expect(screen.getByTestId('post-ids')).toHaveTextContent('post-1')
+    expect(fetchPublicData).toHaveBeenCalledTimes(2)    // dismissing does not refetch
+  })
+
+  it('dismissError with no error is a no-op', async () => {
+    fetchPublicData.mockResolvedValueOnce(makePayload({
+      posts: [{ id: 'post-1', author: 'Romeopro', timestamp: 10000, brAfter: 11000 }],
+    }))
+    render(<PostsDataProbe />)
+    await waitFor(() => expect(screen.getByTestId('post-ids')).toHaveTextContent('post-1'))
+
+    fireEvent.click(screen.getByText('dismiss'))
+
+    expect(screen.getByTestId('error').textContent).toBe('')
+    expect(screen.getByTestId('post-ids')).toHaveTextContent('post-1')
   })
 
   it('stops polling while the tab is hidden and refreshes immediately when visible again', async () => {
