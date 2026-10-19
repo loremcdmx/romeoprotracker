@@ -16,6 +16,7 @@ import { safeEmbedUrls } from '../scripts/lib/embed-url.mjs'
 import AnimatedValue, { useTweenValue } from './components/AnimatedValue.jsx'
 import { buildPaceTrend, computePaceTrendStats } from './paceTrend.js'
 import { buildGlobalAuthorCounts, pickTopAuthors } from './activityAuthors.js'
+import { addIgnoredAuthor, isIgnoredAuthor, removeIgnoredAuthor } from './ignoredAuthors.js'
 import { normalizeMarathonDistance } from './marathonMonths.js'
 import MarathonChartControls from './components/MarathonChartControls.jsx'
 import MonthlyMarathonChart from './components/MonthlyMarathonChart.jsx'
@@ -2166,9 +2167,10 @@ function trimWord(s, n) {
   return (sp > n * 0.6 ? cut.slice(0, sp) : cut).replace(/[.,;:!?—\-–\s]+$/, '') + '…'
 }
 
-function makeDayEvents(ps) {
+function makeDayEvents(ps, ignored) {
   const events = []
-  const sorted = [...ps].sort((a,b) => (a.timestamp||0) - (b.timestamp||0))
+  // Ignored authors never surface in the day summary (no name, likes or quoted text).
+  const sorted = ps.filter(p => !isIgnoredAuthor(ignored, p.author)).sort((a,b) => (a.timestamp||0) - (b.timestamp||0))
   const romeoPosts = sorted.filter(p => ROMEO_RE.test(p.author))
   if (romeoPosts.length) {
     const brPost = romeoPosts.find(p => p.sessionResult != null)
@@ -2363,13 +2365,13 @@ function ActivityChart({ posts, favorites, ignored, onFav, onIgnore, onUnignore,
     for (const [date, { posts: dp }] of data) {
       const romeoCount = dp.reduce((n, p) => n + (ROMEO_RE.test(p.author) ? 1 : 0), 0)
       meta.set(date, {
-        events: makeDayEvents(dp),
-        topAuthors: pickTopAuthors(dp, globalAuthorCounts).slice(0, 3),
+        events: makeDayEvents(dp, ignored),
+        topAuthors: pickTopAuthors(dp, globalAuthorCounts, ignored).slice(0, 3),
         romeoCount,
       })
     }
     return meta
-  }, [data, globalAuthorCounts])
+  }, [data, globalAuthorCounts, ignored])
 
   useLayoutEffect(() => {
     if (!tip || selected || !tip.anchorRect || !tipRef.current) {
@@ -2477,7 +2479,7 @@ function ActivityChart({ posts, favorites, ignored, onFav, onIgnore, onUnignore,
 
         {/* Selected day posts */}
         {selected && (() => {
-          const events = makeDayEvents(selected.posts)
+          const events = makeDayEvents(selected.posts, ignored)
           let dayPosts = smartSortPosts([...selected.posts]
             .filter(p => !minLikes  || (p.likes||0)  >= minLikes)
             .filter(p => !minRating || (p.rating||0) >= minRating)
@@ -2677,7 +2679,7 @@ function ActivityChart({ posts, favorites, ignored, onFav, onIgnore, onUnignore,
 
       {/* EXPANDED DAY VIEW */}
       {selected && (() => {
-        const events = makeDayEvents(selected.posts)
+        const events = makeDayEvents(selected.posts, ignored)
         let dayPosts = [...selected.posts]
           .filter(p => !minLikes  || (p.likes||0)  >= minLikes)
           .filter(p => !minRating || (p.rating||0) >= minRating)
@@ -2688,7 +2690,7 @@ function ActivityChart({ posts, favorites, ignored, onFav, onIgnore, onUnignore,
             <div style={{fontSize:11,fontWeight:700,color:'var(--dim2)',textTransform:'uppercase',letterSpacing:'.1em',marginBottom:8}}>
               📅 {selected.date} — {plPosts(selected.posts.length, lang)}
             </div>
-            {events.length > 0 && <div style={{marginBottom:12}}><DayEventsList events={events} setLightbox={setLightbox} lang={lang}/></div>}
+            {events.length > 0 && <div style={{marginBottom:12}}><DayEventsList events={events} setLightbox={setLightbox} onPostClick={onPostClick} lang={lang}/></div>}
             <div style={{marginTop:4}}>
               {dayPosts.length === 0
                 ? <div className="empty-state">{t('empty_no_posts_topic')}</div>
@@ -3020,7 +3022,7 @@ const PostCard = memo(function PostCard({ p, favorites, ignored, onFav, onIgnore
   const menuRef           = useRef(null)
   const bodyRef           = useRef(null)
   const isFav  = favorites?.has(p.author)
-  const isIgnored = ignored?.has(p.author)
+  const isIgnored = isIgnoredAuthor(ignored, p.author)
 
   useEffect(() => {
     if (!menu) return
@@ -3935,7 +3937,7 @@ export default function App() {
       }
       return true
     }
-    if (ignored.has(p.author)) return false
+    if (isIgnoredAuthor(ignored, p.author)) return false
     if (romeoOnly && !isRomeoPost) return false
     if (favorites.has(p.author)) return true
     if (searchNeedle && !p.text?.toLowerCase().includes(searchNeedle)) return false
@@ -3945,7 +3947,7 @@ export default function App() {
   // hotPosts — для сайдбара "Больше всего плюсиков"
   const hotPosts = useMemo(() =>
     posts
-      .filter(p => !ignored.has(p.author)) // top list never shows ignored
+      .filter(p => !isIgnoredAuthor(ignored, p.author)) // top list never shows ignored
       .filter(p => lang !== 'ru' || favorites.has(p.author) || (!minRating || (p.rating||0) >= minRating))
       .filter(p => lang !== 'ru' || favorites.has(p.author) || (p.likes||0) >= Math.max(minLikes, 1))
       .sort((a,b) => (b.likes||0) - (a.likes||0))
@@ -4051,6 +4053,12 @@ export default function App() {
     if (idx !== -1) {
       const targetPage = Math.floor(idx / perPage) + 1
       if (targetPage !== safePage) setPage(targetPage)
+    } else if (p.url && /^https?:\/\//i.test(p.url)) {
+      // Hidden by the current feed filters (min likes/rating, search, Romeo only):
+      // nothing in the feed to scroll to, so open the post on the forum instead
+      // of leaving a clickable row that does nothing.
+      window.open(p.url, '_blank', 'noopener')
+      return
     }
     // Double rAF lets React commit the page/tab change before we measure
     requestAnimationFrame(() => requestAnimationFrame(doScroll))
@@ -4112,20 +4120,12 @@ export default function App() {
 
   const addIgnore = useCallback(name => {
     if (!name?.trim()) return
-    setIgnored(prev => {
-      const next = new Set(prev)
-      next.add(name.trim())
-      return next
-    })
+    setIgnored(prev => addIgnoredAuthor(prev, name))
     setIgnoreInput('')
   }, [setIgnored])
 
   const removeIgnore = useCallback(name => {
-    setIgnored(prev => {
-      const next = new Set(prev)
-      next.delete(name)
-      return next
-    })
+    setIgnored(prev => removeIgnoredAuthor(prev, name))
   }, [setIgnored])
 
   // ── ANIMATED COUNTER ─────────────────────────────────────────────────────

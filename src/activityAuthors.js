@@ -1,4 +1,5 @@
 import { ROMEO_RE } from './utils.js'
+import { isIgnoredAuthor } from './ignoredAuthors.js'
 
 // The rarity bonus is based on the entire archive, independent of the chart
 // period. Build this once when posts change, then reuse it for each day.
@@ -10,12 +11,12 @@ export function buildGlobalAuthorCounts(posts) {
   return counts
 }
 
-export function pickTopAuthors(dayPosts, globalCounts) {
+export function pickTopAuthors(dayPosts, globalCounts, ignored) {
   const MIN_RATING = 15000
   const VIP_RATING = 25000
   const byAuthor = Object.create(null)
   dayPosts.forEach(post => {
-    if (!post.author || ROMEO_RE.test(post.author)) return
+    if (!post.author || ROMEO_RE.test(post.author) || isIgnoredAuthor(ignored, post.author)) return
     const name = post.author
     if (!byAuthor[name]) byAuthor[name] = { rating: post.rating || 0, bestLikes: 0, count: 0 }
     const author = byAuthor[name]

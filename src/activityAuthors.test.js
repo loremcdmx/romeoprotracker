@@ -66,6 +66,14 @@ describe('activity author ranking', () => {
       .toBe(Math.log10(15001) * 20 + 4)
   })
 
+  it('skips ignored authors in any casing before ranking', () => {
+    const posts = [post('Troll', 30000, 30), post('NiceGuy', 20000, 12), post('Other', 16000, 1)]
+    const counts = buildGlobalAuthorCounts(posts)
+    expect(pickTopAuthors(posts, counts, new Set(['  tROLL ']))
+      .map(author => author.name)).toEqual(['NiceGuy', 'Other'])
+    expect(pickTopAuthors(posts, counts, new Set()).map(author => author.name)).toContain('Troll')
+  })
+
   it('handles author names that coincide with object prototype properties', () => {
     const posts = [post('__proto__'), post('constructor'), post('toString')]
     const top = pickTopAuthors(posts, buildGlobalAuthorCounts(posts))
