@@ -184,7 +184,19 @@ function selectFreshestPayload(current, candidate) {
   if (!candidate) return current
   if (!current) return candidate
 
-  return hasPayloadAdvanced(candidate, current) ? candidate : current
+  if (hasPayloadAdvanced(candidate, current)) return candidate
+
+  // Content tie (neither side advances the other, e.g. a stale same-origin
+  // snapshot next to raw GitHub with the same posts): without a tie-break the
+  // first source to settle wins, so the footer's "scraper ran" time could be
+  // older than what another source already reports. The heartbeat is only ever
+  // a tie-break here, never "advanced" content (that would re-download the
+  // posts on every scraper run, see hasPayloadAdvanced/inflateWithHeartbeat).
+  if (!hasPayloadAdvanced(current, candidate)
+    && parseTimestamp(candidate.meta?.lastScrapeRun) > parseTimestamp(current.meta?.lastScrapeRun)) {
+    return candidate
+  }
+  return current
 }
 
 function normalizeAvatarUrl(value) {

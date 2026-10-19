@@ -142,6 +142,12 @@ export function usePostsData() {
     }
   }, [loadData])
 
+  // Hides a failure message the reader has seen (the inline strip over a
+  // dashboard that is already loaded). A later failed refresh sets it again.
+  const dismissError = useCallback(() => {
+    if (errorRef.current) { errorRef.current = null; setError(null) }
+  }, [])
+
   const clearNewPosts = useCallback((sourcePosts) => {
     const currentPosts = sourcePosts || latestPostsRef.current
     knownIdsRef.current = new Set((currentPosts || []).map((post) => post.id))
@@ -155,6 +161,7 @@ export function usePostsData() {
     error,
     newPostIds,
     refresh: loadData,
+    dismissError,
     clearNewPosts,
   }
 }

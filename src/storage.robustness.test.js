@@ -320,6 +320,38 @@ describe('storage robustness', () => {
       expect(warm.posts).toBe(first.posts)
     })
 
+    describe('cold load, content tie with production timings', () => {
+      // Same posts everywhere; only the heartbeat differs. Both sources answer
+      // inside the settle window, so both are candidates and the heartbeat decides.
+      const route = (sameDelay, rawDelay, beats) => (href) => {
+        const raw = isRaw(href)
+        const body = isMeta(href)
+          ? { ...content, lastScrapeRun: raw ? beats.raw : beats.same }
+          : compact(raw ? 'raw' : 'same')
+        return { delay: raw ? rawDelay : sameDelay, body }
+      }
+      const load = async (sameDelay, rawDelay, beats) => {
+        vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] })
+        const { fetchPublicData } = await loadStorage()
+        vi.stubGlobal('fetch', slowFetch(route(sameDelay, rawDelay, beats)).fetchSpy)
+        const { outcome } = await settle(fetchPublicData())
+        expect(outcome?.ok).toBe(true)
+        return outcome.value
+      }
+
+      it('a stale same-origin snapshot that answers first does not hide the newer raw heartbeat', async () => {
+        const result = await load(50, 600, { same: '2026-10-18T10:05:00.000Z', raw: '2026-10-18T14:35:00.000Z' })
+        expect(result.meta.lastScrapeRun).toBe('2026-10-18T14:35:00.000Z')
+        expect(result.posts[0].id).toBe('raw')
+      })
+
+      it('and the other way round: raw answers first with the older heartbeat', async () => {
+        const result = await load(600, 50, { same: '2026-10-18T14:35:00.000Z', raw: '2026-10-18T10:05:00.000Z' })
+        expect(result.meta.lastScrapeRun).toBe('2026-10-18T14:35:00.000Z')
+        expect(result.posts[0].id).toBe('same')
+      })
+    })
+
     it('uses the newest heartbeat among the sources and never moves it backwards', async () => {
       let now = 1_800_000_000_000
       vi.spyOn(Date, 'now').mockImplementation(() => now)

@@ -3929,7 +3929,15 @@ const SessionMttChart = memo(function SessionMttChart({ meta, period, lang, t })
 
 // ─── APP ─────────────────────────────────────────────────────────────────────
 export default function App() {
-  const { posts, meta: rawMeta, loading, error, newPostIds, refresh, clearNewPosts } = usePostsData()
+  const { posts, meta: rawMeta, loading, error, newPostIds, refresh, dismissError, clearNewPosts } = usePostsData()
+  // A failed refresh over a dashboard that is already loaded is an inline strip,
+  // not the full error screen (that one is only for "nothing to show yet").
+  const hasData = rawMeta != null && posts.length > 0
+  const [retrying, setRetrying] = useState(false)
+  const retryRefresh = useCallback(() => {
+    setRetrying(true)
+    refresh().catch(() => {}).finally(() => setRetrying(false))
+  }, [refresh])
   // One bad report (no finite bankroll) must not poison the hero, the progress
   // bar and the charts; the guard keeps the same object when nothing is dropped.
   const meta = useMemo(() => sanitizeMeta(rawMeta), [rawMeta])
@@ -4538,7 +4546,16 @@ export default function App() {
         )
       })()}
 
-      {error && !loading
+      {(error || retrying) && !loading && hasData && (
+        <div className="load-error-strip" role="alert">
+          <span className="load-error-strip-text">{t('refresh_failed')}</span>
+          <button type="button" className="btn-sm" disabled={retrying} onClick={retryRefresh}>{t('retry')}</button>
+          <button type="button" className="load-error-strip-close" aria-label={t('close')}
+            onClick={() => { setRetrying(false); dismissError() }}>×</button>
+        </div>
+      )}
+
+      {error && !loading && !hasData
         ? (
         <div className="loading" style={{display:'flex',flexDirection:'column',gap:12,alignItems:'center',textAlign:'center'}}>
           <div style={{fontWeight:700,color:'var(--white)'}}>{t('load_failed_title')}</div>

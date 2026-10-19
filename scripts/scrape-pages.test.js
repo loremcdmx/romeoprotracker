@@ -104,11 +104,44 @@ describe('SCR-8 / DL-1: deletions are reconciled by complete full scans only', (
     expect(r.output).toContain('Romeo post(s) no longer listed')
   })
 
-  it('a normal (non-full) scan never prunes', () => {
-    const missing = ['1390']
-    const pages = forumWithout(missing)
-    const r = run({ posts: stored, meta: baseMeta({ totalPosts: TOTAL }), pages })
-    expect(r.posts).toHaveLength(TOTAL)
+  describe('a normal (non-full) scan never prunes', () => {
+    // The fixture removes every OTHER barrier, so `isFullScan` is the only thing
+    // standing between this scan and the prune: a two-page thread (the normal
+    // scan reads both pages, i.e. it is complete), 120 stored posts (cap =
+    // floor(1.2) = 1, so one removal is within the safe limit), and the one
+    // missing post is a plain non-Romeo post inside the scanned id range.
+    const small = Array.from({ length: 120 }, (_, i) => storedPost({
+      id: 5000 + i, author: `User${i}`, timestamp: 1_700_000_000 + i, text: `body ${i}`,
+    }))
+    const visible = small.filter(p => p.id !== '5050')
+    const twoPages = {
+      0: pageHtml(visible.slice(0, 60).map(asForum), 20),
+      20: pageHtml(visible.slice(60).map(asForum), 20),
+    }
+
+    it('control: the very same forum IS pruned by a full scan', () => {
+      const r = run({ posts: small, meta: baseMeta({ totalPosts: 120 }), pages: twoPages, args: full })
+      expect(r.posts).toHaveLength(119)
+      expect(r.output).toContain('Removed 1 post(s)')
+    })
+
+    it('normal scan, complete and within the cap: nothing is removed', () => {
+      const r = run({ posts: small, meta: baseMeta({ totalPosts: 120 }), pages: twoPages })
+      expect(r.status).toBe(0)
+      expect(r.count('forum')).toBe(2)               // both pages of the thread were read
+      expect(r.output).not.toContain('Removed')
+      expect(r.output).not.toContain('Prune refused')
+      expect(r.output).not.toContain('no longer listed')
+      expect(r.posts).toHaveLength(120)
+      expect(r.posts.some(p => p.id === '5050')).toBe(true)
+      expect(r.meta.totalPosts).toBe(120)
+    })
+
+    it('--prune-force does not turn a normal scan into a pruning one', () => {
+      const r = run({ posts: small, meta: baseMeta({ totalPosts: 120 }), pages: twoPages, args: ['--no-push', '--prune-force'] })
+      expect(r.posts).toHaveLength(120)
+      expect(r.output).not.toContain('Removed')
+    })
   })
 
   it('an incomplete full scan (a page fails) removes nothing and writes nothing', () => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { isPostSpecificApiError, neighbourEntries, validateBrExtraction } from './lib/br-extraction.mjs'
+import { isPersistentApiError, isPostSpecificApiError, neighbourEntries, persistentApiWarning, validateBrExtraction } from './lib/br-extraction.mjs'
 
 const good = (over = {}) => ({
   brBefore: 10500, brAfter: 11200,
@@ -25,6 +25,42 @@ describe('isPostSpecificApiError (SCR-1)', () => {
     expect(isPostSpecificApiError(400, '{"error":{"message":"Could not process image"}}')).toBe(true)
     expect(isPostSpecificApiError(400, '')).toBe(true)
     expect(isPostSpecificApiError(413, 'request_too_large')).toBe(true)
+  })
+})
+
+describe('isPersistentApiError / persistentApiWarning', () => {
+  it('a dead key, no access or no credit is persistent', () => {
+    for (const status of [401, 402, 403]) expect(isPersistentApiError(status, ''), String(status)).toBe(true)
+    expect(isPersistentApiError(400, '{"error":{"message":"Your credit balance is too low to access the Anthropic API."}}')).toBe(true)
+    expect(isPersistentApiError(400, '{"error":{"message":"You have reached your specified API usage limits."}}')).toBe(true)
+    expect(isPersistentApiError(400, '{"message":"invalid x-api-key"}')).toBe(true)
+  })
+
+  it('outages that pass on their own, and per-post problems, are not', () => {
+    for (const status of [404, 408, 413, 429, 500, 502, 503, 529]) expect(isPersistentApiError(status, 'x'), String(status)).toBe(false)
+    expect(isPersistentApiError(400, 'Overloaded')).toBe(false)
+    expect(isPersistentApiError(400, '{"error":{"message":"rate limit exceeded"}}')).toBe(false)
+    expect(isPersistentApiError(400, '{"error":{"message":"Could not process image"}}')).toBe(false)
+    expect(isPersistentApiError(400, '')).toBe(false)
+  })
+
+  it('whatever is persistent is never charged to a post (same free path as before)', () => {
+    const bodies = ['', 'credit balance', 'usage limit', 'invalid x-api-key', 'permission denied', 'Could not process image', 'Overloaded']
+    for (const status of [400, 401, 402, 403, 404, 413, 429, 500, 529]) {
+      for (const body of bodies) {
+        if (isPersistentApiError(status, body)) expect(isPostSpecificApiError(status, body), `${status} ${body}`).toBe(false)
+      }
+    }
+  })
+
+  it('the annotation is one single line: no newline, no raw % sequences, bounded', () => {
+    const line = persistentApiWarning(402, `{"error":\n  {"message":"credit balance is too low %0A ${'x'.repeat(500)}"}}`)
+    expect(line.startsWith('::warning::')).toBe(true)
+    expect(line).toContain('HTTP 402')
+    expect(line).not.toMatch(/[\r\n]/)
+    expect(line).not.toContain('%0A')
+    expect(line.length).toBeLessThan(600)
+    expect(persistentApiWarning(401)).toContain('HTTP 401)')
   })
 })
 
