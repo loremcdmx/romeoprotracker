@@ -172421,7 +172421,7 @@
     "date": "19 октября, 14:01",
     "timestamp": 1792411296,
     "text": "[QUOTE]markusil|markusil @ 19.10.26\nхэндзапы[/QUOTE]",
-    "likes": 14,
+    "likes": 15,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_10_2026/post-141614-1792411288a523_thumb.webp"
     ],
@@ -172497,7 +172497,7 @@
     "date": "19 октября, 20:57",
     "timestamp": 1792436224,
     "text": "Ievgenii_Potylchak, Я как математик тихо хуею с таких математиков, у которых перекос в 5% - математически монетка.",
-    "likes": 5,
+    "likes": 6,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -172515,7 +172515,7 @@
     "date": "20 октября, 03:03",
     "timestamp": 1792458236,
     "text": "Чуйствую в ближайшее время концентрация математиков в чате повысится.",
-    "likes": 0,
+    "likes": 1,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -172558,5 +172558,41 @@
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8314829"
+  },
+  {
+    "id": "8314842",
+    "author": "Romeopro",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/2/6/6/26670.jpg",
+    "rating": 25707,
+    "msgCount": 4263,
+    "regData": "16 лет на сайте",
+    "date": "20 октября, 05:32",
+    "timestamp": 1792467158,
+    "text": "Day 189:",
+    "likes": 3,
+    "images": [
+      "https://static-forum.gipsyteam.ru/monthly_10_2026/post-6195-1792467155f394_thumb.webp"
+    ],
+    "videos": [],
+    "brBefore": 448853,
+    "brAfter": 458457,
+    "sessionResult": 9604,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8314842",
+    "rooms": {
+      "before": {
+        "gg": 447416,
+        "ps": 1188,
+        "king": 232,
+        "coin": 17,
+        "lux": 0
+      },
+      "after": {
+        "gg": 457020,
+        "ps": 1188,
+        "king": 232,
+        "coin": 17,
+        "lux": 0
+      }
+    }
   }
 ]
