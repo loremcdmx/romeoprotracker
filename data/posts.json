@@ -172331,7 +172331,7 @@
     "date": "19 октября, 11:04",
     "timestamp": 1792400699,
     "text": "[QUOTE]markusil|markusil @ 19.10.26\nВсё хэндзапы тащит[/QUOTE]И хэндэхохи.",
-    "likes": 25,
+    "likes": 26,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -172515,7 +172515,7 @@
     "date": "20 октября, 03:03",
     "timestamp": 1792458236,
     "text": "Чуйствую в ближайшее время концентрация математиков в чате повысится.",
-    "likes": 2,
+    "likes": 3,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -172569,7 +172569,7 @@
     "date": "20 октября, 05:32",
     "timestamp": 1792467158,
     "text": "Day 189:",
-    "likes": 10,
+    "likes": 12,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_10_2026/post-6195-1792467155f394_thumb.webp"
     ],
@@ -172594,5 +172594,23 @@
         "lux": 0
       }
     }
+  },
+  {
+    "id": "8314874",
+    "author": "Bezumec90",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/1/6/6/3/166319.webp",
+    "rating": 85,
+    "msgCount": 20,
+    "regData": "9 лет на сайте",
+    "date": "20 октября, 07:37",
+    "timestamp": 1792474674,
+    "text": "[QUOTE]pokerpain|pokerpain @ 18.10.26\nПосмотрел результат последний сессии Ромы, вернее то ,что он пишет в таблице. Могу с полной уверенностью сказать : цифры взяты из головы или он поменял (засчитал гемы). \n\nСтолько в + турнирами вчера он не выиграл - точно. \n\nМы у него в ключевых дольки брали ( там своя аналитика по долям идет ) + доезд был только один на 5к в турнире.\n\nОстальное либо микро плюс, либо вообще залито.\n\nВыводы делайте сами.[/QUOTE]Роман дальновидный человек и учитывает результаты будущих сессий",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8314874"
   }
 ]
