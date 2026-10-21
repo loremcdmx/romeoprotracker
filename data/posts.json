@@ -172915,7 +172915,7 @@
     "date": "21 октября, 01:02",
     "timestamp": 1792537321,
     "text": "[QUOTE]pokerpain|pokerpain @ 19.06.26\nПервый раз вижу deal от Романа[/QUOTE][QUOTE]pokerpain|pokerpain @ 21.10.26\nP.S. Первый дил что увидел за все время от Ромы[/QUOTE]",
-    "likes": -1,
+    "likes": 0,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -173005,7 +173005,7 @@
     "date": "21 октября, 06:13",
     "timestamp": 1792556002,
     "text": "Day 190:",
-    "likes": 21,
+    "likes": 26,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_10_2026/post-6195-17925559995d90_thumb.webp"
     ],
@@ -173059,12 +173059,30 @@
     "date": "21 октября, 07:10",
     "timestamp": 1792559428,
     "text": "[QUOTE]pokerpain|pokerpain @ 21.10.26\nДоговор, Что?))))))\n\nP.S. Первый дил что увидел за все время от Ромы[/QUOTE]Там просто на первом месте его садовник.",
-    "likes": -1,
+    "likes": 1,
     "images": [],
     "videos": [],
     "brBefore": null,
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8315607"
+  },
+  {
+    "id": "8315628",
+    "author": "Kazimir17",
+    "avatar": "https://forum.gipsyteam.com/img/imguser.png",
+    "rating": 4688,
+    "msgCount": 3285,
+    "regData": "15 лет на сайте",
+    "date": "21 октября, 08:10",
+    "timestamp": 1792563041,
+    "text": "Который играет за 20 копеек, по умолчанию.",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8315628"
   }
 ]
