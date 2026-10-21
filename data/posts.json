@@ -173005,7 +173005,7 @@
     "date": "21 октября, 06:13",
     "timestamp": 1792556002,
     "text": "Day 190:",
-    "likes": 10,
+    "likes": 11,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_10_2026/post-6195-17925559995d90_thumb.webp"
     ],
@@ -173030,5 +173030,23 @@
         "lux": 0
       }
     }
+  },
+  {
+    "id": "8315604",
+    "author": "AMDemon",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/2/8/6/28632.jpg",
+    "rating": 7882,
+    "msgCount": 2272,
+    "regData": "15 лет на сайте",
+    "date": "21 октября, 06:56",
+    "timestamp": 1792558602,
+    "text": "Эту машину уже не остановить!",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8315604"
   }
 ]
