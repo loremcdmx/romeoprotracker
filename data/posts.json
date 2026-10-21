@@ -173167,7 +173167,7 @@
     "date": "21 октября, 12:42",
     "timestamp": 1792579328,
     "text": "",
-    "likes": 0,
+    "likes": 1,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_10_2026/post-135429-17925793182b6d_thumb.webp"
     ],
@@ -173176,5 +173176,25 @@
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8315762"
+  },
+  {
+    "id": "8315803",
+    "author": "777sani",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/1/5/8/1/158134.jpg",
+    "rating": 11837,
+    "msgCount": 4633,
+    "regData": "15 лет на сайте",
+    "date": "21 октября, 13:41",
+    "timestamp": 1792582886,
+    "text": "[QUOTE]Eleon|Eleon @ 21.10.26\nFFY[/QUOTE]\n    \n\n \n\nВ каком это смысле?",
+    "likes": 0,
+    "images": [
+      "https://static-forum.gipsyteam.ru/monthly_10_2026/post-16944-1792582843e09_thumb.webp"
+    ],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8315803"
   }
 ]
