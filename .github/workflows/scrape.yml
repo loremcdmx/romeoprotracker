@@ -38,6 +38,10 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+          # The job talks to third-party hosts with secrets in env; take the
+          # newest 22.x from the node-versions manifest instead of the possibly
+          # stale runner toolcache (security releases).
+          check-latest: true
           cache: npm
 
       - name: Install dependencies
