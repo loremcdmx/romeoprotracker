@@ -496,6 +496,8 @@ button,select,input,summary{font:inherit}
 .light .filter-pill.off{background:var(--bg3);color:var(--dim2);border-color:var(--border)}
 .light .filter-pill.off:hover{border-color:var(--border2);color:var(--white)}
 .light .ignore-input{background:var(--bg3);border-color:var(--border);color:var(--white)}
+/* browser default placeholder is #757575 (3.4:1 on --bg3); opacity:1 because Firefox dims placeholders */
+.light .ignore-input::placeholder,.light .feed-search::placeholder{color:var(--dim);opacity:1}
 .light .btn-sm{background:var(--bg3);border-color:var(--border);color:var(--dim2)}
 .light .lightbox{background:rgba(0,0,0,.7)}
 .light .sidebar-popup{background:var(--bg-popup)!important;border-color:var(--border-popup)!important;box-shadow:var(--shadow-popup)!important}
