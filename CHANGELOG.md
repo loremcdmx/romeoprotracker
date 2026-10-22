@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+## 1.14.18 — 2026-10-22
+
+- Light theme: the placeholder text of the feed search and the add-author field is readable (4.5:1+ instead of 3.4:1).
+
 ## 1.14.17 — 2026-10-19
 
 - WebKit: numeric filters now finish focus scrolling after selecting their value, so keyboard focus stays visible even with smooth page scrolling enabled.
