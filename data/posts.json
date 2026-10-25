@@ -173625,7 +173625,7 @@
     "date": "24 октября, 13:27",
     "timestamp": 1792841263,
     "text": "3 дня отдохнули, пора играть дорого",
-    "likes": 21,
+    "likes": 22,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_10_2026/post-187091-1792841236df5a_thumb.webp"
     ],
@@ -173645,7 +173645,7 @@
     "date": "24 октября, 14:12",
     "timestamp": 1792843947,
     "text": "pokerpain, лол. Он с дубу рухнул с кэфом.",
-    "likes": 10,
+    "likes": 11,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -173719,7 +173719,7 @@
     "date": "24 октября, 21:37",
     "timestamp": 1792870672,
     "text": "Рома внедрил Аврору в сб покерка чтобы security guy прикрыл bot guy при проверке",
-    "likes": 29,
+    "likes": 31,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -173845,7 +173845,7 @@
     "date": "25 октября, 05:49",
     "timestamp": 1792903796,
     "text": "Day 191:",
-    "likes": 11,
+    "likes": 16,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_10_2026/post-6195-1792903789e323_thumb.webp"
     ],
@@ -173870,5 +173870,23 @@
         "lux": 0
       }
     }
+  },
+  {
+    "id": "8317757",
+    "author": "Kazimir17",
+    "avatar": "https://forum.gipsyteam.com/img/imguser.png",
+    "rating": 4688,
+    "msgCount": 3287,
+    "regData": "15 лет на сайте",
+    "date": "25 октября, 06:59",
+    "timestamp": 1792907999,
+    "text": "Набрал сил за три дня отдыха ))",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8317757"
   }
 ]
