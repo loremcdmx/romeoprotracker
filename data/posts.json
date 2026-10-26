@@ -173719,7 +173719,7 @@
     "date": "24 октября, 19:37",
     "timestamp": 1792870672,
     "text": "Рома внедрил Аврору в сб покерка чтобы security guy прикрыл bot guy при проверке",
-    "likes": 60,
+    "likes": 61,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -173845,7 +173845,7 @@
     "date": "25 октября, 05:49",
     "timestamp": 1792903796,
     "text": "Day 191:",
-    "likes": 71,
+    "likes": 72,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_10_2026/post-6195-1792903789e323_thumb.webp"
     ],
@@ -174158,5 +174158,23 @@
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8318268"
+  },
+  {
+    "id": "8318340",
+    "author": "markusil",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/1/7/5/2/175211.webp",
+    "rating": null,
+    "msgCount": 13,
+    "regData": "9 лет на сайте",
+    "date": "26 октября, 03:31",
+    "timestamp": 1792981886,
+    "text": "SAYKOD, это уже обсуждалось, бро",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8318340"
   }
 ]
