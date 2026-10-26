@@ -173719,7 +173719,7 @@
     "date": "24 октября, 19:37",
     "timestamp": 1792870672,
     "text": "Рома внедрил Аврору в сб покерка чтобы security guy прикрыл bot guy при проверке",
-    "likes": 62,
+    "likes": 64,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -173845,7 +173845,7 @@
     "date": "25 октября, 05:49",
     "timestamp": 1792903796,
     "text": "Day 191:",
-    "likes": 73,
+    "likes": 74,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_10_2026/post-6195-1792903789e323_thumb.webp"
     ],
@@ -174097,7 +174097,7 @@
     "date": "25 октября, 20:32",
     "timestamp": 1792956735,
     "text": "Этот топик свел с ума даже таких кто на Джипси по 3-5-7 лет ни одного поста не делал и вот только сейчас решились на этот шаг",
-    "likes": 6,
+    "likes": 8,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -174214,5 +174214,41 @@
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8318345"
+  },
+  {
+    "id": "8318358",
+    "author": "Romeopro",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/2/6/6/26670.jpg",
+    "rating": 25707,
+    "msgCount": 4266,
+    "regData": "16 лет на сайте",
+    "date": "26 октября, 05:25",
+    "timestamp": 1792988743,
+    "text": "Day 192:",
+    "likes": 0,
+    "images": [
+      "https://static-forum.gipsyteam.ru/monthly_10_2026/post-6195-179298873451a_thumb.webp"
+    ],
+    "videos": [],
+    "brBefore": 476436,
+    "brAfter": 467802,
+    "sessionResult": -8634,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8318358",
+    "rooms": {
+      "before": {
+        "gg": 474999,
+        "ps": 1188,
+        "king": 232,
+        "coin": 17,
+        "lux": 0
+      },
+      "after": {
+        "gg": 466365,
+        "ps": 1188,
+        "king": 232,
+        "coin": 17,
+        "lux": 0
+      }
+    }
   }
 ]
