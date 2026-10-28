@@ -175315,7 +175315,7 @@
     "date": "28 октября, 01:29",
     "timestamp": 1793147378,
     "text": "",
-    "likes": 10,
+    "likes": 11,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_10_2026/post-187091-179314736698fa_thumb.webp",
       "https://static-forum.gipsyteam.ru/monthly_10_2026/post-187091-179314737696e0.png"
@@ -175325,5 +175325,41 @@
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8319257"
+  },
+  {
+    "id": "8319279",
+    "author": "Romeopro",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/2/6/6/26670.jpg",
+    "rating": 25707,
+    "msgCount": 4268,
+    "regData": "16 лет на сайте",
+    "date": "28 октября, 03:30",
+    "timestamp": 1793154654,
+    "text": "Day 194:",
+    "likes": 0,
+    "images": [
+      "https://static-forum.gipsyteam.ru/monthly_10_2026/post-6195-17931546513d71_thumb.webp"
+    ],
+    "videos": [],
+    "brBefore": 473911,
+    "brAfter": 490916,
+    "sessionResult": 17005,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8319279",
+    "rooms": {
+      "before": {
+        "gg": 472474,
+        "ps": 1188,
+        "king": 232,
+        "coin": 17,
+        "lux": 0
+      },
+      "after": {
+        "gg": 489479,
+        "ps": 1188,
+        "king": 232,
+        "coin": 17,
+        "lux": 0
+      }
+    }
   }
 ]
