@@ -175003,7 +175003,7 @@
     "date": "27 октября, 15:36",
     "timestamp": 1793111797,
     "text": "victorwinner,                 зеленский",
-    "likes": 5,
+    "likes": 6,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -175336,7 +175336,7 @@
     "date": "28 октября, 03:30",
     "timestamp": 1793154654,
     "text": "Day 194:",
-    "likes": 55,
+    "likes": 56,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_10_2026/post-6195-17931546513d71_thumb.webp"
     ],
@@ -175399,5 +175399,23 @@
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8319329"
+  },
+  {
+    "id": "8319359",
+    "author": "Yak-OFF",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/1/5/8/5/158503.jpg",
+    "rating": 172,
+    "msgCount": 85,
+    "regData": "4 года на сайте",
+    "date": "28 октября, 09:31",
+    "timestamp": 1793176297,
+    "text": "Kravsunov, по лезвию бритвы ходишь)",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8319359"
   }
 ]
