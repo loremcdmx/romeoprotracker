@@ -176064,7 +176064,7 @@
     "date": "30 октября, 02:52",
     "timestamp": 1793325178,
     "text": "Говорят, что только Роман любит отморозиться)",
-    "likes": 1,
+    "likes": 2,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_10_2026/post-167293-17933244894254_thumb.webp"
     ],
@@ -176138,7 +176138,7 @@
     "date": "30 октября, 05:02",
     "timestamp": 1793332948,
     "text": "Day 196:",
-    "likes": 10,
+    "likes": 12,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_10_2026/post-6195-1793332935b36c_thumb.webp"
     ],
@@ -176163,5 +176163,23 @@
         "lux": 0
       }
     }
+  },
+  {
+    "id": "8320312",
+    "author": "Geras",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/1/3/4/2/134245.jpg",
+    "rating": 268,
+    "msgCount": 361,
+    "regData": "7 лет на сайте",
+    "date": "30 октября, 05:48",
+    "timestamp": 1793335693,
+    "text": "Poatan, а на каком флопе он планировал ч\\ф играть?",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8320312"
   }
 ]
