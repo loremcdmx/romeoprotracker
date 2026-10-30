@@ -175646,7 +175646,7 @@
     "date": "29 октября, 03:46",
     "timestamp": 1793242005,
     "text": "Day 195:",
-    "likes": 123,
+    "likes": 124,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_10_2026/post-6195-1793241995a12d_thumb.webp"
     ],
@@ -176073,5 +176073,41 @@
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8320282"
+  },
+  {
+    "id": "8320296",
+    "author": "almagro",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/6/3/6/63693.jpg",
+    "rating": 3668,
+    "msgCount": 2600,
+    "regData": "12 лет на сайте",
+    "date": "30 октября, 04:22",
+    "timestamp": 1793330529,
+    "text": "Может кто нибудь объяснит, как человек не способный посчитать свой аби и заполнить соответсвующую колонку, в то же время отыгрывает такие дистанции и показывает впечатляющие результаты",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8320296"
+  },
+  {
+    "id": "8320298",
+    "author": "rave2206",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/1/7/3/5/173506.webp",
+    "rating": 2257,
+    "msgCount": 821,
+    "regData": "11 лет на сайте",
+    "date": "30 октября, 04:26",
+    "timestamp": 1793330766,
+    "text": "almagro, можно,а зачем?",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8320298"
   }
 ]
