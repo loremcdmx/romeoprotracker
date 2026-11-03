@@ -177598,5 +177598,59 @@
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8322340"
+  },
+  {
+    "id": "8322345",
+    "author": "Romeopro",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/2/6/6/26670.jpg",
+    "rating": 25673,
+    "msgCount": 4274,
+    "regData": "16 лет на сайте",
+    "date": "3 ноября, 06:01",
+    "timestamp": 1793682118,
+    "text": "Day 200:",
+    "likes": 2,
+    "images": [
+      "https://static-forum.gipsyteam.ru/monthly_11_2026/post-6195-1793682113158_thumb.webp"
+    ],
+    "videos": [],
+    "brBefore": 521352,
+    "brAfter": 521900,
+    "sessionResult": 548,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8322345",
+    "rooms": {
+      "before": {
+        "gg": 519915,
+        "ps": 1188,
+        "king": 232,
+        "coin": 17,
+        "lux": 0
+      },
+      "after": {
+        "gg": 520463,
+        "ps": 1188,
+        "king": 232,
+        "coin": 17,
+        "lux": 0
+      }
+    }
+  },
+  {
+    "id": "8322347",
+    "author": "M45PL",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/1/5/5/1/155154.jpg",
+    "rating": 17101,
+    "msgCount": 8459,
+    "regData": "9 лет на сайте",
+    "date": "3 ноября, 06:07",
+    "timestamp": 1793682451,
+    "text": "фуф, ну вроде справился с даунстриком",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8322347"
   }
 ]
