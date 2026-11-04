@@ -177861,7 +177861,7 @@
     "date": "4 ноября, 06:45",
     "timestamp": 1793771108,
     "text": "Day 201:",
-    "likes": 2,
+    "likes": 3,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_11_2026/post-6195-1793771100e34_thumb.webp"
     ],
@@ -177904,5 +177904,23 @@
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8322853"
+  },
+  {
+    "id": "8322863",
+    "author": "Elvisisalive",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/1/7/1/8/171834.webp",
+    "rating": 3347,
+    "msgCount": 839,
+    "regData": "13 лет на сайте",
+    "date": "4 ноября, 07:34",
+    "timestamp": 1793774043,
+    "text": "Опять даунстрик",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8322863"
   }
 ]
