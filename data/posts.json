@@ -177609,7 +177609,7 @@
     "date": "3 ноября, 06:01",
     "timestamp": 1793682118,
     "text": "Day 200:",
-    "likes": 61,
+    "likes": 62,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_11_2026/post-6195-1793682113158_thumb.webp"
     ],
@@ -177861,7 +177861,7 @@
     "date": "4 ноября, 06:45",
     "timestamp": 1793771108,
     "text": "Day 201:",
-    "likes": 19,
+    "likes": 20,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_11_2026/post-6195-1793771100e34_thumb.webp"
     ],
@@ -177976,5 +177976,23 @@
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8323016"
+  },
+  {
+    "id": "8323049",
+    "author": "victorwinner",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/1/6/3/0/163021.jpg",
+    "rating": 2532,
+    "msgCount": 2180,
+    "regData": "11 лет на сайте",
+    "date": "4 ноября, 13:43",
+    "timestamp": 1793796194,
+    "text": "[QUOTE]Romeopro|Romeopro @ 04.11.26\nDay 201:[/QUOTE]О, это человек играл.",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8323049"
   }
 ]
