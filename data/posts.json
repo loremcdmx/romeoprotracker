@@ -177861,7 +177861,7 @@
     "date": "4 ноября, 06:45",
     "timestamp": 1793771108,
     "text": "Day 201:",
-    "likes": 0,
+    "likes": 1,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_11_2026/post-6195-1793771100e34_thumb.webp"
     ],
@@ -177886,5 +177886,23 @@
         "lux": 0
       }
     }
+  },
+  {
+    "id": "8322853",
+    "author": "M45PL",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/1/5/5/1/155154.jpg",
+    "rating": 17117,
+    "msgCount": 8461,
+    "regData": "9 лет на сайте",
+    "date": "4 ноября, 06:46",
+    "timestamp": 1793771199,
+    "text": "Каюсь! Сглазил! :(",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8322853"
   }
 ]
