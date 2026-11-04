@@ -177609,7 +177609,7 @@
     "date": "3 ноября, 06:01",
     "timestamp": 1793682118,
     "text": "Day 200:",
-    "likes": 58,
+    "likes": 59,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_11_2026/post-6195-1793682113158_thumb.webp"
     ],
@@ -177771,7 +177771,7 @@
     "date": "3 ноября, 20:57",
     "timestamp": 1793735873,
     "text": "[QUOTE]Igorke34|Igorke34 @ 03.11.26\nсправитесь со всем[/QUOTE]Или нет",
-    "likes": 6,
+    "likes": 7,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -177850,5 +177850,41 @@
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8322844"
+  },
+  {
+    "id": "8322851",
+    "author": "Romeopro",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/2/6/6/26670.jpg",
+    "rating": 25673,
+    "msgCount": 4275,
+    "regData": "16 лет на сайте",
+    "date": "4 ноября, 06:45",
+    "timestamp": 1793771108,
+    "text": "Day 201:",
+    "likes": 0,
+    "images": [
+      "https://static-forum.gipsyteam.ru/monthly_11_2026/post-6195-1793771100e34_thumb.webp"
+    ],
+    "videos": [],
+    "brBefore": 521900,
+    "brAfter": 508858,
+    "sessionResult": -13042,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8322851",
+    "rooms": {
+      "before": {
+        "gg": 520463,
+        "ps": 1188,
+        "king": 232,
+        "coin": 17,
+        "lux": 0
+      },
+      "after": {
+        "gg": 507421,
+        "ps": 1188,
+        "king": 232,
+        "coin": 17,
+        "lux": 0
+      }
+    }
   }
 ]
