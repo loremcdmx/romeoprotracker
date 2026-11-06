@@ -177837,7 +177837,7 @@
     "id": "8322844",
     "author": "мориарти77",
     "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/1/0/9/4/109417.jpg",
-    "rating": 19,
+    "rating": -81,
     "msgCount": 286,
     "regData": "9 лет на сайте",
     "date": "4 ноября, 05:20",
@@ -178131,7 +178131,7 @@
     "date": "6 ноября, 05:27",
     "timestamp": 1793939258,
     "text": "Day 203:",
-    "likes": 21,
+    "likes": 22,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_11_2026/post-6195-1793939248d844_thumb.webp"
     ],
@@ -178174,5 +178174,23 @@
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8324295"
+  },
+  {
+    "id": "8324366",
+    "author": "Kazimir17",
+    "avatar": "https://forum.gipsyteam.com/img/imguser.png",
+    "rating": 4688,
+    "msgCount": 3291,
+    "regData": "15 лет на сайте",
+    "date": "6 ноября, 12:48",
+    "timestamp": 1793965734,
+    "text": "Небольшой откат, ничего страшного.",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8324366"
   }
 ]
