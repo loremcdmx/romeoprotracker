@@ -178419,7 +178419,7 @@
     "date": "8 ноября, 03:54",
     "timestamp": 1794106498,
     "text": "Day 204:",
-    "likes": 100,
+    "likes": 101,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_11_2026/post-6195-1794106488d4fa_thumb.webp"
     ],
@@ -178556,5 +178556,23 @@
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8325698"
+  },
+  {
+    "id": "8325863",
+    "author": "krec",
+    "avatar": "https://forum.gipsyteam.com/img/imguser.png",
+    "rating": 142,
+    "msgCount": 153,
+    "regData": "13 лет на сайте",
+    "date": "8 ноября, 19:12",
+    "timestamp": 1794161530,
+    "text": "Igorke34,  Он там год назад был, даже стримил оттуда. Тогда полез на высокие лимиты(нл 1к, пьяный как обычно) и там залил весь профит, вкратце",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8325863"
   }
 ]
