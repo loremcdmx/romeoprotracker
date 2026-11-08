@@ -178419,7 +178419,7 @@
     "date": "8 ноября, 03:54",
     "timestamp": 1794106498,
     "text": "Day 204:",
-    "likes": 78,
+    "likes": 80,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_11_2026/post-6195-1794106488d4fa_thumb.webp"
     ],
@@ -178491,7 +178491,7 @@
     "date": "8 ноября, 13:28",
     "timestamp": 1794140936,
     "text": "",
-    "likes": -1,
+    "likes": -2,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_11_2026/post-214857-1794140934bcf5.jpg"
     ],
@@ -178500,5 +178500,41 @@
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8325682"
+  },
+  {
+    "id": "8325693",
+    "author": "ПАЛЕЦВЖОПЕ",
+    "avatar": "https://forum.gipsyteam.com/img/imguser.png",
+    "rating": null,
+    "msgCount": 26,
+    "regData": "0 часов на сайте",
+    "date": "8 ноября, 13:36",
+    "timestamp": 1794141366,
+    "text": "КТО ПОСТАВИЛ МИНУС К ПОСТУ ТОТ СЫН ПЕТУХА",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8325693"
+  },
+  {
+    "id": "8325695",
+    "author": "ПАЛЕЦВЖОПЕ",
+    "avatar": "https://forum.gipsyteam.com/img/imguser.png",
+    "rating": null,
+    "msgCount": 26,
+    "regData": "0 часов на сайте",
+    "date": "8 ноября, 13:36",
+    "timestamp": 1794141416,
+    "text": "ПУАХААХААХ ЭТО ДВА УКРОПА И ПОСТАВИЛИ\n\n \n\nХУЛИ НЕ В ВСУ ПИДОРЫ",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8325695"
   }
 ]
