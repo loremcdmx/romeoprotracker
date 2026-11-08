@@ -178419,7 +178419,7 @@
     "date": "8 ноября, 03:54",
     "timestamp": 1794106498,
     "text": "Day 204:",
-    "likes": 47,
+    "likes": 50,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_11_2026/post-6195-1794106488d4fa_thumb.webp"
     ],
@@ -178444,5 +178444,23 @@
         "lux": 0
       }
     }
+  },
+  {
+    "id": "8325558",
+    "author": "МАТЬ_НИВЕЙКИ",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/1/7/6/0/176076.webp",
+    "rating": null,
+    "msgCount": 11,
+    "regData": "0 часов на сайте",
+    "date": "8 ноября, 09:24",
+    "timestamp": 1794126280,
+    "text": "ВСЕМ ПРИВЕТ\n\nЯ МАМА НИВЕЙКИ\n\nОН УМЕР",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8325558"
   }
 ]
