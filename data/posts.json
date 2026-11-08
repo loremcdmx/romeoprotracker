@@ -178401,12 +178401,48 @@
     "date": "7 ноября, 21:53",
     "timestamp": 1794084824,
     "text": "Как же за 7 месяцев всё поменялось. От не бьющихся чуть ли не аби10, до ожидания выше конфы аби50. Когда начинался марафон, были такие настроения, что он или выгорел, или что-то в таком роде, что игру совсем не бьёт, и карьера закончена. Я без укоров кому либо, просто кое что вспомнил, и сравнил, с тем что есть на данный момент.",
-    "likes": 7,
+    "likes": 8,
     "images": [],
     "videos": [],
     "brBefore": null,
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8325358"
+  },
+  {
+    "id": "8325468",
+    "author": "Romeopro",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/2/6/6/26670.jpg",
+    "rating": 25673,
+    "msgCount": 4278,
+    "regData": "16 лет на сайте",
+    "date": "8 ноября, 03:54",
+    "timestamp": 1794106498,
+    "text": "Day 204:",
+    "likes": 0,
+    "images": [
+      "https://static-forum.gipsyteam.ru/monthly_11_2026/post-6195-1794106488d4fa_thumb.webp"
+    ],
+    "videos": [],
+    "brBefore": 496803,
+    "brAfter": 514374,
+    "sessionResult": 17571,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8325468",
+    "rooms": {
+      "before": {
+        "gg": 495366,
+        "ps": 1188,
+        "king": 232,
+        "coin": 17,
+        "lux": 0
+      },
+      "after": {
+        "gg": 512937,
+        "ps": 1188,
+        "king": 232,
+        "coin": 17,
+        "lux": 0
+      }
+    }
   }
 ]
