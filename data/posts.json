@@ -178601,7 +178601,7 @@
     "date": "9 ноября, 03:08",
     "timestamp": 1794190134,
     "text": "Day 205:",
-    "likes": 95,
+    "likes": 96,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_11_2026/post-6195-179419012726fe_thumb.webp"
     ],
@@ -178680,5 +178680,41 @@
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8326094"
+  },
+  {
+    "id": "8326156",
+    "author": "Prayd",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/3/0/4/30481.jpg",
+    "rating": 828,
+    "msgCount": 699,
+    "regData": "14 лет на сайте",
+    "date": "9 ноября, 10:53",
+    "timestamp": 1794217983,
+    "text": "Как он это делает ?",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8326156"
+  },
+  {
+    "id": "8326160",
+    "author": "Kravsunov",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/1/6/8/9/168975.webp",
+    "rating": 1340,
+    "msgCount": 633,
+    "regData": "11 лет на сайте",
+    "date": "9 ноября, 10:57",
+    "timestamp": 1794218237,
+    "text": "Обычно компьютерной мышкой нажимают на кнопки, ну или хоткеи.",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8326160"
   }
 ]
