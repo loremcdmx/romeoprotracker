@@ -178419,7 +178419,7 @@
     "date": "8 ноября, 03:54",
     "timestamp": 1794106498,
     "text": "Day 204:",
-    "likes": 128,
+    "likes": 130,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_11_2026/post-6195-1794106488d4fa_thumb.webp"
     ],
@@ -178601,7 +178601,7 @@
     "date": "9 ноября, 03:08",
     "timestamp": 1794190134,
     "text": "Day 205:",
-    "likes": 60,
+    "likes": 63,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_11_2026/post-6195-179419012726fe_thumb.webp"
     ],
@@ -178644,5 +178644,23 @@
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8326061"
+  },
+  {
+    "id": "8326074",
+    "author": "Yak-OFF",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/1/5/8/5/158503.jpg",
+    "rating": 145,
+    "msgCount": 91,
+    "regData": "4 года на сайте",
+    "date": "9 ноября, 07:57",
+    "timestamp": 1794207461,
+    "text": "Разъеб",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8326074"
   }
 ]
