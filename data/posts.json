@@ -178419,7 +178419,7 @@
     "date": "8 ноября, 03:54",
     "timestamp": 1794106498,
     "text": "Day 204:",
-    "likes": 134,
+    "likes": 135,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_11_2026/post-6195-1794106488d4fa_thumb.webp"
     ],
@@ -178601,7 +178601,7 @@
     "date": "9 ноября, 03:08",
     "timestamp": 1794190134,
     "text": "Day 205:",
-    "likes": 98,
+    "likes": 101,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_11_2026/post-6195-179419012726fe_thumb.webp"
     ],
@@ -178770,5 +178770,23 @@
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8326197"
+  },
+  {
+    "id": "8326213",
+    "author": "FrankRandoliQ",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/1/1/9/6/119694.jpg",
+    "rating": -49,
+    "msgCount": 89,
+    "regData": "8 лет на сайте",
+    "date": "9 ноября, 11:59",
+    "timestamp": 1794221953,
+    "text": "Скорее всего хоткеи...",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8326213"
   }
 ]
