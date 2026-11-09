@@ -178601,7 +178601,7 @@
     "date": "9 ноября, 03:08",
     "timestamp": 1794190134,
     "text": "Day 205:",
-    "likes": 120,
+    "likes": 121,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_11_2026/post-6195-179419012726fe_thumb.webp"
     ],
@@ -178752,5 +178752,23 @@
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8326349"
+  },
+  {
+    "id": "8326367",
+    "author": "Twister_1",
+    "avatar": "https://forum.gipsyteam.com/img/imguser.png",
+    "rating": 587,
+    "msgCount": 185,
+    "regData": "7 месяцев на сайте",
+    "date": "9 ноября, 16:22",
+    "timestamp": 1794237760,
+    "text": "Prayd, 8 месяцев занимался исключительно теорией на 10 машинах (8 серверов и 2 ПК).",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8326367"
   }
 ]
