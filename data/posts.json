@@ -179312,7 +179312,7 @@
     "date": "12 ноября, 08:24",
     "timestamp": 1794468285,
     "text": "Заебал этот лентяй...3й день уже прохлаждается",
-    "likes": 13,
+    "likes": 14,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -179384,7 +179384,7 @@
     "date": "13 ноября, 00:19",
     "timestamp": 1794525577,
     "text": "[QUOTE]Trava1er|Trava1er @ 12.11.26\nПодскажите, плиз, есть ли на gipsyteam тема, где можно мтт раздачи пообсуждать? Очень интересно мнение регов по одной раздаче.[/QUOTE]на рыболовных форумах поспрашивай. Или там на садоводческих. Этот форум про другое, тут такой хуйнёй не маются!",
-    "likes": 2,
+    "likes": 3,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -179501,5 +179501,23 @@
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8328592"
+  },
+  {
+    "id": "8328594",
+    "author": "victorwinner",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/1/6/3/0/163021.jpg",
+    "rating": 2630,
+    "msgCount": 2236,
+    "regData": "11 лет на сайте",
+    "date": "13 ноября, 03:43",
+    "timestamp": 1794537818,
+    "text": "[QUOTE]M45PL|M45PL @ 13.11.26\nа это что?[/QUOTE]Ты не понял о чём речь. Это, то что ты показываешь - создание темы в дневнике. Раньше, до глобального обновления форума(со слайдером и т.д.), в каждом МТТ разделе(может и в кэше было, не знаю, не проверял), помимо дневников, был ещё подраздел, где можно было открывать мини-темы. И там обсуждали раздачи. \n\n \n\nСейчас по другому. Да, можно создать в теме дневников. Но тогда было удобнее.",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8328594"
   }
 ]
