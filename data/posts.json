@@ -179586,7 +179586,7 @@
     "date": "13 ноября, 21:41",
     "timestamp": 1794602491,
     "text": "AMDemon, Нет, ты жестоко ошибаешься. Негреану назвал своего сына Романом, в честь Романа \"ЛЕГЕНДЫ\" Сысоева!",
-    "likes": 1,
+    "likes": 2,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -179629,5 +179629,41 @@
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8329068"
+  },
+  {
+    "id": "8329075",
+    "author": "Romeopro",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/2/6/6/26670.jpg",
+    "rating": 25774,
+    "msgCount": 4281,
+    "regData": "16 лет на сайте",
+    "date": "14 ноября, 02:23",
+    "timestamp": 1794619382,
+    "text": "Day 207:",
+    "likes": 1,
+    "images": [
+      "https://static-forum.gipsyteam.ru/monthly_11_2026/post-6195-1794619380f83_thumb.webp"
+    ],
+    "videos": [],
+    "brBefore": 531507,
+    "brAfter": 519774,
+    "sessionResult": -11733,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8329075",
+    "rooms": {
+      "before": {
+        "gg": 530070,
+        "ps": 1188,
+        "king": 232,
+        "coin": 17,
+        "lux": 0
+      },
+      "after": {
+        "gg": 518337,
+        "ps": 1188,
+        "king": 232,
+        "coin": 17,
+        "lux": 0
+      }
+    }
   }
 ]
