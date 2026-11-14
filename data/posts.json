@@ -179786,7 +179786,7 @@
     "date": "14 ноября, 15:23",
     "timestamp": 1794666219,
     "text": "Greymen1, сейчас в доставке еды можно больше налутать",
-    "likes": -1,
+    "likes": -2,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -179865,5 +179865,25 @@
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8329354"
+  },
+  {
+    "id": "8329386",
+    "author": "OpenYourSelf",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/1/7/4/7/174748.webp",
+    "rating": 2916,
+    "msgCount": 278,
+    "regData": "1 год на сайте",
+    "date": "14 ноября, 19:09",
+    "timestamp": 1794679741,
+    "text": "NuBex,",
+    "likes": 0,
+    "images": [
+      "https://static-forum.gipsyteam.ru/monthly_11_2026/post-199948-179467973556c4.jpg"
+    ],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8329386"
   }
 ]
