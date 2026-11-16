@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 1.14.22 — 2026-11-16
+
+- Pace chart: the value of the latest point sits next to its own dot instead of the previous one and is no longer crossed by the line (a dense 1k step on narrow phones is still tight).
+- Tournaments per session: a bar that includes an earlier report without its own count now shows the combined result and says how many reports it covers.
+- With fewer than two reports in the chosen week or month the pace widget and the header tempo say "too few reports" instead of extrapolating from a single session.
+
 ## 1.14.21 — 2026-11-16
 
 - Activity chart: Week, Month and All are real calendar days (Warsaw time), so a day without posts shows as an empty slot instead of disappearing; bars are clearly visible in both themes and dates read "17 окт" instead of "10-17".

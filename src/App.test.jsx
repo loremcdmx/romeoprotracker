@@ -81,7 +81,9 @@ function makePaceStepData() {
   const sessions = [
     { daysAgo: 20, tournaments: 3000, profit: 6000 },
     { daysAgo: 10, tournaments: 4000, profit: -4000 },
-    { daysAgo: 1, tournaments: 5500, profit: 16500 },
+    // two reports in the week window (one report is not a pace, NUM-P2); same 5500 MTT / +16500 at +3$/MTT
+    { daysAgo: 2, tournaments: 3000, profit: 9000 },
+    { daysAgo: 1, tournaments: 2500, profit: 7500 },
   ]
   let bankroll = 10000
   let total = 0

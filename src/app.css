@@ -332,6 +332,7 @@ button,select,input,summary{font:inherit}
 .pace-x-label{fill:rgba(230,230,230,.86);font-size:10px;text-anchor:middle}
 .pace-chart-value{font-size:10.5px;text-anchor:middle;paint-order:stroke;stroke:rgba(0,0,0,.35);stroke-width:2px;stroke-linejoin:round}
 .pace-chart-value.edge{text-anchor:end}
+.pace-chart-value.edge-start{text-anchor:start}
 .pace-chart-value.pos{fill:var(--pace-green)}
 .pace-chart-value.neg{fill:var(--pace-red)}
 .pace-plot-bg{fill:rgba(255,255,255,.014);stroke:rgba(255,255,255,.042);stroke-width:1}
@@ -1324,6 +1325,7 @@ html{scroll-behavior:smooth}
 .smtt-tooltip-diff{font-size:9px}
 .smtt-tooltip-diff.pos{color:#7ee787}.smtt-tooltip-diff.neg{color:#ff8a80}
 .smtt-tooltip-profit{font-size:10px;font-weight:700;margin-top:2px}
+.smtt-tooltip-reports{font-size:9px;color:var(--dim2);margin-top:2px}
 .smtt-tooltip-profit.pos{color:#7ee787}.smtt-tooltip-profit.neg{color:#ff8a80}
 .light .smtt-tooltip-diff.pos,.light .smtt-tooltip-profit.pos{color:#2e7d32}
 .light .smtt-tooltip-diff.neg,.light .smtt-tooltip-profit.neg{color:#c62828}
