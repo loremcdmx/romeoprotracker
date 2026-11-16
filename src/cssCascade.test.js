@@ -753,6 +753,24 @@ describe('app.css cascade guards', () => {
       }
     })
 
+    // With the false milestone class gone, the Week/Month START label fell to the dark-only
+    // `.mc-x-tick.range-start` colour (#f2f2f2, about 1.1:1 on the light card). Every x-axis label state is checked here.
+    it.each([['start'], ['range-start'], ['milestone'], ['recovery'], ['best'], ['worst'], ['last'], ['range-start milestone'], ['plain']])(
+      'the "%s" x-axis main label is AA on the light chart card', (tone) => {
+        for (const width of [375, 820, 1280]) {
+          mount(`<svg><g class="mc-x-tick ${tone === 'plain' ? '' : tone}"><text class="mc-xaxis-label-main"></text></g></svg>`, { light: true })
+          const fg = resolved($('.mc-xaxis-label-main'), ['fill'], env(width))
+          expect(contrast(fg, token('--bg2')), `${tone} main label ${fg} @${width}`).toBeGreaterThanOrEqual(4.5)
+        }
+      })
+
+    it.each([['range-start'], ['plain']])(
+      'the "%s" x-axis sub label is AA on the light chart card', (tone) => {
+        mount(`<svg><g class="mc-x-tick ${tone === 'plain' ? '' : tone}"><text class="mc-xaxis-label-sub"></text></g></svg>`, { light: true })
+        const fg = resolved($('.mc-xaxis-label-sub'), ['fill'], env(375))
+        expect(contrast(fg, token('--bg2')), `${tone} sub label ${fg}`).toBeGreaterThanOrEqual(4.5)
+      })
+
     // the pulse that flashes for 700ms when the tempo changes: in the sticky progress bar, and inside the pace panel
     it.each([
       ['progress bar', '<div class="marathon-progress"><div class="marathon-progress-side"><span class="mps-value tempo-val pulse"></span></div></div>'],

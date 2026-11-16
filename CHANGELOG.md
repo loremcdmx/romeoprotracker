@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 1.14.24 — 2026-11-16
+
+- Marathon chart, Week and Month: the START label no longer carries a false "$100k" note, and it is readable in the light theme.
+- The peak plate sits next to the peak again (the leader line was up to 150 px long) and the peak and the latest point are distinct markers; in Week and Month the plate says "МАКС" when the window's high is not the all-time record. The money value on the plate is no longer upper-cased ("$537k").
+- The tooltip of a merged dot sums the rooms and the tournaments of all its reports instead of showing the last report only.
+- Phones: the all-time axis shows as many month labels as fit (МАР МАЙ ИЮЛ СЕН НОЯ), and touching the chart no longer logs a console error.
+
 ## 1.14.23 — 2026-11-16
 
 - First load no longer waits for the slower copy of the data: the page shows the first complete source right away (it could wait 8-10 s on a phone, and even on a fast desktop when GitHub was slow). A newer copy with a new post or bankroll report arrives in the background and appears without a reload.
