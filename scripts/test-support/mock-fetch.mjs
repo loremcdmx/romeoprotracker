@@ -2,6 +2,9 @@
 //   node --import <this file> scripts/scrape.mjs --no-push
 // Every fetch is answered from files in MOCK_DIR:
 //   pages.json      { "<st>": "<forum page html>" }   ("0" is the thread's first page)
+//                   an entry may also be { status, body }, { hang: true } (never answers,
+//                   honours the request's abort signal) or { seq: [entry...] } (answered in
+//                   order per request to that page, the last one repeats)
 //   anthropic.json  { vision: [resp...], translate: [resp...] }
 //                   resp = { status?: 200, text?: "<model text>", raw?: "<body>", throw?: true }
 //                   consumed in order, the last one repeats; missing vision -> HTTP 500
@@ -17,6 +20,7 @@ const read = (name, fallback) => {
 const pages = read('pages.json', {})
 const anthropic = read('anthropic.json', {})
 const counters = { vision: 0, translate: 0 }
+const pageHits = {}
 const log = line => fs.appendFileSync(path.join(dir, 'calls.log'), line + '\n')
 
 // The scraper sleeps 500 ms between pages; keep full-scan tests fast.
@@ -38,8 +42,23 @@ globalThis.fetch = async (input, opts = {}) => {
   if (url.startsWith('https://forum.gipsyteam.ru/index.php?viewtopic=181676')) {
     const st = url.match(/[?&]st=(\d+)/)?.[1] || '0'
     log(`${method} forum ${url}`)
-    const html = pages[st]
+    let html = pages[st]
+    if (html && typeof html === 'object' && Array.isArray(html.seq)) {
+      const hit = pageHits[st] = (pageHits[st] ?? -1) + 1
+      html = html.seq[Math.min(hit, html.seq.length - 1)]
+    }
     if (html == null) return new Response('not found', { status: 404 })
+    if (typeof html === 'object' && html.hang) {
+      return new Promise((_resolve, reject) => {
+        const sig = opts.signal
+        if (!sig) return
+        // AbortSignal.timeout's timer is unref'd; a real socket would keep the process alive.
+        const keep = setInterval(() => {}, 1000)
+        const fail = () => { clearInterval(keep); reject(sig.reason || new DOMException('aborted', 'AbortError')) }
+        if (sig.aborted) fail()
+        else sig.addEventListener('abort', fail, { once: true })
+      })
+    }
     if (typeof html === 'object' && html.status) return new Response(html.body || '', { status: html.status })
     return new Response(html, { status: 200 })
   }

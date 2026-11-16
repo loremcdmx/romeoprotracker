@@ -89,6 +89,10 @@ GitHub Actions:
 - every 12 hours: `full`
 - manual dispatch: `normal`, `full`, `reextract`, or `translate`
 
+Forum requests have a 30 s timeout and up to 3 attempts (1 s, 2 s backoff) for network errors, timeouts, 5xx and 429 only; a 404 or other 4xx fails at once, and a page that still fails fails the run without writing files. At most 20 retries per run keep a full scan inside the 25 min workflow limit.
+
+A forum body shorter than half of the stored one (stored 100+ chars) is first treated as a degraded page and refused with a warning. The refused body is remembered on the post (`textCandidate`: `len`, short hash `h`, `n` runs that saw exactly it) and accepted when the same body is seen in 3 separate runs and is at least 50 characters; a near-empty body is never accepted.
+
 Translation helpers are isolated in `scripts/lib/translation.mjs` so scraper-specific API logic is no longer mixed into the forum parsing flow.
 
 ### Recovering from a given-up BR session

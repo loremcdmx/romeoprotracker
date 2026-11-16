@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 1.14.20 — 2026-11-16
+
+- Scraper: a forum post that its author really shortened is no longer frozen at the old text. The shorter body is accepted once the same text has been seen in three separate runs (a one-off broken page is still refused; a blanked post keeps its old text).
+- Scraper: forum page requests have a 30 s timeout and up to three attempts with a short pause for 5xx, 429 and network errors, so a single forum hiccup no longer kills a run or a full scan.
+- Comments about how often the scraper runs match the measured cadence.
+
 ## 1.14.19 — 2026-11-16
 
 - Tests no longer depend on numbers that the scraper keeps changing (`npm run check` had been red on main since 31 October because one test pinned a count from the live data). Exact figures are checked on a frozen snapshot; the live data is checked for invariants only.
