@@ -1,4 +1,4 @@
-import { ROMEO_RE } from './utils.js'
+import { ROMEO_RE, warsawDayKey, stripQuoteTags } from './utils.js'
 import { isIgnoredAuthor } from './ignoredAuthors.js'
 
 // The rarity bonus is based on the entire archive, independent of the chart
@@ -37,4 +37,54 @@ export function pickTopAuthors(dayPosts, globalCounts, ignored) {
     })
     .sort((a, b) => b.score - a.score)
     .slice(0, 5)
+}
+
+// ── Calendar windows for the activity chart ─────────────────────────────────
+// Day keys are Warsaw calendar days ("2026-10-25"). Stepping goes through pure
+// Y-M-D arithmetic in UTC, never "midnight + 86400 s", so the 25-hour and
+// 23-hour DST days each stay exactly one step.
+const pad2 = n => String(n).padStart(2, '0')
+
+export function shiftDayKey(key, delta) {
+  const [y, m, d] = key.split('-').map(Number)
+  const dt = new Date(Date.UTC(y, m - 1, d + delta))
+  return `${dt.getUTCFullYear()}-${pad2(dt.getUTCMonth() + 1)}-${pad2(dt.getUTCDate())}`
+}
+
+// A timestamp (UTC seconds) that falls on the given Warsaw calendar day at any
+// DST offset: noon UTC is 13:00 or 14:00 in Warsaw.
+export function dayKeyTimestamp(key) {
+  const [y, m, d] = key.split('-').map(Number)
+  return Date.UTC(y, m - 1, d, 12) / 1000
+}
+
+export const ACTIVITY_PERIOD_DAYS = { week: 7, month: 30, all: null }
+
+// byDate: { 'YYYY-MM-DD': { count, posts } } holding only days that have posts.
+// Returns [[key, { count, posts }], ...] over consecutive calendar days, with a
+// zero-count entry for every quiet day. week = today + 6 before, month = today
+// + 29 before, all = first post day .. today. A post dated after "today"
+// (clock skew) extends the window instead of being dropped.
+export function buildActivityWindow(byDate, period, nowSec) {
+  const keys = Object.keys(byDate).sort()
+  if (!keys.length) return []
+  const today = warsawDayKey(nowSec) || keys.at(-1)
+  const end = keys.at(-1) > today ? keys.at(-1) : today
+  const span = ACTIVITY_PERIOD_DAYS[period]
+  const start = span ? shiftDayKey(end, -(span - 1)) : (keys[0] < end ? keys[0] : end)
+  const out = []
+  for (let k = start, guard = 0; k <= end && guard < 20000; k = shiftDayKey(k, 1), guard++) {
+    out.push([k, byDate[k] || { count: 0, posts: [] }])
+  }
+  return out
+}
+
+// One preview line for both top-post lists. Quotes are dropped, runs of
+// whitespace collapse ("Day 51:   40:" -> "Day 51: 40:"), and an image-only
+// post (no quote) reads "📷 <imageLabel>". A quote-only post returns ''.
+export function topPostPreview(post, imageLabel) {
+  const clean = stripQuoteTags(post?.text).replace(/\s+/g, ' ').trim()
+  if (clean) return clean
+  const hasQuote = (post?.text || '').includes('[QUOTE]')
+  return !hasQuote && post?.images?.[0] ? `📷 ${imageLabel}` : ''
 }

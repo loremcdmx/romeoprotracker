@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 1.14.21 — 2026-11-16
+
+- Activity chart: Week, Month and All are real calendar days (Warsaw time), so a day without posts shows as an empty slot instead of disappearing; bars are clearly visible in both themes and dates read "17 окт" instead of "10-17".
+- Top lists: an image-only post says "📷 изображение" on phones too, and a period without posts says so instead of silently showing the all-time list.
+- Images of the hidden desktop sidebar are no longer downloaded on phones and tablets (about 0.5 MB saved per visit).
+
 ## 1.14.20 — 2026-11-16
 
 - Scraper: a forum post that its author really shortened is no longer frozen at the old text. The shorter body is accepted once the same text has been seen in three separate runs (a one-off broken page is still refused; a blanked post keeps its old text).

@@ -622,9 +622,17 @@ button,select,input,summary{font:inherit}
   100%{box-shadow:0 0 0 0 rgba(229,57,53,0),0 0 0 0 rgba(229,57,53,0);transform:translateY(0);opacity:1}
 }
 .post-highlight{animation:postHighlightSweep 2.4s cubic-bezier(.2,.8,.2,1);border-radius:var(--r);will-change:transform,box-shadow}
-.activity-bar-rect{fill:#e5393530;transition:fill .1s}
-.activity-bar:hover .activity-bar-rect{fill:#e5393570}
-.activity-bar-rect.active{fill:#e53935}
+/* solid fills: #c62f2b is 3.18:1 on the dark card (#1a1a1a) and 4.84:1 on the light one (#f4f1ea) */
+:root{--act-bar:#c62f2b;--act-bar-hover:#ff6b66;--act-bar-active:#e53935;--act-bar-ring:#fff}
+.light{--act-bar:#c62f2b;--act-bar-hover:#8e1f1b;--act-bar-active:#e53935;--act-bar-ring:#2a2824}
+.activity-bar-rect{fill:var(--act-bar);transition:fill .1s}
+.activity-bar:hover .activity-bar-rect{fill:var(--act-bar-hover)}
+.activity-bar-rect.active{fill:var(--act-bar-active);stroke:var(--act-bar-ring);stroke-width:1.5;paint-order:stroke}
+.activity-baseline{stroke:var(--border2);stroke-width:1}
+.activity-mobile-bar{border-radius:3px;background:var(--act-bar);transition:background .15s}
+.activity-mobile-bar.active{background:var(--act-bar-active);outline:2px solid var(--act-bar-ring);outline-offset:1px}
+.activity-mobile-bar.empty{border-top:1px solid var(--border2)}
+.forum-top-empty,.mobile-top-empty{padding:14px;font-size:12px;color:var(--dim);text-align:center}
 html{scroll-behavior:smooth}
 
 /* ─── ROMEO GRADIENT BORDER ────────────────────────────────────────────── */
