@@ -24,6 +24,12 @@ on:
       - 'README.md'
       - 'CLAUDE.md'
       - 'IDEAS.md'
+  # Data commits (data/**) never start the runs above, so a test that reads the live
+  # archive can go red unnoticed. Once a day the same job runs on main (the default
+  # branch, which is what a schedule always checks out), and on demand.
+  schedule:
+    - cron: '17 5 * * *'
+  workflow_dispatch:
 
 jobs:
   check:

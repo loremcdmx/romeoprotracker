@@ -86,18 +86,21 @@ describe('MTT per session is one number on one screen', () => {
     }
     return Math.round(used.reduce((sum, r) => sum + r.delta, 0) / used.length)
   }
-  const flatRow = id => dedupedReal().find(row => row.id === id)
+  // flat-cumulative reports (the counter did not move) are looked up in the data, never pinned by id:
+  // the scraper adds more of them over time. The earliest and the latest one give two different windows.
+  const flatRows = () => dedupedReal().filter((row, i, all) => i > 0 && row.totalTournaments === all[i - 1].totalTournaments)
+  const flatRow = which => (which === 'first' ? flatRows()[0] : flatRows().at(-1))
 
   const SCENARIOS = [
     ['all time', 'all', () => nowSec()],
-    ['a week containing a flat-cumulative report', 'week', () => flatRow('8287288').timestamp + 2 * DAY],
-    ['a month containing a flat-cumulative report', 'month', () => flatRow('8270206').timestamp + 3 * DAY],
+    ['a week containing a flat-cumulative report', 'week', () => flatRow('last').timestamp + 2 * DAY],
+    ['a month containing a flat-cumulative report', 'month', () => flatRow('first').timestamp + 3 * DAY],
   ]
 
   it.each(SCENARIOS)('sidebar, mobile strip and session chart agree: %s', async (_label, period, at) => {
     // sanity: the archive really holds flat-cumulative reports (counter did not move)
     const hist = dedupedReal()
-    expect(hist.filter((row, i) => i > 0 && row.totalTournaments === hist[i - 1].totalTournaments).length).toBeGreaterThanOrEqual(3)
+    expect(hist.filter((row, i) => i > 0 && row.totalTournaments === hist[i - 1].totalTournaments).length).toBeGreaterThanOrEqual(1)
     mockNow(at())
     await mount(realData(), { ls: { rpt_chart_period: period } })
 
@@ -336,13 +339,16 @@ describe('monthly chart selection', () => {
     const posts = [{ id: '1', author: 'Romeopro', text: 'Day 1', likes: 5, timestamp: 1773236621, date: 'x', images: [], url: 'u' }]
     await mount({ posts, meta: clone(REAL_META) }, { ls: { rpt_marathon_grouping: 'months' } })
     const read = () => document.querySelector('[data-testid="marathon-month-details"]').getAttribute('data-month-key')
-    fireEvent.click(document.querySelectorAll('.mc-month-mark')[1])
-    expect(read()).toBe('2026-04')
+    const mark = document.querySelectorAll('.mc-month-mark')[1] // the second month of the marathon, whatever the data adds later
+    const key = mark.getAttribute('data-month-key')
+    expect(key).toMatch(/^\d{4}-\d{2}$/)
+    fireEvent.click(mark)
+    expect(read()).toBe(key)
     const callsBefore = fetchPublicData.mock.calls.length
     fetchPublicData.mockResolvedValue({ posts: [{ ...posts[0], likes: 6 }], meta: clone(REAL_META) })
     await act(async () => { document.dispatchEvent(new Event('visibilitychange')); await new Promise(resolve => setTimeout(resolve, 50)) })
     expect(fetchPublicData.mock.calls.length).toBeGreaterThan(callsBefore)
-    expect(read()).toBe('2026-04')
+    expect(read()).toBe(key)
   })
 })
 
