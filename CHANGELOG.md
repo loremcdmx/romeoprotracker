@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 1.14.26 — 2026-11-16
+
+- Marathon chart, Week and Month: the line now starts at the bankroll before the first report of the period (the START point), so the first report's own result is drawn, and labelled when there is room. Before, the chart began at the first report: the START label sat on that report's point and its result was missing, so in a three-report week START +526.7k followed by −11.7k and +11.9k did not add up to the current profit. On phones the START value moves to the second line so the first report's label fits beside it more often.
+- The vertical scale of Week and Month now includes the START level, so a period that opens far from where it trades afterwards uses less of the chart height for its own reports.
+- The START point's tooltip says it is the balance before the period, not a report. In chart tooltips the line for the marathon total reads "MTTs total" so it is not confused with the count inside a merged dot.
+- When the latest point sits right next to the peak, the peak keeps a small gold dot of its own instead of losing its marker.
+
 ## 1.14.25 — 2026-11-16
 
 - Phones: the "last post" time in the page header is no longer cut off at 320-390 px in any language; it moves to its own line.

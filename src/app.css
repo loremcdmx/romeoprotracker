@@ -164,6 +164,7 @@ button,select,input,summary{font:inherit}
 .mc-peak-callout-value{fill:var(--chart-callout-value)}
 .mc-peak-anchor{fill:var(--chart-callout-accent);stroke:var(--chart-callout-bg);stroke-width:2.8;vector-effect:non-scaling-stroke}
 .mc-peak-anchor-small{stroke-width:1.2}
+.mc-dot-baseline{fill:var(--axis-x-muted)}
 .mc-guide{stroke:var(--chart-grid-strong);stroke-width:1;stroke-dasharray:1 5;opacity:.48}
 .mc-x-tickmark{stroke:var(--chart-grid-strong);stroke-width:1.1;stroke-linecap:round;opacity:.72}
 .mc-xaxis-label-main{font-family:'Inter',system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:10.5px;font-weight:700;fill:var(--axis-x);font-variant-numeric:tabular-nums;letter-spacing:.01em}
@@ -182,6 +183,10 @@ button,select,input,summary{font:inherit}
 .mc-x-tick.worst .mc-xaxis-label-sub{fill:#ffc4be}
 .mc-x-tick.worst .mc-x-current-line{stroke:#ff7a70}
 .mc-x-tick.range-start .mc-xaxis-label-main{fill:#f2f2f2}
+.mc-x-tick.first-pos .mc-xaxis-label-main{fill:#78d37e}
+.mc-x-tick.first-neg .mc-xaxis-label-main{fill:#ff7a70}
+.mc-x-tick.first-pos .mc-xaxis-label-sub{fill:#bee8c2}
+.mc-x-tick.first-neg .mc-xaxis-label-sub{fill:#ffc4be}
 .mc-x-current-line{stroke:var(--gold);stroke-width:1.4;stroke-linecap:round;opacity:.78}
 .mc-axis-event-layer.is-hidden{display:none}
 .mc-month-tickmark{stroke:var(--chart-grid-strong);stroke-width:1.1;stroke-linecap:round;opacity:.72;vector-effect:non-scaling-stroke}
@@ -1245,6 +1250,10 @@ html{scroll-behavior:smooth}
 .light .mc-x-tick.start .mc-xaxis-label-main{fill:var(--axis-x)}
 /* the Week/Month START label: without this it falls to the dark-only #f2f2f2 (1.1:1 on the light card) */
 .light .mc-x-tick.range-start .mc-xaxis-label-main{fill:var(--axis-x)}
+.light .mc-x-tick.first-pos .mc-xaxis-label-main{fill:#29752f}
+.light .mc-x-tick.first-pos .mc-xaxis-label-sub{fill:#467549}
+.light .mc-x-tick.first-neg .mc-xaxis-label-main{fill:#b3342c}
+.light .mc-x-tick.first-neg .mc-xaxis-label-sub{fill:#a5554f}
 .light .mc-x-tick.milestone .mc-xaxis-label-main,.light .mc-x-tick.last .mc-xaxis-label-main{fill:#8a5b00}
 .light .mc-x-tick.last .mc-xaxis-label-sub{fill:#836519}
 .light .mc-x-tick.recovery .mc-xaxis-label-main,.light .mc-x-tick.best .mc-xaxis-label-main{fill:#29752f}

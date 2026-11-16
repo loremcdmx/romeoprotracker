@@ -86,7 +86,10 @@ describe.each([
     ['six-digit bankroll', 'period_all', [14000, 190000, 380000, 406000]],
     ['the $10M goal', 'period_all', [14000, 5000000, 9000000, 10000000]],
     // Week zoom at about $1M needs labels like "$1.004M", the widest ones.
-    ['a narrow zoom near $1M', 'period_week', [900000, 950000, 1004000, 1010000]],
+    // MAIN-1: the week now starts at the previous report (the START point), so the fixture keeps that
+    // report inside the narrow range ($1 002 000, was $950 000): with $950 000 the axis spans
+    // $950k..$1.01M and the fixture guard below ("really produces the wide million labels") fails.
+    ['a narrow zoom near $1M', 'period_week', [900000, 1002000, 1004000, 1010000]],
   ])('keeps every marathon tick label on the canvas: %s', async (_, period, balances) => {
     const { container } = await mount(makeData(balances))
     const chart = container.querySelector('.marathon-chart')

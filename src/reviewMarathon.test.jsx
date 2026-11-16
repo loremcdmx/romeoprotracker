@@ -119,12 +119,30 @@ describe('K3 marathon chart review fixes', () => {
   })
 
   describe('NUM-P1: range views do not call the window high a record', () => {
+    // today: the report just before the week (9 Nov, $536 695) is the record, and it is the START point of the window
+    it('week today: the window starts AT the record, so the plate says ПИК $537k on the START point (idx 0)', async () => {
+      await mount(todayMeta(), { period: 'week' })
+      const callout = document.querySelector('.mc-peak-callout')
+      expect(callout.getAttribute('data-idx')).toBe('0')
+      expect(callout.querySelector('.mc-peak-callout-value').textContent).toBe('$537k')
+      expect(callout.querySelector('.mc-peak-callout-kicker').textContent).toBe('ПИК')
+    })
+
+    // an older record outside the window: the window high (its START, $537k) is not the record
+    function olderRecordMeta() {
+      const meta = todayMeta()
+      const i = meta.brHistory.findIndex(r => r.timestamp === 1793771108)
+      meta.brHistory[i].brAfter = 560000
+      meta.brHistory[i].sessionResult = 560000 - meta.brHistory[i - 1].brAfter
+      meta.brHistory[i + 1].sessionResult = meta.brHistory[i + 1].brAfter - 560000
+      return meta
+    }
     it.each([['ru', 'МАКС'], ['en', 'HIGH'], ['es', 'MÁX']])(
-      'week (%s): the window high $532k (15 Nov) is below the record $537k and says %s', async (lang, word) => {
-        await mount(todayMeta(), { period: 'week', lang })
+      'week (%s): a window high below an older record says %s', async (lang, word) => {
+        await mount(olderRecordMeta(), { period: 'week', lang })
         const callout = document.querySelector('.mc-peak-callout')
         expect(callout).toBeTruthy()
-        expect(callout.querySelector('.mc-peak-callout-value').textContent).toBe('$532k')
+        expect(callout.querySelector('.mc-peak-callout-value').textContent).toBe('$537k')
         expect(callout.querySelector('.mc-peak-callout-kicker').textContent).toBe(word)
       })
 
@@ -222,17 +240,29 @@ describe('K3 marathon chart review fixes', () => {
       expectRules(m, `p2l mobile=${mobile}`)
     })
 
-    it.each([[false], [true]])('peak ring and the latest dot never overlap (phone=%s)', async mobile => {
+    it.each([[false], [true]])('a non-latest peak always has its own marker; it never overlaps the latest dot unless it is the tiny vertex dot (phone=%s)', async mobile => {
       for (const meta of [todayMeta(), peakSecondToLastMeta()]) {
         const svg = await mount(meta, { mobile })
         const m = read(svg)
         const last = m.dots.find(d => d.last)
         expect(last).toBeTruthy()
-        if (!m.ring) continue // merged with the latest marker: no second ring is drawn
+        // the record is NOT the latest report in both shapes, so the marker must exist
+        expect(m.ring, 'peak marker is drawn').toBeTruthy()
         const r = num(m.ring, 'r')
+        expect(num(m.ring, 'cx')).toBeCloseTo(m.peak.x, 5)
+        expect(num(m.ring, 'cy')).toBeCloseTo(m.peak.y, 5)
         const d = Math.hypot(num(m.ring, 'cx') - last.x, num(m.ring, 'cy') - last.y)
-        expect(d, `ring r=${r} vs latest dot r=${last.r}`).toBeGreaterThan(r + last.r)
+        if (r > 2.5) expect(d, `ring r=${r} vs latest dot r=${last.r}`).toBeGreaterThan(r + last.r)
+        else expect(m.ring.classList.contains('mc-peak-anchor-small')).toBe(true)
       }
+    })
+
+    it('when the peak IS the latest report no second marker is drawn', async () => {
+      const meta = todayMeta()
+      const last = meta.brHistory.at(-1)
+      last.brAfter = 560000; last.sessionResult = 560000 - meta.brHistory.at(-2).brAfter
+      const svg = await mount(meta)
+      expect(read(svg).ring).toBeNull()
     })
 
     it('the real fixture keeps every rule at many lengths, desktop and phone', async () => {
@@ -297,6 +327,131 @@ describe('K3 marathon chart review fixes', () => {
       expect(rule('mc-peak-callout-text')).not.toMatch(/text-transform/)
       expect(rule('mc-peak-callout-value')).not.toMatch(/text-transform/)
       expect(rule('mc-peak-callout-kicker')).toMatch(/text-transform:\s*uppercase/)
+    })
+  })
+
+  describe('MAIN-1: week and month plot the state before the first report as their START point', () => {
+    const money = text => {
+      const m = text.replace(/\s/g, '').match(/([+−-])\$?(\d+(?:[.,]\d+)?)k/)
+      return m ? (m[1] === '+' ? 1 : -1) * parseFloat(m[2].replace(',', '.')) : null
+    }
+    const labelMains = () => [...document.querySelectorAll('.mc-x-tick')].map(t => ({
+      kind: t.className.baseVal, main: t.querySelector('.mc-xaxis-label-main').textContent, sub: t.querySelector('.mc-xaxis-label-sub').textContent,
+    }))
+    const pts = svg => {
+      const segs = [...svg.querySelectorAll('.mc-line-segment')]
+      return [{ x: num(segs[0], 'x1'), y: num(segs[0], 'y1') }, ...segs.map(l => ({ x: num(l, 'x2'), y: num(l, 'y2') }))]
+    }
+
+    it('week today: START +526.7k at the 536.7k level, then -5.2k, -11.7k, +11.9k that add up to the current profit', async () => {
+      const svg = await mount(todayMeta(), { period: 'week' })
+      const labels = labelMains()
+      expect(labels.map(l => l.main).join(' | ')).toMatch(/СТАРТ \+526[.,]7k.*5[.,]2k.*11[.,]7k.*11[.,]9k/)
+      const start = labels.find(l => l.kind.includes('range-start'))
+      expect(start.sub).toMatch(/9 НОЯ/i) // the state of the 9 Nov report, not the date of the first report of the window
+      const steps = labels.filter(l => !l.kind.includes('range-start')).map(l => money(l.main)).filter(v => v != null)
+      expect(steps).toHaveLength(3)
+      const sum = money(start.main.replace('СТАРТ ', '')) + steps.reduce((a, b) => a + b, 0)
+      expect(sum).toBeCloseTo(521.7, 1) // 531 638 - 10 000 start
+      // 4 points: the baseline plus three reports, the baseline is the top of the scale, the first segment follows the first report (a loss)
+      const p = pts(svg)
+      expect(p).toHaveLength(4)
+      expect(Math.min(...p.map(q => q.y))).toBeCloseTo(p[0].y, 5)
+      expect(svg.querySelector('.mc-line-segment').getAttribute('class')).toMatch(/negative/)
+    })
+
+    it.each([[false, 'СТАРТ +526'], [true, 'СТАРТ']])('week at phone=%s: START and the first report\'s own step are both labelled', async mobile => {
+      await mount(todayMeta(), { period: 'week', mobile })
+      const labels = labelMains()
+      const start = labels.find(l => l.kind.includes('range-start'))
+      expect(start, 'START label').toBeTruthy()
+      expect(start.main).toContain(mobile ? 'СТАРТ' : 'СТАРТ +526')
+      expect(`${start.main} ${start.sub}`).toMatch(/526[.,]7k/)
+      if (mobile) expect(start.main).toBe('СТАРТ') // value moved to the sub line, MTT note and date dropped
+      expect(labels.some(l => l.kind.includes('range-first') && /5[.,]2k/.test(l.main)), 'first step -5.2k').toBe(true)
+      if (mobile) {
+        // 64 units apart on a phone: the centred first-step label would run 8 units into START,
+        // so it starts at its own tick and stays clear of the START text (7.4 units per main char, 5.5 per sub char)
+        const startMain = document.querySelector('.mc-x-tick.range-start .mc-xaxis-label-main')
+        const startSub = document.querySelector('.mc-x-tick.range-start .mc-xaxis-label-sub')
+        const firstMain = document.querySelector('.mc-x-tick.range-first .mc-xaxis-label-main')
+        const startRight = num(startMain, 'x') + Math.max(startMain.textContent.length * 7.4, startSub.textContent.length * 5.5)
+        expect(firstMain.getAttribute('text-anchor')).toBe('start')
+        expect(num(firstMain, 'x') - startRight).toBeGreaterThanOrEqual(6)
+        // and its tick mark stays on the report itself
+        const tick = document.querySelector('.mc-x-tick.range-first .mc-x-tickmark')
+        expect(num(firstMain, 'x')).toBeCloseTo(num(tick, 'x1') - 3, 5)
+      }
+    })
+
+    it('phone: a first report too close to START keeps the old rule (START wins, no shifted label on top of it)', async () => {
+      // month today: the first report is 16 units from START, a label starting at its tick would still sit on START
+      await mount(todayMeta(), { period: 'month', mobile: true })
+      expect(document.querySelector('.mc-x-tick.range-start')).toBeTruthy()
+      expect(document.querySelector('.mc-x-tick.range-first')).toBeNull()
+    })
+
+    it('month on a phone: START is labelled (value on the sub line) and the first step is labelled whenever it fits', async () => {
+      await mount(todayMeta(), { period: 'month', mobile: true })
+      const labels = labelMains()
+      const start = labels.find(l => l.kind.includes('range-start'))
+      expect(start.main).toBe('СТАРТ')
+      expect(start.sub).toMatch(/[+−-]\d/)
+    })
+
+    it('N6: the merged dot has a total line that reads as a total, not as the in-point count', async () => {
+      await mount(todayMeta())
+      const group = [...document.querySelectorAll('.mc-svg g[data-count]')].find(g => +g.getAttribute('data-count') === 6)
+      fireEvent.mouseEnter(group)
+      const tip = await waitFor(() => { const el = document.querySelector('.mc-tooltip'); expect(el).toBeTruthy(); return el })
+      const labelsText = [...tip.querySelectorAll('div')].map(d => d.textContent)
+      expect(labelsText.some(t => t === '♠ МТТ всего')).toBe(true)
+      expect(tip.textContent).toContain('♠ сыграно МТТ в этой точке')
+      expect(tip.textContent.match(/сыграно МТТ(?! в этой точке)/)).toBeNull()
+    })
+
+    it('week: the "selected period" line still counts only the window reports (749 MTT)', async () => {
+      await mount(todayMeta(), { period: 'week' })
+      expect(screen.getByTestId('marathon-period-distance').textContent.replace(/\s/g, '')).toContain('749')
+    })
+
+    it.each([['ru', 'Начало периода', 'не отчёт'], ['en', 'Start of period', 'not a report'], ['es', 'Inicio del periodo', 'no es un reporte']])(
+      'the START point tooltip says it is not a report (%s): no result pill, rooms or session breakdown', async (lang, title, note) => {
+        const svg = await mount(todayMeta(), { period: 'week', lang })
+        const first = svg.querySelector('g[data-start="0"]')
+        expect(first.getAttribute('data-count')).toBe('1')
+        fireEvent.mouseEnter(first)
+        const tip = await waitFor(() => { const el = document.querySelector('.mc-tooltip'); expect(el).toBeTruthy(); return el })
+        expect(tip.textContent).toContain(title)
+        expect(tip.textContent).toContain(note)
+        expect(tip.querySelector('.mc-pill')).toBeNull()
+        expect(tip.textContent).not.toMatch(/GG:/)
+        expect(tip.querySelector('.mc-session-breakdown')).toBeNull()
+        expect(tip.textContent).toMatch(/536[.,]7k/)
+        expect(tip.textContent.replace(/\s/g, '')).toContain('44154')
+      })
+
+    it('month: the START point is a singleton that no session group swallows, and START matches the bankroll before the window', async () => {
+      const meta = todayMeta()
+      const svg = await mount(meta, { period: 'month' })
+      const first = svg.querySelector('g[data-start="0"]')
+      expect(first.getAttribute('data-end')).toBe('0')
+      expect(first.getAttribute('data-count')).toBe('1')
+      const cutoff = NOW.getTime() / 1000 - 30 * 86400
+      const idx = meta.brHistory.findIndex(r => r.timestamp >= cutoff)
+      const prev = meta.brHistory[idx - 1]
+      const start = labelMains().find(l => l.kind.includes('range-start'))
+      expect(money(start.main.replace('СТАРТ ', ''))).toBeCloseTo(Math.round((prev.brAfter - 10000) / 100) / 10, 1)
+      const p = pts(svg)
+      expect(p).toHaveLength(meta.brHistory.length - idx + 1)
+    })
+
+    it('a window that begins with the very first report keeps today behaviour (no extra point)', async () => {
+      // 40 reports only, all inside the last 30 days
+      const meta = replayMeta(40)
+      meta.brHistory.forEach((r, i) => { r.timestamp = Math.floor(NOW.getTime() / 1000) - (40 - i) * 3600 })
+      const svg = await mount(meta, { period: 'month' })
+      expect(pts(svg)).toHaveLength(40)
     })
   })
 })
