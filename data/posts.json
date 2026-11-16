@@ -180806,7 +180806,7 @@
     "date": "16 ноября, 19:59",
     "timestamp": 1794855562,
     "text": "У нашего тем временем",
-    "likes": 4,
+    "likes": 5,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_11_2026/post-9449-17948555543f3e_thumb.webp"
     ],
@@ -180880,7 +180880,7 @@
     "date": "16 ноября, 20:03",
     "timestamp": 1794855831,
     "text": "",
-    "likes": 40,
+    "likes": 41,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_11_2026/post-137736-17948558284219_thumb.webp"
     ],
@@ -180959,7 +180959,7 @@
     "date": "16 ноября, 20:06",
     "timestamp": 1794855963,
     "text": "Похоже я единственный, кто решил подождать чтобы победный скрин выложил именно pokerpain ))",
-    "likes": 12,
+    "likes": 13,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -181157,7 +181157,7 @@
     "date": "16 ноября, 23:07",
     "timestamp": 1794866821,
     "text": "Day 209:",
-    "likes": 4,
+    "likes": 7,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_11_2026/post-6195-179486681563a_thumb.webp"
     ],
@@ -181182,5 +181182,59 @@
         "lux": 0
       }
     }
+  },
+  {
+    "id": "8330436",
+    "author": "Givchik007",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/1/6/6/1/166134.webp",
+    "rating": 1,
+    "msgCount": 22,
+    "regData": "2 года на сайте",
+    "date": "16 ноября, 23:14",
+    "timestamp": 1794867281,
+    "text": "Что за лев этот тигр😁🔥",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8330436"
+  },
+  {
+    "id": "8330437",
+    "author": "Eugenok",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/1/1/6/0/116099.jpg",
+    "rating": 1654,
+    "msgCount": 456,
+    "regData": "9 лет на сайте",
+    "date": "16 ноября, 23:15",
+    "timestamp": 1794867317,
+    "text": "PokerPain говорил на стриме что игрался сегодня только 1 турнир, откуда 156? 😇",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8330437"
+  },
+  {
+    "id": "8330438",
+    "author": "Kazimir17",
+    "avatar": "https://forum.gipsyteam.com/img/imguser.png",
+    "rating": 4690,
+    "msgCount": 3300,
+    "regData": "15 лет на сайте",
+    "date": "16 ноября, 23:17",
+    "timestamp": 1794867426,
+    "text": "Охренеть, не встать )))",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8330438"
   }
 ]
