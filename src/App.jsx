@@ -31,6 +31,12 @@ function plPosts(n, lang) {
   if (lang === 'ru') return pl(n, ['пост','поста','постов'])
   return `${n} post${n === 1 ? '' : 's'}`
 }
+// Feed counters group thousands like the rest of the page (5 159, not 5159); the
+// plural form still follows the real number.
+function plFeedPosts(n, lang) {
+  if (lang === 'ru') return `${fmtInt(n)} ${plural(n, ['пост','поста','постов'])}`
+  return `${fmtInt(n)} post${n === 1 ? '' : 's'}`
+}
 function plDays(n, lang) {
   if (lang === 'ru') return pl(n, ['день','дня','дней'])
   if (lang === 'es') return `${n} día${n === 1 ? '' : 's'}`
@@ -3124,14 +3130,29 @@ function settleOnJumpTarget(el) {
 }
 
 // WebKit's select() can cancel even an already-started native smooth focus
-// scroll. Select first, then finish only this input's nearest alignment. Its CSS
-// scroll-margin keeps it below the pinned header without moving a visible input.
+// scroll. Select first; then, only if the input is not fully visible below the
+// pinned stack, bring it into view. A visible input is never moved (a mouse click
+// on a field 0-12px under the stack used to nudge the page by up to 12px). Keyboard
+// focus keeps its default margin from app.css (suppressed only during a pointer press).
+function pinnedStackBottom() {
+  let bottom = 0
+  for (const sel of ['.topbar', '.marathon-progress']) {
+    const el = document.querySelector(sel)
+    if (!el) continue
+    const pos = getComputedStyle(el).position
+    if (pos === 'sticky' || pos === 'fixed') bottom = Math.max(bottom, el.getBoundingClientRect().bottom)
+  }
+  return bottom
+}
 function selectFilterOnFocus(event) {
   const input = event.currentTarget
   requestAnimationFrame(() => {
     if (document.activeElement !== input) return
     input.select()
-    input.scrollIntoView({ behavior: 'instant', block: 'nearest' })
+    const r = input.getBoundingClientRect()
+    const stackBottom = pinnedStackBottom()
+    if (r.top < stackBottom - 1) window.scrollBy({ top: r.top - stackBottom - 12, behavior: 'instant' })
+    else if (r.bottom > window.innerHeight) input.scrollIntoView({ behavior: 'instant', block: 'nearest' })
   })
 }
 
@@ -3191,7 +3212,7 @@ function FilterBar({ sortBy, setSortBy, search, setSearch, showSearch, setShowSe
           setRomeoOnly(false); setMinLikes(3); setMinRating(0); setSearch(''); setShowSearch(false);
         }}>{tr('filter_reset_short')}</button>
       )}
-      <output className="filter-active-count" aria-live="polite">{plPosts(count, lang || 'ru')}</output>
+      <output className="filter-active-count" aria-live="polite">{plFeedPosts(count, lang || 'ru')}</output>
     </div>
   )
 }
@@ -3670,7 +3691,7 @@ function Paginator({ page, totalPages, onPage, perPage, onPerPage, total, lang }
       )}
       <button type="button" className="page-btn" disabled={page===totalPages} onClick={()=>onPage(page+1)}
         aria-label={tr('page_next')}>›</button>
-      {!isMob && <span className="page-info">{(page-1)*perPage+1}–{Math.min(page*perPage,total)} {lang==='ru'?'из':'/'} {total}</span>}
+      {!isMob && <span className="page-info">{fmtInt((page-1)*perPage+1)}–{fmtInt(Math.min(page*perPage,total))} {lang==='ru'?'из':'/'} {fmtInt(total)}</span>}
       <select className="perpage-select" aria-label={tr('per_page_label')} value={perPage}
         onChange={e=>{onPerPage(+e.target.value);onPage(1)}}>
         {[10,20,50,100].map(n=><option key={n} value={n}>{n} {lang==='ru'?'на стр.':lang==='es'?'/ pág.':'/ page'}</option>)}
@@ -4189,6 +4210,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState('feed')
   const [lightbox,  setLightbox]  = useState(null)
   const mobileMenuRef = useRef(null)
+  const lightboxCloseRef = useRef(null)
   const [theme, setTheme] = usePersistentState('rpt_theme', 'dark', {
     serialize: String,
     deserialize: (raw) => (raw === 'light' ? 'light' : 'dark'),
@@ -4260,6 +4282,94 @@ export default function App() {
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
   }, [lightbox])
+  // Lightbox is a modal dialog: focus moves to its close button, Tab stays inside
+  // (the button is its only control), and focus returns to the opener on close.
+  useEffect(() => {
+    if (!lightbox) return
+    const opener = document.activeElement
+    lightboxCloseRef.current?.focus({ preventScroll: true })
+    const pullBack = (e) => {
+      if (!e.target.closest?.('.lightbox')) lightboxCloseRef.current?.focus({ preventScroll: true })
+    }
+    document.addEventListener('focusin', pullBack)
+    return () => {
+      document.removeEventListener('focusin', pullBack)
+      if (opener && opener !== document.body && opener.isConnected) opener.focus({ preventScroll: true })
+    }
+  }, [lightbox])
+  // Phone menu (<details>): Esc closes it and returns focus to the summary; so do a
+  // press outside and focus leaving it.
+  useEffect(() => {
+    const menu = mobileMenuRef.current
+    if (!menu) return
+    const close = () => menu.removeAttribute('open')
+    const onKey = (e) => {
+      if (e.key !== 'Escape' || !menu.open) return
+      close()
+      menu.querySelector('summary')?.focus()
+    }
+    const onDown = (e) => { if (menu.open && !menu.contains(e.target)) close() }
+    const onFocusOut = (e) => {
+      if (!menu.open) return
+      if (e.relatedTarget) { if (!menu.contains(e.relatedTarget)) close(); return }
+      // focus went nowhere (browser chrome, another window, a non-focusable spot):
+      // close once it has settled, unless a press inside the menu is what moved it
+      requestAnimationFrame(() => {
+        if (menu.open && !document.documentElement.classList.contains('ptr-press') && !menu.contains(document.activeElement)) close()
+      })
+    }
+    const onWinBlur = () => close()
+    document.addEventListener('keydown', onKey)
+    document.addEventListener('pointerdown', onDown)
+    menu.addEventListener('focusout', onFocusOut)
+    window.addEventListener('blur', onWinBlur)
+    return () => {
+      window.removeEventListener('blur', onWinBlur)
+      document.removeEventListener('keydown', onKey)
+      document.removeEventListener('pointerdown', onDown)
+      menu.removeEventListener('focusout', onFocusOut)
+    }
+  }, [])
+  // Focus keeps its scroll-margin under the pinned header by default (app.css), so
+  // every focus, from the keyboard, a script or assistive tech, lands clear of it.
+  // Only a pointer press drops it (.ptr-press on <html>): the reader already sees what
+  // they click and a click must not nudge the page. The class ends 400ms after the
+  // press (a touch tap focuses after pointerup), at once on a keydown, and on cancel,
+  // window blur, a hidden tab or a hard 8s cap, so it can never stick.
+  useEffect(() => {
+    const root = document.documentElement
+    let tail = null
+    let cap = null
+    const clear = () => {
+      clearTimeout(tail); clearTimeout(cap); tail = cap = null
+      root.classList.remove('ptr-press')
+    }
+    const onDown = () => {
+      clearTimeout(tail); clearTimeout(cap)
+      root.classList.add('ptr-press')
+      cap = setTimeout(clear, 8000)
+    }
+    const onUp = () => { clearTimeout(tail); tail = setTimeout(clear, 400) }
+    const onHide = () => { if (document.visibilityState === 'hidden') clear() }
+    const opts = true
+    document.addEventListener('pointerdown', onDown, opts)
+    document.addEventListener('pointerup', onUp, opts)
+    document.addEventListener('pointercancel', onUp, opts)
+    document.addEventListener('dragend', onUp, opts)
+    document.addEventListener('keydown', clear, opts)
+    document.addEventListener('visibilitychange', onHide)
+    window.addEventListener('blur', clear)
+    return () => {
+      document.removeEventListener('pointerdown', onDown, opts)
+      document.removeEventListener('pointerup', onUp, opts)
+      document.removeEventListener('pointercancel', onUp, opts)
+      document.removeEventListener('dragend', onUp, opts)
+      document.removeEventListener('keydown', clear, opts)
+      document.removeEventListener('visibilitychange', onHide)
+      window.removeEventListener('blur', clear)
+      clear()
+    }
+  }, [])
   _lang = lang
   _translate = t
 
@@ -4650,7 +4760,8 @@ export default function App() {
       {lightbox && (
         <div className="lightbox" role="dialog" aria-modal="true" aria-label={t('lightbox_label')}
           onClick={()=>setLightbox(null)}>
-          <button type="button" className="lightbox-close" aria-label={t('close')}
+          <button type="button" className="lightbox-close" aria-label={t('close')} ref={lightboxCloseRef}
+            onKeyDown={e => { if (e.key === 'Tab') e.preventDefault() }}
             onClick={()=>setLightbox(null)}>✕</button>
           <img src={lightbox} alt=""/>
         </div>
@@ -4822,7 +4933,7 @@ export default function App() {
                   <div className="hero-desc">
                     From Hero to Zero · <a href="https://forum.gipsyteam.ru/index.php?viewtopic=181676"
                       target="_blank" rel="noreferrer" style={{color:'var(--dim2)'}}>GipsyTeam</a>
-                    {!!stats.lastTs && <span> · {t('last_post')}: {fmtDateTimeLang(stats.lastTs, lang)}</span>}
+                    {!!stats.lastTs && <span className="hero-lastpost"><span className="hero-sep"> · </span>{t('last_post')}: <span className="hero-lastpost-date">{fmtDateTimeLang(stats.lastTs, lang)}</span></span>}
                   </div>
                 </div>
               </div>

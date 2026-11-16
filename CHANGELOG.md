@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 1.14.25 — 2026-11-16
+
+- Phones: the "last post" time in the page header is no longer cut off at 320-390 px in any language; it moves to its own line.
+- The pinned progress block is solid, so the feed no longer shows through it while scrolling. Chart tooltips are opaque in both themes.
+- Clicking or tapping a filter, the sort or the per-page select that sits just under the pinned header no longer jerks the page by a few pixels. Keyboard and assistive-technology focus still scrolls the control clear of the pinned header.
+- Feed counters use a thousands separator ("5 159 постов", "1–20 из 5 159").
+- The phone "…" menu closes on Esc, on a tap outside and when focus leaves it. The image viewer takes focus when it opens, keeps Tab inside and returns focus to the image that opened it.
+
 ## 1.14.24 — 2026-11-16
 
 - Marathon chart, Week and Month: the START label no longer carries a false "$100k" note, and it is readable in the light theme.
