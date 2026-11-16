@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { fireEvent, render, waitFor } from '@testing-library/react'
 import App from './App.jsx'
 import { fetchPublicData } from './storage.js'
@@ -35,11 +35,26 @@ async function renderApp(posts, lang = 'ru') {
   return utils
 }
 
+// Everything a case assigns or spies on is put back after it (ASM-T5): the file used to fail under
+// --sequence.shuffle.tests because the prototype stub and the scrollBy spies leaked into the next case.
+const ORIGINAL_SCROLL_INTO_VIEW = window.HTMLElement.prototype.scrollIntoView
+const ORIGINAL_INNER_WIDTH = Object.getOwnPropertyDescriptor(window, 'innerWidth')
+
 beforeEach(() => {
   fetchPublicData.mockReset()
-  Object.defineProperty(window, 'innerWidth', { value: 1280, writable: true })
+  Object.defineProperty(window, 'innerWidth', { value: 1280, writable: true, configurable: true })
   window.HTMLElement.prototype.scrollIntoView = vi.fn()
   document.documentElement.classList.remove('ptr-press')
+})
+
+afterEach(() => {
+  vi.useRealTimers()
+  vi.restoreAllMocks()
+  if (ORIGINAL_SCROLL_INTO_VIEW) window.HTMLElement.prototype.scrollIntoView = ORIGINAL_SCROLL_INTO_VIEW
+  else delete window.HTMLElement.prototype.scrollIntoView
+  if (ORIGINAL_INNER_WIDTH) Object.defineProperty(window, 'innerWidth', ORIGINAL_INNER_WIDTH)
+  document.documentElement.classList.remove('ptr-press')
+  localStorage.clear()
 })
 
 const rule = (selector) => {
@@ -61,6 +76,15 @@ describe('NUM-P6: feed counters group thousands', () => {
     const range = [...document.querySelectorAll('.pagination .page-info')].map((n) => n.textContent).find((t) => t.includes('–'))
     expect(range).toBe('1–20 / 5 159')
     unmount()
+  })
+  it('en and es plural: 1 post, 2 posts, 11 posts (K5b-5)', async () => {
+    for (const lang of ['en', 'es']) {
+      for (const [n, text] of [[1, '1 post'], [2, '2 posts'], [11, '11 posts']]) {
+        const { unmount } = await renderApp(makePosts(n, () => ({ author: 'Romeopro' })), lang)
+        expect(document.querySelector('.filter-active-count').textContent, `${lang} ${n}`).toBe(text)
+        unmount()
+      }
+    }
   })
   it('ru plural follows the number (21 пост, 1 021 пост, 2 003 поста)', async () => {
     for (const [n, text] of [[21, '21 пост'], [1021, '1 021 пост'], [2003, '2 003 поста']]) {

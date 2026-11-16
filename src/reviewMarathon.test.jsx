@@ -5,7 +5,7 @@ import App from './App.jsx'
 import * as responsive from './hooks/useIsMobile.js'
 import { fetchPublicData } from './storage.js'
 import { todayMeta, peakSecondToLastMeta } from './reviewMarathonFixture.js'
-import { REAL_HISTORY, replayMeta } from './realHistoryFixture.js'
+import { replayMeta } from './realHistoryFixture.js'
 
 vi.mock('./storage.js', () => ({ fetchPublicData: vi.fn() }))
 vi.mock('@vercel/analytics/react', () => ({ Analytics: () => null }))

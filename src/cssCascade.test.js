@@ -926,6 +926,20 @@ describe('app.css cascade guards', () => {
     })
   })
 
+  // ASM-REPRO-1: the phone START label carries its money value on the sub line; the sub line is uppercase for dates
+  // ("2 НОЯ"), which turned "+526.7k$" into "+526.7K$" while every step label reads "-5.2k$".
+  describe('x-axis sub line: dates stay uppercase, the START money value keeps its case (ASM-REPRO-1)', () => {
+    it.each([[375], [820], [1440]])('@%i: .mc-xaxis-label-money is not transformed, a plain sub line still is', (width) => {
+      for (const light of [false, true]) {
+        const env = { width, clip: true }
+        mount('<svg><g class="mc-x-tick range-start"><text class="mc-xaxis-label-sub mc-xaxis-label-money"></text></g></svg>', { light })
+        expect(value($('.mc-xaxis-label-sub'), 'text-transform', env), `money @${width} light=${light}`).toBe('none')
+        mount('<svg><g class="mc-x-tick range-first"><text class="mc-xaxis-label-sub"></text></g></svg>', { light })
+        expect(value($('.mc-xaxis-label-sub'), 'text-transform', env), `date @${width} light=${light}`).toBe('uppercase')
+      }
+    })
+  })
+
   describe('lightbox (CSS-7 / CSS-8)', () => {
     it('is the topmost layer, above every other z-index in the stylesheet and the inline 9999 popups', () => {
       const lightbox = Number(value(Object.assign(document.body.appendChild(document.createElement('div')), { className: 'lightbox' }), 'z-index', wide))

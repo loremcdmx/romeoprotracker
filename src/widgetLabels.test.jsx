@@ -6,6 +6,7 @@ import App from './App.jsx'
 import MonthlyMarathonChart from './components/MonthlyMarathonChart.jsx'
 import { createTranslator, translate } from './i18n.js'
 import { normalizeMarathonDistance } from './marathonMonths.js'
+import { replayMeta } from './realHistoryFixture.js'
 import { fetchPublicData } from './storage.js'
 import { dedupBrHistory, fmtDateTimeLang, fmtExactSigned, plural } from './utils.js'
 
@@ -67,10 +68,25 @@ describe('new i18n keys exist in every language', () => {
 })
 
 // ─── DL-3 / PH-3: one definition of "MTT per session" ────────────────────────
-describe('MTT per session is one number on one screen', () => {
+// Two sources: the frozen 2026-10-18 archive (REAL_HISTORY, as historyGuards.test.js) pins exact numbers; the live
+// data/meta.json keeps growing and only gets what holds for ANY valid archive (ASM-T7).
+const FROZEN_FLAT_ROWS = [['f11', 1774270102, 2166], ['f74', 1780462186, 15058], ['f114', 1784861258, 23923], ['f142', 1787888162, 30183]]
+const frozenMeta = () => {
+  const meta = replayMeta()
+  // replayMeta ids are real-N; the pins below use the f-N names of historyGuards.test.js (same index)
+  meta.brHistory.forEach((row, i) => { row.id = `f${i}` })
+  return meta
+}
+
+describe.each([
+  ['frozen archive', frozenMeta, true],
+  ['live archive', () => clone(REAL_META), false],
+])('MTT per session is one number on one screen (%s)', (_name, getMeta, frozen) => {
+  const historyOf = () => dedupBrHistory(clone(getMeta().brHistory))
+  const dataOf = () => ({ posts: [], meta: clone(getMeta()) })
   // independent oracle: average of the positive cumulative deltas, same window rule as the chart
   function oracle(period, atSec) {
-    const hist = dedupedReal()
+    const hist = historyOf()
     let prev = 0
     const rows = []
     hist.forEach((row, i) => {
@@ -86,23 +102,36 @@ describe('MTT per session is one number on one screen', () => {
     }
     return Math.round(used.reduce((sum, r) => sum + r.delta, 0) / used.length)
   }
-  // flat-cumulative reports (the counter did not move) are looked up in the data, never pinned by id:
-  // the scraper adds more of them over time. The earliest and the latest one give two different windows.
-  const flatRows = () => dedupedReal().filter((row, i, all) => i > 0 && row.totalTournaments === all[i - 1].totalTournaments)
-  const flatRow = which => (which === 'first' ? flatRows()[0] : flatRows().at(-1))
+  // flat-cumulative reports (the counter did not move) are looked up in the data, never pinned by id on the live
+  // archive: the scraper adds more of them over time. The earliest and the latest one give two different windows.
+  const flatRows = () => historyOf().filter((row, i, all) => i > 0 && row.totalTournaments === all[i - 1].totalTournaments)
+  // The flat-row windows exist only when the archive has flat rows: with none they are left out, never thrown on.
+  const flats = flatRows()
 
   const SCENARIOS = [
     ['all time', 'all', () => nowSec()],
-    ['a week containing a flat-cumulative report', 'week', () => flatRow('last').timestamp + 2 * DAY],
-    ['a month containing a flat-cumulative report', 'month', () => flatRow('first').timestamp + 3 * DAY],
+    ...(flats.length ? [
+      ['a week containing a flat-cumulative report', 'week', () => flats.at(-1).timestamp + 2 * DAY],
+      ['a month containing a flat-cumulative report', 'month', () => flats[0].timestamp + 3 * DAY],
+    ] : []),
   ]
 
+  if (frozen) {
+    it('sanity: the frozen archive holds exactly 4 flat-cumulative reports, the first and the last are different windows', () => {
+      expect(flats.map(row => [row.id, row.timestamp, row.totalTournaments])).toEqual(FROZEN_FLAT_ROWS)
+      expect(SCENARIOS).toHaveLength(3)
+      expect(flats.at(-1).timestamp + 2 * DAY).not.toBe(flats[0].timestamp + 3 * DAY)
+    })
+  } else {
+    it('live archive: the flat-row count is a number and the scenarios follow it without throwing', () => {
+      expect(Number.isInteger(flats.length)).toBe(true)
+      expect(SCENARIOS).toHaveLength(flats.length ? 3 : 1)
+    })
+  }
+
   it.each(SCENARIOS)('sidebar, mobile strip and session chart agree: %s', async (_label, period, at) => {
-    // sanity: the archive really holds flat-cumulative reports (counter did not move)
-    const hist = dedupedReal()
-    expect(hist.filter((row, i) => i > 0 && row.totalTournaments === hist[i - 1].totalTournaments).length).toBeGreaterThanOrEqual(1)
     mockNow(at())
-    await mount(realData(), { ls: { rpt_chart_period: period } })
+    await mount(dataOf(), { ls: { rpt_chart_period: period } })
 
     const expected = oracle(period, at())
     const sidebarRow = [...document.querySelectorAll('.sblock .srow')]
