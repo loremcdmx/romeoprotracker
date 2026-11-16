@@ -183,8 +183,10 @@ describe('storage robustness', () => {
   })
 
   describe('a slower but fresher source', () => {
-    const v1 = { lastUpdated: '2026-10-18T10:00:00.000Z', postsChangedAt: '2026-10-18T10:00:00.000Z' }
-    const v2 = { lastUpdated: '2026-10-18T10:00:00.000Z', postsChangedAt: '2026-10-18T16:40:00.000Z' }
+    // v2 carries one more post: a structural advance (a likes-only one is not
+    // worth the heavy download, see storage.loading.test.js).
+    const v1 = { lastUpdated: '2026-10-18T10:00:00.000Z', postsChangedAt: '2026-10-18T10:00:00.000Z', totalPosts: 10 }
+    const v2 = { lastUpdated: '2026-10-18T10:00:00.000Z', postsChangedAt: '2026-10-18T16:40:00.000Z', totalPosts: 11 }
 
     function twoSources({ rawPostsDelay, rawMeta = v2, rawPostsHang = false }) {
       return slowFetch((href) => {
@@ -214,14 +216,19 @@ describe('storage robustness', () => {
       expect(result.meta.postsChangedAt).toBe(v2.postsChangedAt)
     })
 
-    it('does the same on a cold load with no cache', async () => {
+    it('cold load with no cache: resolves with the first source and delivers the newer one later', async () => {
       vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] })
       const { fetchPublicData } = await loadStorage()
       vi.stubGlobal('fetch', twoSources({ rawPostsDelay: 3000 }).fetchSpy)
+      const onFresher = vi.fn()
 
-      const { result } = await poll(fetchPublicData)
+      const { outcome, elapsed } = await settle(fetchPublicData({ onFresher }))
 
-      expect(result.posts[0].id).toBe('v2-FRESH')
+      expect(outcome.value.posts[0].id).toBe('v1-STALE')
+      expect(elapsed).toBeLessThan(2000)
+      await vi.advanceTimersByTimeAsync(5000)
+      expect(onFresher).toHaveBeenCalledTimes(1)
+      expect(onFresher.mock.calls[0][0].posts[0].id).toBe('v2-FRESH')
     })
 
     it('does not wait for a slow source whose meta is not newer, and aborts it', async () => {
@@ -237,7 +244,7 @@ describe('storage robustness', () => {
       expect(log.find((entry) => isRaw(entry.href) && entry.href.endsWith('/posts.min.json')).aborted).toBe(true)
     })
 
-    it('stops waiting at the cap when the fresher source never delivers its posts', async () => {
+    it('does not hold the first render for a newer source that never delivers its posts', async () => {
       vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] })
       const { fetchPublicData } = await loadStorage()
       vi.stubGlobal('fetch', twoSources({ rawPostsHang: true }).fetchSpy)
@@ -270,8 +277,8 @@ describe('storage robustness', () => {
     it('goes for the new data as soon as one source reports it, even if another hangs', async () => {
       vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] })
       const { fetchPublicData } = await loadStorage()
-      const oldMeta = { lastUpdated: '2026-10-18T00:00:00.000Z' }
-      const newMeta = { lastUpdated: '2026-10-18T05:00:00.000Z' }
+      const oldMeta = { lastUpdated: '2026-10-18T00:00:00.000Z', totalPosts: 5 }
+      const newMeta = { lastUpdated: '2026-10-18T05:00:00.000Z', totalPosts: 6 }
       localStorage.setItem(CACHE_KEY, JSON.stringify({ ts: Date.now() - 5 * MIN, compact: compact('cached'), meta: oldMeta, source: 'x' }))
       vi.stubGlobal('fetch', slowFetch((href) => {
         if (!isRaw(href)) return { hang: true }
@@ -341,14 +348,16 @@ describe('storage robustness', () => {
 
       it('a stale same-origin snapshot that answers first does not hide the newer raw heartbeat', async () => {
         const result = await load(50, 600, { same: '2026-10-18T10:05:00.000Z', raw: '2026-10-18T14:35:00.000Z' })
+        // heartbeat-only difference: raw is cut, its heartbeat is adopted from its meta
         expect(result.meta.lastScrapeRun).toBe('2026-10-18T14:35:00.000Z')
-        expect(result.posts[0].id).toBe('raw')
+        expect(result.posts[0].id).toBe('same')
       })
 
       it('and the other way round: raw answers first with the older heartbeat', async () => {
         const result = await load(600, 50, { same: '2026-10-18T14:35:00.000Z', raw: '2026-10-18T10:05:00.000Z' })
+        // the first complete source keeps the posts; the newer heartbeat is adopted from the meta
         expect(result.meta.lastScrapeRun).toBe('2026-10-18T14:35:00.000Z')
-        expect(result.posts[0].id).toBe('same')
+        expect(result.posts[0].id).toBe('raw')
       })
     })
 

@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 1.14.23 — 2026-11-16
+
+- First load no longer waits for the slower copy of the data: the page shows the first complete source right away (it could wait 8-10 s on a phone, and even on a fast desktop when GitHub was slow). A newer copy with a new post or bankroll report arrives in the background and appears without a reload.
+- The site no longer downloads the dataset twice on a cold visit, and an open tab no longer re-downloads the whole dataset (1.5-6.6 MB) every time only like counts changed. New posts and bankroll reports still arrive within one poll; like counts can lag until the next site deploy (a few hours).
+
 ## 1.14.22 — 2026-11-16
 
 - Pace chart: the value of the latest point sits next to its own dot instead of the previous one and is no longer crossed by the line (a dense 1k step on narrow phones is still tight).
