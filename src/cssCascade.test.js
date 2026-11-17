@@ -962,4 +962,142 @@ describe('app.css cascade guards', () => {
       expect(v).not.toMatch(/v[wh]/)
     })
   })
+
+  // 2026-11-17, owner: «поработай над графиком (особенно в темной теме)». The colour side of that work.
+  describe('marathon chart look in the dark theme (and the light theme kept in step)', () => {
+    const env = (width = 1280) => ({ width, clip: true })
+    // a theme token, read from the root without touching the mounted markup
+    const token = (name, light) => {
+      const root = document.documentElement
+      const before = root.className
+      root.className = light ? 'light' : ''
+      const found = resolveVars(`var(${name})`, root, env())
+      root.className = before
+      return found
+    }
+    const cardBg = (light) => token('--bg2', light)
+
+    it.each([[false, 'dark'], [true, 'light']])('the hover tooltip is opaque in the %s theme and has no backdrop blur', (light) => {
+      mount('<div class="marathon-chart"><div class="mc-tooltip is-visible"><div class="mc-pill neg"></div></div></div>', { light })
+      const tip = $('.mc-tooltip')
+      const bg = resolveVars(value(tip, 'background', env()), tip, env())
+      expect(toRGBA(bg)[3], bg).toBe(1)
+      expect(value(tip, 'backdrop-filter', env())).toBeUndefined()
+      expect(value(tip, '-webkit-backdrop-filter', env())).toBeUndefined()
+      const pill = $('.mc-pill')
+      const pillBg = resolveVars(value(pill, 'background', env()), pill, env())
+      expect(toRGBA(pillBg)[3], pillBg).toBe(1)
+      expect(value(pill, 'backdrop-filter', env())).toBeUndefined()
+    })
+
+    it.each([[false, 'dark'], [true, 'light']])('small text on the tooltip keeps 4.5:1 in the %s theme', (light) => {
+      mount('<div class="marathon-chart"><div class="mc-tooltip is-visible"><span class="x"></span><div class="mc-pill neg"></div><div class="mc-pill pos"></div></div></div>', { light })
+      const tip = $('.mc-tooltip')
+      const bg = toHex(toRGBA(resolveVars(value(tip, 'background', env()), tip, env())))
+      const dim = resolveVars('var(--dim)', $('.x'), env())
+      expect(contrast(dim, bg), `--dim ${dim} on ${bg}`).toBeGreaterThanOrEqual(4.5)
+      // the result figures of the session rows use the same tokens as the pill
+      for (const tone of ['neg', 'pos']) {
+        const el = $(`.mc-pill.${tone}`)
+        const colour = resolveVars(value(el, 'color', env()), el, env())
+        expect(contrast(colour, bg), `${tone} ${colour} on ${bg}`).toBeGreaterThanOrEqual(4.5)
+      }
+    })
+
+    it('dark theme: plates are a raised surface (lighter than the plot, opaque, with a visible border)', () => {
+      const plate = token('--chart-callout-bg', false)
+      expect(toRGBA(plate)[3]).toBe(1)
+      const plot = over(token('--chart-panel', false), cardBg(false))
+      expect(lum(toHex(toRGBA(plate))), `plate ${plate} against plot ${plot}`).toBeGreaterThan(lum(plot))
+      expect(contrast(toHex(toRGBA(plate)), plot)).toBeGreaterThanOrEqual(1.25)
+      const border = over(token('--chart-callout-stroke', false), toHex(toRGBA(plate)))
+      expect(contrast(border, toHex(toRGBA(plate)))).toBeGreaterThanOrEqual(1.6)
+      // text on the plate
+      for (const name of ['--chart-callout-accent', '--chart-callout-muted', '--chart-callout-value', '--gold']) {
+        expect(contrast(token(name, false), toHex(toRGBA(plate))), name).toBeGreaterThanOrEqual(4.5)
+      }
+    })
+
+    it('dark theme: the plot panel and the grid are visible but quiet', () => {
+      const card = cardBg(false)
+      const plot = over(token('--chart-panel', false), card)
+      expect(contrast(plot, card)).toBeGreaterThanOrEqual(1.08)
+      const grid = over(token('--chart-grid', false), plot)
+      expect(contrast(grid, plot)).toBeGreaterThanOrEqual(1.18)
+      expect(contrast(grid, plot)).toBeLessThanOrEqual(1.6)
+      const strong = over(token('--chart-grid-strong', false), plot)
+      expect(contrast(strong, plot)).toBeGreaterThanOrEqual(1.6)
+    })
+
+    it.each([[false, 'dark'], [true, 'light']])('line and dots share one green and one red in the %s theme', (light) => {
+      mount('<svg class="mc-svg"><line class="mc-line-segment positive"></line><line class="mc-line-segment negative"></line><circle class="mc-dot mc-pos"></circle><circle class="mc-dot mc-neg"></circle><circle class="mc-dot mc-dot-minor mc-pos"></circle><circle class="mc-dot mc-dot-cluster-part mc-neg"></circle></svg>', { light })
+      const resolve = (sel, prop) => { const el = $(sel); return resolveVars(value(el, prop, env()), el, env()) }
+      expect(resolve('.mc-dot.mc-pos', 'fill')).toBe(resolve('.mc-line-segment.positive', 'stroke'))
+      expect(resolve('.mc-dot.mc-neg', 'fill')).toBe(resolve('.mc-line-segment.negative', 'stroke'))
+      expect(resolve('.mc-dot-minor.mc-pos', 'fill')).toBe(resolve('.mc-line-segment.positive', 'stroke'))
+      expect(resolve('.mc-dot-cluster-part.mc-neg', 'fill')).toBe(resolve('.mc-line-segment.negative', 'stroke'))
+    })
+
+    it('light theme: the line has real contrast on the cream card (it reused the dark theme colours: 1.6:1 and 2.6:1)', () => {
+      mount('<svg class="mc-svg"><line class="mc-line-segment positive"></line><line class="mc-line-segment negative"></line></svg>', { light: true })
+      const card = cardBg(true)
+      for (const tone of ['positive', 'negative']) {
+        const el = $(`.mc-line-segment.${tone}`)
+        const stroke = resolveVars(value(el, 'stroke', env()), el, env())
+        expect(contrast(stroke, card), `${tone} ${stroke} on ${card}`).toBeGreaterThanOrEqual(3)
+      }
+    })
+
+    it('dark theme: dots have no black ring and no drop shadow; the light theme keeps its ring and shadow', () => {
+      const html = '<svg class="mc-svg"><circle class="mc-dot mc-pos"></circle><circle class="mc-dot mc-dot-crowded mc-neg"></circle></svg>'
+      mount(html)
+      const ring = resolveVars(value($('.mc-dot'), 'stroke', env()), $('.mc-dot'), env())
+      expect(ring).not.toBe('#0b0b0b')
+      expect(contrast(ring, cardBg(false)), `ring ${ring} blends with the card`).toBeLessThanOrEqual(1.12)
+      for (const el of document.querySelectorAll('.mc-dot')) expect(value(el, 'filter', env()) ?? 'none').toBe('none')
+      mount(html, { light: true })
+      expect(resolveVars(value($('.mc-dot'), 'stroke', env()), $('.mc-dot'), env())).toBe(cardBg(true))
+      for (const el of document.querySelectorAll('.mc-dot')) expect(value(el, 'filter', env())).toMatch(/drop-shadow/)
+    })
+
+    it('the dashed gold ring of a mixed group keeps its own stroke; a plain group ring takes the line colour', () => {
+      mount('<svg class="mc-svg"><circle class="mc-dot-grouped-ring mc-dot-mixed-ring mc-ring-pos"></circle><circle class="mc-dot-grouped-ring mc-ring-neg"></circle></svg>')
+      expect(value($('.mc-dot-mixed-ring'), 'stroke', env())).toBe('rgba(255,179,0,.72)')
+      const plain = $('.mc-dot-grouped-ring.mc-ring-neg')
+      expect(resolveVars(value(plain, 'stroke', env()), plain, env())).toBe(token('--chart-neg', false))
+    })
+
+    it('the START dot of a period keeps its neutral fill', () => {
+      mount('<svg class="mc-svg"><circle class="mc-dot mc-dot-baseline"></circle></svg>')
+      expect(value($('.mc-dot-baseline'), 'fill', env())).toBe('var(--axis-x-muted)')
+    })
+
+    it('dark theme: the months are the first axis, the distance row the second, both readable', () => {
+      mount('<div class="marathon-chart"><svg class="mc-svg"><text class="mc-month-label-main"></text><text class="mc-distance-label"></text></svg></div>')
+      const card = cardBg(false)
+      const month = resolveVars(value($('.mc-month-label-main'), 'fill', env()), $('.mc-month-label-main'), env())
+      const distance = resolveVars(value($('.mc-distance-label'), 'fill', env()), $('.mc-distance-label'), env())
+      expect(contrast(month, card)).toBeGreaterThan(contrast(distance, card))
+      expect(contrast(distance, card)).toBeGreaterThanOrEqual(4.5)
+    })
+
+    it('the card title is no longer the quietest text of the card', () => {
+      mount('<div class="marathon-chart"><div class="section-head mc-chart-head"><h2 class="section-title"></h2></div></div>')
+      const title = $('.section-title')
+      expect(value(title, 'font-size', env())).toBe('14px')
+      expect(contrast(over(resolveVars(value(title, 'color', env()), title, env()), cardBg(false)), cardBg(false))).toBeGreaterThanOrEqual(12)
+    })
+
+    it.each([[1280, 'auto', undefined], [375, '0', '3']])('at %ipx the step select is in the title row (margin-left %s, order %s)', (width, marginLeft, order) => {
+      mount('<div class="marathon-chart"><div class="section-head mc-chart-head"><h2 class="section-title"></h2><label class="mc-group-control"><select></select></label><div class="mc-periods"></div></div></div>')
+      const control = $('.mc-group-control')
+      expect(value(control, 'margin-left', env(width))).toBe(marginLeft)
+      expect(value(control, 'order', env(width))).toBe(order)
+      if (width < 720) {
+        expect(value(control, 'flex-basis', env(width))).toBe('100%')
+        expect(value($('.mc-group-control select'), 'min-height', env(width))).toBe('36px')
+        expect(value($('.mc-periods'), 'margin-left', env(width))).toBe('auto')
+      }
+    })
+  })
 })

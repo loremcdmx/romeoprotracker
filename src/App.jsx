@@ -7,7 +7,7 @@ import {
   warsawDayKey, warsawParts, fmtDateTimeLang, spansMultipleYears,
 } from './utils.js'
 import { createTranslator, DEFAULT_LANG, FORUM_WORD, LANG_DICT, fmtDateShortLang } from './i18n.js'
-import { computeFixedPopupLayout, computeSvgTooltipLayout, computeTouchSheetLayout, findHoverListIndexAtPoint, getZoomedViewportMetrics, watchPopupContentLoad } from './floating.js'
+import { computeFixedPopupLayout, computePointTooltipLayout, computeSvgTooltipLayout, computeTouchSheetLayout, findHoverListIndexAtPoint, getZoomedViewportMetrics, watchPopupContentLoad } from './floating.js'
 import { useIsMobile } from './hooks/useIsMobile.js'
 import { useExclusiveHoverPopup } from './hooks/useExclusiveHoverPopup.js'
 import { usePersistentState } from './hooks/usePersistentState.js'
@@ -893,12 +893,62 @@ const MILESTONE_PLATE_LAYOUTS = {
   best:{ desktop:{ width:72, height:28, dx:-31, dy:-36 }, mobile:{ width:94, height:40, dx:-54, dy:-56 } },
   twoHundred:{ desktop:{ width:64, height:28, dx:-24, dy:-36 }, mobile:{ width:86, height:40, dx:-44, dy:-56 } },
 }
-function milestonePlateRect(type, point, isMobile, frame) {
+// `line` is the list of the chart's points in order. A plate must not lie on the line: its home spot is above
+// its point, but for a point in the top corner the plate is clamped beside the dot and used to cover the final
+// climb of the line (the best-day plate after the record of 16 Nov 2026). It then slides sideways to the nearest
+// spot where the line, with the room its rail takes, stays outside the plate.
+// Bottom edge of what is pinned over the top of the viewport (the page header and the progress block), 0 if none.
+function pinnedHeaderBottom() {
+  if (typeof document === 'undefined') return 0
+  return ['.topbar', '.marathon-progress'].reduce((bottom, selector) => {
+    const rect = document.querySelector(selector)?.getBoundingClientRect()
+    return rect && rect.height > 0 && rect.top <= 64 ? Math.max(bottom, rect.bottom) : bottom
+  }, 0)
+}
+
+function milestonePlateRect(type, point, isMobile, frame, line = null) {
   const layout = MILESTONE_PLATE_LAYOUTS[type]?.[isMobile ? 'mobile' : 'desktop']
   if (!layout || !point) return null
   const { W, pL, pR, pT, plotBottom } = frame
-  const cx = clampNumber(point.x + layout.dx, pL + layout.width / 2 + 5, W - pR - layout.width / 2 - 5)
+  const minCx = pL + layout.width / 2 + 5
+  const maxCx = W - pR - layout.width / 2 - 5
+  let cx = clampNumber(point.x + layout.dx, minCx, maxCx)
   const cy = clampNumber(point.y + layout.dy, pT + layout.height / 2 + 5, plotBottom - layout.height / 2 - 5)
+  if (line && line.length > 1) {
+    const margin = isMobile ? 3.6 : 3
+    const top = cy - layout.height / 2 - margin
+    const bottom = cy + layout.height / 2 + margin
+    const onLine = x => {
+      const left = x - layout.width / 2 - margin
+      const right = x + layout.width / 2 + margin
+      for (let i = 1; i < line.length; i++) {
+        const a = line[i - 1]
+        const b = line[i]
+        if (Math.max(a.x, b.x) < left || Math.min(a.x, b.x) > right) continue
+        if (Math.max(a.y, b.y) < top || Math.min(a.y, b.y) > bottom) continue
+        // Liang-Barsky: does the segment a-b enter the padded plate?
+        const dx = b.x - a.x
+        const dy = b.y - a.y
+        let enter = 0
+        let leave = 1
+        let outside = false
+        for (const [p, q] of [[-dx, a.x - left], [dx, right - a.x], [-dy, a.y - top], [dy, bottom - a.y]]) {
+          if (p === 0) { if (q < 0) { outside = true; break } continue }
+          const ratio = q / p
+          if (p < 0) { if (ratio > leave) { outside = true; break } if (ratio > enter) enter = ratio }
+          else { if (ratio < enter) { outside = true; break } if (ratio < leave) leave = ratio }
+        }
+        if (!outside) return true
+      }
+      return false
+    }
+    if (onLine(cx)) {
+      for (let step = 4; step <= 96; step += 4) {
+        if (cx - step >= minCx && !onLine(cx - step)) { cx -= step; break }
+        if (cx + step <= maxCx && !onLine(cx + step)) { cx += step; break }
+      }
+    }
+  }
   return {
     layout, cx, cy,
     left:cx - layout.width / 2, right:cx + layout.width / 2,
@@ -919,11 +969,16 @@ function MarathonMilestoneCallout({ milestone, type, isMobile, W, pL, pR, pT, pl
     )
   }
 
-  const plate = milestonePlateRect(type, point, isMobile, { W, pL, pR, pT, plotBottom })
+  const plate = milestone.plate || milestonePlateRect(type, point, isMobile, { W, pL, pR, pT, plotBottom })
   if (!plate) return null
   const { layout, cx, cy, left, top } = plate
-  const leaderX = clampNumber(point.x, left + 8, left + layout.width - 8)
-  const leaderY = top + layout.height
+  const right = left + layout.width
+  const bottom = top + layout.height
+  // The leader normally drops from the plate's bottom edge to the point below it. A plate that stands BESIDE
+  // its point (clamped under the top edge, or slid off the line) is joined from its nearer side edge instead.
+  const beside = point.y < bottom + 2 && (point.x > right || point.x < left)
+  const leaderX = beside ? (point.x > right ? right : left) : clampNumber(point.x, left + 8, right - 8)
+  const leaderY = beside ? clampNumber(point.y, top + 6, bottom - 6) : bottom
 
   return (
     <g className={`mc-milestone-callout ${type}`} data-source-id={sourceId} data-source-index={i}>
@@ -1022,11 +1077,55 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
     const place = () => {
       const el = sheetRef.current
       if (!el) return
+      // The pinned header and progress block cover the top of the screen: the sheet must open below them, or its
+      // first rows (the date, the result pill, the bankroll) are hidden.
+      const pinnedBottom = pinnedHeaderBottom()
+      // The nearest point is picked by x, so it can be far above or below the finger: the sheet keeps clear of
+      // both when it can (see computeTouchSheetLayout).
+      const svg = chartRef.current?.querySelector('svg.mc-svg')
+      const svgRect = svg?.getBoundingClientRect()
+      const viewBoxWidth = svg?.viewBox?.baseVal?.width || 0
+      const pointY = svgRect && svgRect.width > 0 && viewBoxWidth > 0 && Number.isFinite(tip.y)
+        ? svgRect.top + tip.y * (svgRect.width / viewBoxWidth)
+        : null
       setSheetPos(computeTouchSheetLayout({
         touchY: tip.screenY || 0,
+        pointY,
         // scrollHeight is the full content height even when maxHeight caps it
         panelHeight: el.scrollHeight + (el.offsetHeight - el.clientHeight),
         viewportHeight: window.innerHeight,
+        topInset: pinnedBottom > 0 ? pinnedBottom + 4 : 0,
+      }))
+    }
+    place()
+    window.addEventListener('resize', place)
+    return () => window.removeEventListener('resize', place)
+  }, [isMobile, tip])
+
+  // Desktop hover tooltip: placed in real pixels beside its point. The inline style used to mix viewBox units
+  // with CSS pixels (bottom:(H - y + 24)px, measured from the card's bottom edge), so on a wide screen the
+  // tooltip landed 100-180 px below the dot it explains and covered it.
+  const [tipPos, setTipPos] = useState(null)
+  useLayoutEffect(() => {
+    if (isMobile || !tip || !sheetRef.current || !chartRef.current) { setTipPos(null); return undefined }
+    const place = () => {
+      const card = chartRef.current
+      const el = sheetRef.current
+      const svg = card?.querySelector('svg.mc-svg')
+      if (!card || !el || !svg) return
+      const { zoom } = getZoomedViewportMetrics()
+      setTipPos(computePointTooltipLayout({
+        cardRect: card.getBoundingClientRect(),
+        svgRect: svg.getBoundingClientRect(),
+        // the chart's W is declared further down; the rendered svg knows its own viewBox
+        viewBoxWidth: svg.viewBox?.baseVal?.width || 0,
+        point: { x: tip.x, y: tip.y },
+        tipWidth: el.offsetWidth,
+        tipHeight: el.offsetHeight,
+        border: card.clientLeft || 0,
+        zoom,
+        // a card scrolled partly under the pinned header (also a phone held sideways, which gets this layout)
+        minViewportTop: pinnedHeaderBottom() || null,
       }))
     }
     place()
@@ -1089,10 +1188,13 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
   // shrinking every label with it. Label collision math is in the same user
   // units, so a narrower canvas simply thins the labels out on its own.
   const W = isMobile ? 360 : 700
-  const H = isMobile ? (period === 'all' ? 380 : 310) : 240
+  // Desktop: the step select moved into the title row, and the height it freed went to the plot (240 -> 262).
+  const H = isMobile ? (period === 'all' ? 380 : 310) : 262
   const pR = isMobile ? 18 : 22
   const pT = isMobile ? 18 : 14
-  const pB = isMobile ? 58 : 44
+  // The all-time view has one label row under the plot (months), week and month have two (event and date), so
+  // on desktop the all-time view needs less room below the plot.
+  const pB = isMobile ? 58 : period === 'all' ? 38 : 44
   const plotBottom = H - pB
   // 'all' keeps the legacy absolute scale (start anchored); week/month zoom the
   // Y domain to the visible points — previously the line used 10-17% of the
@@ -1256,7 +1358,7 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
     }
     return kept
   })()
-  const distanceAxisY = xSubLabelY + (isMobile ? 27 : 22)
+  const distanceAxisY = !isMobile && period === 'all' ? xMainLabelY + 20 : xSubLabelY + (isMobile ? 27 : 22)
   const distanceCutoff = Date.now() / 1000 - (period === 'week' ? 7 : 30) * 86400
   const periodDistancePoints = period === 'all' ? allPoints : allPoints.filter(point => point.timestamp >= distanceCutoff)
   const visibleDistance = periodDistancePoints.every(point => point.distanceMTT != null) ? periodDistancePoints.reduce((sum, point) => sum + point.distanceMTT, 0) : null
@@ -1621,6 +1723,8 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
         i,
         p:points[i],
         point:coords[i],
+        // one rect for the painter and for the peak-plate scorer
+        plate:milestonePlateRect(type, coords[i], isMobile, { W, pL, pR, pT, plotBottom }, coords),
         primary,
         secondary:fmtDateShortLang(points[i].timestamp, lang, hasMultipleYears),
       }
@@ -1658,33 +1762,36 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
       ] : [coord]
     })
     const leaderDangerPoints = coords.filter((_, i) => Math.abs(i - peakIdx) > 1)
-    const chartFrame = { W, pL, pR, pT, plotBottom }
     const milestonePlates = allTimeMilestones
-      .map(m => milestonePlateRect(m.type, m.point, isMobile, chartFrame))
+      .map(m => m.plate)
       .filter(Boolean)
     // Plates actually painted: phones draw only the best-day plate, the other
     // milestones are bare markers there.
     const drawnPlates = allTimeMilestones
       .filter(m => !isMobile || m.type === 'best')
-      .map(m => milestonePlateRect(m.type, m.point, isMobile, chartFrame))
+      .map(m => m.plate)
       .filter(Boolean)
     // Plates painted for the record report itself: it can also be the best day, the $200k crossing
     // or the turnaround. Such a plate sits right beside the dot, so a straight leader from the badge
     // to the dot would run through its text. The badge then docks to that plate instead (a short
     // connector to the plate, which is already tied to the dot); a leader that still has to pass an
     // own plate stops at its edge.
-    const isOwnPlate = m => m.i === peakIdx && (!isMobile || m.type === 'best')
+    // A plate of a report whose dot is practically on the record dot (within 12 units: the report or two before a
+    // new record, for example the best day followed by a small win) counts as the record's own: the corner is
+    // one spot for the eye, and the plate fills the only room beside the record dot.
+    const atRecord = m => m.i === peakIdx || Math.hypot(m.point.x - point.x, m.point.y - point.y) <= 12
+    const isOwnPlate = m => atRecord(m) && (!isMobile || m.type === 'best')
     const ownPlates = allTimeMilestones.filter(isOwnPlate)
-      .map(m => milestonePlateRect(m.type, m.point, isMobile, chartFrame))
+      .map(m => m.plate)
       .filter(Boolean)
     const foreignPlates = allTimeMilestones.filter(m => !isOwnPlate(m))
-      .map(m => milestonePlateRect(m.type, m.point, isMobile, chartFrame))
+      .map(m => m.plate)
       .filter(Boolean)
     // Painted plates of OTHER reports. When no spot keeps the leader off them (a best-day plate
     // right beside a newer record), the leader is hidden where it passes one: it reads as running
     // behind the plate instead of striking through its text.
     const leaderMaskRects = allTimeMilestones.filter(m => !isOwnPlate(m) && (!isMobile || m.type === 'best'))
-      .map(m => milestonePlateRect(m.type, m.point, isMobile, chartFrame))
+      .map(m => m.plate)
       .filter(Boolean)
     const rectsOverlap = (a, b) =>
       a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom
@@ -1746,10 +1853,15 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
       const ccw = (u, v, w) => (w.y - u.y) * (v.x - u.x) > (v.y - u.y) * (w.x - u.x)
       return ccw(p1, p3, p4) !== ccw(p2, p3, p4) && ccw(p1, p2, p3) !== ccw(p1, p2, p4)
     }
+    // With many reports the line reaches a record in steps a few units long, so a short leader beside the dot
+    // always has the line's last steps within 2-3 units of it: they meet at the dot. Those steps (an end within
+    // 6 units of the dot) are judged like the two segments at the dot itself, by the angle rule only. Without
+    // this no spot beside a record at the top-right corner was ever accepted and the plate landed 60-100 units away.
+    const atPeak = p => Math.hypot(p.x - point.x, p.y - point.y) <= 6
     const leaderLineGap = (anchor, start = point) => {
       let gap = Infinity
       lineSegments.forEach(({ a, b }, j) => {
-        if (start === point && (j === peakIdx - 1 || j === peakIdx)) return
+        if (start === point && (j === peakIdx - 1 || j === peakIdx || atPeak(a) || atPeak(b))) return
         if (segmentsCross(start, anchor, a, b)) { gap = 0; return }
         gap = Math.min(gap, distanceToSegment(a, start, anchor), distanceToSegment(b, start, anchor),
           distanceToSegment(start, a, b), distanceToSegment(anchor, a, b))
@@ -1890,6 +2002,10 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
       const lineClearRect = { left:rect.left - 3.2, right:rect.right + 3.2, top:rect.top - 3.2, bottom:rect.bottom + 3.2 }
       // A ring spot needs a straight, unobstructed leader to the dot; a dock spot must sit exactly
       // where its connector expects it and keep the connector clear of the line.
+      // On the line: the badge would cover the line's own stroke (1.6 units of margin; the 3.2 of a hard-clear
+      // spot also keeps the faint rail free, which a fallback spot does not have to).
+      const strokeRect = { left:rect.left - 1.6, right:rect.right + 1.6, top:rect.top - 1.6, bottom:rect.bottom + 1.6 }
+      const onLine = lineSegments.some(({ a, b }) => segmentIntersectsRect(a, b, strokeRect))
       const hardClear = !!near && dotOverlaps === 0 && plateOverlaps === 0 && plateLeaderHits === 0
         && Math.abs(cx - targetCx) < 0.5
         && !lineSegments.some(({ a, b }) => segmentIntersectsRect(a, b, lineClearRect))
@@ -1899,6 +2015,7 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
       return {
         near:!!near,
         hardClear,
+        onLine,
         docked,
         // Dock spots compete as if their connector were 30 units longer, so a spot right beside
         // the dot still wins whenever one is free.
@@ -1948,12 +2065,17 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
     }
     const legacyCandidates = candidates.filter(candidate => !candidate.near)
     const plateFreeCandidates = legacyCandidates.filter(candidate => candidate.drawnPlateOverlaps === 0)
-    const candidatePool = [
+    const tiers = [
       legacyCandidates.filter(candidate => candidate.dotOverlaps === 0
         && candidate.plateOverlaps === 0 && candidate.plateLeaderHits === 0),
       plateFreeCandidates.filter(candidate => candidate.dotOverlaps === 0),
       plateFreeCandidates,
-    ].find(pool => pool.length) || []
+    ]
+    // The badge must not sit on the line while some spot off the line exists: a leader that passes behind a
+    // plate (the mask hides it) costs less than a badge covering the line. Only when every spot of every tier
+    // is on the line do the tiers decide as before.
+    const offLine = tiers.map(pool => pool.filter(candidate => !candidate.onLine)).find(pool => pool.length)
+    const candidatePool = offLine || tiers.find(pool => pool.length) || []
     // Every spot would bury a plate: drop the badge instead of covering it.
     if (!candidatePool.length) return null
     const preferred = candidatePool.reduce((best, candidate) => {
@@ -2332,7 +2454,8 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
           const loudDotR = isMobile
             ? (isHovered ? (isLast ? 8 : 6) : (isLast ? 6 : isGrouped ? 4.5 : 3.4))
             : (isHovered ? (isLast ? 8 : 6) : (isLast ? 6 : isGrouped ? 4.6 : 3.8))
-          const baseDotR = significant || isHovered ? loudDotR : (isMobile ? 2.8 : 3)
+          // Minor dots are beads on the line, not events: a little wider than the 3.2px line, no more.
+          const baseDotR = significant || isHovered ? loudDotR : (isMobile ? 2.4 : 2.5)
           const dotR = isCrowded
             ? Math.min(baseDotR, isMobile ? 2.7 : 2.8, Math.max(1.2, (nearestDistance - 2.4) / 2))
             : baseDotR
@@ -2364,7 +2487,7 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
                     return (
                       <circle key={`part-${part.start}-${part.end}-${partIdx}`}
                         cx={part.x} cy={part.y} r={clusterPartR(partCount)}
-                        className={`mc-dot mc-dot-cluster-part ${partCount > 1 ? 'mc-dot-cluster-part-grouped' : ''}`}
+                        className={`mc-dot mc-dot-cluster-part ${partCount > 1 ? 'mc-dot-cluster-part-grouped' : ''} ${(part.profit || 0) >= 0 ? 'mc-pos' : 'mc-neg'}`}
                         fill={(part.profit || 0) >= 0 ? '#4caf50' : '#e53935'}/>
                     )
                   })}
@@ -2372,12 +2495,12 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
               ) : (
                 <>
                   {isGrouped && <circle cx={cx} cy={cy} r={dotR + (compacted ? 3.2 : 2.6)}
-                    className={`mc-dot-grouped-ring ${mixedTone ? 'mc-dot-mixed-ring' : ''}`}
+                    className={`mc-dot-grouped-ring ${mixedTone ? 'mc-dot-mixed-ring' : ''} ${profit>=0?'mc-ring-pos':'mc-ring-neg'}`}
                     stroke={profit>=0?'#4caf50':'#e53935'}/>}
                   <circle cx={cx} cy={cy} r={dotR}
-                    className={`mc-dot ${isLast && !isCrowded ? 'mc-dot-last' : ''} ${isGrouped?'mc-dot-grouped':''} ${compacted?'mc-dot-compacted':''} ${mixedTone?'mc-dot-mixed':''} ${isCrowded?'mc-dot-crowded':''} ${!significant && !isHovered ? 'mc-dot-minor' : ''} ${dotHidden && !isHovered ? 'mc-dot-hidden' : ''} ${p.synthetic ? 'mc-dot-baseline' : ''}`}
+                    className={`mc-dot ${isLast && !isCrowded ? 'mc-dot-last' : ''} ${isGrouped?'mc-dot-grouped':''} ${compacted?'mc-dot-compacted':''} ${mixedTone?'mc-dot-mixed':''} ${isCrowded?'mc-dot-crowded':''} ${!significant && !isHovered ? 'mc-dot-minor' : ''} ${dotHidden && !isHovered ? 'mc-dot-hidden' : ''} ${p.synthetic ? 'mc-dot-baseline' : profit>=0 ? 'mc-pos' : 'mc-neg'}`}
                     fill={profit>=0?'#4caf50':'#e53935'}
-                    style={{transition:'r .12s', ...(isCrowded ? {strokeWidth:isHovered ? 1.4 : .9} : {}), ...(isLast?{color:profit>=0?'#4caf50':'#e53935'}:{})}}/>
+                    style={{transition:'r .12s', ...(isCrowded ? {strokeWidth:isHovered ? 1.4 : .9} : {}), ...(isLast?{color:profit>=0?'var(--chart-pos)':'var(--chart-neg)'}:{})}}/>
                 </>
               )}
             </g>
@@ -2484,7 +2607,7 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
         </g>
         {tip && (() => {
           const positive = (tip.profit ?? 0) >= 0
-          const dotFill = positive ? (light ? '#2e8b3a' : '#4caf50') : (light ? '#c8362e' : '#e53935')
+          const dotFill = positive ? 'var(--chart-pos)' : 'var(--chart-neg)'
           const tagText = fmtDateShortLang(tip.p.timestamp, lang, hasMultipleYears)
           const tagW = tagText.length * 6.1 + 12
           const tagX = clampNumber(tip.x, pL + tagW / 2, W - pR - tagW / 2)
@@ -2492,7 +2615,7 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
             <line className="mc-hover-guide" x1={tip.x} y1={pT} x2={tip.x} y2={tip.y - 10}/>
             <line className="mc-hover-guide" x1={tip.x} y1={tip.y + 10} x2={tip.x} y2={plotBottom}/>
             <circle className="mc-hover-halo" cx={tip.x} cy={tip.y} r="9.5" style={{ color:dotFill }}/>
-            <circle className="mc-hover-dot" cx={tip.x} cy={tip.y} r="4.7" fill={dotFill}/>
+            <circle className="mc-hover-dot" cx={tip.x} cy={tip.y} r="4.7" style={{ fill:dotFill }}/>
             <g className="mc-hover-tag">
               <rect x={tagX - tagW / 2} y={plotBottom + 2} width={tagW} height="14" rx="4"/>
               <text x={tagX} y={plotBottom + 12}>{tagText}</text>
@@ -2528,7 +2651,16 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
           overflowY:'auto', overscrollBehavior:'contain',
           left:'12px', right:'12px', maxWidth:'none', width:'auto',
           '--mc-tooltip-x':'0px',
+        } : tipPos ? {
+          position:'absolute',
+          left:tipPos.left+'px',
+          top:tipPos.top+'px',
+          bottom:'auto',
+          right:'auto',
+          '--mc-tooltip-x':'0px',
+          transformOrigin:tipPos.side === 'left' ? 'right bottom' : 'left bottom',
         } : {
+          // before the first measurement (and without a layout engine): the legacy percent anchor
           position:'absolute',
           bottom:(H-tip.y+24)+'px',
           left:`${pct}%`,
@@ -2596,7 +2728,12 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
               </div>
             )}
             {tip.p.text && <div style={{fontSize:11,color:'var(--dim2)',lineHeight:1.6,display:'-webkit-box',WebkitLineClamp:3,WebkitBoxOrient:'vertical',overflow:'hidden'}}>{tip.p.text.substring(0,180)}</div>}
-            <div style={{fontSize:10,color:'var(--dim)',marginTop:5,display:'flex',justifyContent:'space-between',alignItems:'center',pointerEvents:'auto'}}>
+            {/* The only clickable part of the desktop tooltip. Entering it leaves the svg, which closes the tooltip
+                130 ms later, so the forum link could never be clicked; the tooltip now stays while the pointer is here. */}
+            <div style={{fontSize:10,color:'var(--dim)',marginTop:5,display:'flex',justifyContent:'space-between',alignItems:'center',pointerEvents:'auto'}}
+              className="mc-tooltip-actions"
+              onMouseEnter={!isMobile ? () => { clearTimeout(tipCloseTimer.current); setTipVisible(true) } : undefined}
+              onMouseLeave={!isMobile ? closeTip : undefined}>
               <span style={{cursor:'pointer'}} onClick={closeTip}>{t('close')}</span>
               {tip.p.url && <a href={tip.p.url} target="_blank" rel="noreferrer"
                 onClick={e=>e.stopPropagation()}

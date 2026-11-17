@@ -146,7 +146,9 @@ describe('marathon chart review tails', () => {
       const dot = svg.querySelector('.mc-dot-last circle, circle.mc-dot-last') || svg.querySelector('.mc-dot-last')
       return { ring, dot, dist: Math.hypot(num(ring, 'cx') - num(dot, 'cx'), num(ring, 'cy') - num(dot, 'cy')) }
     }
-    it.each([[true, 17000], [false, 27000]])('mobile=%s: a gap of about 3 units keeps the small gold dot (r 2.2)', async (mobile, drop) => {
+    // The drops are tuned to the plot height: the desktop plot grew from 182 to 210 units on 2026-11-17 (the step
+    // select moved into the title row), so the same 9-unit distance needs a smaller drop there (27000 -> 23500).
+    it.each([[true, 17000], [false, 23500]])('mobile=%s: a gap of about 3 units keeps the small gold dot (r 2.2)', async (mobile, drop) => {
       const { ring, dist } = await run(mobile, drop)
       expect(dist - 6, 'room beside the latest dot').toBeGreaterThan(2.5)
       expect(dist - 6).toBeLessThan(3.5)

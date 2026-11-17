@@ -6,10 +6,11 @@
   --text:#d4d4d4;--dim:#888;--dim2:#aaa;
   --axis-x:#f4f4f4;--axis-x-muted:#d7d7d7;
   --axis-y:#b8b8b8;--axis-y-muted:#858585;
-  --chart-grid:rgba(255,255,255,.055);--chart-grid-strong:rgba(255,255,255,.13);
-  --chart-panel:rgba(255,255,255,.018);--chart-label-bg:rgba(255,255,255,.045);--chart-label-border:rgba(255,255,255,.08);
+  --chart-grid:rgba(255,255,255,.07);--chart-grid-strong:rgba(255,255,255,.18);
+  --chart-panel:rgba(255,255,255,.032);--chart-panel-stroke:rgba(255,255,255,.065);--chart-label-bg:rgba(255,255,255,.045);--chart-label-border:rgba(255,255,255,.08);
   --chart-label-shadow:0 5px 16px rgba(0,0,0,.22);
-  --chart-line-rail:rgba(4,7,5,.78);--chart-callout-bg:rgba(25,25,25,.96);--chart-callout-stroke:rgba(255,255,255,.12);
+  --chart-line-rail:rgba(12,13,12,.6);--chart-callout-bg:#323236;--chart-callout-stroke:rgba(255,255,255,.2);
+  --chart-anchor-ring:#161616;--chart-dot-ring:#1c1c1c;--chart-title:rgba(245,245,245,.92);--chart-axis-month:#a4a4a4;--chart-axis-distance:#8e8e8e;--chart-pos:#76d982;--chart-neg:#ff665d;--chart-tooltip-bg:#27272a;
   --chart-callout-value:#f3f3f3;--chart-callout-muted:#a6a6a6;--chart-callout-accent:#75cf70;
   --chart-callout-leader:rgba(255,255,255,.5);--chart-callout-anchor:#f1f1f1;
   --green:#4caf50;--green-hi:#66bb6a;--gold:#ffb300;--white:#f0f0f0;
@@ -107,10 +108,15 @@ button,select,input,summary{font:inherit}
 .marathon-chart{background:linear-gradient(180deg,rgba(255,255,255,.035),rgba(255,255,255,.012)),var(--bg2);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:12px;position:relative;box-shadow:inset 0 1px 0 rgba(255,255,255,.035)}
 .mc-svg{width:100%;overflow:visible}
 .mc-periods{display:flex;gap:4px;margin-left:auto}
+/* The card title was the quietest text of the card (12px grey) under 16px axis labels. */
+.marathon-chart .section-title{font-size:14px;color:var(--chart-title);letter-spacing:.08em}
+/* pills and the select share one row: the pills as tall as the pills of the charts below (24px), the select 26px */
+.marathon-chart .mc-period{font-size:11px;padding:5px 10px}
+.marathon-chart .mc-period.active{box-shadow:0 0 0 1px rgba(255,255,255,.05),0 0 10px rgba(229,57,53,.12)}
 .mc-period{background:var(--bg3);border:1px solid var(--border2);border-radius:6px;color:var(--dim2);font-size:10px;padding:3px 8px;cursor:pointer;font-family:inherit;font-weight:700;text-transform:uppercase;letter-spacing:.04em;line-height:1.2;transition:background .15s,border-color .15s,color .15s,box-shadow .15s}
 .mc-period:hover{border-color:#666;color:var(--white)}
 .mc-period.active{background:linear-gradient(180deg,#ef5350,#d73c39);border-color:#ff6f61;color:#fff;box-shadow:0 0 0 1px rgba(255,255,255,.05),0 0 16px rgba(229,57,53,.18)}
-.mc-plot-bg{fill:var(--chart-panel);stroke:rgba(255,255,255,.035);stroke-width:1}
+.mc-plot-bg{fill:var(--chart-panel);stroke:var(--chart-panel-stroke);stroke-width:1}
 .mc-plot-glow{pointer-events:none;opacity:0}
 .mc-area{display:none}
 .mc-grid{stroke:var(--chart-grid);stroke-width:1}
@@ -120,27 +126,40 @@ button,select,input,summary{font:inherit}
 .mc-y-tickmark{stroke:var(--chart-grid-strong);stroke-width:1;stroke-linecap:round;opacity:.72}
 .mc-yaxis-label{font-size:10.5px;fill:var(--axis-y);text-anchor:end;font-family:'Roboto Mono',monospace;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:0;opacity:.92}
 .mc-line-aura{stroke-linecap:round;stroke-linejoin:round;filter:none;opacity:1;pointer-events:none;vector-effect:non-scaling-stroke}
+/* Dark theme: the rail under the line was a near-black 7px band that cut the grid lines and read as an outline
+   sticker. It stays (it separates the line from the grid) but narrower and softer; the light theme keeps its own. */
+.mc-line-aura{stroke-width:5.6px}
+.light .mc-line-aura{stroke-width:7px}
 .mc-line-main{stroke-linecap:round;stroke-linejoin:round;vector-effect:non-scaling-stroke;opacity:0}
 .mc-line-segment{stroke-width:3.2;stroke-linecap:round;vector-effect:non-scaling-stroke;pointer-events:none}
-.mc-line-segment.positive{stroke:#76d982}
-.mc-line-segment.negative{stroke:#ff665d}
+/* One green and one red for the line and its dots (tokens --chart-pos / --chart-neg per theme). The dots used
+   their own darker pair, so a dot on the line was a different colour from the line it sits on. */
+.mc-line-segment.positive{stroke:var(--chart-pos)}
+.mc-line-segment.negative{stroke:var(--chart-neg)}
+.mc-svg .mc-pos{fill:var(--chart-pos)}
+.mc-svg .mc-neg{fill:var(--chart-neg)}
+/* the dashed gold ring of a mixed group keeps its own stroke */
+.mc-dot-grouped-ring.mc-ring-pos:not(.mc-dot-mixed-ring){stroke:var(--chart-pos)}
+.mc-dot-grouped-ring.mc-ring-neg:not(.mc-dot-mixed-ring){stroke:var(--chart-neg)}
 .mc-line-highlight{stroke:rgba(255,255,255,.16);stroke-linecap:round;stroke-linejoin:round;opacity:0;mix-blend-mode:screen;pointer-events:none}
-.mc-dot{stroke:#0b0b0b;stroke-width:2.2;cursor:pointer;transition:r .1s;filter:drop-shadow(0 1px 2px rgba(0,0,0,.72))}
+/* Dark theme: a near-black ring plus a drop shadow made every dot look like a hole punched in the chart. The ring
+   now takes the colour of the surface behind the line and the shadow is gone; the light theme keeps both. */
+.mc-dot{stroke:var(--chart-dot-ring);stroke-width:2.2;cursor:pointer;transition:r .1s}
 .mc-dot-grouped{stroke-width:2.4}
 .mc-dot-grouped-ring{fill:none;stroke-width:1;opacity:.22;pointer-events:none}
 .mc-dot-compacted{stroke-width:2.6}
 .mc-dot-mixed-ring{stroke:rgba(255,179,0,.72);stroke-dasharray:2.2 2.8;opacity:.5}
-.mc-dot-crowded{stroke-width:2.5;filter:drop-shadow(0 1px 2px rgba(0,0,0,.86))}
+.mc-dot-crowded{stroke-width:2.5}
 .mc-dot-cluster-hit{pointer-events:all;cursor:pointer}
 .mc-dot-cluster-parts{pointer-events:all}
-.mc-dot-cluster-part{stroke-width:1.45;filter:drop-shadow(0 1px 2px rgba(0,0,0,.78))}
+.mc-dot-cluster-part{stroke-width:1.45}
 .mc-dot-cluster-part-grouped{stroke-width:1.7}
 /* Session dots are visible by default since the dense-dots release; the
    grouped rings stay hover-only. (The old opacity:0 base rule silently hid
    every dot — the two-class selector outranked the one-class overrides.) */
 .mc-svg .mc-dot{opacity:1;transition:opacity .12s ease,r .1s}
 .mc-svg .mc-dot-grouped-ring{opacity:0;transition:opacity .12s ease,r .1s}
-.mc-svg .mc-dot-minor{opacity:.82}
+.mc-svg .mc-dot-minor{opacity:.94}
 .light .mc-svg .mc-dot-minor{opacity:.85}
 .mc-svg .mc-dot-hidden{opacity:0}
 /* the light-only minor-dot rule above is 3 classes and would otherwise win
@@ -148,21 +167,23 @@ button,select,input,summary{font:inherit}
 .light .mc-svg .mc-dot-hidden{opacity:0}
 .mc-svg g[data-start]:hover .mc-dot,.mc-svg g[data-start].is-hovered .mc-dot{opacity:1}
 .mc-svg g[data-start]:hover .mc-dot-grouped-ring,.mc-svg g[data-start].is-hovered .mc-dot-grouped-ring{opacity:.42}
-.mc-milestone-callout{pointer-events:none;filter:drop-shadow(0 3px 8px rgba(0,0,0,.42))}
+.mc-milestone-callout{pointer-events:none;filter:drop-shadow(0 4px 10px rgba(0,0,0,.55))}
+.light .mc-milestone-callout{filter:drop-shadow(0 3px 8px rgba(0,0,0,.42))}
 .mc-milestone-leader{stroke:var(--chart-callout-leader);stroke-width:1.3;vector-effect:non-scaling-stroke}
-.mc-milestone-anchor{fill:var(--chart-callout-anchor);stroke:var(--chart-callout-bg);stroke-width:2.2;vector-effect:non-scaling-stroke}
+.mc-milestone-anchor{fill:var(--chart-callout-anchor);stroke:var(--chart-anchor-ring);stroke-width:2.2;vector-effect:non-scaling-stroke}
 .mc-milestone-anchor.muted{fill:var(--chart-callout-accent)}
 .mc-milestone-plate{fill:var(--chart-callout-bg);stroke:var(--chart-callout-stroke);stroke-width:1;vector-effect:non-scaling-stroke}
 .mc-milestone-label{font-family:'Roboto Mono',monospace;font-size:9.3px;font-weight:700;font-variant-numeric:tabular-nums;pointer-events:none}
 .mc-milestone-primary{fill:var(--chart-callout-accent)}
 .mc-milestone-secondary{fill:var(--chart-callout-muted);font-size:7.8px;font-weight:600}
-.mc-peak-callout{pointer-events:none;filter:drop-shadow(0 2px 8px rgba(0,0,0,.5))}
+.mc-peak-callout{pointer-events:none;filter:drop-shadow(0 4px 10px rgba(0,0,0,.55))}
+.light .mc-peak-callout{filter:drop-shadow(0 2px 8px rgba(0,0,0,.5))}
 .mc-peak-callout-line{stroke:rgba(255,191,47,.88);stroke-width:1.35;stroke-linecap:round;vector-effect:non-scaling-stroke}
 .mc-peak-callout-bg{fill:var(--chart-callout-bg);stroke:rgba(255,191,47,.72);stroke-width:1.1;vector-effect:non-scaling-stroke}
 .mc-peak-callout-text{font-family:'Roboto Mono',monospace;font-size:9.2px;font-weight:700;letter-spacing:0;font-variant-numeric:tabular-nums}
 .mc-peak-callout-kicker{fill:var(--gold);text-transform:uppercase}
 .mc-peak-callout-value{fill:var(--chart-callout-value)}
-.mc-peak-anchor{fill:var(--chart-callout-accent);stroke:var(--chart-callout-bg);stroke-width:2.8;vector-effect:non-scaling-stroke}
+.mc-peak-anchor{fill:var(--chart-callout-accent);stroke:var(--chart-anchor-ring);stroke-width:2.8;vector-effect:non-scaling-stroke}
 .mc-peak-anchor-small{stroke-width:1.2}
 .mc-dot-baseline{fill:var(--axis-x-muted)}
 .mc-guide{stroke:var(--chart-grid-strong);stroke-width:1;stroke-dasharray:1 5;opacity:.48}
@@ -191,7 +212,7 @@ button,select,input,summary{font:inherit}
 .mc-x-current-line{stroke:var(--gold);stroke-width:1.4;stroke-linecap:round;opacity:.78}
 .mc-axis-event-layer.is-hidden{display:none}
 .mc-month-tickmark{stroke:var(--chart-grid-strong);stroke-width:1.1;stroke-linecap:round;opacity:.72;vector-effect:non-scaling-stroke}
-.mc-month-label-main{font-family:'Inter',system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:11px;font-weight:600;fill:var(--axis-y-muted);letter-spacing:.075em}
+.mc-month-label-main{font-family:'Inter',system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:11px;font-weight:600;fill:var(--chart-axis-month);letter-spacing:.075em}
 .mc-month-tick.latest .mc-month-label-main{fill:var(--axis-x)}
 
 /* ACTIVITY CHART */
@@ -446,6 +467,7 @@ button,select,input,summary{font:inherit}
   --chart-panel:rgba(255,255,255,.34);--chart-label-bg:rgba(255,255,255,.68);--chart-label-border:rgba(70,60,45,.14);
   --chart-label-shadow:0 5px 14px rgba(80,65,40,.08);
   --chart-line-rail:rgba(255,255,255,.9);--chart-callout-bg:rgba(255,255,255,.96);--chart-callout-stroke:rgba(70,60,45,.18);
+  --chart-anchor-ring:rgba(255,255,255,.96);--chart-panel-stroke:rgba(255,255,255,.035);--chart-title:var(--dim2);--chart-axis-month:var(--axis-y-muted);--chart-axis-distance:var(--axis-x-muted);--chart-pos:#2e8b3a;--chart-neg:#c8362e;--chart-tooltip-bg:#fffdf9;
   --chart-callout-value:#26231f;--chart-callout-muted:#686157;--chart-callout-accent:#2d7f35;
   --chart-callout-leader:rgba(70,60,45,.58);--chart-callout-anchor:#40392f;
   --white:#1a1815;--red-dim:#f7e8e6;
@@ -465,7 +487,9 @@ button,select,input,summary{font:inherit}
 .light .hero{background:linear-gradient(135deg,#f3e9e6 0%,#ece8e0 100%)}
 .light .mc-grid{stroke:var(--chart-grid)}
 .light .mc-zero{stroke:var(--chart-grid-strong)}
-.light .mc-dot{stroke:var(--bg2)}
+.light .mc-dot{stroke:var(--bg2);filter:drop-shadow(0 1px 2px rgba(0,0,0,.72))}
+.light .mc-dot-crowded{filter:drop-shadow(0 1px 2px rgba(0,0,0,.86))}
+.light .mc-dot-cluster-part{filter:drop-shadow(0 1px 2px rgba(0,0,0,.78))}
 .light ::-webkit-scrollbar-track{background:var(--bg3)}
 .light ::-webkit-scrollbar-thumb{background:#b8b4ac}
 .light .filter-num,.light .feed-search,.light .feed-select{background:var(--bg3);color:var(--white)}
@@ -515,16 +539,19 @@ button,select,input,summary{font:inherit}
 .light .pc-body blockquote{background:var(--bg-quote)!important;border-left-color:var(--border-quote)!important}
 .light .marathon-progress-track{background:var(--bg3)}
 
-/* ─── GLASSMORPHISM TOOLTIPS ───────────────────────────────────────────── */
+/* ─── MARATHON CHART TOOLTIP ───────────────────────────────────────────── */
+/* Was a glass panel: 72% fill with a blur. The built CSS kept only the -webkit- blur, so in Chromium there was no
+   blur at all and the chart's line, dots, plates and axis labels printed through the tooltip text (on phones the
+   tooltip is a sheet over the plot). Opaque now, like the other chart tooltips since 1.14.25. --dim is lifted
+   inside it so the small grey labels keep 4.5:1 on the new surface. */
 .mc-tooltip{
   position:absolute;
-  background:rgba(18,18,18,0.72);
-  backdrop-filter:blur(18px);
-  -webkit-backdrop-filter:blur(18px);
-  border:1px solid rgba(255,255,255,0.10);
+  background:var(--chart-tooltip-bg);
+  --dim:#a0a0a0;
+  border:1px solid rgba(255,255,255,0.16);
   border-radius:12px;padding:12px 14px;pointer-events:auto;
   z-index:20;min-width:220px;max-width:270px;
-  box-shadow:0 8px 32px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,0.06);
+  box-shadow:0 10px 30px rgba(0,0,0,.62),inset 0 1px 0 rgba(255,255,255,0.06);
   opacity:0;
   transform:translate3d(var(--mc-tooltip-x,0),6px,0);
   /* position snaps (a hover-follow tooltip must not chase the cursor);
@@ -533,7 +560,7 @@ button,select,input,summary{font:inherit}
   will-change:opacity,transform;
 }
 .mc-tooltip.is-visible{opacity:1;transform:translate3d(var(--mc-tooltip-x,0),0,0)}
-.light .mc-tooltip{background:rgba(255,255,255,0.80);border-color:rgba(0,0,0,0.08);box-shadow:0 8px 32px rgba(0,0,0,.12)}
+.light .mc-tooltip{--dim:#625d56;border-color:rgba(0,0,0,0.1);box-shadow:0 8px 32px rgba(0,0,0,.14)}
 .chart-tooltip{
   position:absolute;
   background:rgb(18,18,18);
@@ -778,13 +805,13 @@ html{scroll-behavior:smooth}
 
 /* ─── SESSION PILL on chart ─────────────────────────────────────────────── */
 .mc-pill{
-  background:rgba(18,18,18,0.82);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  background:#1f1f22;
   border:1px solid rgba(255,255,255,0.12);border-radius:20px;
   padding:3px 10px;font-size:11px;font-weight:700;font-family:'Roboto Mono',monospace;
   white-space:nowrap;
   box-shadow:0 2px 8px rgba(0,0,0,.4);
 }
-.light .mc-pill{background:rgba(255,255,255,0.92);border-color:rgba(0,0,0,0.12);box-shadow:0 2px 8px rgba(0,0,0,.1)}
+.light .mc-pill{background:#fff;border-color:rgba(0,0,0,0.12);box-shadow:0 2px 8px rgba(0,0,0,.1)}
 /* session sign: was inline #66bb6a / #ff5252 (2.4-3.2:1 on the light pill). Same specificity as .light .mc-pill and
    later in the file, so the tinted border keeps beating the neutral light one exactly as the inline one did. */
 .mc-pill.pos{color:var(--green-hi);border-color:rgba(102,187,106,.25)}
@@ -1355,14 +1382,24 @@ html{scroll-behavior:smooth}
 .light .mc-dot-minor{stroke:none}
 
 /* Marathon grouping and the distance lane share the existing chart palette. */
-.mc-chart-head{margin-bottom:6px;flex-wrap:wrap}
-.mc-chart-controls{display:flex;align-items:center;gap:12px;margin:8px 0 10px}
+.mc-chart-head{margin-bottom:8px;flex-wrap:wrap;row-gap:8px}
+/* The step select sits in the title row, left of the period buttons (it had a row of its own: 54px of the card). */
+.mc-chart-head .mc-group-control{margin-left:auto}
+.mc-chart-head .mc-periods{margin-left:0}
 .mc-group-control{display:inline-flex;align-items:center;gap:8px;color:var(--dim2);font-size:11px;font-weight:600}
-.mc-group-control select{min-height:36px;padding:6px 10px;border:1px solid var(--border2);border-radius:8px;background:var(--bg3);color:var(--text);font:inherit;cursor:pointer}
+.mc-group-control select{min-height:26px;padding:2px 8px;border:1px solid var(--border2);border-radius:8px;background:var(--bg3);color:var(--text);font:inherit;cursor:pointer}
+@media(max-width:720px){
+  /* phones: title and period buttons on the first row, the select on its own row with a 36px touch target */
+  .mc-chart-head .mc-group-control{order:3;flex-basis:100%;margin-left:0}
+  .mc-chart-head .mc-periods{margin-left:auto}
+  .mc-group-control select{min-height:36px;padding:6px 10px}
+}
 .mc-group-control select:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
 .mc-view-hint{color:var(--dim2);font-size:11px;margin-bottom:8px}
 .mc-distance-axis,.mc-distance-caption,.mc-distance-label,.mc-volume-label{pointer-events:none}
 .mc-distance-label,.mc-volume-label{font-family:'Roboto Mono',monospace;font-size:9px;font-weight:600;fill:var(--axis-x-muted);font-variant-numeric:tabular-nums}
+/* The distance row is the second axis: it was brighter (12:1) than the months above it (4.7:1). */
+.mc-distance-label{fill:var(--chart-axis-distance);font-weight:500}
 .mc-distance-caption{font-family:inherit;font-size:9px;fill:var(--dim2)}
 .mc-distance-tick{stroke:var(--dim);stroke-width:1}
 .mc-distance-summary{display:flex;gap:6px 20px;flex-wrap:wrap;font-size:11px;color:var(--dim2);padding-top:4px}

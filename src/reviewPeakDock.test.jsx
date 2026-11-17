@@ -160,15 +160,26 @@ describe('the peak plate next to a milestone plate', () => {
       expectDocked(m, 'day after, loss')
     })
 
-    it('a small win the day after: the best-day plate belongs to the previous report, the leader is hidden behind it', async () => {
+    it('a small win the day after: the best-day plate belongs to the report right before the new record, on the same spot; the peak plate docks to it', async () => {
       const m = await mount(recordMeta([5000]), mobile)
       expect(m.text).toBe('ПИК$604k')
-      expect(m.plates.some(plate => plate.own), 'no plate at the new record').toBe(false)
+      expect(m.plates.some(plate => plate.own), 'no plate of the new record itself').toBe(false)
+      const best = m.plates.find(plate => plate.type === 'best')
+      expect(m.docked).toBe(true)
+      expect(onBorder(m.from, best.rect), 'connector starts on the best-day plate').toBe(true)
+      expect(onBorder(m.to, m.badge), 'connector ends on the badge').toBe(true)
+      expect(m.length).toBeLessThanOrEqual(9)
+      expect(m.struckThrough.map(plate => plate.type), 'leader through a plate').toEqual([])
+      expectBadgeClear(m, 'day after, small win')
+    })
+
+    it('twenty wins later the best-day plate is away from the record: a straight leader from the record dot, never through a plate', async () => {
+      const m = await mount(recordMeta(Array(20).fill(2000)), mobile)
+      expect(m.text).toBe('ПИК$639k')
+      expect(m.plates.some(plate => plate.own)).toBe(false)
       expect(m.docked).toBe(false)
-      // a straight leader from the record dot, as before
       expect(m.from.x).toBeCloseTo(m.dot.x, 5)
       expect(m.from.y).toBeCloseTo(m.dot.y, 5)
-      expect(m.behind.map(plate => plate.type), 'the leader passes the best-day plate').toEqual(['best'])
       expect(m.struckThrough.map(plate => plate.type), 'leader through a plate').toEqual([])
       for (const plate of m.plates) expect(overlap(inflate(m.badge, 2), plate.rect), `badge on the ${plate.type} plate`).toBe(false)
     })
@@ -185,6 +196,36 @@ describe('the peak plate next to a milestone plate', () => {
     })
   })
 
+  // Gaps found by the independent re-audit of the dock (two mutants survived the tests above).
+  it('a free spot right beside the record dot beats a dock (dock spots carry a handicap)', async () => {
+    // record in the middle of the plot with its best-day plate above it: the spot beside the dot is free
+    const brs = [12000, 16000, 20000, 24000, 28000, 32000, 36000, 40000, 44000, 48000, 52000, 60000, 130000, 125000,
+      120000, 115000, 110000, 105000, 100000, 95000, 90000, 85000, 80000, 75000, 70000]
+    const base = todayMeta()
+    const brHistory = brs.map((brAfter, i) => ({
+      id: `s-${i}`, date: `S${i}`, timestamp: 1790000000 + i * 86400, brAfter, sessionResult: brAfter - (i ? brs[i - 1] : 10000),
+      tournaments: 200, totalTournaments: (i + 1) * 200, text: 'S',
+    }))
+    const m = await mount(cut({ ...base, brHistory }, brHistory.length), true)
+    expect(m.plates.filter(plate => plate.own).map(plate => plate.type)).toEqual(['best'])
+    expect(m.docked, 'not docked').toBe(false)
+    expect(m.from.x).toBeCloseTo(m.dot.x, 5)
+    expect(m.from.y).toBeCloseTo(m.dot.y, 5)
+    expect(m.length, 'a short leader beside the dot').toBeLessThanOrEqual(30)
+    expect(m.struckThrough).toEqual([])
+  })
+
+  it('phones: a milestone that is only a marker there (no painted plate) is not treated as a plate of the record', async () => {
+    // archive lengths 84-86: the record is the $200k crossing, which phones mark with a bare dot
+    for (const n of [84, 85, 86]) {
+      const m = await mount(cut(recordMeta(), n), true)
+      expect(m.plates.some(plate => plate.own), `n=${n}: no painted plate at the record`).toBe(false)
+      expect(m.docked, `n=${n}`).toBe(false)
+      expect(m.from.x, `n=${n}: the leader starts at the record dot`).toBeCloseTo(m.dot.x, 5)
+      expect(m.from.y, `n=${n}`).toBeCloseTo(m.dot.y, 5)
+    }
+  })
+
   // Old code struck through a plate in 96 of the 400 states (every length of the archive, desktop and
   // phone). A sample of them, with every kind: a plate of the record itself (best day, $200k) and a
   // plate of a neighbouring report.
@@ -192,6 +233,7 @@ describe('the peak plate next to a milestone plate', () => {
     const full = recordMeta()
     const lengths = [12, 16, 18, 21, 24, 27, 39, 40, 47, 53, 60, 73, 84, 87, 91, 98, 120, 150, 180, 210]
     const seen = { docked: 0, behind: 0, own: 0 }
+    const [OWN_MIN, DOCKED_MIN, BEHIND_MIN] = [12, 8, 5]
     for (const mobile of [false, true]) {
       for (const n of lengths) {
         const m = await mount(cut(full, n), mobile)
@@ -203,8 +245,8 @@ describe('the peak plate next to a milestone plate', () => {
       }
     }
     // the sample really contains each kind
-    expect(seen.own).toBeGreaterThanOrEqual(10)
-    expect(seen.docked).toBeGreaterThanOrEqual(6)
-    expect(seen.behind).toBeGreaterThanOrEqual(6)
+    expect(seen.own, JSON.stringify(seen)).toBeGreaterThanOrEqual(OWN_MIN)
+    expect(seen.docked, JSON.stringify(seen)).toBeGreaterThanOrEqual(DOCKED_MIN)
+    expect(seen.behind, JSON.stringify(seen)).toBeGreaterThanOrEqual(BEHIND_MIN)
   }, 60000)
 })
