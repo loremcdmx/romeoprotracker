@@ -145,6 +145,31 @@ describe('marathon chart polish', () => {
     })
   })
 
+  // Two rules of the peak plate that only the whole-archive probe covered (independent re-audit, mutants m6 and m8).
+  it('a record reached in short steps (the usual shape of a new high): the peak plate stands right beside the dot', async () => {
+    // archive lengths 193-195: the line climbs to the record through points 3-5 units apart, so its last steps
+    // run within 2 units of any leader beside the dot; before, no spot there was accepted (leader 61-101 units)
+    for (const n of [193, 194, 195]) {
+      const svg = await mount(cut(recordMeta(), n))
+      const callout = svg.querySelector('.mc-peak-callout')
+      const line = callout.querySelector('.mc-peak-callout-line')
+      // the record's own marker: its ring, or the latest dot when the record is the latest report
+      const dot = callout.querySelector('.mc-peak-anchor') || svg.querySelector('circle.mc-dot-last')
+      expect(num(line, 'x1'), `n=${n}: the leader starts at the record dot`).toBeCloseTo(num(dot, 'cx'), 5)
+      expect(num(line, 'y1')).toBeCloseTo(num(dot, 'cy'), 5)
+      expect(Math.hypot(num(line, 'x2') - num(line, 'x1'), num(line, 'y2') - num(line, 'y1')), `n=${n}: leader length`).toBeLessThanOrEqual(30)
+    }
+  })
+
+  it('the peak plate does not sit on the line while a spot off the line exists', async () => {
+    // archive lengths where the plate used to lie on the line (desktop)
+    for (const n of [25, 26, 41, 42, 67, 70]) {
+      const svg = await mount(cut(recordMeta(), n))
+      const badge = rectOf(svg.querySelector('.mc-peak-callout-bg'))
+      expect(segmentsOf(svg).some(seg => segHitsRect(seg.a, seg.b, inflate(badge, 1.5))), `n=${n}: the peak plate on the line`).toBe(false)
+    }
+  })
+
   it('the step select sits in the title row, between the title and the period buttons', async () => {
     await mount(recordMeta())
     const head = document.querySelector('.marathon-chart .mc-chart-head')

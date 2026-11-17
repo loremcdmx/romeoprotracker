@@ -147,6 +147,8 @@ export function computeTouchSheetLayout({
 // `gapX` away, so it never covers the hovered dot: on the right, or on the left for points in the right part of
 // the card or when the right side has no room. Vertically its bottom edge sits `gapY` above the point; near the
 // top of the card it is pushed down to stay inside, which is fine because it is beside the point, not over it.
+// minViewportTop: bottom of whatever is pinned over the top of the viewport (the page header). When the card is
+// scrolled partly under it, the tooltip stays below it rather than opening under the header.
 // Returns the top-left corner relative to the card's padding box.
 export function computePointTooltipLayout({
   cardRect,
@@ -160,6 +162,7 @@ export function computePointTooltipLayout({
   gapX = 16,
   gapY = 14,
   edge = 6,
+  minViewportTop = null,
 }) {
   if (!cardRect || !svgRect || !point || !(svgRect.width > 0) || !(cardRect.width > 0) || !(viewBoxWidth > 0)) return null
   const scale = svgRect.width / viewBoxWidth
@@ -174,7 +177,10 @@ export function computePointTooltipLayout({
     ? (fitsLeft || !fitsRight ? 'left' : 'right')
     : (fitsRight || !fitsLeft ? 'right' : 'left')
   const left = clamp(side === 'right' ? anchorX + gapX : anchorX - gapX - tipWidth, edge, Math.max(edge, boxWidth - tipWidth - edge))
-  const top = clamp(anchorY - gapY - tipHeight, edge, Math.max(edge, boxHeight - tipHeight - edge))
+  const minTop = Number.isFinite(minViewportTop)
+    ? Math.max(edge, (minViewportTop - cardRect.top) / zoom - border + 4)
+    : edge
+  const top = clamp(anchorY - gapY - tipHeight, minTop, Math.max(minTop, boxHeight - tipHeight - edge))
   return { left, top, side }
 }
 

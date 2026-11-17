@@ -897,6 +897,15 @@ const MILESTONE_PLATE_LAYOUTS = {
 // its point, but for a point in the top corner the plate is clamped beside the dot and used to cover the final
 // climb of the line (the best-day plate after the record of 16 Nov 2026). It then slides sideways to the nearest
 // spot where the line, with the room its rail takes, stays outside the plate.
+// Bottom edge of what is pinned over the top of the viewport (the page header and the progress block), 0 if none.
+function pinnedHeaderBottom() {
+  if (typeof document === 'undefined') return 0
+  return ['.topbar', '.marathon-progress'].reduce((bottom, selector) => {
+    const rect = document.querySelector(selector)?.getBoundingClientRect()
+    return rect && rect.height > 0 && rect.top <= 64 ? Math.max(bottom, rect.bottom) : bottom
+  }, 0)
+}
+
 function milestonePlateRect(type, point, isMobile, frame, line = null) {
   const layout = MILESTONE_PLATE_LAYOUTS[type]?.[isMobile ? 'mobile' : 'desktop']
   if (!layout || !point) return null
@@ -1070,10 +1079,7 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
       if (!el) return
       // The pinned header and progress block cover the top of the screen: the sheet must open below them, or its
       // first rows (the date, the result pill, the bankroll) are hidden.
-      const pinnedBottom = ['.topbar', '.marathon-progress'].reduce((bottom, selector) => {
-        const rect = document.querySelector(selector)?.getBoundingClientRect()
-        return rect && rect.height > 0 && rect.top <= 64 ? Math.max(bottom, rect.bottom) : bottom
-      }, 0)
+      const pinnedBottom = pinnedHeaderBottom()
       // The nearest point is picked by x, so it can be far above or below the finger: the sheet keeps clear of
       // both when it can (see computeTouchSheetLayout).
       const svg = chartRef.current?.querySelector('svg.mc-svg')
@@ -1118,6 +1124,8 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
         tipHeight: el.offsetHeight,
         border: card.clientLeft || 0,
         zoom,
+        // a card scrolled partly under the pinned header (also a phone held sideways, which gets this layout)
+        minViewportTop: pinnedHeaderBottom() || null,
       }))
     }
     place()

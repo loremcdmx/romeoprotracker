@@ -110,7 +110,8 @@ button,select,input,summary{font:inherit}
 .mc-periods{display:flex;gap:4px;margin-left:auto}
 /* The card title was the quietest text of the card (12px grey) under 16px axis labels. */
 .marathon-chart .section-title{font-size:14px;color:var(--chart-title);letter-spacing:.08em}
-.marathon-chart .mc-period{font-size:11px;padding:4px 9px}
+/* pills and the select share one row: the pills as tall as the pills of the charts below (24px), the select 26px */
+.marathon-chart .mc-period{font-size:11px;padding:5px 10px}
 .marathon-chart .mc-period.active{box-shadow:0 0 0 1px rgba(255,255,255,.05),0 0 10px rgba(229,57,53,.12)}
 .mc-period{background:var(--bg3);border:1px solid var(--border2);border-radius:6px;color:var(--dim2);font-size:10px;padding:3px 8px;cursor:pointer;font-family:inherit;font-weight:700;text-transform:uppercase;letter-spacing:.04em;line-height:1.2;transition:background .15s,border-color .15s,color .15s,box-shadow .15s}
 .mc-period:hover{border-color:#666;color:var(--white)}
@@ -1386,7 +1387,7 @@ html{scroll-behavior:smooth}
 .mc-chart-head .mc-group-control{margin-left:auto}
 .mc-chart-head .mc-periods{margin-left:0}
 .mc-group-control{display:inline-flex;align-items:center;gap:8px;color:var(--dim2);font-size:11px;font-weight:600}
-.mc-group-control select{min-height:30px;padding:3px 8px;border:1px solid var(--border2);border-radius:8px;background:var(--bg3);color:var(--text);font:inherit;cursor:pointer}
+.mc-group-control select{min-height:26px;padding:2px 8px;border:1px solid var(--border2);border-radius:8px;background:var(--bg3);color:var(--text);font:inherit;cursor:pointer}
 @media(max-width:720px){
   /* phones: title and period buttons on the first row, the select on its own row with a 36px touch target */
   .mc-chart-head .mc-group-control{order:3;flex-basis:100%;margin-left:0}

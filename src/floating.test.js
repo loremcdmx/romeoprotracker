@@ -418,6 +418,20 @@ describe('computePointTooltipLayout', () => {
     expect(layout.side).toBe('left')
   })
 
+  it('a card scrolled partly under the pinned header: the tooltip stays below the header', () => {
+    // the card's top is 120 px above the viewport top, the pinned header ends at 144
+    const scrolled = { ...base, cardRect: { ...card, top: -120 }, svgRect: { ...svg, top: -60 } }
+    const point = { x: 300, y: 150 }
+    const plain = computePointTooltipLayout({ ...scrolled, point })
+    expect(plain.top + -120, 'without the inset it opens under the header').toBeLessThan(144)
+    const layout = computePointTooltipLayout({ ...scrolled, point, minViewportTop: 144 })
+    // card coordinates -> viewport: card top + border + top
+    expect(-120 + 1 + layout.top).toBeGreaterThanOrEqual(144 + 4)
+    expect(layout.left).toBe(plain.left)
+    // a card that is not under the header is not affected
+    expect(computePointTooltipLayout({ ...base, point, minViewportTop: 60 })).toEqual(computePointTooltipLayout({ ...base, point }))
+  })
+
   it('takes the side that has room when the preferred side has none', () => {
     // a narrow card: a point at 59% of it prefers the right side (the rule is "left beyond 60%"), but the right
     // side has 250 px less than the tooltip needs
