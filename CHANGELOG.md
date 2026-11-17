@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 1.14.19 — 2026-11-16
+
+- Tests no longer depend on numbers that the scraper keeps changing (`npm run check` had been red on main since 31 October because one test pinned a count from the live data). Exact figures are checked on a frozen snapshot; the live data is checked for invariants only.
+- CI now also runs once a day on main, so a data-driven failure is noticed within a day instead of on the next code change.
+- New tests cover how an interrupted in-page jump settles (cancel on touch, pointer or key input, detached target, snap cap, timeout, listener cleanup).
+
 ## 1.14.18 — 2026-10-22
 
 - Light theme: the placeholder text of the feed search and the add-author field is readable (4.5:1+ instead of 3.4:1).

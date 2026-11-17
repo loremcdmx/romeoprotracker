@@ -2,6 +2,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { groupMarathonMonths, normalizeMarathonDistance } from './marathonMonths.js'
+import { REAL_HISTORY } from './realHistoryFixture.js'
 import { dedupBrHistory } from './utils.js'
 
 const timestamp = date => Date.parse(date) / 1000
@@ -283,28 +284,52 @@ describe('groupMarathonMonths', () => {
   })
 })
 
-describe('the real archive', () => {
-  // Same rows the chart gets: deduplicated, chronological, mapped like buildMarathonPoints.
-  const REAL_META = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../data/meta.json'), 'utf8'))
-  const realPoints = () => dedupBrHistory(REAL_META.brHistory).map((h, i, arr) => ({
-    id: h.id, br: h.brAfter, brPrev: i === 0 ? REAL_META.startBankroll : arr[i - 1].brAfter,
-    timestamp: h.timestamp, tournaments: h.tournaments ?? null, totalTournaments: h.totalTournaments ?? null,
-  }))
+// Same rows the chart gets: deduplicated, chronological, mapped like buildMarathonPoints.
+const toPoints = (brHistory, startBankroll) => dedupBrHistory(brHistory).map((h, i, arr) => ({
+  id: h.id, br: h.brAfter, brPrev: i === 0 ? startBankroll : arr[i - 1].brAfter,
+  timestamp: h.timestamp, tournaments: h.tournaments ?? null, totalTournaments: h.totalTournaments ?? null,
+}))
 
+// [label, points, what a failure means]. The frozen archive (2026-10-18) pins exact numbers and can only break
+// when the code breaks; the live archive is data the scraper keeps changing, so a failure there is a DATA alarm.
+const FROZEN_POINTS = () => toPoints(REAL_HISTORY.map(([timestamp, brAfter, sessionResult, tournaments, totalTournaments], i) =>
+  ({ id: `f${i}`, timestamp, brAfter, sessionResult, tournaments, totalTournaments })), 10000)
+const LIVE_POINTS = () => {
+  const meta = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../data/meta.json'), 'utf8'))
+  return toPoints(meta.brHistory, meta.startBankroll)
+}
+
+describe.each([
+  ['the frozen real archive', FROZEN_POINTS, 'code regression'],
+  ['the live data/meta.json archive', LIVE_POINTS, 'data/meta.json looks suspicious (a mis-read or decreasing total in the scraped data), check it before blaming the code'],
+])('%s', (_label, realPoints, hint) => {
   it('keeps every row distance equal to the plain cumulative delta (no real total is distrusted)', () => {
     const points = realPoints()
     const normalized = normalizeMarathonDistance(points)
-    expect(normalized.length).toBeGreaterThan(100)
+    expect(normalized.length, hint).toBeGreaterThan(100)
+    const bad = []
     normalized.forEach((row, i) => {
-      expect(row.cumulativeMTT).toBe(points[i].totalTournaments)
-      expect(row.distanceMTT).toBe(points[i].totalTournaments - (i === 0 ? 0 : points[i - 1].totalTournaments))
+      if (row.cumulativeMTT !== points[i].totalTournaments
+        || row.distanceMTT !== points[i].totalTournaments - (i === 0 ? 0 : points[i - 1].totalTournaments)) bad.push(points[i].id)
     })
+    expect(bad, hint).toEqual([])
   })
 
   it('has monthly distances that add up to the official end total', () => {
-    const months = groupMarathonMonths(normalizeMarathonDistance(realPoints()))
-    expect(months.every(month => month.tournaments != null)).toBe(true)
     const points = realPoints()
-    expect(months.reduce((sum, month) => sum + month.tournaments, 0)).toBe(points.at(-1).totalTournaments)
+    const months = groupMarathonMonths(normalizeMarathonDistance(points))
+    expect(months.every(month => month.tournaments != null), hint).toBe(true)
+    expect(months.reduce((sum, month) => sum + month.tournaments, 0), hint).toBe(points.at(-1).totalTournaments)
+  })
+})
+
+describe('the frozen real archive: exact numbers', () => {
+  it('ends on the pinned total and starts in March 2026', () => {
+    const points = FROZEN_POINTS()
+    expect(points).toHaveLength(189)
+    expect(points.at(-1).totalTournaments).toBe(40509)
+    const months = groupMarathonMonths(normalizeMarathonDistance(points))
+    expect(months[0].key).toBe('2026-03')
+    expect(months.at(-1).totalTournaments).toBe(40509)
   })
 })

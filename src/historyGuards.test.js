@@ -6,6 +6,11 @@ import { REAL_HISTORY } from './realHistoryFixture.js'
 import { dedupBrHistory } from './utils.js'
 
 const REAL_META = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../data/meta.json'), 'utf8'))
+// The frozen 2026-10-18 archive (189 reports): exact numbers are pinned on this, never on data/meta.json,
+// which the scraper keeps growing. The live archive only gets invariants that hold for ANY valid archive.
+const FROZEN = REAL_HISTORY.map(([timestamp, brAfter, sessionResult, tournaments, totalTournaments], i) =>
+  ({ id: `f${i}`, timestamp, brAfter, sessionResult, tournaments, totalTournaments }))
+const flatRowsOf = rows => rows.filter((row, i) => i > 0 && row.totalTournaments === rows[i - 1].totalTournaments)
 const rowsWithTotals = totals => totals.map((totalTournaments, i) => ({ id: `r${i}`, timestamp: 1000 + i, brAfter: 10000 + i, totalTournaments }))
 // '1508/60 1887/379': total/reported count per report; 'x' = no reported count
 const rowsFrom = spec => spec.split(' ').map((item, i) => {
@@ -57,15 +62,30 @@ describe('sanitizeBrHistory', () => {
     expect(meta.brHistory).toHaveLength(2)
   })
 
-  it('keeps every row of the real archive, including its flat transitions', () => {
+  it('keeps every row of the frozen archive, including its 4 flat transitions (exact numbers)', () => {
+    expect(FROZEN).toHaveLength(189)
+    expect(sanitizeBrHistory(FROZEN)).toBe(FROZEN)
+    expect(flatRowsOf(FROZEN)).toHaveLength(4)
+    for (const history of [FROZEN, dedupBrHistory(FROZEN)]) {
+      const sorted = history.slice().sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0))
+      // no frozen total is distrusted, flat (equal) totals stay as they are
+      expect(trustedCumulativeTotals(sorted)).toEqual(sorted.map(row => row.totalTournaments))
+    }
+  })
+
+  // Live data: invariants that hold for ANY valid archive, whatever the scraper has added since.
+  it('keeps every row of the live archive: same array back, flat transitions stay, trusted totals equal raw totals', () => {
     const raw = REAL_META.brHistory
     expect(sanitizeBrHistory(raw)).toBe(raw)
-    const flat = raw.filter((row, i) => i > 0 && row.totalTournaments === raw[i - 1].totalTournaments)
-    expect(flat).toHaveLength(4)
+    const flat = flatRowsOf(raw)
+    // flat transitions are a normal thing in the archive; whatever their number, none is dropped by the sanitizer
+    expect(sanitizeBrHistory(raw).filter(row => flat.includes(row))).toHaveLength(flat.length)
     for (const history of [raw, dedupBrHistory(raw)]) {
       const sorted = history.slice().sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0))
-      // no real total is distrusted, flat (equal) totals stay as they are
-      expect(trustedCumulativeTotals(sorted)).toEqual(sorted.map(row => row.totalTournaments))
+      const trusted = trustedCumulativeTotals(sorted)
+      const distrusted = sorted.filter((row, i) => trusted[i] !== row.totalTournaments).map(row => row.id)
+      // DATA ALARM, not a code bug: the guard distrusts a total the scraper wrote into data/meta.json
+      expect(distrusted, `data/meta.json looks suspicious: totals of reports ${distrusted.join(', ')} are distrusted (a mis-read counter?)`).toEqual([])
     }
   })
 })
@@ -158,8 +178,15 @@ describe('sanitizeHistoryRow / non-finite numbers inside a report', () => {
     expect(raw.every(row => sanitizeHistoryRow(row) === row)).toBe(true)
     expect(sanitizeBrHistory(raw)).toBe(raw)
     expect(sanitizeMeta(REAL_META)).toBe(REAL_META)
-    // the one real report without a count keeps its null
-    expect(raw.filter(row => row.tournaments === null)).toHaveLength(1)
+    // reports without a count (null) keep their null, whatever their number
+    const withoutCount = raw.filter(row => row.tournaments === null)
+    expect(sanitizeBrHistory(raw).filter(row => row.tournaments === null)).toHaveLength(withoutCount.length)
+  })
+
+  it('the frozen archive: its one report without a count keeps its null (exact number)', () => {
+    expect(FROZEN.filter(row => row.tournaments === null)).toHaveLength(1)
+    expect(sanitizeBrHistory(FROZEN).filter(row => row.tournaments === null)).toHaveLength(1)
+    expect(FROZEN.every(row => sanitizeHistoryRow(row) === row)).toBe(true)
   })
 })
 
@@ -215,9 +242,16 @@ describe('trustedCumulativeTotals: equal runs are told apart by the reported cou
     expect(trustedCumulativeTotals(rows)).toEqual([1508, null, 1626, 2613])
   })
 
-  it('keeps every total of the real archive, with the real counts and its lagging reports', () => {
-    const real = REAL_META.brHistory.slice().sort((a, b) => a.timestamp - b.timestamp)
+  it('keeps every total of the frozen archive, with the real counts and its lagging reports', () => {
+    const real = FROZEN.slice().sort((a, b) => a.timestamp - b.timestamp)
     expect(trustedCumulativeTotals(real)).toEqual(real.map(row => row.totalTournaments))
+  })
+
+  it('keeps every total of the live archive (a failure here means the DATA is suspicious, not the guard)', () => {
+    const real = REAL_META.brHistory.slice().sort((a, b) => a.timestamp - b.timestamp)
+    const trusted = trustedCumulativeTotals(real)
+    const distrusted = real.filter((row, i) => trusted[i] !== row.totalTournaments).map(row => row.id)
+    expect(distrusted, `data/meta.json looks suspicious: totals of reports ${distrusted.join(', ')} are distrusted`).toEqual([])
   })
 
   // One mis-read total in the real archive (its own totals and counts, lagging
