@@ -161,6 +161,7 @@ function rectsOverlap(a, b, gap = 0) {
 
 describe('App', () => {
   beforeEach(() => {
+    vi.useRealTimers() // a test that pinned Date must not leak into the next one
     localStorage.clear()
     fetchPublicData.mockReset()
     fetchPublicData.mockResolvedValue(makeMockData())
@@ -851,6 +852,9 @@ describe('App', () => {
         url: `https://forum.gipsyteam.ru/long-activity-${i}`,
       }))
       fetchPublicData.mockResolvedValue(makeMockData({ posts }))
+      // activity windows now end on today (Warsaw calendar), so "today" is pinned to the last post's day
+      vi.useFakeTimers({ toFake: ['Date'] })
+      vi.setSystemTime(posts.at(-1).timestamp * 1000)
       render(<App />)
       const heading = await screen.findByText(translate('ru', 'chart_activity'))
       const chart = heading.closest('.chart-wrap')
@@ -889,9 +893,11 @@ describe('App', () => {
       for (const [period, count] of [['period_week', 7], ['period_month', 30]]) {
         fireEvent.click(within(chart).getByRole('button', { name: translate('ru', period) }))
         const periodRects = [...chart.querySelectorAll('.activity-bar-rect')]
-        expect(periodRects).toHaveLength(Math.min(days, count))
+        // calendar windows: always 7 / 30 days, quiet days included as empty bars
+        expect(periodRects).toHaveLength(count)
         expect(periodRects.every(rect => Number(rect.getAttribute('width')) > 0)).toBe(true)
       }
+      vi.useRealTimers()
     },
   )
 
@@ -2207,6 +2213,9 @@ describe('App', () => {
 
     it('toggles activity-day selection from the keyboard on desktop bars', async () => {
       fetchPublicData.mockResolvedValue(makeMockData())
+      // "today" next to the fixture posts (2024-04-07) so the month window holds a day with posts
+      vi.useFakeTimers({ toFake: ['Date'] })
+      vi.setSystemTime(1712500000 * 1000 + 3600_000)
       render(<App />)
       await screen.findByTestId('pace-widget')
       const bar = document.querySelector('.activity-bar')

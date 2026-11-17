@@ -16,7 +16,7 @@ import { safeEmbedUrls } from '../scripts/lib/embed-url.mjs'
 import AnimatedValue, { useTweenValue } from './components/AnimatedValue.jsx'
 import { buildPaceTrend, computePaceTrendStats } from './paceTrend.js'
 import { placePaceValueLabels } from './paceLabels.js'
-import { buildGlobalAuthorCounts, pickTopAuthors } from './activityAuthors.js'
+import { buildGlobalAuthorCounts, pickTopAuthors, buildActivityWindow, dayKeyTimestamp, topPostPreview } from './activityAuthors.js'
 import { addIgnoredAuthor, isIgnoredAuthor, removeIgnoredAuthor } from './ignoredAuthors.js'
 import { normalizeMarathonDistance } from './marathonMonths.js'
 import { hasUsableBankroll, sanitizeMeta, trustedCumulativeTotals } from './historyGuards.js'
@@ -2353,7 +2353,7 @@ function DayEventsList({ events, compact, onPostClick, setLightbox, lang = _lang
     onPostClick?.(ev.post)
   }
   const thumb = (src) => (
-    <img src={src} alt="" className="day-event-thumb" loading="lazy"
+    <img src={src} alt="" className="day-event-thumb" loading="lazy" decoding="async"
       role="button" tabIndex={0} aria-label={_t('lightbox_label')}
       onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); setLightbox?.(src) } }}
       onClick={e => { e.stopPropagation(); setLightbox?.(src) }}/>
@@ -2477,23 +2477,26 @@ function ActivityChart({ posts, favorites, ignored, onFav, onIgnore, onUnignore,
   const PERIOD_LABELS = { week: t('period_week'), month: t('period_month'), all: t('period_all_marathon') }
 
   const globalAuthorCounts = useMemo(() => buildGlobalAuthorCounts(posts), [posts])
-  const allDays = useMemo(() => {
-    const byDate = {}
+  const byDate = useMemo(() => {
+    const out = {}
     posts.forEach(p => {
       if (!p.timestamp) return
       const k = warsawDayKey(p.timestamp)
       if (!k) return
-      if (!byDate[k]) byDate[k] = { count:0, posts:[] }
-      byDate[k].count++
-      byDate[k].posts.push(p)
+      if (!out[k]) out[k] = { count:0, posts:[] }
+      out[k].count++
+      out[k].posts.push(p)
     })
-    return Object.entries(byDate).sort((a,b)=>a[0]>b[0]?1:-1)
+    return out
   }, [posts])
 
-  const data = useMemo(() => {
-    const days = PERIOD_DAYS[period]
-    return days ? allDays.slice(-days) : allDays
-  }, [allDays, period])
+  // Warsaw calendar days ending today: a day without posts stays on the axis as
+  // an empty bar instead of vanishing (the window used to be "last N days with posts").
+  const data = useMemo(
+    () => buildActivityWindow(byDate, period, Date.now() / 1000),
+    [byDate, period])
+  const showYear = data.length > 0 && data[0][0].slice(0, 4) !== data.at(-1)[0].slice(0, 4)
+  const fmtDay = (key) => fmtDateShortLang(dayKeyTimestamp(key), lang, showYear)
 
   // Precompute tooltip payload per date — avoids re-running makeDayEvents / pickTopAuthors
   // on every hover frame. Building this once per `data/posts` change is much cheaper
@@ -2557,6 +2560,7 @@ function ActivityChart({ posts, favorites, ignored, onFav, onIgnore, onUnignore,
   const svgRef = useRef(null)
   if (!data.length) return null
   const max = Math.max(...data.map(d=>d[1].count), 1)
+  const noPostsLabel = t('activity_no_posts')
 
   // ── MOBILE: горизонтальный скролл, последние 7 дней видны сразу ─────────────
   if (isMobile) {
@@ -2588,8 +2592,19 @@ function ActivityChart({ posts, favorites, ignored, onFav, onIgnore, onUnignore,
         <div ref={scrollRef} style={{overflowX:'auto',WebkitOverflowScrolling:'touch',paddingBottom:4}}>
           <div style={{display:'flex',gap:6,alignItems:'flex-end',minWidth:'max-content',padding:'4px 8px 0'}}>
             {data.map(([date, {count, posts:dp}]) => {
-              const bh = Math.max(6, Math.round((count/max)*BAR_MAX_H))
+              const isEmpty = count === 0
+              const bh = isEmpty ? 0 : Math.max(6, Math.round((count/max)*BAR_MAX_H))
               const isSelected = selected?.date === date
+              if (isEmpty) {
+                return (
+                  <div key={date} className="activity-mobile-gap" style={{display:'flex',flexDirection:'column',alignItems:'center',gap:4,minWidth:BAR_W}}
+                    role="img" aria-label={`${date}: ${noPostsLabel}`} title={`${fmtDay(date)}: ${noPostsLabel}`}>
+                    <span style={{fontSize:10,color:'var(--dim)',fontFamily:"'Roboto Mono',monospace"}}>0</span>
+                    <div className="activity-mobile-bar empty" style={{width:BAR_W-6, height:0}}/>
+                    <span className="activity-mobile-date" style={{color:'var(--dim)'}}>{fmtDay(date)}</span>
+                  </div>
+                )
+              }
               return (
                 <div key={date} style={{display:'flex',flexDirection:'column',alignItems:'center',gap:4,cursor:'pointer',minWidth:BAR_W}}
                   role="button" tabIndex={0} aria-pressed={isSelected} aria-label={`${date}: ${count}`}
@@ -2603,16 +2618,11 @@ function ActivityChart({ posts, favorites, ignored, onFav, onIgnore, onUnignore,
                   <span style={{fontSize:10,color:isSelected?'var(--white)':'var(--dim)',fontFamily:"'Roboto Mono',monospace",fontWeight:isSelected?700:400}}>
                     {count}
                   </span>
-                  <div style={{
-                    width:BAR_W-6, height:bh, borderRadius:3,
-                    background:isSelected?'#e53935':'#e5393540',
-                    border: isSelected?'2px solid #e53935':'1px solid #e5393530',
-                    transition:'all .15s',
-                    boxShadow: isSelected?'0 0 8px #e5393580':'none'
-                  }}/>
+                  <div className={'activity-mobile-bar'+(isSelected?' active':'')}
+                    style={{width:BAR_W-6, height:bh}}/>
                   {/* Дата под баром */}
                   <span className="activity-mobile-date" style={{color:isSelected?'var(--text)':'var(--dim)'}}>
-                    {date.slice(5)}
+                    {fmtDay(date)}
                   </span>
                 </div>
               )
@@ -2631,7 +2641,7 @@ function ActivityChart({ posts, favorites, ignored, onFav, onIgnore, onUnignore,
           return (
             <div style={{marginTop:8}}>
               <div style={{fontSize:11,fontWeight:700,color:'var(--dim2)',textTransform:'uppercase',letterSpacing:'.1em',marginBottom:6}}>
-                📅 {selected.date} — {plPosts(selected.posts.length, lang)}
+                📅 {fmtDay(selected.date)} — {plPosts(selected.posts.length, lang)}
               </div>
               {events.length > 0 && <div style={{marginBottom:10}}><DayEventsList events={events} setLightbox={setLightbox} onPostClick={onPostClick} lang={lang}/></div>}
               {dayPosts.length === 0
@@ -2656,7 +2666,8 @@ function ActivityChart({ posts, favorites, ignored, onFav, onIgnore, onUnignore,
   const pad = Math.min(3, (W / data.length) * .3)
   const bw   = (W - pad * (data.length - 1)) / data.length
   const labelEdge = 40
-  const labelWidth = 30
+  // "30 окт" ~ 29 user units at 9px; with a short year ("30 окт 27") ~ 41
+  const labelWidth = showYear ? 44 : 32
   const labelGap = 8
   const maxLabels = 9
   const pitch = bw + pad
@@ -2711,12 +2722,28 @@ function ActivityChart({ posts, favorites, ignored, onFav, onIgnore, onUnignore,
         </div>
       </div>
       <svg ref={svgRef} className="chart-svg" viewBox={`0 0 ${W} ${H+22}`} onMouseLeave={scheduleTipHide}>
+        <line className="activity-baseline" x1={0} x2={W} y1={H} y2={H}/>
         {data.map(([date, {count, posts:dp}], i) => {
           const x  = i * (bw + pad)
-          const bh = Math.max(3, (count / max) * H)
+          const isEmpty = count === 0
+          const bh = isEmpty ? 0 : Math.max(3, (count / max) * H)
           const isSelected = selected?.date === date
           const labelX = x + bw / 2
           const labelAnchor = labelX < labelEdge ? 'start' : labelX > W - labelEdge ? 'end' : 'middle'
+          if (isEmpty) {
+            // quiet day: stays on the axis as an empty bar, no tooltip, not selectable
+            return (
+              <g key={date} className="activity-gap" role="img" aria-label={`${date}: ${noPostsLabel}`}>
+                <title>{`${fmtDay(date)}: ${noPostsLabel}`}</title>
+                <rect x={x} y={H} width={bw} height={0} className="activity-bar-rect empty"/>
+                {labelSet.has(i) && (
+                  <text x={labelX} y={H+16} textAnchor={labelAnchor} style={{textAnchor:labelAnchor}} className="chart-label">
+                    {fmtDay(date)}
+                  </text>
+                )}
+              </g>
+            )
+          }
           return (
             <g key={date} className="activity-bar" style={{cursor:'pointer'}}
               role="button" tabIndex={0} aria-pressed={isSelected}
@@ -2755,7 +2782,7 @@ function ActivityChart({ posts, favorites, ignored, onFav, onIgnore, onUnignore,
                   textAnchor={labelAnchor}
                   style={{textAnchor:labelAnchor}}
                   className="chart-label">
-                  {date.slice(5)}
+                  {fmtDay(date)}
                 </text>
               )}
             </g>
@@ -2787,7 +2814,7 @@ function ActivityChart({ posts, favorites, ignored, onFav, onIgnore, onUnignore,
               visibility: tipStyle ? 'visible' : 'hidden',
               transformOrigin: tipStyle?.transformOrigin ?? 'left top',
             }}>
-            <div style={{fontWeight:700,color:'var(--white)',fontSize:12,marginBottom:4}}>📅 {tip.date}</div>
+            <div style={{fontWeight:700,color:'var(--white)',fontSize:12,marginBottom:4}}>📅 {fmtDay(tip.date)}</div>
             <div style={{fontSize:11,color:'var(--dim)',marginBottom:8}}>
               {plPosts(tip.count, lang)}
               {romeoCount ? ` · ${t('day_romeo')}: ${romeoCount}` : ''}
@@ -2834,7 +2861,7 @@ function ActivityChart({ posts, favorites, ignored, onFav, onIgnore, onUnignore,
         return (
           <div style={{marginTop:12}}>
             <div style={{fontSize:11,fontWeight:700,color:'var(--dim2)',textTransform:'uppercase',letterSpacing:'.1em',marginBottom:8}}>
-              📅 {selected.date} — {plPosts(selected.posts.length, lang)}
+              📅 {fmtDay(selected.date)} — {plPosts(selected.posts.length, lang)}
             </div>
             {events.length > 0 && <div style={{marginBottom:12}}><DayEventsList events={events} setLightbox={setLightbox} onPostClick={onPostClick} lang={lang}/></div>}
             <div style={{marginTop:4}}>
@@ -3649,7 +3676,7 @@ export function SidebarTopList({ posts, setLightbox }) {
             </div>
             <div style={{fontSize:12,color:'var(--text)',lineHeight:1.6,overflowY:'auto',flex:1,paddingRight:4}}>
               {!((p.text||'').includes('[QUOTE]')) && p.images?.[0] && (
-                <img src={p.images[0]} alt=""
+                <img src={p.images[0]} alt="" loading="lazy" decoding="async"
                   style={{maxWidth:'100%',maxHeight:260,width:'auto',height:'auto',objectFit:'contain',borderRadius:4,marginBottom:10,display:'block',cursor:'zoom-in'}}
                   onClick={e=>{e.stopPropagation();setLightbox(p.images[0])}}
                   onError={e=>e.target.style.display='none'}/>
@@ -3676,7 +3703,7 @@ export function SidebarTopList({ posts, setLightbox }) {
         const quoteAuthor = hasQuote ? (p.text.match(/\[QUOTE\]([^|\n]*)/)?.[1]?.trim() || '') : ''
         const quoteBody = hasQuote ? extractQuoteBody(p.text) : ''
         const isShortQuote = hasQuote && quoteBody.length <= 150
-        const preview = clean || ((!hasQuote && p.images?.[0]) ? `📷 ${_t('image_caption')}` : '')
+        const preview = topPostPreview(p, _t('image_caption'))
         const initial = (p.author||'?')[0].toUpperCase()
         // Don't show images in sidebar for posts with quotes (image may be from the quote)
         const showImage = !hasQuote && p.images?.[0]
@@ -3702,12 +3729,12 @@ export function SidebarTopList({ posts, setLightbox }) {
             <div data-avatar-initial={initial} style={{width:28,height:28,borderRadius:'50%',background:'var(--red)',flexShrink:0,
               overflow:'hidden',display:'flex',alignItems:'center',justifyContent:'center',
               fontSize:11,fontWeight:700,color:'#fff',marginTop:2}}>
-              <img src={p.avatar || GT_DEFAULT_AVATAR} alt="" referrerPolicy="no-referrer" style={{width:'100%',height:'100%',objectFit:'cover'}} onError={avatarError}/>
+              <img src={p.avatar || GT_DEFAULT_AVATAR} alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer" style={{width:'100%',height:'100%',objectFit:'cover'}} onError={avatarError}/>
             </div>
             <div style={S_FLEX1}>
               <div style={{fontSize:10,color:'var(--dim2)',fontWeight:600,marginBottom:2}}>{p.author}</div>
               {showImage && (
-                <img src={p.images[0]} alt=""
+                <img src={p.images[0]} alt="" loading="lazy" decoding="async"
                   style={{width:'100%',height:'auto',borderRadius:4,marginBottom:6,display:'block',cursor:'zoom-in'}}
                   onClick={e=>{e.stopPropagation();setLightbox(p.images[0])}}
                   onError={e=>e.target.style.display='none'}/>
@@ -4749,7 +4776,7 @@ export default function App() {
                 const cutoffs = { day: now-86400, week: now-604800, month: now-2592000, all: 0 }
                 const labels = { day:t('filter_day'), week:t('filter_week'), month:t('filter_month'), all:t('filter_all_short') }
                 const filtered = hotPosts.filter(p => (p.timestamp||0) >= cutoffs[sidebarTopPeriod])
-                const topList = (filtered.length ? filtered : hotPosts).slice(0,7)
+                const topList = filtered.slice(0,7)
                 return (
                   <div className="mobile-top-posts">
                     <div className="mobile-top-header">
@@ -4765,12 +4792,13 @@ export default function App() {
                       </div>
                     </div>
                     <div className="mobile-top-list">
+                      {topList.length === 0 && <div className="mobile-top-empty">{t('top_period_empty')}</div>}
                       {topList.map((p, i) => (
                         <a key={p.id||i} href={p.url} target="_blank" rel="noreferrer" className="mobile-top-item">
                           <span className="mobile-top-rank">{i+1}</span>
                           <div className="mobile-top-body">
                             <span className="mobile-top-author">{p.author}</span>
-                            <span className="mobile-top-text">{stripQuoteTags(p.text)?.substring(0,120) || `→ ${FORUM_WORD[lang] || 'forum'}`}</span>
+                            <span className="mobile-top-text">{topPostPreview(p, t('image_caption')).substring(0,120) || `→ ${FORUM_WORD[lang] || 'forum'}`}</span>
                           </div>
                           <span className="mobile-top-likes">+{p.likes}</span>
                         </a>
@@ -4883,7 +4911,7 @@ export default function App() {
                   const cutoffs = { day: now-86400, week: now-604800, month: now-2592000, all: 0 }
                   const labels = { day:t('filter_day'), week:t('filter_week'), month:t('filter_month'), all:t('filter_always') }
                   const filtered = hotPosts.filter(p => (p.timestamp||0) >= cutoffs[sideTopPeriod])
-                  const topList = (filtered.length ? filtered : hotPosts).slice(0,10)
+                  const topList = filtered.slice(0,10)
                   return (
                     <>
                       <div className="forum-top-head">
@@ -4898,7 +4926,9 @@ export default function App() {
                           ))}
                         </div>
                       </div>
-                      <SidebarTopList posts={topList} setLightbox={setLightbox}/>
+                      {topList.length === 0
+                        ? <div className="forum-top-empty">{t('top_period_empty')}</div>
+                        : <SidebarTopList posts={topList} setLightbox={setLightbox}/>}
                     </>
                   )
                 })()}
