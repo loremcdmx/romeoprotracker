@@ -1587,6 +1587,10 @@ describe('App', () => {
       const calls = []
       const select = vi.spyOn(input, 'select').mockImplementation(() => calls.push('select'))
       const scroll = vi.spyOn(input, 'scrollIntoView').mockImplementation(opts => calls.push(opts))
+      // jsdom has no layout: report the input as sticking out below the viewport, the
+      // only case where the helper still has to finish the native focus scroll
+      // (a fully visible input is left alone, see reviewChrome.test.jsx)
+      const rect = vi.spyOn(input, 'getBoundingClientRect').mockReturnValue({ top: 700, bottom: 9000, left: 0, right: 10, width: 10, height: 8300 })
       input.focus()
       expect(select).not.toHaveBeenCalled()
       // Even deferred select() cancels WebKit's smooth native focus scroll.
@@ -1595,6 +1599,7 @@ describe('App', () => {
       expect(calls).toEqual(['select', { behavior: 'instant', block: 'nearest' }])
       select.mockRestore()
       scroll.mockRestore()
+      rect.mockRestore()
     }
   })
 

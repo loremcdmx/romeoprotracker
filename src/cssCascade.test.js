@@ -345,6 +345,18 @@ describe('app.css cascade guards', () => {
       }
     })
 
+    // A held pointer press (.ptr-press on <html>, set by App.jsx) is the one case without the
+    // margin: the reader sees what they click. Without the class the margin above applies.
+    it.each([...LANDSCAPE, ...UNCHANGED])('%ix%i: .ptr-press drops the focus margin on every focusable, and only it', (w, h) => {
+      mount(FOCUS_HTML)
+      document.documentElement.classList.add('ptr-press')
+      const e = env(w, h)
+      for (const sel of FOCUSABLES) {
+        const el = $(`#post-1 ${sel}`)
+        expect(px(value(el, 'scroll-margin-top', e), el, e), `${sel} @${w}x${h}`).toBe(0)
+      }
+    })
+
     // Focusing a control that is itself pinned must not scroll the page (the margin
     // dragged it up by up to 150px, measured in Chromium and WebKit), and a control
     // inside a fixed popup that scrolls on its own must not over-scroll the popup.
