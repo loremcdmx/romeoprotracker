@@ -134,7 +134,7 @@ describe('fetchPublicData', () => {
       const href = String(url)
 
       if (href.includes('localhost') && href.includes('/data/meta.json')) {
-        return jsonResponse({ lastUpdated: '2026-04-19T01:00:00.000Z' })
+        return jsonResponse({ lastUpdated: '2026-04-19T01:00:00.000Z', totalPosts: 1 })
       }
 
       if (href.includes('localhost') && href.includes('/data/posts.min.json')) {
@@ -142,7 +142,7 @@ describe('fetchPublicData', () => {
       }
 
       if (href.includes('raw.githubusercontent.com') && href.includes('/meta.json')) {
-        return jsonResponse({ lastUpdated: '2026-04-19T02:00:00.000Z' })
+        return jsonResponse({ lastUpdated: '2026-04-19T02:00:00.000Z', totalPosts: 2 })
       }
 
       if (href.includes('raw.githubusercontent.com') && href.includes('/posts.min.json')) {
@@ -196,7 +196,7 @@ describe('fetchPublicData', () => {
       vi.stubGlobal('fetch', sources({
         same: '2026-04-19T09:00:00.000Z',
         raw: '2026-04-19T04:40:00.000Z',
-        rawContent: { lastUpdated: '2026-04-19T03:00:00.000Z', postsChangedAt: '2026-04-19T03:00:00.000Z' },
+        rawContent: { lastUpdated: '2026-04-19T03:00:00.000Z', postsChangedAt: '2026-04-19T03:00:00.000Z', totalPosts: 2 },
       }))
 
       const result = await fetchPublicData()

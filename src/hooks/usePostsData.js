@@ -57,6 +57,50 @@ export function usePostsData() {
   const [error, setError] = useState(null)
   const [newPostIds, setNewPostIds] = useState([])
 
+  // Applies a payload from fetchPublicData. Used by every poll and by a late
+  // fresher source of the first load, so both behave the same: unseen posts
+  // are tracked, nothing flashes and `loading` is not touched.
+  const applyPayload = useCallback((payload, { silent }) => {
+    const { posts: nextPosts = [], meta: nextMeta = {} } = payload
+
+    // Storage preserves these references only for the same cached payload.
+    // Timestamp/count signatures alone miss bankroll-history corrections
+    // that the storage freshness rules already know how to detect.
+    if (silent && knownIdsRef.current
+      && nextPosts === latestPostsRef.current && nextMeta === latestMetaRef.current) {
+      if (errorRef.current) { errorRef.current = null; setError(null) }
+      return { posts: latestPostsRef.current, meta: latestMetaRef.current }
+    }
+    enrichPosts(nextPosts, nextMeta)
+
+    if (knownIdsRef.current) {
+      const fresh = nextPosts.filter((post) => !knownIdsRef.current.has(post.id))
+      if (fresh.length > 0) {
+        setNewPostIds(fresh.map((post) => post.id))
+      }
+    } else {
+      knownIdsRef.current = new Set(nextPosts.map((post) => post.id))
+    }
+
+    latestPostsRef.current = nextPosts
+    latestMetaRef.current = nextMeta
+    setPosts(nextPosts)
+    setMeta(nextMeta)
+    if (errorRef.current) { errorRef.current = null; setError(null) }
+    return { posts: nextPosts, meta: nextMeta }
+  }, [])
+
+  // A source that was structurally ahead of the first render finished later.
+  const mountedRef = useRef(true)
+  const lateRef = useRef(null)
+  const onFresher = useCallback((payload) => {
+    if (!mountedRef.current) return
+    // Not applied yet (the first load is still being handed over): keep it
+    // and apply it right after.
+    if (!knownIdsRef.current) { lateRef.current = payload; return }
+    applyPayload(payload, { silent: true })
+  }, [applyPayload])
+
   const loadData = useCallback(async ({ silent = false } = {}) => {
     if (!silent) {
       if (errorRef.current) { errorRef.current = null; setError(null) }
@@ -67,33 +111,14 @@ export function usePostsData() {
     }
 
     try {
-      const { posts: nextPosts = [], meta: nextMeta = {} } = await fetchPublicData()
-
-      // Storage preserves these references only for the same cached payload.
-      // Timestamp/count signatures alone miss bankroll-history corrections
-      // that the storage freshness rules already know how to detect.
-      if (silent && knownIdsRef.current
-        && nextPosts === latestPostsRef.current && nextMeta === latestMetaRef.current) {
-        if (errorRef.current) { errorRef.current = null; setError(null) }
-        return { posts: latestPostsRef.current, meta: latestMetaRef.current }
+      const payload = await fetchPublicData({ onFresher })
+      const applied = applyPayload(payload, { silent })
+      if (lateRef.current) {
+        const late = lateRef.current
+        lateRef.current = null
+        applyPayload(late, { silent: true })
       }
-      enrichPosts(nextPosts, nextMeta)
-
-      if (knownIdsRef.current) {
-        const fresh = nextPosts.filter((post) => !knownIdsRef.current.has(post.id))
-        if (fresh.length > 0) {
-          setNewPostIds(fresh.map((post) => post.id))
-        }
-      } else {
-        knownIdsRef.current = new Set(nextPosts.map((post) => post.id))
-      }
-
-      latestPostsRef.current = nextPosts
-      latestMetaRef.current = nextMeta
-      setPosts(nextPosts)
-      setMeta(nextMeta)
-      if (errorRef.current) { errorRef.current = null; setError(null) }
-      return { posts: nextPosts, meta: nextMeta }
+      return applied
     } catch (err) {
       const nextError = err instanceof Error ? err : new Error('Failed to load tracker data')
       if (!silent || latestPostsRef.current.length === 0) {
@@ -104,9 +129,10 @@ export function usePostsData() {
     } finally {
       if (!silent) setLoading(false)
     }
-  }, [])
+  }, [applyPayload, onFresher])
 
   useEffect(() => {
+    mountedRef.current = true
     let intervalId = null
 
     const start = () => {
@@ -137,6 +163,7 @@ export function usePostsData() {
     document.addEventListener('visibilitychange', onVisibility)
 
     return () => {
+      mountedRef.current = false
       stop()
       document.removeEventListener('visibilitychange', onVisibility)
     }
