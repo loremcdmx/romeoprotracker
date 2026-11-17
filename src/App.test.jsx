@@ -1070,7 +1070,8 @@ describe('App', () => {
     const peakCallout = document.querySelector('.mc-peak-callout')
     const peakRect = peakCallout?.querySelector('.mc-peak-callout-bg')
     const peakLine = peakCallout?.querySelector('.mc-peak-callout-line')
-    const peakAnchor = peakCallout?.querySelector('.mc-peak-anchor')
+    // the record is the latest report here: no separate ring, the live dot marks it (K3 UI-3)
+    const peakAnchor = peakCallout?.querySelector('.mc-peak-anchor') || document.querySelector('.mc-dot-last')
     const axisText = [...document.querySelectorAll('.mc-xaxis-label-main, .mc-xaxis-label-sub')]
       .map(label => label.textContent)
       .join(' ')
@@ -1264,6 +1265,7 @@ describe('App', () => {
     const totalLine = () => [...document.querySelectorAll('.mc-tooltip div')]
       .filter((d) => d.textContent.includes(translate('ru', 'tip_mtt_total'))
         && !d.textContent.includes(translate('ru', 'tip_mtt_since'))
+        && !d.textContent.includes(translate('ru', 'tip_mtt_in_point'))
         && /\d/.test(d.textContent))
       .pop()
     const digits = (node) => (node?.textContent || '').replace(/\D/g, '')
@@ -1351,7 +1353,8 @@ describe('App', () => {
           expect(document.querySelectorAll('.mc-session-row')).toHaveLength(count > 1 ? count : 0)
           const totalCell = [...document.querySelectorAll('.mc-tooltip div')]
             .filter(d => d.textContent.includes(translate('ru', 'tip_mtt_total'))
-              && !d.textContent.includes(translate('ru', 'tip_mtt_since')) && /\d/.test(d.textContent)).pop()
+              && !d.textContent.includes(translate('ru', 'tip_mtt_since'))
+              && !d.textContent.includes(translate('ru', 'tip_mtt_in_point')) && /\d/.test(d.textContent)).pop()
           expect(totalCell.textContent.replace(/\D/g, '')).toBe(String(brHistory[Number(marker.dataset.end)].totalTournaments))
         }
       } else {

@@ -1183,14 +1183,20 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
         labelX:clampNumber((tick.x + spanEnd) / 2, pL + 14, plotRight - 14),
       }
     })
-    const minLabelGap = isMobile ? 58 : hasMultipleYears ? 64 : 44
+    // Phones: the gap follows the real label widths (about 9 user units per
+    // letter, "МАР 27" is wider than "МАР") instead of a fixed 58 that left
+    // three unlabelled months between two labels. Desktop keeps its constants.
+    const monthLabelWidth = tick => tick.label.length * 9 - (tick.label.includes(' ') ? 4 : 0)
+    const minLabelGapFor = (a, b) => isMobile
+      ? (monthLabelWidth(a) + monthLabelWidth(b)) / 2 + 14
+      : hasMultipleYears ? 64 : 44
     const minSpan = isMobile ? 30 : 20
     const kept = []
     withSpan.forEach((tick, k) => {
       const isEdge = k === 0 || k === withSpan.length - 1
       if (!isEdge && tick.spanEnd - tick.x < minSpan) return
       const prev = kept[kept.length - 1]
-      if (prev && tick.labelX - prev.labelX < minLabelGap) {
+      if (prev && tick.labelX - prev.labelX < minLabelGapFor(prev, tick)) {
         if (isEdge && kept.length > 1) kept.pop()
         else if (!isEdge) return
         else return
@@ -1350,7 +1356,9 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
     for (let mark = firstMilestone; mark <= dataMax; mark += milestoneStep) milestoneMarks.push(mark)
     for (const mark of uniq(milestoneMarks).sort((a,b) => a - b)) {
       for (let i = 0; i < points.length; i++) {
-        const prevBR = i === 0 ? startBR : points[i - 1].br
+        // A range view starts from the bankroll BEFORE its first report, not
+        // from the marathon start: otherwise START carried a false milestone.
+        const prevBR = i === 0 ? (rangeBaseline ? rangeBaseline.br : startBR) : points[i - 1].br
         if (prevBR < mark && points[i].br >= mark) {
           put(i, {
             kind:'milestone',
@@ -1566,6 +1574,10 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
     points.forEach((p, i) => { if (p.br > points[peakIdx].br) peakIdx = i })
     const point = coords[peakIdx]
     if (!point) return null
+    // In a week/month view the highest point of the WINDOW is not the marathon
+    // record unless it equals it: say "HIGH", not "PEAK".
+    const peakLabel = isRangeView && points[peakIdx].br < Math.max(...allPoints.map(p => p.br))
+      ? t('chart_peak_period') : eventLabel('peak')
     const badgeW = isMobile ? 76 : 72
     const badgeH = isMobile ? 25 : 23
     const clamp = (v, min, max) => Math.min(Math.max(v, min), max)
@@ -1621,6 +1633,45 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
       { dx:-badgeW * 1.3, dy:farY * 2.3, affinity:14 },
       { dx:-badgeW * 1.9, dy:farY * 2.8, affinity:6 },
     ]
+    // Short-leader search: a dense ring of spots hugging the peak on both
+    // sides. They only win when they are HARD clear (no line, dot, latest
+    // marker or milestone plate under or beside them), so the plate lands
+    // next to a peak that sits at the top/right edge instead of far away.
+    const nearOffsets = []
+    for (const side of [-1, 1]) {
+      for (let gap = 8; gap <= 80; gap += 2) {
+        for (const dy of [-999, -14, 0, 14, 28, 42]) {
+          nearOffsets.push({ dx:side * (badgeW / 2 + gap), dy, affinity:0, near:true })
+        }
+      }
+    }
+    // Gap between the leader and the line, ignoring the two segments that
+    // meet at the peak itself; those only need a clear angle to the leader.
+    const segmentsCross = (p1, p2, p3, p4) => {
+      const ccw = (u, v, w) => (w.y - u.y) * (v.x - u.x) > (v.y - u.y) * (w.x - u.x)
+      return ccw(p1, p3, p4) !== ccw(p2, p3, p4) && ccw(p1, p2, p3) !== ccw(p1, p2, p4)
+    }
+    const leaderLineGap = anchor => {
+      let gap = Infinity
+      lineSegments.forEach(({ a, b }, j) => {
+        if (j === peakIdx - 1 || j === peakIdx) return
+        if (segmentsCross(point, anchor, a, b)) { gap = 0; return }
+        gap = Math.min(gap, distanceToSegment(a, point, anchor), distanceToSegment(b, point, anchor),
+          distanceToSegment(point, a, b), distanceToSegment(anchor, a, b))
+      })
+      return gap
+    }
+    const leaderAngleOk = anchor => {
+      const lx = anchor.x - point.x
+      const ly = anchor.y - point.y
+      const ll = Math.hypot(lx, ly) || 1
+      return [coords[peakIdx - 1], coords[peakIdx + 1]].every(n => {
+        if (!n) return true
+        const nl = Math.hypot(n.x - point.x, n.y - point.y) || 1
+        const cos = (lx * (n.x - point.x) + ly * (n.y - point.y)) / (ll * nl)
+        return cos < Math.cos(25 * Math.PI / 180)
+      })
+    }
     const distanceToRect = (p, rect) => {
       const dx = Math.max(rect.left - p.x, 0, p.x - rect.right)
       const dy = Math.max(rect.top - p.y, 0, p.y - rect.bottom)
@@ -1661,11 +1712,11 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
         : point.y < rect.top
           ? { x:clamp(point.x, rect.left + 7, rect.right - 7), y:rect.top }
           : { x:clamp(point.x, rect.left + 7, rect.right - 7), y:rect.bottom }
-    const candidates = candidateOffsets.map(({ dx, dy, cx:targetAbsCx, cy:targetAbsCy, affinity }) => {
+    const candidates = [...candidateOffsets, ...nearOffsets].map(({ dx, dy, cx:targetAbsCx, cy:targetAbsCy, affinity, near }) => {
       const targetCx = Number.isFinite(targetAbsCx) ? targetAbsCx : point.x + dx
       const targetCy = Number.isFinite(targetAbsCy) ? targetAbsCy : point.y + dy
       const cx = clampCx(targetCx)
-      const cy = clampCy(targetCy)
+      const cy = near ? clamp(targetCy, pT + badgeH / 2 + 3, plotBottom - badgeH / 2 - 8) : clampCy(targetCy)
       const rect = {
         left:cx - badgeW / 2,
         right:cx + badgeW / 2,
@@ -1710,7 +1761,17 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
       const clearRectScore = Math.min(minDistance, isMobile ? 96 : 110)
       const clearPaddedScore = Math.min(minPaddedDistance, isMobile ? 74 : 84)
       const edgePenalty = rect.top < pT + 7 || rect.right > W - pR - 7 || rect.left < pL + 7 ? 8 : 0
+      // Hard clearance: 3.2 units clears the line stroke and most of its faint aura.
+      const lineClearRect = { left:rect.left - 3.2, right:rect.right + 3.2, top:rect.top - 3.2, bottom:rect.bottom + 3.2 }
+      const hardClear = !!near && dotOverlaps === 0 && plateOverlaps === 0 && plateLeaderHits === 0
+        && Math.abs(cx - targetCx) < 0.5
+        && !lineSegments.some(({ a, b }) => segmentIntersectsRect(a, b, lineClearRect))
+        && leaderLineGap(anchor) >= 2.6 && leaderAngleOk(anchor)
       return {
+        near:!!near,
+        hardClear,
+        anchorLength:Math.hypot(anchor.x - point.x, anchor.y - point.y),
+        minDistance,
         cx,
         cy,
         rect,
@@ -1734,9 +1795,25 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
     // dots and plates with a leader that skips the plates; clear of dots and
     // painted plates (the leader may cross one); clear of painted plates only
     // (may cover dots).
-    const plateFreeCandidates = candidates.filter(candidate => candidate.drawnPlateOverlaps === 0)
+    // 0) The nearest hard-clear spot wins (shortest leader, a little bonus for
+    // air around the plate); only if none exists the legacy tiers below decide.
+    const MAX_NEAR_LEADER = 90
+    const nearBest = candidates
+      .filter(candidate => candidate.hardClear && candidate.drawnPlateOverlaps === 0 && candidate.anchorLength <= MAX_NEAR_LEADER)
+      .reduce((best, candidate) => {
+        const key = candidate.anchorLength - Math.min(candidate.minDistance, 8)
+        return !best || key < best.key ? { ...candidate, key } : best
+      }, null)
+    if (nearBest) {
+      return {
+        idx:peakIdx, point, cx:nearBest.cx, cy:nearBest.cy, anchor:nearBest.anchor, badgeW, badgeH,
+        label:peakLabel, value:fmtMoneyShort(points[peakIdx].br),
+      }
+    }
+    const legacyCandidates = candidates.filter(candidate => !candidate.near)
+    const plateFreeCandidates = legacyCandidates.filter(candidate => candidate.drawnPlateOverlaps === 0)
     const candidatePool = [
-      candidates.filter(candidate => candidate.dotOverlaps === 0
+      legacyCandidates.filter(candidate => candidate.dotOverlaps === 0
         && candidate.plateOverlaps === 0 && candidate.plateLeaderHits === 0),
       plateFreeCandidates.filter(candidate => candidate.dotOverlaps === 0),
       plateFreeCandidates,
@@ -1759,7 +1836,7 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
       anchor,
       badgeW,
       badgeH,
-      label:eventLabel('peak'),
+      label:peakLabel,
       value:fmtMoneyShort(points[peakIdx].br),
     }
   })()
@@ -1968,7 +2045,6 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
   const longPressOpened = useRef(false)
   const handleTouchStart = e => {
     longPressOpened.current = false
-    e.preventDefault()
     const rect = e.currentTarget.getBoundingClientRect()
     const touch = e.touches[0]
     const tx = (touch.clientX - rect.left) * (W / rect.width)
@@ -2176,7 +2252,22 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
               <tspan className="mc-peak-callout-kicker">{peakCallout.label}</tspan>
               <tspan dx="5" className="mc-peak-callout-value">{peakCallout.value}</tspan>
             </text>
-            <circle className="mc-peak-anchor" cx={peakCallout.point.x} cy={peakCallout.point.y} r={isMobile ? 6.5 : 5.2}/>
+            {(() => {
+              // The peak is often the second-to-last report: its big ring used
+              // to sit on top of the live (latest) dot. Keep the two markers
+              // distinct: shrink the peak ring to the room left beside the
+              // latest dot, and draw no separate ring when there is none.
+              const lastPoint = coords[coords.length - 1]
+              const fullR = isMobile ? 6.5 : 5.2
+              const room = peakCallout.idx === points.length - 1 || !lastPoint
+                ? Infinity
+                : Math.hypot(peakCallout.point.x - lastPoint.x, peakCallout.point.y - lastPoint.y) - 6
+              if (room === Infinity && peakCallout.idx === points.length - 1) return null
+              if (room < 4) return null
+              const r = Math.min(fullR, room - 2.4)
+              return <circle className={`mc-peak-anchor ${r < fullR ? 'mc-peak-anchor-small' : ''}`}
+                cx={peakCallout.point.x} cy={peakCallout.point.y} r={r}/>
+            })()}
           </g>
         )}
         <g className={`mc-axis-event-layer ${period === 'all' ? 'is-hidden' : ''}`}>
@@ -2261,7 +2352,19 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
       </div>
       {tip && (() => {
         const pct=tip.x/W*100, right=pct>60
-        const roomDeltas = tip.p.rooms ? CHART_ROOMS.map(r=>({...r,v:(tip.p.rooms.after[r.key]||0)-(tip.p.rooms.before[r.key]||0)})).filter(r=>r.v!==0) : []
+        // A merged dot sums its reports everywhere: room deltas are summed
+        // report by report (a report without room data adds nothing), and the
+        // MTT line adds the per-report counts like the breakdown rows do.
+        const tipReports = tip.sessions?.length ? tip.sessions.map(s => s.p) : [tip.p]
+        const roomDeltas = tipReports.some(r => r?.rooms)
+          ? CHART_ROOMS.map(r => ({ ...r, v:tipReports.reduce((sum, rp) => rp?.rooms
+              ? sum + ((rp.rooms.after?.[r.key] || 0) - (rp.rooms.before?.[r.key] || 0))
+              : sum, 0) })).filter(r => r.v !== 0)
+          : []
+        const tipGrouped = tip.groupCount > 1
+        const tipMTTSince = tipGrouped
+          ? (tip.sessions || []).reduce((sum, s) => sum + (s.tournaments || 0), 0)
+          : (tip.p.tournaments || 0)
         const mobileStyle = isMobile ? {
           position:'fixed',
           // before the first measurement: the legacy above-the-finger anchor
@@ -2292,7 +2395,7 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
             <div style={{fontWeight:700,color:'var(--white)',fontSize:13,marginBottom:5,paddingRight:64}}>{fmtDateTimeLang(tip.p.timestamp, lang, hasMultipleYears)}</div>
             {/* Compact stat row (hstat-style): BR and the cumulative MTT total —
                 the counter readers use to measure streak length in tournaments. */}
-            <div style={{display:'flex',gap:14,margin:'1px 0',marginBottom:tip.p.tournaments?5:roomDeltas.length?8:5}}>
+            <div style={{display:'flex',gap:14,margin:'1px 0',marginBottom:tipMTTSince?5:roomDeltas.length?8:5}}>
               <div>
                 <div style={{fontSize:9,color:'var(--dim)',textTransform:'uppercase',letterSpacing:'.07em',marginBottom:2}}>{t('tip_br')}</div>
                 <b style={{fontSize:13,color:'var(--white)',fontFamily:"'Roboto Mono',monospace",fontVariantNumeric:'tabular-nums'}}>{fkAbs(tip.p.br)}</b>
@@ -2304,9 +2407,9 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
                 </div>
               )}
             </div>
-            {!!tip.p.tournaments && (
+            {!!tipMTTSince && (
               <div style={{fontSize:11,color:'var(--dim)',marginBottom:roomDeltas.length?8:4}}>
-                {t('tip_mtt_since')}: <b style={{color:'var(--dim2)'}}>{fmtInt(tip.p.tournaments)}</b>
+                {t(tipGrouped ? 'tip_mtt_in_point' : 'tip_mtt_since')}: <b style={{color:'var(--dim2)'}}>{fmtInt(tipMTTSince)}</b>
               </div>
             )}
             {tip.groupCount > 1 && (
@@ -2320,7 +2423,7 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
                   <div key={`${s.p.timestamp || idx}-${idx}`} className="mc-session-row">
                     <span className="mc-session-date">{fmtDateShortLang(s.p.timestamp, lang, hasMultipleYears)}</span>
                     <span className={s.profit >= 0 ? 'mc-session-profit pos' : 'mc-session-profit neg'}>{fk(s.profit)}</span>
-                    <span className="mc-session-mtt">{s.tournaments ? `${fmtInt(s.tournaments)} MTT` : '—'}</span>
+                    <span className="mc-session-mtt">{s.tournaments ? `${fmtInt(s.tournaments)} ${mttUnit}` : '—'}</span>
                   </div>
                 ))}
               </div>

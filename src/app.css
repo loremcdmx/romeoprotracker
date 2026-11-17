@@ -159,10 +159,11 @@ button,select,input,summary{font:inherit}
 .mc-peak-callout{pointer-events:none;filter:drop-shadow(0 2px 8px rgba(0,0,0,.5))}
 .mc-peak-callout-line{stroke:rgba(255,191,47,.88);stroke-width:1.35;stroke-linecap:round;vector-effect:non-scaling-stroke}
 .mc-peak-callout-bg{fill:var(--chart-callout-bg);stroke:rgba(255,191,47,.72);stroke-width:1.1;vector-effect:non-scaling-stroke}
-.mc-peak-callout-text{font-family:'Roboto Mono',monospace;font-size:9.2px;font-weight:700;letter-spacing:0;text-transform:uppercase;font-variant-numeric:tabular-nums}
-.mc-peak-callout-kicker{fill:var(--gold)}
+.mc-peak-callout-text{font-family:'Roboto Mono',monospace;font-size:9.2px;font-weight:700;letter-spacing:0;font-variant-numeric:tabular-nums}
+.mc-peak-callout-kicker{fill:var(--gold);text-transform:uppercase}
 .mc-peak-callout-value{fill:var(--chart-callout-value)}
 .mc-peak-anchor{fill:var(--chart-callout-accent);stroke:var(--chart-callout-bg);stroke-width:2.8;vector-effect:non-scaling-stroke}
+.mc-peak-anchor-small{stroke-width:1.2}
 .mc-guide{stroke:var(--chart-grid-strong);stroke-width:1;stroke-dasharray:1 5;opacity:.48}
 .mc-x-tickmark{stroke:var(--chart-grid-strong);stroke-width:1.1;stroke-linecap:round;opacity:.72}
 .mc-xaxis-label-main{font-family:'Inter',system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:10.5px;font-weight:700;fill:var(--axis-x);font-variant-numeric:tabular-nums;letter-spacing:.01em}
@@ -1236,6 +1237,8 @@ html{scroll-behavior:smooth}
 .light .mc-peak-callout-kicker{fill:#8a5b00}
 /* marathon x-axis special ticks were near-invisible in light theme */
 .light .mc-x-tick.start .mc-xaxis-label-main{fill:var(--axis-x)}
+/* the Week/Month START label: without this it falls to the dark-only #f2f2f2 (1.1:1 on the light card) */
+.light .mc-x-tick.range-start .mc-xaxis-label-main{fill:var(--axis-x)}
 .light .mc-x-tick.milestone .mc-xaxis-label-main,.light .mc-x-tick.last .mc-xaxis-label-main{fill:#8a5b00}
 .light .mc-x-tick.last .mc-xaxis-label-sub{fill:#836519}
 .light .mc-x-tick.recovery .mc-xaxis-label-main,.light .mc-x-tick.best .mc-xaxis-label-main{fill:#29752f}
