@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import {
   computeFixedPopupLayout,
+  computePointTooltipLayout,
   computeSvgTooltipLayout,
   computeTouchSheetLayout,
   findHoverListIndexAtPoint,
@@ -316,3 +317,132 @@ describe('watchPopupContentLoad', () => {
     expect(() => watchPopupContentLoad(null, onChange)()).not.toThrow()
   })
 })
+
+// 2026-11-17: the marathon chart's phone sheet opened under the pinned header (its date, result pill and bankroll
+// hidden), and the desktop tooltip was anchored in viewBox units used as CSS pixels: 100-180 px below its dot at
+// 1440, covering the dot at 87 of 103 hover positions.
+describe('computeTouchSheetLayout with a pinned header', () => {
+  const base = { panelHeight: 297, viewportHeight: 844 }
+
+  it('without an inset nothing changes', () => {
+    expect(computeTouchSheetLayout({ ...base, touchY: 500 })).toEqual(computeTouchSheetLayout({ ...base, touchY: 500, topInset: 0 }))
+    expect(computeTouchSheetLayout({ ...base, touchY: 500, topInset: 0 })).toEqual({ top: 187, maxHeight: 828 })
+  })
+
+  it('a sheet that fits between the pinned header and the point stays above the point', () => {
+    const layout = computeTouchSheetLayout({ ...base, touchY: 500, topInset: 148 })
+    expect(layout.top).toBe(187)
+    expect(layout.top).toBeGreaterThanOrEqual(148 + 8)
+    expect(layout.maxHeight).toBe(844 - 148 - 8 - 8)
+  })
+
+  it('a point high on the screen: the sheet goes below it instead of under the pinned header', () => {
+    // without the inset: top 83, i.e. 61 px of the sheet under a 144 px header
+    expect(computeTouchSheetLayout({ ...base, touchY: 396 }).top).toBe(83)
+    const layout = computeTouchSheetLayout({ ...base, touchY: 396, topInset: 148 })
+    expect(layout.top).toBe(396 + 16)
+    expect(layout.top + base.panelHeight).toBeLessThanOrEqual(844 - 8)
+  })
+
+  it('keeps clear of the point as well as the finger when it can', () => {
+    // finger at 500, the point it picked is higher, at 300: the sheet goes above the point or below the finger
+    const above = computeTouchSheetLayout({ panelHeight: 120, viewportHeight: 844, touchY: 500, pointY: 300, topInset: 148 })
+    expect(above.top + 120).toBeLessThanOrEqual(300 - 16)
+    const below = computeTouchSheetLayout({ ...base, touchY: 400, pointY: 330, topInset: 148 })
+    expect(below.top).toBe(400 + 16)
+    // the point below the finger
+    const under = computeTouchSheetLayout({ ...base, touchY: 200, pointY: 420, topInset: 148 })
+    expect(under.top).toBe(420 + 16)
+  })
+
+  it('cannot clear both: the finger stays clear, as before', () => {
+    // finger 300, point 700: nothing fits above the finger (pinned header) nor below the point
+    const layout = computeTouchSheetLayout({ ...base, touchY: 300, pointY: 700, topInset: 148 })
+    expect(layout).toEqual(computeTouchSheetLayout({ ...base, touchY: 300, topInset: 148 }))
+    const covers = 300 > layout.top && 300 < layout.top + Math.min(base.panelHeight, layout.maxHeight)
+    expect(covers).toBe(false)
+  })
+
+  it('no room on either side: the roomier side, never above the inset', () => {
+    const layout = computeTouchSheetLayout({ panelHeight: 700, viewportHeight: 844, touchY: 300, topInset: 148 })
+    expect(layout.top).toBeGreaterThanOrEqual(148 + 8)
+    expect(layout.top + layout.maxHeight).toBeLessThanOrEqual(844 - 8)
+  })
+})
+
+describe('computePointTooltipLayout', () => {
+  // card 1068 x 520 at (36, 100) with a 1 px border; the svg starts 14 px inside it and is 1039 px wide for a
+  // 700-unit viewBox (scale 1.484), 60 px below the card top
+  const card = { left: 36, top: 100, width: 1068, height: 520 }
+  const svg = { left: 51, top: 160, width: 1039, height: 445 }
+  const base = { cardRect: card, svgRect: svg, viewBoxWidth: 700, tipWidth: 250, tipHeight: 200, border: 1 }
+  const anchor = point => ({ x: 51 - 36 + point.x * (1039 / 700) - 1, y: 160 - 100 + point.y * (1039 / 700) - 1 })
+
+  it('stands to the right of a point in the left part of the chart, its bottom edge 14 px above the point', () => {
+    const point = { x: 200, y: 180 }
+    const layout = computePointTooltipLayout({ ...base, point })
+    const a = anchor(point)
+    expect(layout.side).toBe('right')
+    expect(layout.left).toBeCloseTo(a.x + 16, 5)
+    expect(layout.top + 200).toBeCloseTo(a.y - 14, 5)
+  })
+
+  it('stands to the left of a point in the right part of the chart', () => {
+    const point = { x: 678, y: 180 }
+    const layout = computePointTooltipLayout({ ...base, point })
+    const a = anchor(point)
+    expect(layout.side).toBe('left')
+    expect(layout.left + 250).toBeCloseTo(a.x - 16, 5)
+  })
+
+  it('never covers its point: a gap of 16 px on either side, for every x and y of the plot', () => {
+    for (let x = 58; x <= 678; x += 10) {
+      for (const y of [16, 60, 120, 180, 220]) {
+        const point = { x, y }
+        const layout = computePointTooltipLayout({ ...base, point })
+        const a = anchor(point)
+        const horizontalGap = layout.side === 'right' ? layout.left - a.x : a.x - (layout.left + 250)
+        expect(horizontalGap, `x=${x} y=${y}`).toBeGreaterThanOrEqual(15.99)
+        // inside the card
+        expect(layout.left).toBeGreaterThanOrEqual(6)
+        expect(layout.left + 250).toBeLessThanOrEqual(1066 - 6)
+        expect(layout.top).toBeGreaterThanOrEqual(6)
+        expect(layout.top + 200).toBeLessThanOrEqual(518 - 6)
+      }
+    }
+  })
+
+  it('a point near the top of the card: the tooltip is pushed down beside it, not cut off', () => {
+    const layout = computePointTooltipLayout({ ...base, point: { x: 678, y: 20 } })
+    expect(layout.top).toBe(6)
+    expect(layout.side).toBe('left')
+  })
+
+  it('takes the side that has room when the preferred side has none', () => {
+    // a narrow card: a point at 59% of it prefers the right side (the rule is "left beyond 60%"), but the right
+    // side has 250 px less than the tooltip needs
+    const narrow = { ...base, cardRect: { left: 0, top: 0, width: 620, height: 520 }, svgRect: { left: 15, top: 60, width: 590, height: 300 } }
+    const anchorX = 15 + 420 * (590 / 700) - 1
+    expect(anchorX).toBeLessThan(618 * 0.6)
+    expect(anchorX + 16 + 250).toBeGreaterThan(618 - 6)
+    const layout = computePointTooltipLayout({ ...narrow, point: { x: 420, y: 150 } })
+    expect(layout.side).toBe('left')
+    expect(layout.left + 250).toBeCloseTo(anchorX - 16, 5)
+  })
+
+  it('scales with the page zoom like the other popups', () => {
+    const point = { x: 200, y: 180 }
+    const plain = computePointTooltipLayout({ ...base, point })
+    const zoomed = computePointTooltipLayout({ ...base, point, zoom: 1.25,
+      cardRect: { left: 45, top: 125, width: 1335, height: 650 }, svgRect: { left: 63.75, top: 200, width: 1298.75, height: 556.25 } })
+    expect(zoomed.left).toBeCloseTo(plain.left, 3)
+    expect(zoomed.top).toBeCloseTo(plain.top, 3)
+  })
+
+  it('returns null without a layout (jsdom, a hidden tab)', () => {
+    expect(computePointTooltipLayout({ ...base, svgRect: { left: 0, top: 0, width: 0, height: 0 }, point: { x: 1, y: 1 } })).toBeNull()
+    expect(computePointTooltipLayout({ ...base, viewBoxWidth: 0, point: { x: 1, y: 1 } })).toBeNull()
+    expect(computePointTooltipLayout({ ...base, point: null })).toBeNull()
+  })
+})
+

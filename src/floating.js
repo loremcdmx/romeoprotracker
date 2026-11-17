@@ -106,6 +106,11 @@ export function computeFixedPopupLayout({
 // never covers the touch point, which would swallow the touch's follow-up
 // events. Inputs are layout pixels (window.innerHeight and clientY): the phone
 // layout is never zoomed.
+// topInset: height of whatever is pinned over the top of the viewport (the page header and the progress block).
+// The sheet never opens under it.
+// pointY: screen y of the chart point the sheet describes. The point is picked by x, so it can be far above or
+// below the finger; when the sheet can clear both the finger and the point it does, otherwise the finger wins
+// (a sheet under the finger is hidden by it and takes the tap when the finger lifts).
 export function computeTouchSheetLayout({
   touchY,
   panelHeight,
@@ -113,18 +118,64 @@ export function computeTouchSheetLayout({
   edge = 8,
   gap = 16,
   bottomReserve = 90,
+  topInset = 0,
+  pointY = null,
 }) {
-  const maxHeight = Math.max(120, viewportHeight - edge * 2)
+  const topEdge = Math.max(topInset, 0) + edge
+  const maxHeight = Math.max(120, viewportHeight - topEdge - edge)
   const height = Math.min(Math.max(panelHeight, 0), maxHeight)
+  if (Number.isFinite(pointY)) {
+    const bandTop = Math.min(touchY, pointY)
+    const bandBottom = Math.max(touchY, pointY)
+    const above = Math.min(viewportHeight - bottomReserve, bandTop - gap)
+    if (above - height >= topEdge) return { top: above - height, maxHeight }
+    if (bandBottom + gap + height <= viewportHeight - edge) return { top: bandBottom + gap, maxHeight }
+  }
   const aboveBottom = Math.min(viewportHeight - bottomReserve, touchY - gap)
-  if (aboveBottom - height >= edge) return { top: aboveBottom - height, maxHeight }
+  if (aboveBottom - height >= topEdge) return { top: aboveBottom - height, maxHeight }
   const belowTop = touchY + gap
   if (belowTop + height <= viewportHeight - edge) return { top: belowTop, maxHeight }
-  const roomAbove = aboveBottom - edge
+  const roomAbove = aboveBottom - topEdge
   const roomBelow = viewportHeight - edge - belowTop
   return roomBelow > roomAbove
     ? { top: belowTop, maxHeight: Math.max(roomBelow, 0) }
-    : { top: edge, maxHeight: Math.max(roomAbove, 0) }
+    : { top: topEdge, maxHeight: Math.max(roomAbove, 0) }
+}
+
+// Hover tooltip of a chart point, placed in real pixels inside the chart card (the tooltip is position:absolute
+// in the card). A viewBox point is scaled by the rendered width of the svg. The tooltip stands BESIDE its point,
+// `gapX` away, so it never covers the hovered dot: on the right, or on the left for points in the right part of
+// the card or when the right side has no room. Vertically its bottom edge sits `gapY` above the point; near the
+// top of the card it is pushed down to stay inside, which is fine because it is beside the point, not over it.
+// Returns the top-left corner relative to the card's padding box.
+export function computePointTooltipLayout({
+  cardRect,
+  svgRect,
+  viewBoxWidth,
+  point,
+  tipWidth = 0,
+  tipHeight = 0,
+  border = 0,
+  zoom = 1,
+  gapX = 16,
+  gapY = 14,
+  edge = 6,
+}) {
+  if (!cardRect || !svgRect || !point || !(svgRect.width > 0) || !(cardRect.width > 0) || !(viewBoxWidth > 0)) return null
+  const scale = svgRect.width / viewBoxWidth
+  const anchorX = (svgRect.left - cardRect.left + point.x * scale) / zoom - border
+  const anchorY = (svgRect.top - cardRect.top + point.y * scale) / zoom - border
+  const boxWidth = cardRect.width / zoom - border * 2
+  const boxHeight = cardRect.height / zoom - border * 2
+  const fitsRight = anchorX + gapX + tipWidth <= boxWidth - edge
+  const fitsLeft = anchorX - gapX - tipWidth >= edge
+  const preferLeft = anchorX > boxWidth * 0.6
+  const side = preferLeft
+    ? (fitsLeft || !fitsRight ? 'left' : 'right')
+    : (fitsRight || !fitsLeft ? 'right' : 'left')
+  const left = clamp(side === 'right' ? anchorX + gapX : anchorX - gapX - tipWidth, edge, Math.max(edge, boxWidth - tipWidth - edge))
+  const top = clamp(anchorY - gapY - tipHeight, edge, Math.max(edge, boxHeight - tipHeight - edge))
+  return { left, top, side }
 }
 
 // Real-pixel anchor for a tooltip that floats over an SVG chart. A viewBox

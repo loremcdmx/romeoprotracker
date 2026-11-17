@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+## 1.14.29 — 2026-11-17
+
+- Marathon chart tooltip: opaque in both themes (it was a 72 % see-through panel, and in Chrome the chart's own labels printed through its text) and placed beside the point it describes instead of 100-180 px below it, over the dot. On phones it opens below the pinned header, so its date, result and bankroll are no longer hidden. The forum link in the desktop tooltip can now be clicked: the tooltip stays open while the pointer is on its bottom row.
+- Dark theme: milestone and peak plates are a raised surface (lighter than the plot, with a clearer border), the plot panel and the grid are a little more visible, the dark outline under the line is softer. Dots lost their black rings and take the line's own green and red; minor dots are smaller.
+- Milestone plates no longer lie on the line: a plate whose usual spot would cover the line slides aside and is joined to its point from its side edge (the best-day plate of 16 November covered the final climb of the line).
+- The peak plate stands beside a record in the top-right corner (no spot there was ever accepted when the line reached the record in short steps, so the plate landed far away), docks to the best-day plate of the report just before a new record, and does not sit on the line while a free spot exists.
+- Desktop: the step select moved into the title row and the plot is about 15 % taller. The card title is larger; the distance row is quieter than the months above it.
+- Light theme: the line and its dots use the darker green and red of the light palette (the line used the dark theme's colours, 1.6:1 and 2.6:1 on the cream card).
+
 ## 1.14.28 — 2026-11-17
 
 - Marathon chart, all-time view: when the record high is also the best day (as after 16 November), the gold "PEAK" plate now sits right beside the best-day plate, joined to it by a short connector. Before, the plate stood further left and its leader ran straight through the text of the best-day plate, on desktop and on phones.
