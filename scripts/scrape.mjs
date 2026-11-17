@@ -4,7 +4,7 @@
  * Runs in GitHub Actions on a cron schedule.
  *
  * Modes (set via SCRAPE_MODE env var or --mode):
- *   "normal"    — scan last 5 pages: add new posts + update likes on recent posts (default, every 30 min)
+ *   "normal"    — scan last 5 pages: add new posts + update likes on recent posts (default; GitHub cron is best-effort: ~170 runs/day measured, data commits a median ~13 min apart, p99 ~48 min)
  *   "full"      — scan ALL pages: update likes/text on every post and drop posts the forum
  *                 no longer lists (capped, see --prune-force; Romeo's own posts are never dropped)
  *   "reextract" — re-extract BR data from ALL Romeo posts with images and replace brHistory
@@ -150,16 +150,54 @@ function isRelativeDate(date) {
 
 // ─── FORUM SCRAPER ───────────────────────────────────────────────────────────
 
+// Per-request timeout and bounded retries: 9 of 15 failed runs in 25 days were
+// forum 502/504 or "fetch failed", and one full scan died at page 241 of 468
+// after a 5-minute stall. Only transient failures are retried (network error,
+// timeout, 5xx, 429); a 404 or other 4xx fails at once. A page that still fails
+// after FETCH_ATTEMPTS attempts throws exactly as before, so the run fails.
+// Time budget (workflow limit 25 min): at most FETCH_RETRY_BUDGET retries per run,
+// each costing <= timeout + backoff (~32 s), i.e. <= ~11 min on top of a normal
+// full scan (~468 pages x ~1 s) - and a single page can never block longer than
+// 3 x 30 s + 3 s = 93 s before the run fails.
+const FETCH_ATTEMPTS = 3
+const FETCH_RETRY_BUDGET = 20
+// SCRAPE_FETCH_TIMEOUT_MS exists for the tests only (a hanging request must not
+// need a real 30 s wait).
+const FETCH_TIMEOUT_MS = Number(process.env.SCRAPE_FETCH_TIMEOUT_MS) > 0 ? Number(process.env.SCRAPE_FETCH_TIMEOUT_MS) : 30_000
+let fetchRetriesUsed = 0
+
 async function fetchPage(url) {
-  const res = await fetch(url, {
-    headers: {
-      'User-Agent': 'Mozilla/5.0 (compatible; RomeoProTracker/2.0; +https://github.com/loremcdmx/romeoprotracker)',
-      'Accept': 'text/html',
-      'Accept-Language': 'ru-RU,ru;q=0.9',
+  let lastError
+  for (let attempt = 1; attempt <= FETCH_ATTEMPTS; attempt++) {
+    let retryable = true
+    try {
+      const res = await fetch(url, {
+        signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (compatible; RomeoProTracker/2.0; +https://github.com/loremcdmx/romeoprotracker)',
+          'Accept': 'text/html',
+          'Accept-Language': 'ru-RU,ru;q=0.9',
+        }
+      })
+      if (!res.ok) {
+        retryable = res.status >= 500 || res.status === 429
+        throw new Error(`HTTP ${res.status} for ${url}`)
+      }
+      // The body can stall too; the timeout signal covers reading it.
+      return await res.text()
+    } catch (e) {
+      lastError = e
+      const timedOut = e?.name === 'TimeoutError' || e?.name === 'AbortError'
+      if (!retryable || attempt === FETCH_ATTEMPTS || fetchRetriesUsed >= FETCH_RETRY_BUDGET) break
+      fetchRetriesUsed++
+      console.log(`  ↻ fetch retry ${attempt}/${FETCH_ATTEMPTS - 1} for ${url}: ${timedOut ? `timeout after ${FETCH_TIMEOUT_MS} ms` : e.message}`)
+      await sleep(1000 * attempt)
     }
-  })
-  if (!res.ok) throw new Error(`HTTP ${res.status} for ${url}`)
-  return await res.text()
+  }
+  if (lastError?.name === 'TimeoutError' || lastError?.name === 'AbortError') {
+    throw new Error(`Timeout after ${FETCH_TIMEOUT_MS} ms (${FETCH_ATTEMPTS} attempts) for ${url}`)
+  }
+  throw lastError
 }
 
 function parsePosts(html) {
@@ -276,13 +314,27 @@ function findLastSt(html) {
 // degraded page (stub, partial render, block text), not as an edit: the stored
 // text stays and the id is reported. Real edits and parser improvements
 // lengthen or barely change a body.
+//
+// A REAL shrink (an author cut or blanked-down their post) must still get
+// through: the refused body is remembered on the post as `textCandidate`
+// ({ len, h: short hash, n: separate runs that saw exactly this body }) and is
+// accepted once the same shrunk body has been seen in TEXT_SHRINK_CONFIRM_RUNS
+// runs, provided it is not near-empty (TEXT_SHRINK_MIN_LEN trimmed chars: a
+// blanked post keeps its old text and its warning). The candidate is rewritten
+// only when it changes or its count advances, and removed when the text is
+// accepted or the body is back to normal.
 const TEXT_SHRINK_MIN_STORED = 100
 const TEXT_SHRINK_RATIO = 0.5
+const TEXT_SHRINK_CONFIRM_RUNS = 3
+const TEXT_SHRINK_MIN_LEN = 50
+const textHash = text => createHash('sha1').update(text).digest('hex').slice(0, 12)
 
 // Returns the number of posts whose likes changed. Ids of posts whose BODY was
 // refreshed / refused as a suspicious shrink are pushed to `text.edited` /
-// `text.shrunk` when given.
-function updateLikes(existingPosts, scrapedPosts, text = { edited: [], shrunk: [] }) {
+// `text.shrunk` when given; `text.candidates` collects the ids whose remembered
+// candidate changed (so the run must be persisted).
+function updateLikes(existingPosts, scrapedPosts, text = { edited: [], shrunk: [], candidates: [] }) {
+  if (!text.candidates) text.candidates = []
   const scrapedById = new Map(scrapedPosts.map(p => [p.id, p]))
   let updated = 0
 
@@ -307,16 +359,38 @@ function updateLikes(existingPosts, scrapedPosts, text = { edited: [], shrunk: [
     }
     // Sync the body: forum edits and parser improvements used to be ignored
     // after the first import (text was refreshed only as a side effect of a
-    // videos change). An empty scrape never replaces a stored body. A changed
-    // body changes the translation signature, so needsTranslation re-queues
-    // exactly the Romeo posts whose text moved.
-    if (scraped.text && scraped.text !== post.text) {
+    // videos change). An empty scrape never replaces a stored body (and says
+    // nothing about a remembered candidate). A changed body changes the
+    // translation signature, so needsTranslation re-queues exactly the Romeo
+    // posts whose text moved.
+    if (scraped.text && scraped.text === post.text) {
+      // Body is back to normal: a remembered shrink candidate was a one-off.
+      if (post.textCandidate) { delete post.textCandidate; text.candidates.push(post.id) }
+    } else if (scraped.text) {
       const stored = post.text || ''
-      if (stored.length >= TEXT_SHRINK_MIN_STORED && scraped.text.length < stored.length * TEXT_SHRINK_RATIO) {
-        text.shrunk.push(post.id)
-      } else {
+      const shrunk = stored.length >= TEXT_SHRINK_MIN_STORED && scraped.text.length < stored.length * TEXT_SHRINK_RATIO
+      if (!shrunk) {
         post.text = scraped.text
         text.edited.push(post.id)
+        if (post.textCandidate) { delete post.textCandidate; text.candidates.push(post.id) }
+      } else if (scraped.text.trim().length < TEXT_SHRINK_MIN_LEN) {
+        // Near-empty: never accepted, never remembered.
+        text.shrunk.push(post.id)
+        if (post.textCandidate) { delete post.textCandidate; text.candidates.push(post.id) }
+      } else {
+        const h = textHash(scraped.text)
+        const prev = post.textCandidate
+        const n = prev && prev.h === h && prev.len === scraped.text.length ? (prev.n || 1) + 1 : 1
+        if (n >= TEXT_SHRINK_CONFIRM_RUNS) {
+          post.text = scraped.text
+          text.edited.push(post.id)
+          delete post.textCandidate
+          text.candidates.push(post.id)
+        } else {
+          post.textCandidate = { len: scraped.text.length, h, n }
+          text.shrunk.push(post.id)
+          text.candidates.push(post.id)
+        }
       }
     }
     // Update date to absolute form
@@ -725,7 +799,7 @@ async function main() {
   }
 
   // Update likes (and edited text) on existing posts
-  const textChanges = { edited: [], shrunk: [] }
+  const textChanges = { edited: [], shrunk: [], candidates: [] }
   const likesUpdated = updateLikes(posts, allScraped, textChanges)
   const textEdited = textChanges.edited
   if (likesUpdated > 0) {
@@ -735,7 +809,7 @@ async function main() {
     console.log(`✏ Text: ${textEdited.length} posts refreshed from the forum`)
   }
   if (textChanges.shrunk.length > 0) {
-    console.log(`::warning::Text refresh skipped for ${textChanges.shrunk.length} post(s) whose forum body is less than half of the stored one (degraded page?): ${idList(textChanges.shrunk, 20)}`)
+    console.log(`::warning::Text refresh skipped for ${textChanges.shrunk.length} post(s) whose forum body is less than half of the stored one (degraded page? an author's real cut is accepted after ${TEXT_SHRINK_CONFIRM_RUNS} identical runs): ${idList(textChanges.shrunk, 20)}`)
   }
 
   // Reconcile deletions - full scans only, and only when EVERY page was
@@ -944,7 +1018,7 @@ async function main() {
   // Check if anything changed
   const hasRetries = retryPosts.length > 0 && metaUpdated
   const hasRealChanges = newPosts.length > 0 || likesUpdated > 0 || metaUpdated || translated > 0
-    || textEdited.length > 0 || pruned.length > 0 || brStateChanged
+    || textEdited.length > 0 || textChanges.candidates.length > 0 || pruned.length > 0 || brStateChanged
   const hasChanges = hasRealChanges || heartbeatDue
   if (!hasChanges) {
     console.log('✅ No changes')
@@ -972,6 +1046,7 @@ async function main() {
   if (likesUpdated > 0) parts.push(`likes: ${likesUpdated} updated`)
   if (textEdited.length > 0) parts.push(`text: ${textEdited.length} refreshed`)
   if (pruned.length > 0) parts.push(`-${pruned.length} removed`)
+  if (textChanges.candidates.length > 0 && textEdited.length === 0) parts.push('text shrink candidates')
   if (brStateChanged && !metaUpdated) parts.push('BR retry state')
   if (hasRetries) parts.push(`retried ${retryPosts.length} BR`)
   if (metaUpdated) parts.push(`BR → $${meta.bankroll}`)

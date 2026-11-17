@@ -4971,8 +4971,9 @@ export default function App() {
                     : `${pad2(w.day)}.${pad2(w.month)} ${t('footer_at')} ${time}`
                 }
                 const mins = Math.round((Date.now() - scrapeTs) / 60000)
-                // GitHub cron actually fires every ~28 min median — thresholds
-                // sized so the dot isn't yellow a third of the time.
+                // GitHub cron is best-effort: measured over 25 days ~170 runs/day,
+                // data commits a median ~13 min apart (p99 ~48 min, max ~121 min) —
+                // thresholds sized so the dot isn't yellow a third of the time.
                 const fresh = mins < 35
                 const stale = mins > 120
                 const freshClass = fresh ? 'ok' : stale ? 'stale' : 'warn'
