@@ -15,7 +15,7 @@ import { usePostsData } from './hooks/usePostsData.js'
 import { safeEmbedUrls } from '../scripts/lib/embed-url.mjs'
 import AnimatedValue, { useTweenValue } from './components/AnimatedValue.jsx'
 import { buildPaceTrend, computePaceTrendStats } from './paceTrend.js'
-import { placePaceValueLabels } from './paceLabels.js'
+import { placePaceLabelSpots, samplePacePath } from './paceLabels.js'
 import { buildGlobalAuthorCounts, pickTopAuthors, buildActivityWindow, dayKeyTimestamp, topPostPreview } from './activityAuthors.js'
 import { addIgnoredAuthor, isIgnoredAuthor, removeIgnoredAuthor } from './ignoredAuthors.js'
 import { normalizeMarathonDistance } from './marathonMonths.js'
@@ -147,14 +147,34 @@ function reportedSessionTournaments(row, sorted, idx) {
 // week/month stats and the session-MTT widget. A session counts when its
 // cumulative-first tournament delta is positive; a report whose cumulative did
 // not move has no known count, so it is in neither the sum nor the divisor.
-function buildSessionMttRows(sorted) {
-  return sorted
-    .map((row, idx) => ({
+export function buildSessionMttRows(sorted) {
+  // A report that leaves the cumulative unchanged has no count of its own; its
+  // tournaments are in the next report's delta. The bar that absorbs them also
+  // shows their money (same carry-forward as buildPaceSegments), and `reports`
+  // says how many reports the bar covers; the date stays the last report's.
+  const rows = []
+  let carried = 0
+  let hasCarried = false
+  let carriedReports = 0
+  sorted.forEach((row, idx) => {
+    const mtt = historySessionTournaments(row, sorted, idx)
+    const own = row.sessionResult ?? null
+    if (!mtt) {
+      if (own != null) { carried += own; hasCarried = true }
+      carriedReports += 1
+      return
+    }
+    rows.push({
       timestamp:row.timestamp || 0,
-      mtt:historySessionTournaments(row, sorted, idx),
-      profit:row.sessionResult ?? null,
-    }))
-    .filter(r => r.mtt > 0)
+      mtt,
+      profit:own == null && !hasCarried ? null : (own ?? 0) + carried,
+      reports:carriedReports + 1,
+    })
+    carried = 0
+    hasCarried = false
+    carriedReports = 0
+  })
+  return rows
 }
 
 // Week/month keep the rows inside the window, falling back to everything when
@@ -427,8 +447,13 @@ function computePaceMetrics({ meta, stats, period, binSize = PACE_BIN_SIZE, targ
   const current = computePaceWindow(sorted, currentPredicate, startBR, totalTournaments)
 
   // No report inside the week/month window: keep a stub so the widget can say so
-  // instead of vanishing together with its own period switch.
+  // instead of vanishing together with its own period switch. One report is not
+  // a pace either: the marathon chart falls back to the whole archive below two
+  // reports, so the pace widget and the progress-bar tempo give way too.
   if (!current) return { empty:true, current:null, period, target, remaining:Math.max(0, target - stats.br) }
+  if (period !== 'all' && current.sessions < 2) {
+    return { empty:true, few:true, current:null, period, target, remaining:Math.max(0, target - stats.br) }
+  }
   if (!current.tournaments) return { current, period, target, remaining:Math.max(0, target - stats.br) }
 
   let previous = null
@@ -561,27 +586,53 @@ function PaceMiniChart({ segments, binSize, unit, countUnit = unit, t, light = f
   // (the tooltip and aria-label still carry the exact value).
   const xLabelY = height - 22
   const valueLabelText = seg => formatDollarPerMTT(seg.rate, unit).replace(`/${unit}`, '')
-  const valueLabelPlacement = placePaceValueLabels(
+  // The latest label also keeps clear of its own dot and hollow marker, of the
+  // other dots and of the drawn lines, and may move to the right of the dot (or
+  // tuck back to the left) when above/below is crossed by the curve.
+  const lastRate = segments[lastLabelIdx].rate
+  const lastX = x(lastLabelIdx)
+  const lastY = y(lastRate)
+  // +3: mono glyphs are a hair wider than the estimate and carry a 2px halo
+  const lastLabelW = estimateSvgTextWidth(valueLabelText(segments[lastLabelIdx]), 10.5) + 3
+  const lastAboveX = Math.min(lastX, width - 1.5 - lastLabelW / 2)
+  const lastPositions = [
+    { x:lastAboveX, anchor:'middle', baseline:lastY - 15 },
+    { x:lastAboveX, anchor:'middle', baseline:lastY + 24 },
+    { x:lastX + 12, anchor:'start', baseline:lastY + 4 },
+    { x:lastX - 12, anchor:'end', baseline:lastY + 4 },
+    { x:lastX - 12, anchor:'end', baseline:lastY - 3 },
+    { x:lastX + 12, anchor:'start', baseline:lastY - 3 },
+    { x:lastX - 12, anchor:'end', baseline:lastY - 9 },
+    { x:lastX + 12, anchor:'start', baseline:lastY - 9 },
+  ]
+  if (lastRate < 0) [lastPositions[0], lastPositions[1]] = [lastPositions[1], lastPositions[0]]
+  const dotBox = (point, r) => ({ left:point.x - r, right:point.x + r, top:point.y - r, bottom:point.y + r })
+  const lastAvoid = points.map((point, idx) => dotBox(point, idx === lastLabelIdx ? 9.8 : 5.2))
+  const lastAvoidPaths = [solidLinePath, partialTailPath, trend?.path].filter(Boolean).map(d => samplePacePath(d))
+  const valueLabelSpots = placePaceLabelSpots(
     [...new Set([lastLabelIdx, worstIdx, bestIdx, ...labelIndexes])]
       .filter(idx => labelIndexes.has(idx)
         && (idx === lastLabelIdx || Math.abs(segments[idx].rate) >= Math.max(1, maxAbs * .08)))
       .map(idx => {
         const rateY = y(segments[idx].rate)
-        const edge = idx === lastLabelIdx && x(idx) > gridRight - 42
+        const isLast = idx === lastLabelIdx
+        const widthOf = isLast ? lastLabelW : estimateSvgTextWidth(valueLabelText(segments[idx]), 10.5)
+        const baselines = segments[idx].rate >= 0 ? [rateY - 11, rateY + 17] : [rateY + 17, rateY - 11]
         return {
           key: idx,
-          x: edge ? x(idx) - 10 : x(idx),
-          anchor: edge ? 'end' : 'middle',
-          width: estimateSvgTextWidth(valueLabelText(segments[idx]), 10.5),
-          baselines: segments[idx].rate >= 0 ? [rateY - 11, rateY + 17] : [rateY + 17, rateY - 11],
-          keep: idx === lastLabelIdx,
+          width: widthOf,
+          positions: isLast ? lastPositions : baselines.map(baseline => ({ x:x(idx), anchor:'middle', baseline })),
+          avoid: isLast ? lastAvoid : undefined,
+          avoidPaths: isLast ? lastAvoidPaths : undefined,
+          pathPad: isLast ? 4 : undefined,
+          keep: isLast,
         }
       }),
     [...xLabelIndexes].map(idx => {
       const half = labelWidth(idx) / 2
       return { left: x(idx) - half, right: x(idx) + half, top: xLabelY - 8, bottom: xLabelY + 3 }
     }),
-    { minY: 0, maxY: height },
+    { minX: 1, maxX: width - 1, minY: 0, maxY: height },
   )
   // Dense steps must not put one point's hit area over another point's center.
   const hitRadii = points.map((point, idx) => Math.min(isMobile ? 16 : 12,
@@ -654,10 +705,8 @@ function PaceMiniChart({ segments, binSize, unit, countUnit = unit, t, light = f
           const isLatest = idx === segments.length - 1
           const isBest = idx === bestIdx
           const isWorst = idx === worstIdx
-          const valueLabelY = valueLabelPlacement.get(idx)
+          const valueSpot = valueLabelSpots.get(idx)
           const isPartial = !seg.full
-          const isRightEdgeLabel = isLatest && cx > gridRight - 42
-          const valueLabelX = isRightEdgeLabel ? cx - 10 : cx
           return (
             <g key={`${idx}-${seg.endMtt}`} className={`pace-segment ${tone} ${isPartial ? 'partial' : ''} ${isLatest ? 'latest' : ''} ${isBest ? 'best' : ''} ${isWorst ? 'worst' : ''}`}
               onMouseEnter={() => openTooltip(seg, idx, cx, rateY)}
@@ -672,8 +721,8 @@ function PaceMiniChart({ segments, binSize, unit, countUnit = unit, t, light = f
               {isPartial && <circle className="pace-dot-partial-ring" cx={cx} cy={rateY} r="8.2"/>}
               {isLatest && <circle className="pace-dot-latest-ring" cx={cx} cy={rateY} r="8.4"/>}
               <circle className="pace-dot" cx={cx} cy={rateY} r={isLatest ? 5 : 3.8}/>
-              {valueLabelY != null && (
-                <text className={`pace-chart-value ${tone} ${isRightEdgeLabel ? 'edge' : ''}`} x={valueLabelX} y={valueLabelY}>
+              {valueSpot && (
+                <text className={`pace-chart-value ${tone} ${valueSpot.anchor === 'end' ? 'edge' : valueSpot.anchor === 'start' ? 'edge-start' : ''}`} x={valueSpot.x} y={valueSpot.baseline}>
                   {valueLabelText(seg)}
                 </text>
               )}
@@ -732,7 +781,7 @@ const PaceWidget = memo(function PaceWidget({ pace, period, setPeriod, binSize, 
           </div>
           {periodToggle}
         </div>
-        <div className="pace-chart-empty" role="status">{t('pace_empty_period')}</div>
+        <div className="pace-chart-empty" role="status">{t(pace.few ? 'pace_empty_few' : 'pace_empty_period')}</div>
       </section>
     )
   }
@@ -4006,6 +4055,9 @@ const SessionMttChart = memo(function SessionMttChart({ meta, period, lang, t })
               {hover.r.profit != null && (
                 <div className={`smtt-tooltip-profit ${hover.r.profit >= 0 ? 'pos' : 'neg'}`}>{fk(hover.r.profit)}</div>
               )}
+              {hover.r.reports > 1 && (
+                <div className="smtt-tooltip-reports">{hover.r.reports} {lang === 'ru' ? plural(hover.r.reports, [t('smtt_reports_one'), t('smtt_reports_few'), t('smtt_reports_many')]) : t('smtt_reports_many')}</div>
+              )}
             </SmttTooltip>
           )
         })()}
@@ -4615,7 +4667,7 @@ export default function App() {
                     <span className="mps-label">{tempoLabel}</span>
                     <span className="mps-value-row">
                       {pace?.empty
-                        ? <span className="mps-value" title={t('pace_empty_period')}>—</span>
+                        ? <span className="mps-value" title={t(pace.few ? 'pace_empty_few' : 'pace_empty_period')}>—</span>
                         : <TempoValue target={mttNeeded || mttToBust} title={tempoTitle}/>}
                       {dollarPerMTT != null && (
                         <span className="mps-rate-inline" title={isLosing ? t('losing_warning') : t('dollar_per_mtt_title')}>
