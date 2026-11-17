@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 1.14.28 — 2026-11-17
+
+- Marathon chart, all-time view: when the record high is also the best day (as after 16 November), the gold "PEAK" plate now sits right beside the best-day plate, joined to it by a short connector. Before, the plate stood further left and its leader ran straight through the text of the best-day plate, on desktop and on phones.
+- When the best-day plate belongs to the report just before a newer record, the leader of the "PEAK" plate passes behind that plate instead of across its text.
+
 ## 1.14.27 — 2026-11-16
 
 - Marathon chart on phones, Week and Month: the START value reads "+526.7k$" like the step labels beside it (since 1.14.26 it was upper-cased to "+526.7K$").

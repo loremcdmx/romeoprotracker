@@ -1070,8 +1070,10 @@ describe('App', () => {
     const peakCallout = document.querySelector('.mc-peak-callout')
     const peakRect = peakCallout?.querySelector('.mc-peak-callout-bg')
     const peakLine = peakCallout?.querySelector('.mc-peak-callout-line')
-    // the record is the latest report here: no separate ring, the live dot marks it (K3 UI-3)
-    const peakAnchor = peakCallout?.querySelector('.mc-peak-anchor') || document.querySelector('.mc-dot-last')
+    // The record is the latest report here and also the best day (+$88k), so it carries the best-day
+    // plate, clamped right beside the dot. The peak plate docks to that plate: its leader starts on the
+    // plate's edge. It used to start at the dot and run through the plate's text (owner report, 2026-11-17).
+    const bestPlate = document.querySelector('.mc-milestone-callout.best .mc-milestone-plate')
     const axisText = [...document.querySelectorAll('.mc-xaxis-label-main, .mc-xaxis-label-sub')]
       .map(label => label.textContent)
       .join(' ')
@@ -1091,8 +1093,14 @@ describe('App', () => {
       return x >= peakBounds.left && x <= peakBounds.right && y >= peakBounds.top && y <= peakBounds.bottom
     })
     expect(coveredDots).toHaveLength(0)
-    expect(Number(peakLine?.getAttribute('x1'))).toBeCloseTo(Number(peakAnchor?.getAttribute('cx')), 5)
-    expect(Number(peakLine?.getAttribute('y1'))).toBeCloseTo(Number(peakAnchor?.getAttribute('cy')), 5)
+    expect(peakCallout).toHaveAttribute('data-docked', 'true')
+    expect(document.querySelector('.mc-milestone-callout.best')).toHaveAttribute('data-source-index', '3')
+    expect(Number(peakLine?.getAttribute('x1'))).toBeCloseTo(Number(bestPlate?.getAttribute('x')), 5)
+    expect(Number(peakLine?.getAttribute('y1'))).toBeGreaterThanOrEqual(Number(bestPlate?.getAttribute('y')))
+    expect(Number(peakLine?.getAttribute('y1')))
+      .toBeLessThanOrEqual(Number(bestPlate?.getAttribute('y')) + Number(bestPlate?.getAttribute('height')))
+    expect(Number(peakLine?.getAttribute('x2')))
+      .toBeCloseTo(Number(peakRect?.getAttribute('x')) + Number(peakRect?.getAttribute('width')), 5)
     expect(Math.hypot(
       Number(peakLine?.getAttribute('x2')) - Number(peakLine?.getAttribute('x1')),
       Number(peakLine?.getAttribute('y2')) - Number(peakLine?.getAttribute('y1')),
