@@ -1668,6 +1668,24 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
       .filter(m => !isMobile || m.type === 'best')
       .map(m => milestonePlateRect(m.type, m.point, isMobile, chartFrame))
       .filter(Boolean)
+    // Plates painted for the record report itself: it can also be the best day, the $200k crossing
+    // or the turnaround. Such a plate sits right beside the dot, so a straight leader from the badge
+    // to the dot would run through its text. The badge then docks to that plate instead (a short
+    // connector to the plate, which is already tied to the dot); a leader that still has to pass an
+    // own plate stops at its edge.
+    const isOwnPlate = m => m.i === peakIdx && (!isMobile || m.type === 'best')
+    const ownPlates = allTimeMilestones.filter(isOwnPlate)
+      .map(m => milestonePlateRect(m.type, m.point, isMobile, chartFrame))
+      .filter(Boolean)
+    const foreignPlates = allTimeMilestones.filter(m => !isOwnPlate(m))
+      .map(m => milestonePlateRect(m.type, m.point, isMobile, chartFrame))
+      .filter(Boolean)
+    // Painted plates of OTHER reports. When no spot keeps the leader off them (a best-day plate
+    // right beside a newer record), the leader is hidden where it passes one: it reads as running
+    // behind the plate instead of striking through its text.
+    const leaderMaskRects = allTimeMilestones.filter(m => !isOwnPlate(m) && (!isMobile || m.type === 'best'))
+      .map(m => milestonePlateRect(m.type, m.point, isMobile, chartFrame))
+      .filter(Boolean)
     const rectsOverlap = (a, b) =>
       a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom
     const nearX = badgeW / 2 + (isMobile ? 12 : 14)
@@ -1709,21 +1727,58 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
         }
       }
     }
-    // Gap between the leader and the line, ignoring the two segments that
-    // meet at the peak itself; those only need a clear angle to the leader.
+    // Dock spots: the badge beside, below or above an own plate, joined to it by a short straight
+    // connector at the badge's own centre line. `dock` is the preference order.
+    const dockGap = isMobile ? 7 : 8
+    const dockOffsets = ownPlates.flatMap(r => {
+      const midX = (r.left + r.right) / 2
+      const midY = (r.top + r.bottom) / 2
+      return [
+        { cx:r.left - dockGap - badgeW / 2, cy:midY, from:{ x:r.left, y:midY }, to:{ x:r.left - dockGap, y:midY } },
+        { cx:r.right + dockGap + badgeW / 2, cy:midY, from:{ x:r.right, y:midY }, to:{ x:r.right + dockGap, y:midY } },
+        { cx:midX, cy:r.bottom + dockGap + badgeH / 2, from:{ x:midX, y:r.bottom }, to:{ x:midX, y:r.bottom + dockGap } },
+        { cx:midX, cy:r.top - dockGap - badgeH / 2, from:{ x:midX, y:r.top }, to:{ x:midX, y:r.top - dockGap } },
+      ].map((spot, order) => ({ ...spot, affinity:0, near:true, dock:order }))
+    })
+    // Gap between the leader and the line. A leader that starts at the peak dot ignores the two
+    // segments that meet there; those only need a clear angle to the leader.
     const segmentsCross = (p1, p2, p3, p4) => {
       const ccw = (u, v, w) => (w.y - u.y) * (v.x - u.x) > (v.y - u.y) * (w.x - u.x)
       return ccw(p1, p3, p4) !== ccw(p2, p3, p4) && ccw(p1, p2, p3) !== ccw(p1, p2, p4)
     }
-    const leaderLineGap = anchor => {
+    const leaderLineGap = (anchor, start = point) => {
       let gap = Infinity
       lineSegments.forEach(({ a, b }, j) => {
-        if (j === peakIdx - 1 || j === peakIdx) return
-        if (segmentsCross(point, anchor, a, b)) { gap = 0; return }
-        gap = Math.min(gap, distanceToSegment(a, point, anchor), distanceToSegment(b, point, anchor),
-          distanceToSegment(point, a, b), distanceToSegment(anchor, a, b))
+        if (start === point && (j === peakIdx - 1 || j === peakIdx)) return
+        if (segmentsCross(start, anchor, a, b)) { gap = 0; return }
+        gap = Math.min(gap, distanceToSegment(a, start, anchor), distanceToSegment(b, start, anchor),
+          distanceToSegment(start, a, b), distanceToSegment(anchor, a, b))
       })
       return gap
+    }
+    // Where a leader walking from the badge to the dot first meets an own plate (Liang-Barsky
+    // clipping); the dot itself when no own plate is in the way.
+    const leaderStartFor = anchor => {
+      let start = point
+      let first = Infinity
+      const dx = point.x - anchor.x
+      const dy = point.y - anchor.y
+      ownPlates.forEach(r => {
+        let enter = 0
+        let leave = 1
+        const edges = [[-dx, anchor.x - r.left], [dx, r.right - anchor.x], [-dy, anchor.y - r.top], [dy, r.bottom - anchor.y]]
+        for (const [p, q] of edges) {
+          if (p === 0) { if (q < 0) return; continue }
+          const ratio = q / p
+          if (p < 0) { if (ratio > leave) return; if (ratio > enter) enter = ratio }
+          else { if (ratio < enter) return; if (ratio < leave) leave = ratio }
+        }
+        if (enter < first) {
+          first = enter
+          start = { x:anchor.x + dx * enter, y:anchor.y + dy * enter }
+        }
+      })
+      return start
     }
     const leaderAngleOk = anchor => {
       const lx = anchor.x - point.x
@@ -1776,7 +1831,8 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
         : point.y < rect.top
           ? { x:clamp(point.x, rect.left + 7, rect.right - 7), y:rect.top }
           : { x:clamp(point.x, rect.left + 7, rect.right - 7), y:rect.bottom }
-    const candidates = [...candidateOffsets, ...nearOffsets].map(({ dx, dy, cx:targetAbsCx, cy:targetAbsCy, affinity, near }) => {
+    const candidates = [...candidateOffsets, ...nearOffsets, ...dockOffsets].map(({ dx, dy, cx:targetAbsCx, cy:targetAbsCy, affinity, near, dock, from:dockFrom, to:dockTo }) => {
+      const docked = Number.isFinite(dock)
       const targetCx = Number.isFinite(targetAbsCx) ? targetAbsCx : point.x + dx
       const targetCy = Number.isFinite(targetAbsCy) ? targetAbsCy : point.y + dy
       const cx = clampCx(targetCx)
@@ -1808,15 +1864,20 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
         p.x >= dotBounds.left && p.x <= dotBounds.right && p.y >= dotBounds.top && p.y <= dotBounds.bottom
       ).length
       const lineIntersections = lineSegments.filter(({ a, b }) => segmentIntersectsRect(a, b, padded)).length
-      const anchor = anchorForRect(rect)
+      const anchor = docked ? dockTo : anchorForRect(rect)
+      // The painted leader runs from leaderStart to anchor: the dot, the edge of an own plate
+      // the straight leader would otherwise cross, or the connector of a dock spot.
+      const leaderStart = docked ? dockFrom : leaderStartFor(anchor)
+      const padPlate = r => ({ left:r.left - 3, right:r.right + 3, top:r.top - 3, bottom:r.bottom + 3 })
+      // Direct: a straight leader to the dot that keeps the usual 3 units from every own plate.
+      const direct = !docked && !ownPlates.some(r => segmentIntersectsRect(point, anchor, padPlate(r)))
       const leaderLength = Math.hypot(cx - point.x, cy - point.y)
-      const plateLeaderHits = milestonePlates.filter(r => segmentIntersectsRect(point, anchor,
-        { left:r.left - 3, right:r.right + 3, top:r.top - 3, bottom:r.bottom + 3 })).length
+      const plateLeaderHits = foreignPlates.filter(r => segmentIntersectsRect(leaderStart, anchor, padPlate(r))).length
       const tightRect = { left:rect.left - 2, right:rect.right + 2, top:rect.top - 2, bottom:rect.bottom + 2 }
       const plateOverlaps = milestonePlates.filter(r => rectsOverlap(tightRect, r)).length
       const drawnPlateOverlaps = drawnPlates.filter(r => rectsOverlap(tightRect, r)).length
       const leaderDistance = leaderDangerPoints.length
-        ? Math.min(...leaderDangerPoints.map(p => distanceToSegment(p, point, anchor)))
+        ? Math.min(...leaderDangerPoints.map(p => distanceToSegment(p, leaderStart, anchor)))
         : 32
       const leaderCrowding = Math.max(0, 14 - leaderDistance)
       const clampPenalty = Math.hypot(cx - targetCx, cy - targetCy)
@@ -1827,19 +1888,29 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
       const edgePenalty = rect.top < pT + 7 || rect.right > W - pR - 7 || rect.left < pL + 7 ? 8 : 0
       // Hard clearance: 3.2 units clears the line stroke and most of its faint aura.
       const lineClearRect = { left:rect.left - 3.2, right:rect.right + 3.2, top:rect.top - 3.2, bottom:rect.bottom + 3.2 }
+      // A ring spot needs a straight, unobstructed leader to the dot; a dock spot must sit exactly
+      // where its connector expects it and keep the connector clear of the line.
       const hardClear = !!near && dotOverlaps === 0 && plateOverlaps === 0 && plateLeaderHits === 0
         && Math.abs(cx - targetCx) < 0.5
         && !lineSegments.some(({ a, b }) => segmentIntersectsRect(a, b, lineClearRect))
-        && leaderLineGap(anchor) >= 2.6 && leaderAngleOk(anchor)
+        && (docked
+          ? Math.abs(cy - targetCy) < 0.5 && leaderLineGap(anchor, leaderStart) >= 2.6
+          : direct && leaderLineGap(anchor) >= 2.6 && leaderAngleOk(anchor))
       return {
         near:!!near,
         hardClear,
-        anchorLength:Math.hypot(anchor.x - point.x, anchor.y - point.y),
+        docked,
+        // Dock spots compete as if their connector were 30 units longer, so a spot right beside
+        // the dot still wins whenever one is free.
+        anchorLength:docked
+          ? Math.hypot(anchor.x - leaderStart.x, anchor.y - leaderStart.y) + 30 + dock
+          : Math.hypot(anchor.x - point.x, anchor.y - point.y),
         minDistance,
         cx,
         cy,
         rect,
         anchor,
+        leaderStart,
         overlaps,
         dotOverlaps,
         lineIntersections,
@@ -1871,6 +1942,7 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
     if (nearBest) {
       return {
         idx:peakIdx, point, cx:nearBest.cx, cy:nearBest.cy, anchor:nearBest.anchor, badgeW, badgeH,
+        leaderFrom:nearBest.leaderStart, docked:nearBest.docked, leaderMaskRects,
         label:peakLabel, value:fmtMoneyShort(points[peakIdx].br),
       }
     }
@@ -1891,13 +1963,16 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
         ? { ...candidate, distance, selectionScore }
         : best
     }, null)
-    const { cx, cy, anchor } = preferred
+    const { cx, cy, anchor, leaderStart } = preferred
     return {
       idx:peakIdx,
       point,
       cx,
       cy,
       anchor,
+      leaderFrom:leaderStart,
+      docked:false,
+      leaderMaskRects,
       badgeW,
       badgeH,
       label:peakLabel,
@@ -2174,6 +2249,15 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
             <feGaussianBlur stdDeviation="2" result="blur"/>
             <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
           </filter>
+          {peakCallout?.leaderMaskRects.length > 0 && (
+            <mask id="mcPeakLeaderMask" maskUnits="userSpaceOnUse" x="0" y="0" width={W} height={H+pB+xLabelExtraBottom}>
+              <rect x="0" y="0" width={W} height={H+pB+xLabelExtraBottom} fill="#fff"/>
+              {peakCallout.leaderMaskRects.map((r, i) => (
+                <rect key={i} className="mc-peak-leader-cut" x={r.left - 1.5} y={r.top - 1.5}
+                  width={r.right - r.left + 3} height={r.bottom - r.top + 3} rx={isMobile ? 9 : 7} fill="#000"/>
+              ))}
+            </mask>
+          )}
         </defs>
         <rect x={pL} y={pT} width={W-pL-pR} height={plotBottom-pT} rx="10" className="mc-plot-bg"/>
         <rect x={pL} y={pT} width={W-pL-pR} height={plotBottom-pT} rx="10" fill="url(#mcPlotGlow)" className="mc-plot-glow"/>
@@ -2305,10 +2389,13 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
             W={W} pL={pL} pR={pR} pT={pT} plotBottom={plotBottom}/>
         ))}
         {peakCallout && (
-          <g className="mc-peak-callout" data-idx={peakCallout.idx} data-source-id={points[peakCallout.idx]?.id}>
-            <line x1={peakCallout.point.x} y1={peakCallout.point.y}
-              x2={peakCallout.anchor.x} y2={peakCallout.anchor.y}
-              className="mc-peak-callout-line"/>
+          <g className="mc-peak-callout" data-idx={peakCallout.idx} data-source-id={points[peakCallout.idx]?.id}
+            data-docked={peakCallout.docked ? 'true' : undefined}>
+            <g mask={peakCallout.leaderMaskRects.length ? 'url(#mcPeakLeaderMask)' : undefined}>
+              <line x1={peakCallout.leaderFrom.x} y1={peakCallout.leaderFrom.y}
+                x2={peakCallout.anchor.x} y2={peakCallout.anchor.y}
+                className="mc-peak-callout-line"/>
+            </g>
             <rect x={peakCallout.cx - peakCallout.badgeW / 2} y={peakCallout.cy - peakCallout.badgeH / 2}
               width={peakCallout.badgeW} height={peakCallout.badgeH} rx="7"
               className="mc-peak-callout-bg"/>
