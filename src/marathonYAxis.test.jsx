@@ -151,21 +151,22 @@ describe.each([
     expect(Math.abs(points.at(-1).y - (top + height / 21))).toBeLessThanOrEqual(0.06)
   })
 
+  // K3 MAIN-1: a week/month window now starts at the state BEFORE its first report (the START
+  // point, here the $20k report outside the window), so the axis spans $20k..window and the path has 3 points.
   it.each([
-    ['period_week', 'small change', [15000, 20000, 21400, 21800], 22000, 1 / 3],
-    ['period_month', 'small change', [15000, 20000, 21400, 21800], 22000, 1 / 3],
-    ['period_week', 'flat balance', [15000, 20000, 22000, 22000], 22000, 2 / 7],
-    ['period_month', 'flat balance', [15000, 20000, 22000, 22000], 22000, 2 / 7],
-  ])('preserves the zoomed %s axis for a %s', async (period, _, balances, expectedTick, finalHeightFraction) => {
+    ['period_week', 'small change', [15000, 20000, 21400, 21800], [19000, 20000, 21000, 22000], 400 / 3200],
+    ['period_month', 'small change', [15000, 20000, 21400, 21800], [19000, 20000, 21000, 22000], 400 / 3200],
+    ['period_week', 'flat balance', [15000, 20000, 22000, 22000], [19000, 20000, 21000, 22000], 400 / 3400],
+    ['period_month', 'flat balance', [15000, 20000, 22000, 22000], [19000, 20000, 21000, 22000], 400 / 3400],
+  ])('preserves the zoomed %s axis for a %s', async (period, _, balances, expectedTicks, finalHeightFraction) => {
     const chart = await mount(makeData({ balances }))
     fireEvent.click(within(chart).getByRole('button', { name: translate('ru', period), exact: true }))
     const { values, top, height } = assertReadableAxis(chart)
-    // Independent numerical reference for the existing narrow-domain scale:
-    // these fixtures keep the single $22k tick and exclude the old reports.
-    expect(values).toEqual([expectedTick])
+    // Independent numerical reference: domain = START ($20k) .. last, padded by max(12% of range, $400).
+    expect(values).toEqual(expectedTicks)
     const points = pathPoints(chart)
-    expect(points).toHaveLength(2)
+    expect(points).toHaveLength(3)
     expect(Math.abs(points.at(-1).y - (top + height * finalHeightFraction))).toBeLessThanOrEqual(0.06)
-    if (balances.at(-1) === balances.at(-2)) expect(points[0].y).toBe(points[1].y)
+    if (balances.at(-1) === balances.at(-2)) expect(points[1].y).toBe(points[2].y)
   })
 })

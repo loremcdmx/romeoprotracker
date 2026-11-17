@@ -1050,13 +1050,30 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
   useEffect(() => { setPathLen(null) }, [period])
 
   // Period filter: keep points within cutoff. If result < 2 points, fall back to all.
-  const points = useMemo(() => {
+  const windowPoints = useMemo(() => {
     if (period === 'all' || !allPoints.length) return allPoints
     const now = Date.now() / 1000
     const cutoff = period === 'week' ? now - 7*86400 : period === 'month' ? now - 30*86400 : 0
     const filtered = allPoints.filter(p => (p.timestamp||0) >= cutoff)
     return filtered.length >= 2 ? filtered : allPoints
   }, [allPoints, period])
+  // A week/month window plots the state BEFORE its first report as its first
+  // point (the START label), so the first report keeps its own step and the
+  // labels add up to the bankroll at the end. Not a report: tooltips say so.
+  // A window that starts at the first report of the marathon has no earlier state.
+  const rangeStartPoint = useMemo(() => {
+    if (period === 'all' || !windowPoints.length || windowPoints.length >= allPoints.length) return null
+    const idx = allPoints.indexOf(windowPoints[0])
+    const prev = idx > 0 ? allPoints[idx - 1] : null
+    if (!prev || prev.totalTournaments == null) return null
+    return {
+      id:`range-start-${prev.id}`, synthetic:true, br:prev.br, brPrev:prev.br,
+      date:prev.date, timestamp:prev.timestamp, text:'', url:null, images:[],
+      sessionResult:0, rooms:null, tournaments:null, totalTournaments:prev.totalTournaments,
+      cumulativeMTT:prev.cumulativeMTT, distanceMTT:null,
+    }
+  }, [allPoints, windowPoints, period])
+  const points = useMemo(() => rangeStartPoint ? [rangeStartPoint, ...windowPoints] : windowPoints, [rangeStartPoint, windowPoints])
   // Same rule as the monthly chart: once the shown range crosses a calendar
   // year, month names and date tags get a short "yy" so 2026 and 2027 never
   // read as the same month.
@@ -1080,7 +1097,7 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
   // 'all' keeps the legacy absolute scale (start anchored); week/month zoom the
   // Y domain to the visible points — previously the line used 10-17% of the
   // plot height because the $10k start stayed pinned into the domain.
-  const isZoomedView = period !== 'all' && points.length < allPoints.length
+  const isZoomedView = period !== 'all' && windowPoints.length < allPoints.length
   const dataMin = isZoomedView
     ? Math.min(...points.map(p=>p.br))
     : Math.min(...points.map(p=>p.br), startBR)
@@ -1262,9 +1279,12 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
     if (p.totalTournaments && prevTotal) return Math.max(0, p.totalTournaments - prevTotal)
     return null
   }
-  const isRangeView = period !== 'all' && points.length < allPoints.length
+  const isRangeView = period !== 'all' && windowPoints.length < allPoints.length
   const rangeBaseline = (() => {
     if (!isRangeView || !points.length) return null
+    if (rangeStartPoint) {
+      return { br:rangeStartPoint.br, profit:rangeStartPoint.br - startBR, tournaments:rangeStartPoint.totalTournaments }
+    }
     const first = points[0]
     const allIndex = allPoints.findIndex(p => p === first)
     const prevPoint = allIndex > 0 ? allPoints[allIndex - 1] : null
@@ -1334,7 +1354,15 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
     }
 
     if (rangeBaseline) {
-      put(0, {
+      // Phones: the word on the main line, the value alone on the sub line (no
+      // MTT note, no date), so the first report's own label fits beside it.
+      put(0, isMobile && rangeStartPoint ? {
+        kind:'range-start',
+        main:rangeStartText,
+        priority:134,
+        notes:[fk(rangeBaseline.profit)],
+        noDate:true,
+      } : {
         kind:'range-start',
         main:`${rangeStartText} ${fk(rangeBaseline.profit)}`,
         priority:134,
@@ -1347,6 +1375,14 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
         kind:'start',
         main:firstSessionText,
         priority:58,
+      })
+    }
+    if (rangeStartPoint && points.length > 1) {
+      const step = sessionProfitAt(1)
+      put(1, {
+        kind:`range-first ${step >= 0 ? 'first-pos' : 'first-neg'}`,
+        main:fk(step),
+        priority:128,
       })
     }
     put(points.length - 1, {
@@ -1399,6 +1435,7 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
 
     const dayStats = new Map()
     points.forEach((p, i) => {
+      if (p.synthetic) return
       const key = warsawDayKey(p.timestamp) || `idx-${i}`
       const prev = dayStats.get(key) || { profit:0, firstIdx:i, lastIdx:i }
       prev.profit += sessionProfitAt(i)
@@ -1434,15 +1471,17 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
       .filter(note => note !== item.main)
       .filter(note => !(String(item.kind || '').includes('best') && String(note).trim().startsWith('$')))
       .slice(0, String(item.kind || '').includes('range-start') ? 2 : 1)
-      .concat(fmtDateShortLang(item.p.timestamp, lang, hasMultipleYears))
+      .concat(item.noDate ? [] : [fmtDateShortLang(item.p.timestamp, lang, hasMultipleYears)])
       .join(' · ')
-    const intervalFor = item => {
+    const intervalFor = (item, floor = 48) => {
       const mainWidth = String(item.main || '').length * (isMobile ? 7.4 : 7.1)
       const subWidth = buildSub(item).length * (isMobile ? 5.5 : 5.3)
-      const textWidth = Math.min(isMobile ? 150 : 196, Math.max(48, mainWidth, subWidth))
+      const textWidth = Math.min(isMobile ? 150 : 196, Math.max(floor, mainWidth, subWidth))
       const lx = Math.min(Math.max(item.x, pL), W - pR)
       const leftBound = pL + xLabelEdgePad
       const rightBound = W - pR - xLabelEdgePad
+      // alignStart: the label begins at its own tick instead of being centred on it.
+      if (item.alignStart) return { left:lx - 3, right:lx - 3 + textWidth }
       const anchor = lx - textWidth / 2 < leftBound ? 'start' : lx + textWidth / 2 > rightBound ? 'end' : 'middle'
       const left = anchor === 'start' ? leftBound : anchor === 'end' ? rightBound - textWidth : lx - textWidth / 2
       return { left, right:left + textWidth }
@@ -1459,13 +1498,32 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
     const legacyGap = (a, b) => Math.max(isMobile ? 78 : 68, (legacyWidth(a) + legacyWidth(b)) / 2 + (isMobile ? 16 : 14))
     const labelsCollide = (a, b) => {
       if (period === 'all') return Math.abs(a.x - b.x) < legacyGap(a, b)
-      const ia = intervalFor(a)
-      const ib = intervalFor(b)
-      return Math.min(ia.right, ib.right) - Math.max(ia.left, ib.left) > -(isMobile ? 12 : 10)
+      // START and the first report sit close together by construction (one report
+      // of MTT apart): they may stand a little closer than other labels.
+      const kinds = String(a.kind) + '|' + String(b.kind)
+      const startPair = kinds.includes('range-start') && kinds.includes('range-first')
+      const floor = startPair && isMobile ? 0 : 48
+      const ia = intervalFor(a, floor)
+      const ib = intervalFor(b, floor)
+      return Math.min(ia.right, ib.right) - Math.max(ia.left, ib.left) > -(startPair ? (isMobile ? 6 : 3) : isMobile ? 12 : 10)
     }
     const candidates = [...byIndex.values()].sort((a,b) => b.priority - a.priority)
     for (const candidate of candidates) {
       const conflicts = selected.filter(item => labelsCollide(item, candidate))
+      // Phones: the first report sits right beside START, so its centred label
+      // runs into the START label. Start the label at its own tick instead when
+      // that clears START, every other chosen label and the plot edge.
+      if (isMobile && period !== 'all' && selected.length < maxLabels
+        && String(candidate.kind).includes('range-first')
+        && conflicts.length === 1 && String(conflicts[0].kind).includes('range-start')) {
+        const shifted = { ...candidate, alignStart:true }
+        const fits = intervalFor(shifted).right <= W - pR - xLabelEdgePad
+          && selected.every(item => !labelsCollide(item, shifted))
+        if (fits) {
+          selected.push(shifted)
+          continue
+        }
+      }
       if (!conflicts.length && selected.length < maxLabels) {
         selected.push(candidate)
         continue
@@ -2085,7 +2143,7 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
       <MarathonChartControls {...{ period, setPeriod:setPeriodPersist, grouping, setGrouping, t }}/>
       {usesWholeArchiveFallback && <p className="mc-view-hint">{t('chart_session_fallback')}</p>}
       <svg className="mc-svg" viewBox={`0 0 ${W} ${H+pB+xLabelExtraBottom}`}
-        role="img" aria-label={`${t('chart_marathon')}: ${plBrUpdates(points.length, lang)}`}
+        role="img" aria-label={`${t('chart_marathon')}: ${plBrUpdates(windowPoints.length, lang)}`}
         onMouseLeave={(e)=>{
           // Desktop tooltip is pointer-events:none, so it can never be the
           // relatedTarget — close unconditionally. The old "stay open when
@@ -2233,7 +2291,7 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
                     className={`mc-dot-grouped-ring ${mixedTone ? 'mc-dot-mixed-ring' : ''}`}
                     stroke={profit>=0?'#4caf50':'#e53935'}/>}
                   <circle cx={cx} cy={cy} r={dotR}
-                    className={`mc-dot ${isLast && !isCrowded ? 'mc-dot-last' : ''} ${isGrouped?'mc-dot-grouped':''} ${compacted?'mc-dot-compacted':''} ${mixedTone?'mc-dot-mixed':''} ${isCrowded?'mc-dot-crowded':''} ${!significant && !isHovered ? 'mc-dot-minor' : ''} ${dotHidden && !isHovered ? 'mc-dot-hidden' : ''}`}
+                    className={`mc-dot ${isLast && !isCrowded ? 'mc-dot-last' : ''} ${isGrouped?'mc-dot-grouped':''} ${compacted?'mc-dot-compacted':''} ${mixedTone?'mc-dot-mixed':''} ${isCrowded?'mc-dot-crowded':''} ${!significant && !isHovered ? 'mc-dot-minor' : ''} ${dotHidden && !isHovered ? 'mc-dot-hidden' : ''} ${p.synthetic ? 'mc-dot-baseline' : ''}`}
                     fill={profit>=0?'#4caf50':'#e53935'}
                     style={{transition:'r .12s', ...(isCrowded ? {strokeWidth:isHovered ? 1.4 : .9} : {}), ...(isLast?{color:profit>=0?'#4caf50':'#e53935'}:{})}}/>
                 </>
@@ -2262,22 +2320,24 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
               // The peak is often the second-to-last report: its big ring used
               // to sit on top of the live (latest) dot. Keep the two markers
               // distinct: shrink the peak ring to the room left beside the
-              // latest dot, and draw no separate ring when there is none.
+              // latest dot; with no separate ring when the peak IS the latest.
               const lastPoint = coords[coords.length - 1]
               const fullR = isMobile ? 6.5 : 5.2
               const room = peakCallout.idx === points.length - 1 || !lastPoint
                 ? Infinity
                 : Math.hypot(peakCallout.point.x - lastPoint.x, peakCallout.point.y - lastPoint.y) - 6
               if (room === Infinity && peakCallout.idx === points.length - 1) return null
-              if (room < 4) return null
-              const r = Math.min(fullR, room - 2.4)
+              // No room for a ring beside the latest dot (phones): keep a tiny
+              // gold dot exactly on the peak vertex so the leader still points
+              // at the right report, never at "the latest one".
+              const r = room < 4 ? 2.2 : Math.min(fullR, room - 2.4)
               return <circle className={`mc-peak-anchor ${r < fullR ? 'mc-peak-anchor-small' : ''}`}
                 cx={peakCallout.point.x} cy={peakCallout.point.y} r={r}/>
             })()}
           </g>
         )}
         <g className={`mc-axis-event-layer ${period === 'all' ? 'is-hidden' : ''}`}>
-        {xLabelItems.map(({ i, x, y, main, sub, kind }) => {
+        {xLabelItems.map(({ i, x, y, main, sub, kind, alignStart }) => {
           const isLast = i===points.length-1
           const lx = Math.min(Math.max(x,pL),W-pR)
           const mainWidth = String(main || '').length * (isMobile ? 7.4 : 7.1)
@@ -2285,12 +2345,13 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
           const textWidth = Math.min(isMobile ? 150 : 196, Math.max(48, mainWidth, subWidth))
           const leftBound = pL + xLabelEdgePad
           const rightBound = W - pR - xLabelEdgePad
-          const anchor = lx - textWidth / 2 < leftBound
+          const anchor = alignStart || lx - textWidth / 2 < leftBound
             ? 'start'
             : lx + textWidth / 2 > rightBound
               ? 'end'
               : 'middle'
-          const tx = anchor === 'start' ? leftBound : anchor === 'end' ? rightBound : lx
+          // alignStart (the first report beside START on a phone) begins at its own tick.
+          const tx = alignStart ? lx - 3 : anchor === 'start' ? leftBound : anchor === 'end' ? rightBound : lx
           const mainY = xMainLabelY
           const subY = xSubLabelY
           const currentLine = anchor === 'end'
@@ -2391,14 +2452,16 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
         return (
           <div ref={sheetRef} className={`mc-tooltip ${tipVisible ? 'is-visible' : ''}`} style={{...mobileStyle, position: isMobile ? 'fixed' : 'absolute', pointerEvents: isMobile ? 'auto' : 'none'}}
             onClick={e => e.stopPropagation()}>
-            {/* Pill — всегда в правом верхнем углу тултипа */}
-            <div className={`mc-pill ${tip.profit >= 0 ? 'pos' : 'neg'}`} style={{
+            {/* Pill — всегда в правом верхнем углу тултипа (не для начала периода: это не отчёт) */}
+            {!tip.p.synthetic && <div className={`mc-pill ${tip.profit >= 0 ? 'pos' : 'neg'}`} style={{
               position:'absolute', top:12, right:12,
               transform:'none',
             }}>
               {fk(tip.profit)}
-            </div>
-            <div style={{fontWeight:700,color:'var(--white)',fontSize:13,marginBottom:5,paddingRight:64}}>{fmtDateTimeLang(tip.p.timestamp, lang, hasMultipleYears)}</div>
+            </div>}
+            {tip.p.synthetic && <div className="mc-tip-range-start" style={{fontWeight:700,color:'var(--white)',fontSize:13,marginBottom:2}}>{t('tip_range_start')}</div>}
+            <div style={{fontWeight:700,color:'var(--white)',fontSize:13,marginBottom:5,paddingRight:tip.p.synthetic ? 0 : 64}}>{fmtDateTimeLang(tip.p.timestamp, lang, hasMultipleYears)}</div>
+            {tip.p.synthetic && <div style={{fontSize:10,color:'var(--dim)',marginBottom:6}}>{t('tip_range_start_note')}</div>}
             {/* Compact stat row (hstat-style): BR and the cumulative MTT total —
                 the counter readers use to measure streak length in tournaments. */}
             <div style={{display:'flex',gap:14,margin:'1px 0',marginBottom:tipMTTSince?5:roomDeltas.length?8:5}}>
