@@ -2337,7 +2337,7 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
           </g>
         )}
         <g className={`mc-axis-event-layer ${period === 'all' ? 'is-hidden' : ''}`}>
-        {xLabelItems.map(({ i, x, y, main, sub, kind, alignStart }) => {
+        {xLabelItems.map(({ i, x, y, main, sub, kind, alignStart, noDate }) => {
           const isLast = i===points.length-1
           const lx = Math.min(Math.max(x,pL),W-pR)
           const mainWidth = String(main || '').length * (isMobile ? 7.4 : 7.1)
@@ -2366,7 +2366,7 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
               <text x={tx} y={mainY} textAnchor={anchor} className="mc-xaxis-label-main">
                 {main}
               </text>
-              <text x={tx} y={subY} textAnchor={anchor} className="mc-xaxis-label-sub">
+              <text x={tx} y={subY} textAnchor={anchor} className={`mc-xaxis-label-sub${noDate && kind.includes('range-start') ? ' mc-xaxis-label-money' : ''}`}>
                 {sub}
               </text>
               {(isLast || kind.includes('milestone') || kind.includes('recovery')) && <line x1={currentLine.x1} y1={subY + 6} x2={currentLine.x2} y2={subY + 6} className="mc-x-current-line"/>}

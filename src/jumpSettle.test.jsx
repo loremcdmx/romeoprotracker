@@ -120,11 +120,15 @@ describe('settling after an in-page jump', () => {
     })
     try {
       await jumpFromDayRow()
-      await waitFor(() => expect(instants(spy).length).toBeGreaterThanOrEqual(4), { timeout: 3000 })
+      // The settle is a real requestAnimationFrame loop (6 quiet frames per snap) clocked by performance.now(): the
+      // 4 snaps take about 2.2 s here. Real timers are kept (faking rAF and performance.now together would change what
+      // is under test); the wait is widened instead, to the 5 s the settle itself allows (SETTLE_MAX_MS), and the
+      // test gets its own 15 s limit so a loaded machine cannot cut it off first (ASM-T7).
+      await waitFor(() => expect(instants(spy).length).toBeGreaterThanOrEqual(4), { timeout: 8000 })
       await pause(1500)
       expect(instants(spy)).toHaveLength(4)
     } finally { restore() }
-  })
+  }, 15000)
 
   it('gives up after 5 s when the page never holds still', async () => {
     const watch = watchListeners()

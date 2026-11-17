@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 1.14.27 — 2026-11-16
+
+- Marathon chart on phones, Week and Month: the START value reads "+526.7k$" like the step labels beside it (since 1.14.26 it was upper-cased to "+526.7K$").
+- Tests only, from the audit of the assembled review stack: a session bar that absorbs two reports sums both results; the tooltip of a two-report dot; the chart's accessible label counts only the reports of the period; the narrow single-tick zoom of Week and Month; the small peak dot next to the latest point; the order of fallback data sources; no work on a payload that arrives after the page is gone; the pace label helpers; "1 post" / "2 posts". The page-chrome tests no longer depend on their order, and the widget-label check pins its flat-total reports on the frozen archive.
+
 ## 1.14.26 — 2026-11-16
 
 - Marathon chart, Week and Month: the line now starts at the bankroll before the first report of the period (the START point), so the first report's own result is drawn, and labelled when there is room. Before, the chart began at the first report: the START label sat on that report's point and its result was missing, so in a three-report week START +526.7k followed by −11.7k and +11.9k did not add up to the current profit. On phones the START value moves to the second line so the first report's label fits beside it more often.

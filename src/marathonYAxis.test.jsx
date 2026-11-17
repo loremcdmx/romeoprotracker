@@ -158,6 +158,11 @@ describe.each([
     ['period_month', 'small change', [15000, 20000, 21400, 21800], [19000, 20000, 21000, 22000], 400 / 3200],
     ['period_week', 'flat balance', [15000, 20000, 22000, 22000], [19000, 20000, 21000, 22000], 400 / 3400],
     ['period_month', 'flat balance', [15000, 20000, 22000, 22000], [19000, 20000, 21000, 22000], 400 / 3400],
+    // ASM-T4: the report before the window ($21 750) is close to the window ($21 800), so the START point adds almost nothing.
+    // Scale rule: range START $21 750 .. last $21 800 = $50, pad = max(12% of 50, $400) = $400; minV = floor((21 750 - 400) / 1000) * 1000
+    // = $21 000, maxV = 21 800 + 400 = $22 200 (range 1 200). No 1/2/5 step gives 3 to 7 intervals in 1 200, so the step falls back
+    // to $2 000 and the only multiple inside is the single $22k tick; the last point sits 400 / 1 200 below the top.
+    ['period_week', 'narrow window next to START', [15000, 21750, 21790, 21800], [22000], 400 / 1200],
   ])('preserves the zoomed %s axis for a %s', async (period, _, balances, expectedTicks, finalHeightFraction) => {
     const chart = await mount(makeData({ balances }))
     fireEvent.click(within(chart).getByRole('button', { name: translate('ru', period), exact: true }))
