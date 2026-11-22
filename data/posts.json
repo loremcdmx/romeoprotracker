@@ -183758,7 +183758,7 @@
     "date": "22 ноября, 05:10",
     "timestamp": 1795320612,
     "text": "Day 212:",
-    "likes": 49,
+    "likes": 50,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_11_2026/post-6195-17953206099055_thumb.webp"
     ],
@@ -183954,7 +183954,7 @@
     "id": "8333300",
     "author": "JohnScarnie",
     "avatar": "https://forum.gipsyteam.com/img/imguser.png",
-    "rating": 8,
+    "rating": -92,
     "msgCount": 32,
     "regData": "7 лет на сайте",
     "date": "22 ноября, 18:58",
@@ -183969,5 +183969,23 @@
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8333300"
+  },
+  {
+    "id": "8333304",
+    "author": "Sergpz",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/1/7/0/2/170214.webp",
+    "rating": 1198,
+    "msgCount": 165,
+    "regData": "2 года на сайте",
+    "date": "22 ноября, 19:05",
+    "timestamp": 1795370721,
+    "text": "JohnScarnie, Я женат, а вот такие как  ты, как раз все и провоцируют, отдыхай дядя или тетя.",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8333304"
   }
 ]
