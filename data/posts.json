@@ -183632,7 +183632,7 @@
     "date": "21 ноября, 21:15",
     "timestamp": 1795292138,
     "text": "Для рэнджей, брм и покерной тематики есть профильные темы. Не флудите",
-    "likes": 5,
+    "likes": 6,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -183758,7 +183758,7 @@
     "date": "22 ноября, 00:03",
     "timestamp": 1795302219,
     "text": "[QUOTE]batlebit|batlebit @ 21.11.26\nРебят, поскольку уверен что  в чате есть люди разбирающиеся в сновидениях, подскажите пожалуйста.Приснился сон сегодня, где я катаюсь на Розовом Пони в поле, небо Синее-Синее, звуки приятной и ласковой музыки, меня кто-то зовет, я оборачиваюсь и вижу Славу Бустера( блогера) он приглашает меня к себе на чай и мы начинаем жестко трахаться у него дома. Есть версии, к чему это?[/QUOTE]ты пидор",
-    "likes": 7,
+    "likes": 8,
     "images": [],
     "videos": [],
     "brBefore": null,
@@ -183855,5 +183855,41 @@
     "brAfter": null,
     "sessionResult": null,
     "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8333027"
+  },
+  {
+    "id": "8333044",
+    "author": "Romeopro",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/2/6/6/26670.jpg",
+    "rating": 25974,
+    "msgCount": 4285,
+    "regData": "16 лет на сайте",
+    "date": "22 ноября, 05:10",
+    "timestamp": 1795320612,
+    "text": "Day 212:",
+    "likes": 0,
+    "images": [
+      "https://static-forum.gipsyteam.ru/monthly_11_2026/post-6195-17953206099055_thumb.webp"
+    ],
+    "videos": [],
+    "brBefore": 626638,
+    "brAfter": 629251,
+    "sessionResult": 2613,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8333044",
+    "rooms": {
+      "before": {
+        "gg": 625201,
+        "ps": 1188,
+        "king": 232,
+        "coin": 17,
+        "lux": 0
+      },
+      "after": {
+        "gg": 627814,
+        "ps": 1188,
+        "king": 232,
+        "coin": 17,
+        "lux": 0
+      }
+    }
   }
 ]
