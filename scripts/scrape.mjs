@@ -44,6 +44,20 @@ async function writeJson(path, value) {
   await writeFile(path, JSON.stringify(value, null, 2))
 }
 
+const GIT_TIMEOUT_MS = 60_000
+const CLAUDE_TIMEOUT_MS = 60_000
+const ALERT_TIMEOUT_MS = 10_000
+
+function stampPostsHash(merged, meta) {
+  const postsHash = createHash('sha1')
+    .update(JSON.stringify(merged.map(p => [p.id, p.likes, p.rating, p.text, p.translations, p.images, p.videos, p.date, p.brAfter])))
+    .digest('hex')
+  if (postsHash !== meta.postsHash) {
+    meta.postsHash = postsHash
+    meta.postsChangedAt = new Date().toISOString()
+  }
+}
+
 async function persistScrapeOutputs({
   posts,
   meta = null,
@@ -59,9 +73,8 @@ async function persistScrapeOutputs({
   }
 
   if (!NO_PUSH) {
-    execSync('git config user.name "RomeoPro Scraper"')
-    execSync('git config user.email "scraper@romeoprotracker.vercel.app"')
-    try { execSync('git pull --rebase origin main') } catch {}
+    execSync('git config user.name "RomeoPro Scraper"', { timeout: GIT_TIMEOUT_MS })
+    execSync('git config user.email "scraper@romeoprotracker.vercel.app"', { timeout: GIT_TIMEOUT_MS })
   }
 
   await writeJson('data/posts.json', posts)
@@ -73,23 +86,23 @@ async function persistScrapeOutputs({
     return
   }
 
-  execFileSync('git', ['add', ...gitFiles])
+  execFileSync('git', ['add', ...gitFiles], { timeout: GIT_TIMEOUT_MS })
   // Distinguish "nothing changed" (fine) from a real commit/push failure: the
   // old single catch swallowed rejected pushes, so a persistent failure looked
   // like a healthy run and notifyFailure never fired.
   let hasStagedChanges = false
-  try { execSync('git diff --cached --quiet') } catch { hasStagedChanges = true }
+  try { execSync('git diff --cached --quiet', { timeout: GIT_TIMEOUT_MS }) } catch { hasStagedChanges = true }
   if (!hasStagedChanges) {
     console.log('ℹ Nothing to commit')
     return
   }
-  execFileSync('git', ['commit', '-m', commitMessage])
+  execFileSync('git', ['commit', '-m', commitMessage], { timeout: GIT_TIMEOUT_MS })
   try {
-    execSync('git push')
+    execSync('git push', { timeout: GIT_TIMEOUT_MS })
   } catch (e) {
     console.log('⚠ push rejected, retrying after rebase:', e.message)
-    execSync('git pull --rebase origin main')
-    execSync('git push')
+    execSync('git pull --rebase origin main', { timeout: GIT_TIMEOUT_MS })
+    execSync('git push', { timeout: GIT_TIMEOUT_MS })
   }
   console.log(`✅ Pushed: ${commitMessage}`)
 }
@@ -112,15 +125,19 @@ function htmlToText($el, $) {
     const fig = $clone(this)
     if (fig.find('iframe').length) fig.replaceWith('\n[VIDEO]\n')
   })
-  $clone('blockquote').each(function () {
-    const bq = $clone(this)
-    const cite = bq.find('em.cite, .cite')
-    const author = cite.find('strong, b').first().text().trim()
-    const dateRaw = cite.find('.em-cite, span').first().text().trim()
-    cite.remove()
+  // Process blockquotes inside-out (reverse document order) so nested quotes
+  // keep their own cite metadata instead of having outer cite.remove() strip them.
+  const bqs = $clone('blockquote').toArray().reverse()
+  for (const node of bqs) {
+    const bq = $clone(node)
+    const cite = bq.children('em.cite, .cite')
+    const citeNode = cite.length ? cite : bq.find('em.cite, .cite').first()
+    const author = citeNode.find('strong, b').first().text().trim()
+    const dateRaw = citeNode.find('.em-cite, span').first().text().trim()
+    citeNode.remove()
     const body = bq.text().trim()
     bq.replaceWith(`[QUOTE]${author}|${dateRaw}\n${body}[/QUOTE]`)
-  })
+  }
   return $clone.root().text().replace(/\n{3,}/g, '\n\n').trim()
 }
 
@@ -137,7 +154,7 @@ function normalizeGtAssetUrl(value) {
   if (src.startsWith('/upload/')) return `https://www.gipsyteam.ru${src}`
   if (src.startsWith('/img/')) return `https://forum.gipsyteam.com${src}`
   if (src.startsWith('/')) return `https://forum.gipsyteam.ru${src}`
-  return src
+  return null
 }
 function tsToDate(ts) {
   if (!ts) return ''
@@ -247,16 +264,18 @@ function parsePosts(html) {
     if (text.length > maxLen) {
       // Prioritize keeping the reply (after [/QUOTE]) over the quote itself
       const lastClose = text.lastIndexOf('[/QUOTE]')
-      if (lastClose !== -1) {
+      const quoteStart = lastClose !== -1 ? text.indexOf('[QUOTE]') : -1
+      const nlIdx = quoteStart !== -1 ? text.indexOf('\n', quoteStart) : -1
+      if (lastClose !== -1 && quoteStart !== -1 && nlIdx !== -1 && nlIdx < lastClose) {
         const reply = text.substring(lastClose + '[/QUOTE]'.length).trim()
-        const quoteStart = text.indexOf('[QUOTE]')
         if (reply.length > 0) {
           // Truncate the QUOTE body to fit, keep full reply
-          const quoteHeader = text.substring(quoteStart, text.indexOf('\n', quoteStart) + 1)
+          const prefix = text.substring(0, quoteStart)
+          const quoteHeader = text.substring(quoteStart, nlIdx + 1)
           const replyBudget = Math.min(reply.length, maxLen - 200)
-          const quoteBudget = maxLen - replyBudget - quoteHeader.length - '[/QUOTE]'.length
+          const quoteBudget = maxLen - prefix.length - replyBudget - quoteHeader.length - '[/QUOTE]'.length
           const quoteBody = text.substring(quoteStart + quoteHeader.length, lastClose)
-          text = quoteHeader + quoteBody.substring(0, Math.max(100, quoteBudget)) +
+          text = prefix + quoteHeader + quoteBody.substring(0, Math.max(100, quoteBudget)) +
             (quoteBudget < quoteBody.length ? '…' : '') +
             '[/QUOTE]' + reply.substring(0, replyBudget)
         } else {
@@ -272,11 +291,15 @@ function parsePosts(html) {
       ? parseInt(dateEl.attr('data-timestamp'))
       : null
 
+    const parsedRating = ratingEl.length
+      ? parseInt(ratingEl.text().replace(/\u2212/g, '-').replace(/[^\d-]/g, ''), 10)
+      : NaN
+
     posts.push({
       id: postId,
       author,
       avatar: normalizeGtAssetUrl(avatarEl.attr('src')),
-      rating: ratingEl.length ? parseInt(ratingEl.text().replace(/[^\d-]/g, '')) || null : null,
+      rating: Number.isFinite(parsedRating) ? parsedRating : null,
       msgCount: msgEl.length ? parseInt(msgEl.text().replace(/[^\d]/g, '')) || null : null,
       regData: regEl.length ? regEl.text().trim() : null,
       date: (() => {
@@ -335,6 +358,7 @@ const textHash = text => createHash('sha1').update(text).digest('hex').slice(0, 
 // candidate changed (so the run must be persisted).
 function updateLikes(existingPosts, scrapedPosts, text = { edited: [], shrunk: [], candidates: [] }) {
   if (!text.candidates) text.candidates = []
+  if (text.fieldsUpdated == null) text.fieldsUpdated = 0
   const scrapedById = new Map(scrapedPosts.map(p => [p.id, p]))
   let updated = 0
 
@@ -348,14 +372,27 @@ function updateLikes(existingPosts, scrapedPosts, text = { edited: [], shrunk: [
     // Also update rating if changed
     if (scraped.rating != null && post.rating !== scraped.rating) {
       post.rating = scraped.rating
+      text.fieldsUpdated++
     }
-    // Sync images (e.g. remove quoted images after scraper fix)
+    // Sync avatar URL when normalized/changed
+    if (scraped.avatar && post.avatar !== scraped.avatar) {
+      post.avatar = scraped.avatar
+      text.fieldsUpdated++
+    }
+    // Sync images (e.g. remove quoted images or detect newly edited-in screenshots)
     if (scraped.images && JSON.stringify(scraped.images) !== JSON.stringify(post.images)) {
+      const prevSet = new Set(post.images || [])
+      const hasNewImage = scraped.images.some(url => !prevSet.has(url))
       post.images = scraped.images
+      if (hasNewImage && ROMEO_RE.test(post.author) && post.brAfter == null && post.brChecked) {
+        post.brChecked = false
+      }
+      text.fieldsUpdated++
     }
     // Sync videos (added by scraper fix — backfill on existing posts)
     if (scraped.videos && JSON.stringify(scraped.videos) !== JSON.stringify(post.videos || [])) {
       post.videos = scraped.videos
+      text.fieldsUpdated++
     }
     // Sync the body: forum edits and parser improvements used to be ignored
     // after the first import (text was refreshed only as a side effect of a
@@ -497,7 +534,8 @@ async function extractBrFromImages(post, lastBrHistory) {
         model: 'claude-sonnet-4-6',
         max_tokens: 300,
         messages: [{ role: 'user', content }],
-      })
+      }),
+      signal: AbortSignal.timeout(CLAUDE_TIMEOUT_MS),
     })
   } catch (e) {
     console.log(`  ⚠ Claude API network error: ${e.message}`)
@@ -527,7 +565,7 @@ async function extractBrFromImages(post, lastBrHistory) {
 
   let parsed
   try {
-    parsed = JSON.parse(text.replace(/^```json\n?/, '').replace(/\n?```$/, ''))
+    parsed = JSON.parse(text.replace(/^```(?:json)?\r?\n?/i, '').replace(/\r?\n?```$/, ''))
   } catch (e) {
     console.log(`  ⚠ Claude API parse error: ${e.message}`)
     return BR_EXTRACT_RETRY
@@ -551,22 +589,25 @@ async function extractBrFromImages(post, lastBrHistory) {
 
 async function writeCompactPosts(merged) {
   const avatarMap = new Map()
-  merged.forEach(p => {
-    if (p.avatar && !avatarMap.has(p.avatar)) avatarMap.set(p.avatar, avatarMap.size)
-  })
+  const authorMap = new Map()
+  const regDataMap = new Map()
+  const intern = (map, value) => {
+    let idx = map.get(value)
+    if (idx === undefined) { idx = map.size; map.set(value, idx) }
+    return idx
+  }
   const compactPosts = merged.map(p => {
     const o = {
       i: p.id,
-      a: p.author,
+      a: p.author != null ? intern(authorMap, p.author) : '',
       t: p.timestamp,
-      l: p.likes || 0,
     }
+    if (p.likes) o.l = p.likes
     if (p.text) o.x = p.text
-    if (p.avatar) o.v = avatarMap.get(p.avatar)
-    if (p.rating)      o.r = p.rating
+    if (p.avatar) o.v = intern(avatarMap, p.avatar)
+    if (p.rating != null) o.r = p.rating
     if (p.msgCount)    o.m = p.msgCount
-    if (p.regData)     o.g = p.regData
-    if (p.date)        o.d = p.date
+    if (p.regData)     o.g = intern(regDataMap, p.regData)
     if (p.images?.length) o.p = p.images
     if (p.videos?.length) o.vd = p.videos
     if (p.brAfter != null) o.ba = p.brAfter
@@ -577,8 +618,12 @@ async function writeCompactPosts(merged) {
     if (p.translations?.es) o.ts = p.translations.es
     return o
   })
-  const avatarList = [...avatarMap.keys()]
-  const compactData = { avatars: avatarList, posts: compactPosts }
+  const compactData = {
+    avatars: [...avatarMap.keys()],
+    authors: [...authorMap.keys()],
+    regData: [...regDataMap.keys()],
+    posts: compactPosts,
+  }
   await writeFile('data/posts.min.json', JSON.stringify(compactData))
 }
 
@@ -627,10 +672,13 @@ async function main() {
       console.log('✅ Nothing translated')
       return
     }
+    meta.lastScrapeRun = new Date().toISOString()
+    stampPostsHash(posts, meta)
     await persistScrapeOutputs({
       posts,
+      meta,
       writeCompact: true,
-      gitFiles: ['data/posts.json', 'data/posts.min.json'],
+      gitFiles: ['data/posts.json', 'data/meta.json', 'data/posts.min.json'],
       commitMessage: `scraper: translate ${done} Romeo posts to en/es`,
     })
     return
@@ -716,7 +764,12 @@ async function main() {
     const lastBr = newHistory[newHistory.length - 1]
     meta.bankroll = lastBr.brAfter
     meta.totalTournaments = [...newHistory].reverse().find(h => h.totalTournaments != null)?.totalTournaments ?? 0
-    meta.lastUpdated = new Date().toISOString()
+    const computedDay = computeMarathonDay(posts, meta.brHistory)
+    if (computedDay) meta.day = computedDay
+    const nowIso = new Date().toISOString()
+    meta.lastUpdated = nowIso
+    meta.lastScrapeRun = nowIso
+    stampPostsHash(posts, meta)
 
     const msg = `scraper: reextract ${meta.brHistory.length} BR entries, BR → $${meta.bankroll} (total ${posts.length})`
     await persistScrapeOutputs({
@@ -840,6 +893,11 @@ async function main() {
     }
   }
 
+  if (newPosts.length > 1) {
+    // Normal mode scans newest pages first; sort chronologically before BR chain
+    // validation and merge so multi-page bursts stay in exact thread order.
+    newPosts.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0) || Number(a.id) - Number(b.id))
+  }
   if (newPosts.length > 0) {
     console.log(`🆕 Found ${newPosts.length} new posts`)
   }
@@ -883,6 +941,7 @@ async function main() {
     if (!brData) {
       console.log('  ℹ No BR data found in images — marking as checked')
       p.brChecked = true
+      brStateChanged = true
       return false
     }
 
@@ -1017,7 +1076,7 @@ async function main() {
 
   // Check if anything changed
   const hasRetries = retryPosts.length > 0 && metaUpdated
-  const hasRealChanges = newPosts.length > 0 || likesUpdated > 0 || metaUpdated || translated > 0
+  const hasRealChanges = newPosts.length > 0 || likesUpdated > 0 || textChanges.fieldsUpdated > 0 || metaUpdated || translated > 0
     || textEdited.length > 0 || textChanges.candidates.length > 0 || pruned.length > 0 || brStateChanged
   const hasChanges = hasRealChanges || heartbeatDue
   if (!hasChanges) {
@@ -1032,13 +1091,7 @@ async function main() {
   // Open tabs gate their heavy refetch on meta freshness. Stamp whenever the
   // published posts CONTENT changes — hashing catches rating/image/date syncs
   // that the likes/new-post counters missed (audit: 2 of 291 commits).
-  const postsHash = createHash('sha1')
-    .update(JSON.stringify(merged.map(p => [p.id, p.likes, p.rating, p.text, p.translations, p.images, p.videos, p.date, p.brAfter])))
-    .digest('hex')
-  if (postsHash !== meta.postsHash) {
-    meta.postsHash = postsHash
-    meta.postsChangedAt = new Date().toISOString()
-  }
+  stampPostsHash(merged, meta)
 
   // Build commit message
   const parts = []
@@ -1076,6 +1129,7 @@ async function notifyFailure(error) {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ text: message, content: message }),
+        signal: AbortSignal.timeout(ALERT_TIMEOUT_MS),
       })
       return
     }
@@ -1086,6 +1140,7 @@ async function notifyFailure(error) {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ chat_id: chatId, text: message }),
+        signal: AbortSignal.timeout(ALERT_TIMEOUT_MS),
       })
     }
   } catch (alertError) {

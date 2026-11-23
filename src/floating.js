@@ -213,7 +213,7 @@ export function computeSvgTooltipLayout({
   gap = 10,
   zoom = 1,
 }) {
-  if (!svgRect || !viewBox || !(svgRect.width > 0) || !(svgRect.height > 0)) return null
+  if (!svgRect || !viewBox || !point || !(svgRect.width > 0) || !(svgRect.height > 0) || !(viewBox.width > 0) || !(viewBox.height > 0)) return null
   const scale = Math.min(svgRect.width / viewBox.width, svgRect.height / viewBox.height)
   const offsetX = (svgRect.width - viewBox.width * scale) / 2
   const offsetY = (svgRect.height - viewBox.height * scale) / 2

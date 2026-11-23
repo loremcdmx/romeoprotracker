@@ -24,6 +24,13 @@ function clearSavedSettings() {
   } catch {
     // Storage may be blocked entirely; reloading is still worth trying.
   }
+  try {
+    if (typeof indexedDB !== 'undefined' && typeof indexedDB.deleteDatabase === 'function') {
+      indexedDB.deleteDatabase('rpt_cache_db')
+    }
+  } catch {
+    // Ignore IDB deletion errors in restricted contexts.
+  }
 }
 
 const styles = {

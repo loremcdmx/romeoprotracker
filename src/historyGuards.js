@@ -20,7 +20,7 @@ export function isHistoryRow(row) {
 // summed or shown; the field is dropped so every consumer falls back to what it
 // does for a report without it (derive the result from the bankroll step, use
 // the cumulative total instead of the session count, ...).
-const ROW_NUMBER_FIELDS = ['tournaments', 'totalTournaments', 'sessionResult', 'brBefore']
+const ROW_NUMBER_FIELDS = ['tournaments', 'totalTournaments', 'sessionResult', 'brBefore', 'timestamp']
 
 function isCleanNumber(value) {
   return value == null || Number.isFinite(value)

@@ -2407,7 +2407,7 @@ describe('App', () => {
       expect(document.getElementById('post-romeo-low')).toBeNull()
       const tip = await hoverDay(oldDay)
       fireEvent.click(tip.querySelector('.day-event-clickable'))
-      expect(open).toHaveBeenCalledWith('https://forum.gipsyteam.ru/romeo-low', '_blank', 'noopener')
+      expect(open).toHaveBeenCalledWith('https://forum.gipsyteam.ru/romeo-low', '_blank', 'noopener,noreferrer')
       expect(activePage()).toBe('1')
     })
 
@@ -2421,7 +2421,7 @@ describe('App', () => {
         return el
       })
       fireEvent.click(row)
-      expect(open).toHaveBeenCalledWith('https://forum.gipsyteam.ru/romeo-low', '_blank', 'noopener')
+      expect(open).toHaveBeenCalledWith('https://forum.gipsyteam.ru/romeo-low', '_blank', 'noopener,noreferrer')
     })
 
     describe('ignored authors', () => {

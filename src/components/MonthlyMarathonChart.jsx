@@ -12,14 +12,25 @@ const MONTHS = {
 }
 const compactMTT = value => value == null ? '—' : value >= 1000 ? `${(value / 1000).toFixed(value % 1000 ? 1 : 0)}k` : String(value)
 const monthNumber = point => Number(point.year) * 12 + point.month - 1
+const monthFormatterCache = new Map()
+const getMonthFormatter = (tag) => {
+  if (monthFormatterCache.has(tag)) return monthFormatterCache.get(tag)
+  try {
+    const fmt = new Intl.DateTimeFormat(tag, { month:'long', year:'numeric', timeZone:'Europe/Warsaw' })
+    monthFormatterCache.set(tag, fmt)
+    return fmt
+  } catch {
+    monthFormatterCache.set(tag, null)
+    return null
+  }
+}
 // A language tag the browser rejects (RangeError) must never take the render
 // down: fall back to the default language, then to the month key.
 const monthName = (point, lang) => {
   const date = new Date(point.timestamp * 1000)
   for (const tag of typeof lang === 'string' ? [lang, DEFAULT_LANG] : [DEFAULT_LANG]) {
-    try {
-      return new Intl.DateTimeFormat(tag, { month:'long', year:'numeric', timeZone:'Europe/Warsaw' }).format(date)
-    } catch { /* invalid tag: try the next one */ }
+    const fmt = getMonthFormatter(tag)
+    if (fmt) return fmt.format(date)
   }
   return point.key
 }

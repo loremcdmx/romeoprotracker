@@ -1,9 +1,9 @@
-import { useState, useEffect, useLayoutEffect, useMemo, useRef, useCallback, memo } from 'react'
+import { useState, useEffect, useLayoutEffect, useMemo, useRef, useCallback, useDeferredValue, memo } from 'react'
 import { Analytics } from '@vercel/analytics/react'
 import {
   timeAgo, fmtBR, fmtNum, fmtInt, fmtExact, fmtExactSigned, fmtDateShort, extractDay, extractBR,
   fk, fkAbs, fmtMoneyShort, fmtMoneyTick, ROMEO_RE, autoCloseQuotes, stripQuoteTags, extractQuoteBody,
-  pl, plural,
+  pl, plural, safeHttpUrl,
   warsawDayKey, warsawParts, fmtDateTimeLang, spansMultipleYears,
 } from './utils.js'
 import { createTranslator, DEFAULT_LANG, FORUM_WORD, LANG_DICT, fmtDateShortLang } from './i18n.js'
@@ -100,7 +100,8 @@ function computePaceWindow(sorted, predicate, startBR, fallbackTotal = null) {
     const lastIdx = indexed[indexed.length - 1].idx
     const totals = trustedCumulativeTotals(sorted)
     const beforeTotal = previousTrustedTotal(totals, firstIdx)
-    const lastTotal = totals[lastIdx] || fallbackTotal || 0
+    const allowFallback = lastIdx === sorted.length - 1
+    const lastTotal = totals[lastIdx] || (allowFallback ? fallbackTotal : 0) || 0
     tournaments = Math.max(0, lastTotal - beforeTotal)
   }
 
@@ -140,7 +141,7 @@ function reportedSessionTournaments(row, sorted, idx) {
   const total = totals[idx] || 0
   const prevTotal = previousTrustedTotal(totals, idx)
   if (total && prevTotal) return Math.max(0, total - prevTotal)
-  if (total) return row?.tournaments || total
+  if (total) return idx > 0 ? total : (row?.tournaments || total)
   // No cumulative on this row: if a later row has one, its delta will absorb
   // this session — counting the reported number here would double it.
   for (let i = idx + 1; i < sorted.length; i++) {
@@ -241,6 +242,13 @@ export function buildPaceSegments(sorted, predicate, startBR, binSize = PACE_BIN
   })
 
   flush()
+  // If trailing zero-MTT report(s) landed right after a full bin flush, fold
+  // their profit into the last segment instead of silently dropping it.
+  if (!active.tournaments && active.profit && segments.length > 0) {
+    const last = segments[segments.length - 1]
+    last.profit += active.profit
+    last.rate = last.profit / last.tournaments
+  }
   const labelled = segments.map((seg, idx) => ({
     ...seg,
     index:idx,
@@ -514,158 +522,191 @@ function PaceRateValue({ value, unit, className = '', animate = true }) {
   return <span className={`pace-rate-value ${tone} ${pulse ? 'pulse' : ''} ${className}`}>{formatDollarPerMTT(animated, unit)}</span>
 }
 
-function PaceMiniChart({ segments, binSize, unit, countUnit = unit, t, light = false }) {
+const PaceMiniChart = memo(function PaceMiniChart({ segments, binSize, unit, countUnit = unit, t, light = false }) {
   const [hovered, setHovered] = useState(null)
-  useEffect(() => setHovered(null), [segments])
-  // Must stay above the early return so the hook order never changes.
+  const wrapRef = useRef(null)
+  // Must stay above any early return so hook order never changes.
   const isMobile = useIsMobile()
-  if (!segments?.length) return <div className="pace-chart-empty">{t('pace_chart_empty')}</div>
+  const closeTooltip = useCallback(() => setHovered(null), [])
+  const { announceOpen: announceHoverPopupOpen } = useExclusiveHoverPopup(closeTooltip)
 
-  // Same reasoning as the marathon chart: a 920-wide canvas rendered into a
-  // ~335px column scaled everything to 0.36, leaving the axis labels at ~3px.
-  // Authoring near the real render width keeps them legible.
-  const width = isMobile ? 340 : 920
-  const height = isMobile ? 220 : 230
-  // left must clear the right-aligned Y tick labels, which are drawn at
-  // gridLeft - 13 and run ~34 units wide at the mobile font size.
-  const pad = isMobile
-    ? { left:54, right:14, top:26, bottom:36 }
-    : { left:58, right:28, top:32, bottom:42 }
-  const gridLeft = pad.left
-  const gridRight = width - pad.right
-  const basePlotW = gridRight - gridLeft
-  const plotH = height - pad.top - pad.bottom
-  const maxAbs = Math.max(5, ...segments.map(seg => Math.abs(seg.rate || 0)))
-  const zeroY = pad.top + plotH / 2
-  const barW = Math.max(12, Math.min(34, basePlotW / Math.max(1, segments.length) * .48))
-  const pointLeft = gridLeft
-  const pointRight = gridRight - barW / 2
-  const pointW = pointRight - pointLeft
-  const maxMtt = Math.max(1, ...segments.map(seg => seg.endMtt || 0))
-  const xByMtt = value => pointLeft + clampNumber(value / maxMtt, 0, 1) * pointW
-  const x = idx => xByMtt(segments[idx]?.endMtt || 0)
-  const y = value => pad.top + (maxAbs - value) / (maxAbs * 2) * plotH
-  const yTicks = [maxAbs, maxAbs / 2, 0, -maxAbs / 2, -maxAbs]
-  const points = segments.map((seg, idx) => ({ x:x(idx), y:y(seg.rate) }))
-  const originPoint = { x:pointLeft, y:zeroY }
-  const hasPartialTail = !segments[segments.length - 1].full
-  const fullPoints = hasPartialTail ? points.slice(0, -1) : points
-  const solidPoints = [originPoint, ...fullPoints]
-  const solidLinePath = buildSmoothSvgPath(solidPoints, .62, pad.top, pad.top + plotH)
-  const lastSolidPoint = solidPoints[solidPoints.length - 1]
-  const areaPath = solidLinePath && solidPoints.length > 1 && lastSolidPoint
-    ? `${solidLinePath} L ${lastSolidPoint.x.toFixed(1)} ${zeroY.toFixed(1)} L ${solidPoints[0].x.toFixed(1)} ${zeroY.toFixed(1)} Z`
-    : ''
-  const partialStartPoint = fullPoints.length ? fullPoints[fullPoints.length - 1] : originPoint
-  const partialTailPath = hasPartialTail
-    ? `M ${partialStartPoint.x.toFixed(1)} ${partialStartPoint.y.toFixed(1)} L ${points[points.length - 1].x.toFixed(1)} ${points[points.length - 1].y.toFixed(1)}`
-    : ''
-  const partialTailTone = hasPartialTail && segments[segments.length - 1].rate >= 0 ? 'pos' : 'neg'
-  const bestIdx = segments.reduce((best, seg, idx) => seg.rate > segments[best].rate ? idx : best, 0)
-  const worstIdx = segments.reduce((worst, seg, idx) => seg.rate < segments[worst].rate ? idx : worst, 0)
-  const labelIndexes = new Set([segments.length - 1, bestIdx, worstIdx])
-  if (segments.length <= 3) segments.forEach((_, idx) => labelIndexes.add(idx))
-  const trend = buildPaceTrend(segments, { maxMtt, maxAbs, xByMtt, y })
-  const xLabelIndexes = new Set()
-  segments.forEach((_, idx) => {
-    if (segments.length <= 8 || idx % 2 === 0 || idx === segments.length - 1) xLabelIndexes.add(idx)
-  })
-  // Keep the current total visible, then space the other ticks by text width.
-  const lastLabelIdx = segments.length - 1
-  const lastLabelX = x(lastLabelIdx)
-  const labelWidth = idx => estimateSvgTextWidth(segments[idx].label, 10)
-  let previousLabelIdx = null
-  for (const idx of [...xLabelIndexes]) {
-    if (idx === lastLabelIdx) continue
-    const finalGap = Math.max(40, (labelWidth(idx) + labelWidth(lastLabelIdx)) / 2 + 8)
-    const previousGap = previousLabelIdx == null ? 0 : (labelWidth(idx) + labelWidth(previousLabelIdx)) / 2 + 8
-    if (lastLabelX - x(idx) < finalGap || (previousLabelIdx != null && x(idx) - x(previousLabelIdx) < previousGap)) {
-      xLabelIndexes.delete(idx)
-    } else {
-      previousLabelIdx = idx
+  useEffect(() => setHovered(null), [segments, isMobile])
+
+  useEffect(() => {
+    if (!hovered) return undefined
+    const onDocClick = (e) => {
+      if (wrapRef.current && !wrapRef.current.contains(e.target)) closeTooltip()
     }
-  }
-  // Value labels (latest, worst, best) get a collision pass: against the x-axis
-  // labels (a negative extreme sits on the plot floor, right above them) and
-  // against each other. A label flips to the other side of its dot when its
-  // preferred side is taken; a best/worst label with no free side is dropped
-  // (the tooltip and aria-label still carry the exact value).
-  const xLabelY = height - 22
-  const valueLabelText = seg => formatDollarPerMTT(seg.rate, unit).replace(`/${unit}`, '')
-  // The latest label also keeps clear of its own dot and hollow marker, of the
-  // other dots and of the drawn lines, and may move to the right of the dot (or
-  // tuck back to the left) when above/below is crossed by the curve.
-  const lastRate = segments[lastLabelIdx].rate
-  const lastX = x(lastLabelIdx)
-  const lastY = y(lastRate)
-  // +3: mono glyphs are a hair wider than the estimate and carry a 2px halo
-  const lastLabelW = estimateSvgTextWidth(valueLabelText(segments[lastLabelIdx]), 10.5) + 3
-  const lastAboveX = Math.min(lastX, width - 1.5 - lastLabelW / 2)
-  const lastPositions = [
-    { x:lastAboveX, anchor:'middle', baseline:lastY - 15 },
-    { x:lastAboveX, anchor:'middle', baseline:lastY + 24 },
-    { x:lastX + 12, anchor:'start', baseline:lastY + 4 },
-    { x:lastX - 12, anchor:'end', baseline:lastY + 4 },
-    { x:lastX - 12, anchor:'end', baseline:lastY - 3 },
-    { x:lastX + 12, anchor:'start', baseline:lastY - 3 },
-    { x:lastX - 12, anchor:'end', baseline:lastY - 9 },
-    { x:lastX + 12, anchor:'start', baseline:lastY - 9 },
-  ]
-  if (lastRate < 0) [lastPositions[0], lastPositions[1]] = [lastPositions[1], lastPositions[0]]
-  const dotBox = (point, r) => ({ left:point.x - r, right:point.x + r, top:point.y - r, bottom:point.y + r })
-  const lastAvoid = points.map((point, idx) => dotBox(point, idx === lastLabelIdx ? 9.8 : 5.2))
-  const lastAvoidPaths = [solidLinePath, partialTailPath, trend?.path].filter(Boolean).map(d => samplePacePath(d))
-  const valueLabelSpots = placePaceLabelSpots(
-    [...new Set([lastLabelIdx, worstIdx, bestIdx, ...labelIndexes])]
-      .filter(idx => labelIndexes.has(idx)
-        && (idx === lastLabelIdx || Math.abs(segments[idx].rate) >= Math.max(1, maxAbs * .08)))
-      .map(idx => {
-        const rateY = y(segments[idx].rate)
-        const isLast = idx === lastLabelIdx
-        const widthOf = isLast ? lastLabelW : estimateSvgTextWidth(valueLabelText(segments[idx]), 10.5)
-        const baselines = segments[idx].rate >= 0 ? [rateY - 11, rateY + 17] : [rateY + 17, rateY - 11]
-        return {
-          key: idx,
-          width: widthOf,
-          positions: isLast ? lastPositions : baselines.map(baseline => ({ x:x(idx), anchor:'middle', baseline })),
-          avoid: isLast ? lastAvoid : undefined,
-          avoidPaths: isLast ? lastAvoidPaths : undefined,
-          pathPad: isLast ? 4 : undefined,
-          keep: isLast,
-        }
+    const onKey = (e) => {
+      if (e.key === 'Escape') closeTooltip()
+    }
+    document.addEventListener('click', onDocClick)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('click', onDocClick)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [hovered, closeTooltip])
+
+  const geom = useMemo(() => {
+    if (!segments?.length) return null
+    // Same reasoning as the marathon chart: a 920-wide canvas rendered into a
+    // ~335px column scaled everything to 0.36, leaving the axis labels at ~3px.
+    // Authoring near the real render width keeps them legible.
+    const width = isMobile ? 340 : 920
+    const height = isMobile ? 220 : 230
+    // left must clear the right-aligned Y tick labels, which are drawn at
+    // gridLeft - 13 and run ~34 units wide at the mobile font size.
+    const pad = isMobile
+      ? { left:54, right:14, top:26, bottom:36 }
+      : { left:58, right:28, top:32, bottom:42 }
+    const gridLeft = pad.left
+    const gridRight = width - pad.right
+    const basePlotW = gridRight - gridLeft
+    const plotH = height - pad.top - pad.bottom
+    const maxAbs = Math.max(5, ...segments.map(seg => Math.abs(seg.rate || 0)))
+    const zeroY = pad.top + plotH / 2
+    const barW = Math.max(12, Math.min(34, basePlotW / Math.max(1, segments.length) * .48))
+    const pointLeft = gridLeft
+    const pointRight = gridRight - barW / 2
+    const pointW = pointRight - pointLeft
+    const maxMtt = Math.max(1, ...segments.map(seg => seg.endMtt || 0))
+    const xByMtt = value => pointLeft + clampNumber(value / maxMtt, 0, 1) * pointW
+    const x = idx => xByMtt(segments[idx]?.endMtt || 0)
+    const y = value => pad.top + (maxAbs - value) / (maxAbs * 2) * plotH
+    const yTicks = [maxAbs, maxAbs / 2, 0, -maxAbs / 2, -maxAbs]
+    const points = segments.map((seg, idx) => ({ x:x(idx), y:y(seg.rate) }))
+    const originPoint = { x:pointLeft, y:zeroY }
+    const hasPartialTail = !segments[segments.length - 1].full
+    const fullPoints = hasPartialTail ? points.slice(0, -1) : points
+    const solidPoints = [originPoint, ...fullPoints]
+    const solidLinePath = buildSmoothSvgPath(solidPoints, .62, pad.top, pad.top + plotH)
+    const lastSolidPoint = solidPoints[solidPoints.length - 1]
+    const areaPath = solidLinePath && solidPoints.length > 1 && lastSolidPoint
+      ? `${solidLinePath} L ${lastSolidPoint.x.toFixed(1)} ${zeroY.toFixed(1)} L ${solidPoints[0].x.toFixed(1)} ${zeroY.toFixed(1)} Z`
+      : ''
+    const partialStartPoint = fullPoints.length ? fullPoints[fullPoints.length - 1] : originPoint
+    const partialTailPath = hasPartialTail
+      ? `M ${partialStartPoint.x.toFixed(1)} ${partialStartPoint.y.toFixed(1)} L ${points[points.length - 1].x.toFixed(1)} ${points[points.length - 1].y.toFixed(1)}`
+      : ''
+    const partialTailTone = hasPartialTail && segments[segments.length - 1].rate >= 0 ? 'pos' : 'neg'
+    const bestIdx = segments.reduce((best, seg, idx) => seg.rate > segments[best].rate ? idx : best, 0)
+    const worstIdx = segments.reduce((worst, seg, idx) => seg.rate < segments[worst].rate ? idx : worst, 0)
+    const labelIndexes = new Set([segments.length - 1, bestIdx, worstIdx])
+    if (segments.length <= 3) segments.forEach((_, idx) => labelIndexes.add(idx))
+    const trend = buildPaceTrend(segments, { maxMtt, maxAbs, xByMtt, y })
+    const xLabelIndexes = new Set()
+    segments.forEach((_, idx) => {
+      if (segments.length <= 8 || idx % 2 === 0 || idx === segments.length - 1) xLabelIndexes.add(idx)
+    })
+    // Keep the current total visible, then space the other ticks by text width.
+    const lastLabelIdx = segments.length - 1
+    const lastLabelX = x(lastLabelIdx)
+    const labelWidth = idx => estimateSvgTextWidth(segments[idx].label, 10)
+    let previousLabelIdx = null
+    for (const idx of [...xLabelIndexes]) {
+      if (idx === lastLabelIdx) continue
+      const finalGap = Math.max(40, (labelWidth(idx) + labelWidth(lastLabelIdx)) / 2 + 8)
+      const previousGap = previousLabelIdx == null ? 0 : (labelWidth(idx) + labelWidth(previousLabelIdx)) / 2 + 8
+      if (lastLabelX - x(idx) < finalGap || (previousLabelIdx != null && x(idx) - x(previousLabelIdx) < previousGap)) {
+        xLabelIndexes.delete(idx)
+      } else {
+        previousLabelIdx = idx
+      }
+    }
+    const xLabelY = height - 22
+    const valueLabelText = seg => formatDollarPerMTT(seg.rate, unit).replace(`/${unit}`, '')
+    const lastRate = segments[lastLabelIdx].rate
+    const lastX = x(lastLabelIdx)
+    const lastY = y(lastRate)
+    // +3: mono glyphs are a hair wider than the estimate and carry a 2px halo
+    const lastLabelW = estimateSvgTextWidth(valueLabelText(segments[lastLabelIdx]), 10.5) + 3
+    const lastAboveX = Math.min(lastX, width - 1.5 - lastLabelW / 2)
+    const lastPositions = [
+      { x:lastAboveX, anchor:'middle', baseline:lastY - 15 },
+      { x:lastAboveX, anchor:'middle', baseline:lastY + 24 },
+      { x:lastX + 12, anchor:'start', baseline:lastY + 4 },
+      { x:lastX - 12, anchor:'end', baseline:lastY + 4 },
+      { x:lastX - 12, anchor:'end', baseline:lastY - 3 },
+      { x:lastX + 12, anchor:'start', baseline:lastY - 3 },
+      { x:lastX - 12, anchor:'end', baseline:lastY - 9 },
+      { x:lastX + 12, anchor:'start', baseline:lastY - 9 },
+    ]
+    if (lastRate < 0) [lastPositions[0], lastPositions[1]] = [lastPositions[1], lastPositions[0]]
+    const dotBox = (point, r) => ({ left:point.x - r, right:point.x + r, top:point.y - r, bottom:point.y + r })
+    const lastAvoid = points.map((point, idx) => dotBox(point, idx === lastLabelIdx ? 9.8 : 5.2))
+    const lastAvoidPaths = [solidLinePath, partialTailPath, trend?.path].filter(Boolean).map(d => samplePacePath(d))
+    const valueLabelSpots = placePaceLabelSpots(
+      [...new Set([lastLabelIdx, worstIdx, bestIdx, ...labelIndexes])]
+        .filter(idx => labelIndexes.has(idx)
+          && (idx === lastLabelIdx || Math.abs(segments[idx].rate) >= Math.max(1, maxAbs * .08)))
+        .map(idx => {
+          const rateY = y(segments[idx].rate)
+          const isLast = idx === lastLabelIdx
+          const widthOf = isLast ? lastLabelW : estimateSvgTextWidth(valueLabelText(segments[idx]), 10.5)
+          const baselines = segments[idx].rate >= 0 ? [rateY - 11, rateY + 17] : [rateY + 17, rateY - 11]
+          return {
+            key: idx,
+            width: widthOf,
+            positions: isLast ? lastPositions : baselines.map(baseline => ({ x:x(idx), anchor:'middle', baseline })),
+            avoid: isLast ? lastAvoid : undefined,
+            avoidPaths: isLast ? lastAvoidPaths : undefined,
+            pathPad: isLast ? 4 : undefined,
+            keep: isLast,
+          }
+        }),
+      [...xLabelIndexes].map(idx => {
+        const half = labelWidth(idx) / 2
+        return { left: x(idx) - half, right: x(idx) + half, top: xLabelY - 8, bottom: xLabelY + 3 }
       }),
-    [...xLabelIndexes].map(idx => {
-      const half = labelWidth(idx) / 2
-      return { left: x(idx) - half, right: x(idx) + half, top: xLabelY - 8, bottom: xLabelY + 3 }
-    }),
-    { minX: 1, maxX: width - 1, minY: 0, maxY: height },
-  )
-  // Dense steps must not put one point's hit area over another point's center.
-  const hitRadii = points.map((point, idx) => Math.min(isMobile ? 16 : 12,
-    ...points.flatMap((other, otherIdx) => otherIdx === idx ? [] : [Math.hypot(point.x - other.x, point.y - other.y) * .45])))
-  const paceTone = ok => ok ? (light ? '#2e8b3a' : '#78d984') : (light ? '#c8362e' : '#f0756d')
-  const firstTone = paceTone(segments[0]?.rate >= 0)
-  const lineStops = [
-    { offset:'0%', color:firstTone },
-    ...segments.map(seg => ({
-      offset:`${(seg.endMtt || 0) / maxMtt * 100}%`,
-      color:paceTone(seg.rate >= 0),
-    })),
-  ]
+      { minX: 1, maxX: width - 1, minY: 0, maxY: height },
+    )
+    // Dense steps must not put one point's hit area over another point's center.
+    const hitRadii = points.map((point, idx) => Math.min(isMobile ? 16 : 12,
+      ...points.flatMap((other, otherIdx) => otherIdx === idx ? [] : [Math.hypot(point.x - other.x, point.y - other.y) * .45])))
+    const paceTone = ok => ok ? (light ? '#2e8b3a' : '#78d984') : (light ? '#c8362e' : '#f0756d')
+    const firstTone = paceTone(segments[0]?.rate >= 0)
+    const lineStops = [
+      { offset:'0%', color:firstTone },
+      ...segments.map(seg => ({
+        offset:`${(seg.endMtt || 0) / maxMtt * 100}%`,
+        color:paceTone(seg.rate >= 0),
+      })),
+    ]
+    return {
+      width, height, pad, gridLeft, gridRight, basePlotW, plotH, yTicks, x, y,
+      solidPoints, solidLinePath, areaPath, partialTailPath, partialTailTone,
+      bestIdx, worstIdx, trend, xLabelIndexes, xLabelY, valueLabelText,
+      valueLabelSpots, hitRadii, lineStops,
+    }
+  }, [segments, isMobile, unit, light])
+
+  if (!geom) return <div className="pace-chart-empty">{t('pace_chart_empty')}</div>
+
+  const {
+    width, height, pad, gridLeft, gridRight, basePlotW, plotH, yTicks, x, y,
+    solidPoints, solidLinePath, areaPath, partialTailPath, partialTailTone,
+    bestIdx, worstIdx, trend, xLabelIndexes, xLabelY, valueLabelText,
+    valueLabelSpots, hitRadii, lineStops,
+  } = geom
+
   const openTooltip = (seg, idx, cx, cy) => {
-    setHovered({
-      seg,
-      idx,
-      x:cx,
-      y:cy,
-      align:cx > width * .72 ? 'left' : cx < width * .28 ? 'right' : 'center',
-      vertical:cy < height * .38 ? 'below' : 'above',
+    setHovered((prev) => {
+      if (prev?.idx === idx && prev.seg === seg) return prev
+      announceHoverPopupOpen()
+      return {
+        seg,
+        idx,
+        x:cx,
+        y:cy,
+        align:cx > width * .72 ? 'left' : cx < width * .28 ? 'right' : 'center',
+        vertical:cy < height * .38 ? 'below' : 'above',
+      }
     })
   }
-  const closeTooltip = () => setHovered(null)
 
   return (
-    <div className="pace-chart-wrap" data-testid="pace-chart" onMouseLeave={closeTooltip}>
+    <div ref={wrapRef} className="pace-chart-wrap" data-testid="pace-chart" onMouseLeave={closeTooltip}>
       <svg className="pace-chart" viewBox={`0 0 ${width} ${height}`} role="img" aria-label={t('pace_chart_label').replace('{step}', String(binSize))}>
         <defs>
           <linearGradient id="paceAreaGrad" x1="0" y1={pad.top} x2="0" y2={pad.top + plotH} gradientUnits="userSpaceOnUse">
@@ -716,12 +757,14 @@ function PaceMiniChart({ segments, binSize, unit, countUnit = unit, t, light = f
           return (
             <g key={`${idx}-${seg.endMtt}`} className={`pace-segment ${tone} ${isPartial ? 'partial' : ''} ${isLatest ? 'latest' : ''} ${isBest ? 'best' : ''} ${isWorst ? 'worst' : ''}`}
               onMouseEnter={() => openTooltip(seg, idx, cx, rateY)}
-              onMouseMove={() => openTooltip(seg, idx, cx, rateY)}
               onPointerEnter={() => openTooltip(seg, idx, cx, rateY)}
-              onPointerMove={() => openTooltip(seg, idx, cx, rateY)}
               onFocus={() => openTooltip(seg, idx, cx, rateY)}
               onBlur={closeTooltip}
               onClick={(e) => { e.stopPropagation(); openTooltip(seg, idx, cx, rateY) }}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openTooltip(seg, idx, cx, rateY) }
+                else if (e.key === 'Escape') closeTooltip()
+              }}
               tabIndex="0" role="button" aria-label={`${seg.label}: ${formatDollarPerMTT(seg.rate, unit)}${isPartial ? `, ${t('pace_tip_partial')}` : ''}`}>
               <circle className="pace-dot-hit" cx={cx} cy={rateY} r={hitRadii[idx]}/>
               {isPartial && <circle className="pace-dot-partial-ring" cx={cx} cy={rateY} r="8.2"/>}
@@ -762,7 +805,7 @@ function PaceMiniChart({ segments, binSize, unit, countUnit = unit, t, light = f
       )}
     </div>
   )
-}
+})
 
 const PaceWidget = memo(function PaceWidget({ pace, period, setPeriod, binSize, setBinSize, lang, t, light = false }) {
   if (!pace) return null
@@ -1010,7 +1053,7 @@ function buildMarathonPoints(posts, meta, startBR) {
       }))
   }
   return posts
-    .filter(p => ROMEO_RE.test(p.author) && p.brAfter)
+    .filter(p => ROMEO_RE.test(p.author) && p.brAfter != null)
     .sort((a,b) => (a.timestamp||0)-(b.timestamp||0))
     .map((p,i,arr) => ({
       id:p.id,
@@ -1051,20 +1094,34 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
   const pathRef = useRef(null)
   const chartRef = useRef(null)
   const tipCloseTimer = useRef(null)
+  const tipRafRef = useRef(null)
+  const longPressTimer = useRef(null)
+  const longPressOpened = useRef(false)
   const isMobile = useIsMobile()
+  const cancelTipRaf = useCallback(() => {
+    if (tipRafRef.current == null) return
+    if (typeof window !== 'undefined' && window.cancelAnimationFrame) window.cancelAnimationFrame(tipRafRef.current)
+    else clearTimeout(tipRafRef.current)
+    tipRafRef.current = null
+  }, [])
   const closeTip = useCallback(() => {
+    cancelTipRaf()
     setTipVisible(false)
     clearTimeout(tipCloseTimer.current)
     tipCloseTimer.current = setTimeout(() => setTip(null), 130)
-  }, [])
+  }, [cancelTipRaf])
   const openTipState = useCallback((nextTip) => {
     clearTimeout(tipCloseTimer.current)
+    cancelTipRaf()
     setTip(nextTip)
     const raf = typeof window !== 'undefined' && window.requestAnimationFrame
       ? window.requestAnimationFrame
       : (fn) => setTimeout(fn, 0)
-    raf(() => setTipVisible(true))
-  }, [])
+    tipRafRef.current = raf(() => {
+      tipRafRef.current = null
+      setTipVisible(true)
+    })
+  }, [cancelTipRaf])
   const { announceOpen: announceHoverPopupOpen } = useExclusiveHoverPopup(closeTip)
 
   // Phone long-press tooltip: measured and placed in real pixels so it always
@@ -1133,7 +1190,11 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
     return () => window.removeEventListener('resize', place)
   }, [isMobile, tip])
 
-  useEffect(() => () => clearTimeout(tipCloseTimer.current), [])
+  useEffect(() => () => {
+    clearTimeout(tipCloseTimer.current)
+    clearTimeout(longPressTimer.current)
+    cancelTipRaf()
+  }, [cancelTipRaf])
 
   // Close tooltip on click outside chart
   useEffect(() => {
@@ -1145,16 +1206,22 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
     return () => document.removeEventListener('click', handler)
   }, [tip, closeTip])
 
-  // Reset animation on period change so line redraws
-  useEffect(() => { setPathLen(null) }, [period])
-
   // Period filter: keep points within cutoff. If result < 2 points, fall back to all.
-  const windowPoints = useMemo(() => {
-    if (period === 'all' || !allPoints.length) return allPoints
+  // Share the exact same cutoff timestamp for both the plotted window and the
+  // distance summary so they can never drift out of sync mid-session.
+  const { windowPoints, periodDistancePoints, usesWholeArchiveFallback } = useMemo(() => {
+    if (period === 'all' || !allPoints.length) {
+      return { windowPoints: allPoints, periodDistancePoints: allPoints, usesWholeArchiveFallback: false }
+    }
     const now = Date.now() / 1000
     const cutoff = period === 'week' ? now - 7*86400 : period === 'month' ? now - 30*86400 : 0
     const filtered = allPoints.filter(p => (p.timestamp||0) >= cutoff)
-    return filtered.length >= 2 ? filtered : allPoints
+    const fallback = filtered.length < 2 && filtered.length < allPoints.length
+    return {
+      windowPoints: filtered.length >= 2 ? filtered : allPoints,
+      periodDistancePoints: filtered,
+      usesWholeArchiveFallback: fallback,
+    }
   }, [allPoints, period])
   // A week/month window plots the state BEFORE its first report as its first
   // point (the START label), so the first report keeps its own step and the
@@ -1178,10 +1245,18 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
   // read as the same month.
   const hasMultipleYears = useMemo(() => spansMultipleYears(points.map(p => p.timestamp)), [points])
 
+  // Drop any open tooltip when coordinate space or underlying points change.
   useEffect(() => {
-    if (pathRef.current) setPathLen(pathRef.current.getTotalLength())
-  }, [points.length, isMobile])
+    clearTimeout(tipCloseTimer.current)
+    cancelTipRaf()
+    setTipVisible(false)
+    setTip(null)
+  }, [period, isMobile, points, cancelTipRaf])
 
+  // Memoize the entire chart geometry + peak callout solver (~470 candidates) so
+  // hovering across points only updates tooltip state instead of re-solving layout.
+  const chartGeom = useMemo(() => {
+    if (!points.length) return null
   // On mobile the SVG is authored close to the width it actually renders at
   // (~340px), so one user unit ≈ one CSS px and the axis labels keep their
   // intended size. A wider canvas (the old 520) got scaled down to ~0.66,
@@ -1359,10 +1434,7 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
     return kept
   })()
   const distanceAxisY = !isMobile && period === 'all' ? xMainLabelY + 20 : xSubLabelY + (isMobile ? 27 : 22)
-  const distanceCutoff = Date.now() / 1000 - (period === 'week' ? 7 : 30) * 86400
-  const periodDistancePoints = period === 'all' ? allPoints : allPoints.filter(point => point.timestamp >= distanceCutoff)
   const visibleDistance = periodDistancePoints.every(point => point.distanceMTT != null) ? periodDistancePoints.reduce((sum, point) => sum + point.distanceMTT, 0) : null
-  const usesWholeArchiveFallback = period !== 'all' && periodDistancePoints.length < 2 && periodDistancePoints.length < allPoints.length
   const totalDistance = points.at(-1)?.cumulativeMTT ?? null
   const compactDistance = value => value >= 1000 ? `${(value / 1000).toFixed(value % 1000 ? 1 : 0)}k` : String(value)
   const xLabelExtraBottom = 0
@@ -2301,13 +2373,44 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
     }
   })
 
+    return {
+      W, H, pR, pT, pB, plotBottom, minV, maxV, yOf, yTicks, pL, cumMTT, coords,
+      monthTicks, linePath, areaPath, xAxisY, xMainLabelY, xSubLabelY, xLabelEdgePad,
+      distanceTicks, distanceAxisY, visibleDistance, totalDistance, compactDistance,
+      xLabelExtraBottom, mttUnit, xLabelItems, allTimeMilestones, peakCallout,
+      sessionProfits, lineStops, markerGroups, latestMarkerX, markerVisuals,
+    }
+  }, [allPoints, windowPoints, periodDistancePoints, rangeStartPoint, points, hasMultipleYears, startBR, period, isMobile, lang, t, light])
+
+  const linePath = chartGeom?.linePath || ''
+  useEffect(() => {
+    if (!pathRef.current) { setPathLen(null); return }
+    setPathLen(pathRef.current.getTotalLength())
+  }, [linePath, period, isMobile])
+
+  if (!chartGeom) return (
+    <div className="marathon-chart">
+      <div className="section-head"><h2 className="section-title">{t('chart_marathon')}</h2></div>
+      <div className="empty-state">{t('empty_data_scraper')}</div>
+    </div>
+  )
+
+  const {
+    W, H, pR, pT, pB, plotBottom, minV, maxV, yOf, yTicks, pL, cumMTT, coords,
+    monthTicks, areaPath, xAxisY, xMainLabelY, xSubLabelY, xLabelEdgePad,
+    distanceTicks, distanceAxisY, visibleDistance, totalDistance, compactDistance,
+    xLabelExtraBottom, mttUnit, xLabelItems, allTimeMilestones, peakCallout,
+    sessionProfits, lineStops, markerGroups, latestMarkerX, markerVisuals,
+  } = chartGeom
+
   // ── Mobile: long-press (300ms) to show tooltip ──
-  const longPressTimer = useRef(null)
-  const longPressOpened = useRef(false)
   const handleTouchStart = e => {
+    clearTimeout(longPressTimer.current)
     longPressOpened.current = false
-    const rect = e.currentTarget.getBoundingClientRect()
+    if (e.touches.length !== 1) return
     const touch = e.touches[0]
+    const rect = e.currentTarget.getBoundingClientRect()
+    if (!touch || !rect.width) return
     const tx = (touch.clientX - rect.left) * (W / rect.width)
     const sy = touch.clientY
     longPressTimer.current = setTimeout(() => {
@@ -2327,13 +2430,6 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
     longPressOpened.current = false
   }
   const handleTouchMove = () => { clearTimeout(longPressTimer.current) }
-
-  if (!points.length) return (
-    <div className="marathon-chart">
-      <div className="section-head"><h2 className="section-title">{t('chart_marathon')}</h2></div>
-      <div className="empty-state">{t('empty_data_scraper')}</div>
-    </div>
-  )
 
   return (
     <div className="marathon-chart" ref={chartRef} onClick={tip ? closeTip : undefined}>
@@ -2735,9 +2831,9 @@ const SessionMarathonChart = memo(function SessionMarathonChart({ allPoints, sta
               onMouseEnter={!isMobile ? () => { clearTimeout(tipCloseTimer.current); setTipVisible(true) } : undefined}
               onMouseLeave={!isMobile ? closeTip : undefined}>
               <span style={{cursor:'pointer'}} onClick={closeTip}>{t('close')}</span>
-              {tip.p.url && <a href={tip.p.url} target="_blank" rel="noreferrer"
+              {safeHttpUrl(tip.p.url) && <a href={safeHttpUrl(tip.p.url)} target="_blank" rel="noopener noreferrer"
                 onClick={e=>e.stopPropagation()}
-                style={{color:'var(--red2)',fontSize:11}}>→ {FORUM_WORD[_lang] || 'форум'}</a>}
+                style={{color:'var(--red2)',fontSize:11}}>→ {FORUM_WORD[lang] || 'форум'}</a>}
             </div>
           </div>
         )
@@ -2818,7 +2914,7 @@ function DayEventsList({ events, compact, onPostClick, setLightbox, lang = _lang
                 <span className="day-event-author">{romeo}</span>
                 <span className="day-event-meta"> {_t('day_reports_session')}</span>
                 <span className={'day-event-pill ' + (positive ? 'pos' : 'neg')}>{fmtBR(ev.result)}</span>
-                {!!ev.brAfter && <span className="day-event-br">{brLbl} {fmtNum(ev.brAfter)}</span>}
+                {ev.brAfter != null && <span className="day-event-br">{brLbl} {fmtNum(ev.brAfter)}</span>}
                 {ev.image && thumb(ev.image)}
               </div>
             </div>
@@ -2880,12 +2976,12 @@ function smartSortPosts(ps) {
   return [spark, ...after, ...before]
 }
 
-function ActivityChart({ posts, favorites, ignored, onFav, onIgnore, onUnignore, setLightbox,
+const ActivityChart = memo(function ActivityChart({ posts, favorites, ignored, onFav, onIgnore, onUnignore, setLightbox,
                          minLikes, minRating, search, onPostClick, lang, t }) {
-  const [tip,      setTip]      = useState(null)
-  const [tipStyle, setTipStyle] = useState(null)
-  const [selected, setSelected] = useState(null)
-  const [period,   setPeriod]   = useState('month')
+  const [tip,          setTip]          = useState(null)
+  const [tipStyle,     setTipStyle]     = useState(null)
+  const [selectedDate, setSelectedDate] = useState(null)
+  const [period,       setPeriod]       = useState('month')
   const isMobile = useIsMobile()
   const tipHideTimer = useRef(null)
   const tipShowTimer = useRef(null)
@@ -2934,6 +3030,12 @@ function ActivityChart({ posts, favorites, ignored, onFav, onIgnore, onUnignore,
     })
     return out
   }, [posts])
+
+  const selected = useMemo(
+    () => (selectedDate && byDate[selectedDate] ? { date: selectedDate, posts: byDate[selectedDate].posts } : null),
+    [selectedDate, byDate]
+  )
+  const searchNeedle = useMemo(() => (search || '').trim().toLowerCase(), [search])
 
   // Warsaw calendar days ending today: a day without posts stays on the axis as
   // an empty bar instead of vanishing (the window used to be "last N days with posts").
@@ -2986,7 +3088,10 @@ function ActivityChart({ posts, favorites, ignored, onFav, onIgnore, onUnignore,
   useEffect(() => {
     if (!tip || selected) return undefined
 
-    const closeOnViewportChange = () => closeTip()
+    const closeOnViewportChange = (e) => {
+      if (e?.type === 'scroll' && tipRef.current?.contains(e.target)) return
+      closeTip()
+    }
     window.addEventListener('resize', closeOnViewportChange)
     window.addEventListener('scroll', closeOnViewportChange, true)
     return () => {
@@ -3026,7 +3131,7 @@ function ActivityChart({ posts, favorites, ignored, onFav, onIgnore, onUnignore,
             ))}
           </div>
           {selected && (
-            <button onClick={()=>setSelected(null)}
+            <button onClick={()=>setSelectedDate(null)}
               style={{background:'none',border:'none',color:'var(--dim)',fontSize:13,cursor:'pointer',fontFamily:'inherit'}}>
               ✕ {t('close')}
             </button>
@@ -3056,9 +3161,9 @@ function ActivityChart({ posts, favorites, ignored, onFav, onIgnore, onUnignore,
                   onKeyDown={e=>{
                     if (e.key !== 'Enter' && e.key !== ' ') return
                     e.preventDefault()
-                    setSelected(selected?.date===date ? null : {date,posts:dp})
+                    setSelectedDate(prev => prev === date ? null : date)
                   }}
-                  onClick={()=>setSelected(selected?.date===date ? null : {date,posts:dp})}>
+                  onClick={()=>setSelectedDate(prev => prev === date ? null : date)}>
                   {/* Число постов над баром */}
                   <span style={{fontSize:10,color:isSelected?'var(--white)':'var(--dim)',fontFamily:"'Roboto Mono',monospace",fontWeight:isSelected?700:400}}>
                     {count}
@@ -3082,7 +3187,7 @@ function ActivityChart({ posts, favorites, ignored, onFav, onIgnore, onUnignore,
           let dayPosts = smartSortPosts([...selected.posts]
             .filter(p => !minLikes  || (p.likes||0)  >= minLikes)
             .filter(p => !minRating || (p.rating||0) >= minRating)
-            .filter(p => !search    || p.text?.toLowerCase().includes(search?.toLowerCase())))
+            .filter(p => !searchNeedle || p.text?.toLowerCase().includes(searchNeedle)))
           return (
             <div style={{marginTop:8}}>
               <div style={{fontSize:11,fontWeight:700,color:'var(--dim2)',textTransform:'uppercase',letterSpacing:'.1em',marginBottom:6}}>
@@ -3197,7 +3302,7 @@ function ActivityChart({ posts, favorites, ignored, onFav, onIgnore, onUnignore,
                 if (e.key !== 'Enter' && e.key !== ' ') return
                 e.preventDefault()
                 closeTip()
-                setSelected(selected?.date===date ? null : {date,posts:dp})
+                setSelectedDate(prev => prev === date ? null : date)
               }}
               onMouseEnter={(e)=>{
                 const rect = e.currentTarget.getBoundingClientRect()
@@ -3218,7 +3323,7 @@ function ActivityChart({ posts, favorites, ignored, onFav, onIgnore, onUnignore,
               }}
               onClick={()=>{
                 closeTip()
-                setSelected(selected?.date===date ? null : {date,posts:dp})
+                setSelectedDate(prev => prev === date ? null : date)
               }}>
               <rect x={x} y={H-bh} width={bw} height={bh} rx={2}
                 className={isSelected ? 'activity-bar-rect active' : 'activity-bar-rect'}/>
@@ -3301,7 +3406,7 @@ function ActivityChart({ posts, favorites, ignored, onFav, onIgnore, onUnignore,
         let dayPosts = [...selected.posts]
           .filter(p => !minLikes  || (p.likes||0)  >= minLikes)
           .filter(p => !minRating || (p.rating||0) >= minRating)
-          .filter(p => !search    || p.text?.toLowerCase().includes(search?.toLowerCase()))
+          .filter(p => !searchNeedle || p.text?.toLowerCase().includes(searchNeedle))
         dayPosts = smartSortPosts(dayPosts)
         return (
           <div style={{marginTop:12}}>
@@ -3325,7 +3430,7 @@ function ActivityChart({ posts, favorites, ignored, onFav, onIgnore, onUnignore,
       })()}
     </div>
   )
-}
+})
 
 
 // ─── FILTER BAR ──────────────────────────────────────────────────────────────
@@ -3625,7 +3730,7 @@ function renderPostText(text, collapseQuotes=false) {
   while (remaining.length > 0) {
     // Формат из нового скрапера: [QUOTE]Автор|Автор @ дата\nтело цитаты[/QUOTE]ответ
     const qs = remaining.indexOf('[QUOTE]')
-    const qe = remaining.indexOf('[/QUOTE]')
+    const qe = qs !== -1 ? remaining.indexOf('[/QUOTE]', qs + 7) : -1
 
     if (qs !== -1 && qe > qs) {
       // Текст до цитаты
@@ -3755,6 +3860,9 @@ const PostCard = memo(function PostCard({ p, favorites, ignored, onFav, onIgnore
   const displayText = (lang !== 'ru' && p.translations?.[lang]) || p.text
   const isLong  = !noClamp && (displayText?.replace(/\[QUOTE\][\s\S]*?\[\/QUOTE\]/gi, '').length || 0) > 720
   const [shouldClamp, setShouldClamp] = useState(isLong)
+  useEffect(() => {
+    if (!isIgnored) setRevealIgnored(false)
+  }, [isIgnored])
   useLayoutEffect(() => {
     if (!isLong || exp) { setShouldClamp(false); return }
     const el = bodyRef.current
@@ -3773,7 +3881,7 @@ const PostCard = memo(function PostCard({ p, favorites, ignored, onFav, onIgnore
       setShouldClamp(false)
       setOverflows(false)
     }
-  }, [isLong, exp, displayText])
+  }, [isLong, exp, displayText, isIgnored, revealIgnored])
 
   // URL профиля на GT (по нику)
   const profileUrl = `https://www.gipsyteam.ru/profile/${encodeURIComponent(p.author)}`
@@ -3861,7 +3969,7 @@ const PostCard = memo(function PostCard({ p, favorites, ignored, onFav, onIgnore
             )}
           </div>
         </div>
-            <div className="pc-date" title={fmtDateTimeLang(p.timestamp, _lang)}>{timeAgo(p.timestamp, _lang) || fmtDateTimeLang(p.timestamp, _lang)}</div>
+            <div className="pc-date" title={fmtDateTimeLang(p.timestamp, lang)}>{timeAgo(p.timestamp, lang) || fmtDateTimeLang(p.timestamp, lang)}</div>
         <div className="pc-actions">
           <button type="button" className={`pc-action ${isFav?'on':''}`} onClick={()=>onFav(p.author)}
             title={isFav?_t('pc_fav_remove'):_t('pc_fav_add')}
@@ -3887,7 +3995,7 @@ const PostCard = memo(function PostCard({ p, favorites, ignored, onFav, onIgnore
         <div className="pc-videos">
           {safeEmbedUrls(p.videos).map((src,j)=>(
             <div key={j} className="pc-video">
-              <iframe src={src} title={_t('video_iframe_title')} loading="lazy" allowFullScreen frameBorder="0"
+              <iframe src={src} title={_t('video_iframe_title')} loading="lazy" referrerPolicy="no-referrer" allowFullScreen
                 style={{width:'100%',aspectRatio:'16/9',border:0,borderRadius:8,background:'#000'}}/>
             </div>
           ))}
@@ -3895,9 +4003,10 @@ const PostCard = memo(function PostCard({ p, favorites, ignored, onFav, onIgnore
       )}
       {(() => {
         const stripped = stripQuoteTags(p.text || '').replace(/\[VIDEO\]/g, '').trim()
-        if (stripped.length === 0 && !p.images?.length && !safeEmbedUrls(p.videos).length) {
+        const safeUrl = safeHttpUrl(p.url)
+        if (stripped.length === 0 && !p.images?.length && !safeEmbedUrls(p.videos).length && safeUrl) {
           return (
-            <a href={p.url} target="_blank" rel="noreferrer" className="pc-broken-link"
+            <a href={safeUrl} target="_blank" rel="noopener noreferrer" className="pc-broken-link"
               onClick={e=>e.stopPropagation()}>
               ⚠ {_t('pc_media_fail')} →
             </a>
@@ -3907,7 +4016,7 @@ const PostCard = memo(function PostCard({ p, favorites, ignored, onFav, onIgnore
       })()}
       <div className="pc-foot">
         <span className={`pc-likes ${likes>0?'pos':likes<0?'neg':'zero'}`}>{likes>0?'👍 +':likes<0?'👎 ':''}{likes}</span>
-        {!!p.brAfter && <span className="pc-br">{_t('day_br_label')}: {fmtNum(p.brAfter)}</span>}
+        {p.brAfter != null && <span className="pc-br">{_t('day_br_label')}: {fmtNum(p.brAfter)}</span>}
         {((shouldClamp && overflows) || (isLong && exp)) && (
           <button onClick={()=>setExp(s=>!s)} style={S_EXPAND}>
             <span style={S_ARROW}>{exp?'▲':'▼'}</span>
@@ -3923,7 +4032,7 @@ const PostCard = memo(function PostCard({ p, favorites, ignored, onFav, onIgnore
             ))}
           </span>
         )}
-        {p.url&&<a className="pc-link" href={p.url} target="_blank" rel="noreferrer">→ {FORUM_WORD[_lang] || 'forum'}</a>}
+        {safeHttpUrl(p.url)&&<a className="pc-link" href={safeHttpUrl(p.url)} target="_blank" rel="noopener noreferrer">→ {FORUM_WORD[lang] || 'forum'}</a>}
       </div>
     </div>
   )
@@ -3988,15 +4097,19 @@ function Paginator({ page, totalPages, onPage, perPage, onPerPage, total, lang }
 }
 
 // ─── SIDEBAR TOP LIST ─────────────────────────────────────────────────────────
-export function SidebarTopList({ posts, setLightbox }) {
+export const SidebarTopList = memo(function SidebarTopList({ posts, setLightbox, lang = _lang, t = _t }) {
   const [hovered, setHovered] = useState(null)
   const [anchor, setAnchor] = useState(null)
   const [popupStyle, setPopupStyle] = useState(null)
   const hideTimerRef = useRef(null)
+  const moveRafRef = useRef(0)
+  const lastMovePosRef = useRef(null)
   const popupRef = useRef(null)
   const itemRefs = useRef(new Map())
   const closePopup = useCallback(() => {
     clearTimeout(hideTimerRef.current)
+    cancelAnimationFrame(moveRafRef.current)
+    moveRafRef.current = 0
     setHovered(null)
     setAnchor(null)
     setPopupStyle(null)
@@ -4007,7 +4120,11 @@ export function SidebarTopList({ posts, setLightbox }) {
     hideTimerRef.current = setTimeout(closePopup, 180)
   }
   const cancelHide = () => clearTimeout(hideTimerRef.current)
-  useEffect(() => () => clearTimeout(hideTimerRef.current), [])
+  useEffect(() => () => {
+    clearTimeout(hideTimerRef.current)
+    cancelAnimationFrame(moveRafRef.current)
+  }, [])
+  useEffect(() => closePopup(), [posts, closePopup])
 
   const setAnchorFromNode = useCallback((node) => {
     if (!node) return
@@ -4061,6 +4178,18 @@ export function SidebarTopList({ posts, setLightbox }) {
     openItem(nextIndex)
   }, [hovered, openItem])
 
+  const syncHoverRef = useRef(syncHoverFromPoint)
+  syncHoverRef.current = syncHoverFromPoint
+  const scheduleSyncHover = useCallback((clientX, clientY) => {
+    lastMovePosRef.current = { x: clientX, y: clientY }
+    if (moveRafRef.current) return
+    moveRafRef.current = requestAnimationFrame(() => {
+      moveRafRef.current = 0
+      const pos = lastMovePosRef.current
+      if (pos) syncHoverRef.current(pos.x, pos.y)
+    })
+  }, [])
+
   useLayoutEffect(() => {
     if (hovered === null || !anchor || !popupRef.current) {
       setPopupStyle(null)
@@ -4088,12 +4217,20 @@ export function SidebarTopList({ posts, setLightbox }) {
   useEffect(() => {
     if (hovered === null) return undefined
 
-    const closeOnViewportChange = () => closePopup()
+    const closeOnViewportChange = (e) => {
+      if (e?.type === 'scroll' && popupRef.current?.contains(e.target)) return
+      closePopup()
+    }
+    const onKey = (e) => {
+      if (e.key === 'Escape') closePopup()
+    }
     window.addEventListener('resize', closeOnViewportChange)
     window.addEventListener('scroll', closeOnViewportChange, true)
+    document.addEventListener('keydown', onKey)
     return () => {
       window.removeEventListener('resize', closeOnViewportChange)
       window.removeEventListener('scroll', closeOnViewportChange, true)
+      document.removeEventListener('keydown', onKey)
     }
   }, [hovered, closePopup])
 
@@ -4102,17 +4239,20 @@ export function SidebarTopList({ posts, setLightbox }) {
   return (
     <div style={{padding:'6px 14px'}}
       onMouseLeave={scheduleHide}
-      onMouseMove={e => syncHoverFromPoint(e.clientX, e.clientY)}>
+      onBlur={e => { if (!e.currentTarget.contains(e.relatedTarget)) closePopup() }}
+      onMouseMove={e => scheduleSyncHover(e.clientX, e.clientY)}>
 
       {hovered !== null && anchor && (() => {
         const p = posts[hovered]
         if (!p) return null
+        const safePopupUrl = safeHttpUrl(p.url)
         return (
           <div ref={popupRef} data-testid="sidebar-top-popup" className="sidebar-popup"
             onMouseEnter={cancelHide}
             onMouseMove={e => {
+              e.stopPropagation()
               cancelHide()
-              syncHoverFromPoint(e.clientX, e.clientY)
+              scheduleSyncHover(e.clientX, e.clientY)
             }}
             onMouseLeave={scheduleHide} style={{
             position:'fixed',
@@ -4132,26 +4272,28 @@ export function SidebarTopList({ posts, setLightbox }) {
           }}>
             <div style={{fontWeight:700,color:'var(--white)',fontSize:13,marginBottom:4}}>{p.author}</div>
             <div style={{fontSize:11,color:'var(--dim)',marginBottom:8,fontFamily:"'Roboto Mono',monospace"}}>
-              <span style={{color:'var(--green)'}}>+{p.likes} 👍</span> · {fmtDateTimeLang(p.timestamp, _lang)}
+              <span style={{color:'var(--green)'}}>+{p.likes} 👍</span> · {fmtDateTimeLang(p.timestamp, lang)}
             </div>
             <div style={{fontSize:12,color:'var(--text)',lineHeight:1.6,overflowY:'auto',flex:1,paddingRight:4}}>
               {!((p.text||'').includes('[QUOTE]')) && p.images?.[0] && (
                 <img src={p.images[0]} alt="" loading="lazy" decoding="async"
                   style={{maxWidth:'100%',maxHeight:260,width:'auto',height:'auto',objectFit:'contain',borderRadius:4,marginBottom:10,display:'block',cursor:'zoom-in'}}
-                  onClick={e=>{e.stopPropagation();setLightbox(p.images[0])}}
+                  onClick={e=>{e.stopPropagation();closePopup();setLightbox(p.images[0])}}
                   onError={e=>e.target.style.display='none'}/>
               )}
               {renderPostText(p.text, true)}
               {!stripQuotes(p.text) && p.text?.includes('[QUOTE]') && (
                 <div style={{fontSize:11,color:'var(--dim)',fontStyle:'italic',marginTop:6}}>
-                  ↩ {p.text.match(/\[QUOTE\]([^|\n]*)/)?.[1]?.trim() ? `${_t('quote_answer_to')} ${p.text.match(/\[QUOTE\]([^|\n]*)/)[1].trim()}` : _t('quote_generic')} — {_t('quote_full_on_forum')} ↗
+                  ↩ {p.text.match(/\[QUOTE\]([^|\n]*)/)?.[1]?.trim() ? `${t('quote_answer_to')} ${p.text.match(/\[QUOTE\]([^|\n]*)/)[1].trim()}` : t('quote_generic')} — {t('quote_full_on_forum')} ↗
                 </div>
               )}
             </div>
-            <div style={{marginTop:8,paddingTop:8,borderTop:'1px solid var(--border)'}}>
-              <a href={p.url} target="_blank" rel="noreferrer"
-                style={{fontSize:11,color:'var(--red2)'}}>→ {_t('open_on_forum')}</a>
-            </div>
+            {safePopupUrl && (
+              <div style={{marginTop:8,paddingTop:8,borderTop:'1px solid var(--border)'}}>
+                <a href={safePopupUrl} target="_blank" rel="noopener noreferrer"
+                  style={{fontSize:11,color:'var(--red2)'}}>→ {t('open_on_forum')}</a>
+              </div>
+            )}
           </div>
         )
       })()}
@@ -4163,12 +4305,13 @@ export function SidebarTopList({ posts, setLightbox }) {
         const quoteAuthor = hasQuote ? (p.text.match(/\[QUOTE\]([^|\n]*)/)?.[1]?.trim() || '') : ''
         const quoteBody = hasQuote ? extractQuoteBody(p.text) : ''
         const isShortQuote = hasQuote && quoteBody.length <= 150
-        const preview = topPostPreview(p, _t('image_caption'))
+        const preview = topPostPreview(p, t('image_caption'))
         const initial = (p.author||'?')[0].toUpperCase()
         // Don't show images in sidebar for posts with quotes (image may be from the quote)
         const showImage = !hasQuote && p.images?.[0]
+        const safeUrl = safeHttpUrl(p.url)
         return (
-          <div key={i}
+          <div key={p.id || i}
             ref={node => {
               if (node) itemRefs.current.set(i, node)
               else itemRefs.current.delete(i)
@@ -4180,9 +4323,9 @@ export function SidebarTopList({ posts, setLightbox }) {
             onKeyDown={e=>{
               if (e.key !== 'Enter') return
               e.preventDefault()
-              if (p.url) window.open(p.url, '_blank', 'noopener')
+              if (safeUrl) window.open(safeUrl, '_blank', 'noopener,noreferrer')
             }}
-            onClick={()=>p.url&&window.open(p.url,'_blank')}
+            onClick={()=>safeUrl&&window.open(safeUrl,'_blank','noopener,noreferrer')}
             onMouseEnter={e => openItem(i, e.currentTarget)}
             onFocus={e => openItem(i, e.currentTarget)}>
             <span style={{color:'var(--gold)',fontWeight:700,fontSize:11,minWidth:16,flexShrink:0,paddingTop:10}}>{i+1}</span>
@@ -4196,7 +4339,7 @@ export function SidebarTopList({ posts, setLightbox }) {
               {showImage && (
                 <img src={p.images[0]} alt="" loading="lazy" decoding="async"
                   style={{width:'100%',height:'auto',borderRadius:4,marginBottom:6,display:'block',cursor:'zoom-in'}}
-                  onClick={e=>{e.stopPropagation();setLightbox(p.images[0])}}
+                  onClick={e=>{e.stopPropagation();closePopup();setLightbox(p.images[0])}}
                   onError={e=>e.target.style.display='none'}/>
               )}
               {isShortQuote ? (
@@ -4205,7 +4348,7 @@ export function SidebarTopList({ posts, setLightbox }) {
                 </div>
               ) : isQuoteOnly ? (
                 <div style={{fontSize:11,color:'var(--dim)',lineHeight:1.5,fontStyle:'italic'}}>
-                  ↩ {quoteAuthor ? `${_t('quote_answer_to')} ${quoteAuthor}` : _t('quote_generic')} — <span style={{color:'var(--red2)',fontStyle:'normal',textDecoration:'underline'}}>{_t('open_on_forum')}</span>
+                  ↩ {quoteAuthor ? `${t('quote_answer_to')} ${quoteAuthor}` : t('quote_generic')} — <span style={{color:'var(--red2)',fontStyle:'normal',textDecoration:'underline'}}>{t('open_on_forum')}</span>
                 </div>
               ) : (
                 <div style={{fontSize:11,color:'var(--text)',overflow:'hidden',lineHeight:1.5,
@@ -4221,7 +4364,7 @@ export function SidebarTopList({ posts, setLightbox }) {
       })}
     </div>
   )
-}
+})
 
 
 const FF_URL = 'https://firstfund.pro/?utm_source=romeofish&utm_medium=referral&utm_campaign=romeofish'
@@ -4239,23 +4382,33 @@ function FfLogo() {
 function FirstFundChip() {
   const chipRef = useRef(null)
   const rafRef = useRef(0)
+  const pointerRef = useRef(null)
 
   // The chip leans toward the cursor anywhere on the page; the idle tumble
   // keeps running underneath (tilt is on .ff-chip, spin on .ff-chip-spin).
+  // Coalesce pointermove into 1 rAF per frame and skip layout reads when
+  // reduced motion is active, on touch, or when the chip is scrolled off-screen.
   useEffect(() => {
+    if (typeof window !== 'undefined' && typeof window.matchMedia === 'function'
+      && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      return undefined
+    }
     const clamp = (v, m) => Math.max(-m, Math.min(m, v))
     const onMove = (e) => {
-      const el = chipRef.current
-      if (!el) return
-      const rect = el.getBoundingClientRect()
-      const cx = rect.left + rect.width / 2
-      const cy = rect.top + rect.height / 2
-      const ry = clamp((e.clientX - cx) / 300 * 26, 26)
-      const rx = clamp(-(e.clientY - cy) / 300 * 26, 26)
-      cancelAnimationFrame(rafRef.current)
+      if (e.pointerType === 'touch') return
+      pointerRef.current = { x: e.clientX, y: e.clientY }
+      if (rafRef.current) return
       rafRef.current = requestAnimationFrame(() => {
+        rafRef.current = 0
         const node = chipRef.current
-        if (!node) return
+        const pt = pointerRef.current
+        if (!node || !pt) return
+        const rect = node.getBoundingClientRect()
+        if (rect.width === 0 || rect.bottom < 0 || rect.top > window.innerHeight) return
+        const cx = rect.left + rect.width / 2
+        const cy = rect.top + rect.height / 2
+        const ry = clamp((pt.x - cx) / 300 * 26, 26)
+        const rx = clamp(-(pt.y - cy) / 300 * 26, 26)
         node.style.setProperty('--rx', `${rx.toFixed(2)}deg`)
         node.style.setProperty('--ry', `${ry.toFixed(2)}deg`)
       })
@@ -4264,12 +4417,13 @@ function FirstFundChip() {
     return () => {
       window.removeEventListener('pointermove', onMove)
       cancelAnimationFrame(rafRef.current)
+      rafRef.current = 0
     }
   }, [])
 
-  const edges = Array.from({ length: FF_CHIP_EDGES }, (_, i) => (
+  const edges = useMemo(() => Array.from({ length: FF_CHIP_EDGES }, (_, i) => (
     <span key={i} className={'ff-chip-edge' + (i % 5 < 2 ? ' ff-chip-edge--spot' : '')} style={{ '--i': i }} aria-hidden="true"/>
-  ))
+  )), [])
 
   return (
     <div className="ff-chip-stage" aria-hidden="true">
@@ -4288,14 +4442,14 @@ function FirstFundChip() {
   )
 }
 
-function FirstFundBanner({ t }) {
+const FirstFundBanner = memo(function FirstFundBanner({ t }) {
   const stats = [
     ['$100M', t('ff_stat_income')],
     ['1500+', t('ff_stat_players')],
     ['13', t('ff_stat_years')],
   ]
   return (
-    <a className="ff-banner" href={FF_URL} target="_blank" rel="noreferrer">
+    <a className="ff-banner" href={FF_URL} target="_blank" rel="noopener noreferrer">
       <span className="ff-banner-glow" aria-hidden="true"/>
       <span className="ff-banner-shine" aria-hidden="true"/>
       <FirstFundChip/>
@@ -4314,7 +4468,55 @@ function FirstFundBanner({ t }) {
       <span className="ff-banner-cta">{t('join_ff')} →</span>
     </a>
   )
-}
+})
+
+// Isolated footer freshness strip: ticks once per minute so the dot turns
+// yellow/red if the scraper stalls and "today at HH:MM" rolls over past
+// Warsaw midnight without re-rendering the entire App tree.
+const FooterFreshness = memo(function FooterFreshness({ meta, newestPostTs, lang, t }) {
+  const [, setTick] = useState(0)
+  useEffect(() => {
+    const id = setInterval(() => setTick(n => n + 1), 60_000)
+    return () => clearInterval(id)
+  }, [])
+  const rawScrapeTs = meta?.lastScrapeRun
+    ? Date.parse(meta.lastScrapeRun)
+    : meta?.lastUpdated ? Date.parse(meta.lastUpdated) : 0
+  const scrapeTs = Number.isFinite(rawScrapeTs) ? rawScrapeTs : 0
+  if (!scrapeTs && !newestPostTs) return null
+  const fmt = (ts) => {
+    const w = warsawParts(Math.floor(ts / 1000))
+    if (!w) return ''
+    const now = warsawParts(Math.floor(Date.now() / 1000))
+    const sameDay = now && w.day === now.day && w.month === now.month && w.year === now.year
+    const time = `${w.hour}:${w.minute}`
+    const pad2 = n => String(n).padStart(2, '0')
+    return sameDay
+      ? `${t('footer_today_at')} ${time}`
+      : `${pad2(w.day)}.${pad2(w.month)} ${t('footer_at')} ${time}`
+  }
+  const mins = scrapeTs ? Math.round((Date.now() - scrapeTs) / 60000) : Infinity
+  const fresh = mins < 35
+  const stale = mins > 120
+  const freshClass = fresh ? 'ok' : stale ? 'stale' : 'warn'
+  return (
+    <>
+      {scrapeTs > 0 && (
+        <div className={`footer-fresh ${freshClass}`} style={{fontSize:10,marginTop:3,fontFamily:"'Roboto Mono',monospace"}}
+          title={fmtDateTimeLang(Math.floor(scrapeTs / 1000), lang)}>
+          <span className="footer-fresh-dot"/>
+          {t('footer_scraper_ran')}: {fmt(scrapeTs)}
+        </div>
+      )}
+      {newestPostTs > 0 && (
+        <div style={{fontSize:10,color:'var(--dim)',marginTop:2,fontFamily:"'Roboto Mono',monospace",paddingLeft:11}}
+          title={fmtDateTimeLang(Math.floor(newestPostTs / 1000), lang)}>
+          {t('footer_freshest_post')}: {fmt(newestPostTs)}
+        </div>
+      )}
+    </>
+  )
+})
 
 // ─── SESSION MTT WIDGET ──────────────────────────────────────────────────────
 // Hover tooltip of the session-MTT chart. The svg is drawn in viewBox units but
@@ -4707,8 +4909,8 @@ export default function App() {
       const totalTourneys = meta?.totalTournaments || null
 
       // Session-level stats
-      const sessionsCount = brHistory.length
-      const positiveSessions = brHistory.filter(h => (h.sessionResult||0) > 0).length
+      const sessionsCount = sortedHistory.length
+      const positiveSessions = sortedHistory.filter((h, idx) => historySessionProfit(h, sortedHistory, idx, startBR) > 0).length
       const winRate = sessionsCount ? positiveSessions / sessionsCount : null
       // same definition as the session chart and the week/month stats
       const sessionMttAvg = averageSessionMtt(buildSessionMttRows(sortedHistory))
@@ -4731,10 +4933,10 @@ export default function App() {
     let day = null, br = null
     for (const p of romeoByDate) {
       if (!day) day = extractDay(p.text)
-      if (!br)  br  = p.brAfter || extractBR(p.text)
-      if (day && br) break
+      if (br == null) br = p.brAfter ?? extractBR(p.text)
+      if (day && br != null) break
     }
-    const profit = br ? br - startBR : null
+    const profit = br != null ? br - startBR : null
     return { day, br, profit, startBR, lastTs: romeoByDate[0]?.timestamp, totalTourneys: null }
   }, [posts, meta])
 
@@ -4766,7 +4968,8 @@ export default function App() {
     if (insideIdx < 0) return null
     const sub = sorted.slice(insideIdx)
     if (sub.length < 2) return null
-    const positive = sub.filter(h => (h.sessionResult || 0) > 0).length
+    const startBR = meta?.startBankroll || 10000
+    const positive = sub.filter((h, k) => historySessionProfit(h, sorted, insideIdx + k, startBR) > 0).length
     // cumulative-first, like every other MTT figure on the page
     let totalMTT = sub.reduce((s, h, k) => s + historySessionTournaments(h, sorted, insideIdx + k), 0)
     // average of the very rows the session chart plots; null while the chart
@@ -4774,7 +4977,7 @@ export default function App() {
     const allMttRows = buildSessionMttRows(sorted)
     const windowMttRows = pickSessionMttWindow(allMttRows, chartPeriod)
     const avgMTT = windowMttRows !== allMttRows ? Math.round(averageSessionMtt(windowMttRows)) : null
-    const profit = sub.reduce((s, h) => s + (h.sessionResult || 0), 0)
+    const profit = sub.reduce((s, h, k) => s + historySessionProfit(h, sorted, insideIdx + k, startBR), 0)
     return {
       sessionsCount: sub.length,
       positiveSessions: positive,
@@ -4785,7 +4988,8 @@ export default function App() {
     }
   }, [meta, chartPeriod])
 
-  const searchNeedle = useMemo(() => search.trim().toLowerCase(), [search])
+  const deferredSearch = useDeferredValue(search)
+  const searchNeedle = useMemo(() => deferredSearch.trim().toLowerCase(), [deferredSearch])
 
   const passesLikeRating = (p) => {
     if (favorites.has(p.author)) return true
@@ -4819,6 +5023,32 @@ export default function App() {
       .filter(p => lang !== 'ru' || favorites.has(p.author) || (p.likes||0) >= Math.max(minLikes, 1))
       .sort((a,b) => (b.likes||0) - (a.likes||0))
   , [posts, ignored, favorites, minLikes, minRating, lang])
+
+  const sidebarTopList = useMemo(() => {
+    if (lang !== 'ru' || !hotPosts.length) return []
+    const now = Date.now() / 1000
+    const cutoff = sidebarTopPeriod === 'day' ? now - 86400
+      : sidebarTopPeriod === 'week' ? now - 604800
+      : sidebarTopPeriod === 'month' ? now - 2592000
+      : 0
+    const out = []
+    for (let i = 0; i < hotPosts.length && out.length < 10; i++) {
+      const p = hotPosts[i]
+      if ((p.timestamp || 0) >= cutoff) out.push(p)
+    }
+    return out
+  }, [hotPosts, sidebarTopPeriod, lang])
+
+  const mobileTopList = useMemo(() => sidebarTopList.slice(0, 7), [sidebarTopList])
+
+  const newestPostTs = useMemo(() => {
+    let maxTs = 0
+    for (let i = 0; i < posts.length; i++) {
+      const ts = (posts[i].timestamp || 0) * 1000
+      if (ts > maxTs) maxTs = ts
+    }
+    return maxTs
+  }, [posts])
 
   const forumAuthorCount = useMemo(() => {
     const authors = new Set()
@@ -4896,12 +5126,10 @@ export default function App() {
     }))
   }
 
-  // Сохраняем позицию чтения
-  const saveReadPos = (tab, postId) => {
-    setReadPos(prev => {
-      return { ...prev, [tab]: postId }
-    })
-  }
+  // Сохраняем позицию чтения (no-op when unchanged to avoid re-renders & storage writes on hover)
+  const saveReadPos = useCallback((tab, postId) => {
+    setReadPos(prev => (prev[tab] === postId ? prev : { ...prev, [tab]: postId }))
+  }, [setReadPos])
 
   const goToPost = useCallback((p) => {
     if (!p?.id) return
@@ -4920,12 +5148,15 @@ export default function App() {
     if (idx !== -1) {
       const targetPage = Math.floor(idx / perPage) + 1
       if (targetPage !== safePage) setPage(targetPage)
-    } else if (p.url && /^https?:\/\//i.test(p.url)) {
-      // Hidden by the current feed filters (min likes/rating, search, Romeo only):
-      // nothing in the feed to scroll to, so open the post on the forum instead
-      // of leaving a clickable row that does nothing.
-      window.open(p.url, '_blank', 'noopener')
-      return
+    } else {
+      const safeUrl = safeHttpUrl(p.url)
+      if (safeUrl) {
+        // Hidden by the current feed filters (min likes/rating, search, Romeo only):
+        // nothing in the feed to scroll to, so open the post on the forum instead
+        // of leaving a clickable row that does nothing.
+        window.open(safeUrl, '_blank', 'noopener,noreferrer')
+        return
+      }
     }
     // Double rAF lets React commit the page/tab change before we measure
     requestAnimationFrame(() => requestAnimationFrame(doScroll))
@@ -4958,12 +5189,12 @@ export default function App() {
     setPage(targetPage)
     // Mark as seen
     clearNewPosts(posts)
-    // Scroll to the post after page renders
+    // Scroll to the post after page renders (double rAF matches goPage/goToPost)
     const postId = feedPosts[firstNewIdx].id
-    requestAnimationFrame(() => {
+    requestAnimationFrame(() => requestAnimationFrame(() => {
       const el = document.getElementById(`post-${postId}`)
       if (el) scrollToJumpTarget(el)
-    })
+    }))
   }, [clearNewPosts, newInFeed, feedPosts, perPage, posts])
 
   // A tab switch resets the feed to page 1. navigatedRef also keeps the one-time
@@ -5016,6 +5247,7 @@ export default function App() {
     const sorted = [...hist].sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0))
     const full = [stats?.startBR || 10000, ...sorted.map(h => h.brAfter)]
     if (lastSeenBR == null) return full
+    if (lastSeenBR === brVal) return [brVal]
     // Find waypoint closest by value to lastSeenBR and animate from there.
     let closestIdx = 0, best = Infinity
     for (let i = 0; i < full.length; i++) {
@@ -5035,12 +5267,38 @@ export default function App() {
     return 2200
   }, [lastSeenBR, brVal])
   useEffect(() => {
-    if (!brVal) return
+    if (!brVal || lastSeenBR === brVal) return
     const t = setTimeout(() => {
       setLastSeenBR(brVal)
     }, brDuration + 250)
     return () => clearTimeout(t)
-  }, [brVal, brDuration, setLastSeenBR])
+  }, [brVal, lastSeenBR, brDuration, setLastSeenBR])
+
+  const startBrRefVal = stats.startBR || 10000
+  const renderHeroBr = useCallback((v) => {
+    const up = v >= startBrRefVal
+    const color = up ? 'var(--green-hi)' : 'var(--red2)'
+    const glow  = up ? 'rgba(102,187,106,.28)' : 'rgba(239,83,80,.28)'
+    return (
+      <span style={{
+        color,
+        fontFamily:"'Roboto Mono',ui-monospace,monospace",
+        fontVariantNumeric:'tabular-nums',
+        fontWeight:700,
+        letterSpacing:'-0.02em',
+        textShadow:`0 0 14px ${glow}`,
+        transition:'color .2s, text-shadow .2s',
+      }}>
+        {fmtExact(v)}
+      </span>
+    )
+  }, [startBrRefVal])
+  const renderMobileBr = useCallback((v) => {
+    const up = v >= startBrRefVal
+    const color = up ? 'var(--green-hi)' : 'var(--red2)'
+    const glow  = up ? 'rgba(102,187,106,.28)' : 'rgba(239,83,80,.28)'
+    return <span style={{color,fontVariantNumeric:'tabular-nums',letterSpacing:'-0.02em',textShadow:`0 0 12px ${glow}`,transition:'color .2s, text-shadow .2s'}}>{fmtExact(v)}</span>
+  }, [startBrRefVal])
 
   return (
     <>
@@ -5233,24 +5491,7 @@ export default function App() {
                       path={brPath}
                       duration={brDuration}
                       format={fmtExact}
-                      render={(v) => {
-                        const up = v >= (stats.startBR || 10000)
-                        const color = up ? 'var(--green-hi)' : 'var(--red2)'
-                        const glow  = up ? 'rgba(102,187,106,.28)' : 'rgba(239,83,80,.28)'
-                        return (
-                          <span style={{
-                            color,
-                            fontFamily:"'Roboto Mono',ui-monospace,monospace",
-                            fontVariantNumeric:'tabular-nums',
-                            fontWeight:700,
-                            letterSpacing:'-0.02em',
-                            textShadow:`0 0 14px ${glow}`,
-                            transition:'color .2s, text-shadow .2s',
-                          }}>
-                            {fmtExact(v)}
-                          </span>
-                        )
-                      }}
+                      render={renderHeroBr}
                     />
                   </div>
                   <div className="hstat-sub">{t('hs_start')}: {fmtExact(stats.startBR)}</div>
@@ -5282,12 +5523,7 @@ export default function App() {
                   [t('sr_br'),
                     <AnimatedValue key="br-anim" target={brVal} path={brPath} duration={brDuration}
                       format={fmtExact}
-                      render={(v)=>{
-                        const up = v >= (stats.startBR || 10000)
-                        const color = up ? 'var(--green-hi)' : 'var(--red2)'
-                        const glow  = up ? 'rgba(102,187,106,.28)' : 'rgba(239,83,80,.28)'
-                        return <span style={{color,fontVariantNumeric:'tabular-nums',letterSpacing:'-0.02em',textShadow:`0 0 12px ${glow}`,transition:'color .2s, text-shadow .2s'}}>{fmtExact(v)}</span>
-                      }}/>,
+                      render={renderMobileBr}/>,
                     ''],
                   (() => {
                     const pv = periodStats?.profit ?? stats.profit
@@ -5325,17 +5561,14 @@ export default function App() {
               <SessionMttChart meta={meta} period={chartPeriod} lang={lang} t={t}/>
               {/* Mobile-only top posts */}
               {lang==='ru' && hotPosts.length > 0 && (() => {
-                const now = Date.now() / 1000
-                const cutoffs = { day: now-86400, week: now-604800, month: now-2592000, all: 0 }
+                const periodKeys = ['day', 'week', 'month', 'all']
                 const labels = { day:t('filter_day'), week:t('filter_week'), month:t('filter_month'), all:t('filter_all_short') }
-                const filtered = hotPosts.filter(p => (p.timestamp||0) >= cutoffs[sidebarTopPeriod])
-                const topList = filtered.slice(0,7)
                 return (
                   <div className="mobile-top-posts">
                     <div className="mobile-top-header">
                       <span>{t('mobile_top_label')}</span>
                       <div className="mobile-top-periods">
-                        {Object.keys(cutoffs).map(k => (
+                        {periodKeys.map(k => (
                           <button type="button" key={k} onClick={()=>setSidebarTopPeriod(k)}
                             className={`mobile-top-period ${sidebarTopPeriod===k?'active':''}`}
                             aria-pressed={sidebarTopPeriod===k}>
@@ -5345,9 +5578,9 @@ export default function App() {
                       </div>
                     </div>
                     <div className="mobile-top-list">
-                      {topList.length === 0 && <div className="mobile-top-empty">{t('top_period_empty')}</div>}
-                      {topList.map((p, i) => (
-                        <a key={p.id||i} href={p.url} target="_blank" rel="noreferrer" className="mobile-top-item">
+                      {mobileTopList.length === 0 && <div className="mobile-top-empty">{t('top_period_empty')}</div>}
+                      {mobileTopList.map((p, i) => (
+                        <a key={p.id||i} href={safeHttpUrl(p.url) || '#'} target="_blank" rel="noopener noreferrer" className="mobile-top-item">
                           <span className="mobile-top-rank">{i+1}</span>
                           <div className="mobile-top-body">
                             <span className="mobile-top-author">{p.author}</span>
@@ -5371,7 +5604,7 @@ export default function App() {
               />
               {newInFeed.count > 0 && activeTab === 'feed' && (
                 <button className="new-posts-bubble" onClick={goToNewPosts}>
-                  {newInFeed.count} {lang==='ru' ? plural(newInFeed.count, ['новый пост','новых поста','новых постов']) : (newInFeed.count === 1 ? t('new_posts_badge_singular') : t('new_posts_badge_many'))}!
+                  {newInFeed.count} {lang==='ru' ? plural(newInFeed.count, [t('new_posts_badge_singular'), t('new_posts_badge_few'), t('new_posts_badge_many')]) : (newInFeed.count === 1 ? t('new_posts_badge_singular') : t('new_posts_badge_many'))}!
                 </button>
               )}
               {feedPosts.length===0
@@ -5460,17 +5693,14 @@ export default function App() {
 
                 {lang==='ru' && hotPosts.length>0 && (() => {
                   const sideTopPeriod = sidebarTopPeriod
-                  const now = Date.now() / 1000
-                  const cutoffs = { day: now-86400, week: now-604800, month: now-2592000, all: 0 }
+                  const periodKeys = ['day', 'week', 'month', 'all']
                   const labels = { day:t('filter_day'), week:t('filter_week'), month:t('filter_month'), all:t('filter_always') }
-                  const filtered = hotPosts.filter(p => (p.timestamp||0) >= cutoffs[sideTopPeriod])
-                  const topList = filtered.slice(0,10)
                   return (
                     <>
                       <div className="forum-top-head">
                         <span>{t('top_likes_header')}</span>
                         <div className="forum-top-periods">
-                          {Object.keys(cutoffs).map(k => (
+                          {periodKeys.map(k => (
                             <button type="button" key={k} onClick={()=>setSidebarTopPeriod(k)}
                               aria-pressed={sideTopPeriod===k}
                               style={{background:sideTopPeriod===k?'var(--red)':'var(--bg3)',border:'1px solid '+(sideTopPeriod===k?'var(--red)':'var(--border2)'),borderRadius:4,color:sideTopPeriod===k?'#fff':'var(--dim2)',fontSize:10,padding:'3px 7px',cursor:'pointer',fontFamily:'inherit',fontWeight:600}}>
@@ -5479,9 +5709,9 @@ export default function App() {
                           ))}
                         </div>
                       </div>
-                      {topList.length === 0
+                      {sidebarTopList.length === 0
                         ? <div className="forum-top-empty">{t('top_period_empty')}</div>
-                        : <SidebarTopList posts={topList} setLightbox={setLightbox}/>}
+                        : <SidebarTopList posts={sidebarTopList} setLightbox={setLightbox} lang={lang} t={t}/>}
                     </>
                   )
                 })()}
@@ -5531,51 +5761,7 @@ export default function App() {
                 <span className="footer-credit-prefix">{t('footer_made')}</span>
                 <a className="footer-credit-author" href="https://t.me/loremnopoker" target="_blank" rel="noopener noreferrer">LoremCDMX</a>
               </div>
-              {(() => {
-                const scrapeTs = meta?.lastScrapeRun
-                  ? Date.parse(meta.lastScrapeRun)
-                  : meta?.lastUpdated ? Date.parse(meta.lastUpdated) : 0
-                const newestPostTs = posts?.length
-                  ? Math.max(...posts.map(p => (p.timestamp || 0) * 1000))
-                  : 0
-                if (!scrapeTs && !newestPostTs) return null
-                const localeMap = { ru: 'ru-RU', en: 'en-US', es: 'es-ES' }
-                const loc = localeMap[lang] || 'en-US'
-                // Site policy: every timestamp is Europe/Warsaw, footer included
-                const fmt = (ts) => {
-                  const w = warsawParts(Math.floor(ts / 1000))
-                  if (!w) return ''
-                  const now = warsawParts(Math.floor(Date.now() / 1000))
-                  const sameDay = now && w.day === now.day && w.month === now.month && w.year === now.year
-                  const time = `${w.hour}:${w.minute}`
-                  const pad2 = n => String(n).padStart(2, '0')
-                  return sameDay
-                    ? `${t('footer_today_at')} ${time}`
-                    : `${pad2(w.day)}.${pad2(w.month)} ${t('footer_at')} ${time}`
-                }
-                const mins = Math.round((Date.now() - scrapeTs) / 60000)
-                // GitHub cron is best-effort: measured over 25 days ~170 runs/day,
-                // data commits a median ~13 min apart (p99 ~48 min, max ~121 min) —
-                // thresholds sized so the dot isn't yellow a third of the time.
-                const fresh = mins < 35
-                const stale = mins > 120
-                const freshClass = fresh ? 'ok' : stale ? 'stale' : 'warn'
-                return (
-                  <>
-                    <div className={`footer-fresh ${freshClass}`} style={{fontSize:10,marginTop:3,fontFamily:"'Roboto Mono',monospace"}}
-                      title={fmtDateTimeLang(Math.floor(scrapeTs / 1000), lang)}>
-                      <span className="footer-fresh-dot"/>
-                      {t('footer_scraper_ran')}: {fmt(scrapeTs)}
-                    </div>
-                    {newestPostTs > 0 && (
-                      <div style={{fontSize:10,color:'var(--dim)',marginTop:2,fontFamily:"'Roboto Mono',monospace",paddingLeft:11}}
-                        title={fmtDateTimeLang(Math.floor(newestPostTs / 1000), lang)}>
-                        {t('footer_freshest_post')}: {fmt(newestPostTs)}
-                      </div>
-                    )}
-                  </>
-                )
-              })()}
+              <FooterFreshness meta={meta} newestPostTs={newestPostTs} lang={lang} t={t}/>
             </div>
 
             {/* Правая часть — чейнджлог */}

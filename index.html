@@ -8,6 +8,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="preload" href="/data/meta.json" as="fetch" crossorigin />
     <!-- Fonts must never gate first paint: a plain stylesheet link is render-blocking and
          also holds back the module script, so a stalled fonts.googleapis.com kept the
          whole SPA blank. media="print" makes the request non-blocking; it is switched to

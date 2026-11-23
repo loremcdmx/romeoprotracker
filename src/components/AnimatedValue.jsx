@@ -47,7 +47,7 @@ export function useTweenValue(target, duration = 650) {
 function useAnimatedCounter(target, duration = 1100) {
   const [val, setVal] = useState(0)
   useEffect(() => {
-    if (!target) return
+    if (!target) { setVal(0); return }
     if (prefersReducedMotion()) { setVal(target); return }
     const start = Date.now()
     let raf
@@ -67,13 +67,19 @@ function useAnimatedCounter(target, duration = 1100) {
 // with an ease-out over the whole duration.
 function useAnimatedPath(path, duration) {
   const [val, setVal] = useState(() => path?.[0] ?? 0)
-  const pathKey = path ? `${path.length}:${path[path.length - 1]}` : ''
+  const pathKey = path ? `${path.length}:${path[0]}:${path[path.length - 1]}` : ''
   useEffect(() => {
     if (!path || path.length < 2) {
       if (path?.length) setVal(path[path.length - 1])
       return
     }
-    if (prefersReducedMotion()) { setVal(path[path.length - 1]); return }
+    // Skip no-op animation loops when every waypoint is identical (e.g. [brVal, brVal]
+    // on repeat visits or right after lastSeenBR catches up).
+    const first = path[0]
+    if (path.every((v) => v === first) || prefersReducedMotion()) {
+      setVal(path[path.length - 1])
+      return
+    }
     const start = Date.now()
     const segCount = path.length - 1
     let raf

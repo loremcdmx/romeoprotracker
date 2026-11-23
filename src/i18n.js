@@ -443,7 +443,11 @@ export const LANG_DICT = {
 }
 
 export function translate(lang, key) {
-  return (LANG_DICT[lang] && LANG_DICT[lang][key]) || LANG_DICT[DEFAULT_LANG][key] || key
+  const dict = Object.prototype.hasOwnProperty.call(LANG_DICT, lang) ? LANG_DICT[lang] : null
+  if (dict && Object.prototype.hasOwnProperty.call(dict, key) && dict[key]) return dict[key]
+  const fallback = LANG_DICT[DEFAULT_LANG]
+  if (Object.prototype.hasOwnProperty.call(fallback, key) && fallback[key]) return fallback[key]
+  return key
 }
 
 export function createTranslator(lang) {
