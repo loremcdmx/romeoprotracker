@@ -15,9 +15,22 @@ export function plural(n, forms) {
 // Shorthand: returns "N слово" with the correctly declined word
 export const pl = (n, forms) => `${n} ${plural(n, forms)}`
 
+export function safeHttpUrl(value) {
+  if (typeof value !== 'string') return null
+  const trimmed = value.trim()
+  if (!trimmed) return null
+  try {
+    const parsed = new URL(trimmed)
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:' ? trimmed : null
+  } catch {
+    return null
+  }
+}
+
 export function timeAgo(timestamp, lang = 'ru') {
-  if (!timestamp) return null
+  if (!timestamp || !Number.isFinite(timestamp)) return null
   const sec = Math.floor((Date.now() / 1000) - timestamp)
+  if (!Number.isFinite(sec)) return null
   const valueOf = (size) => Math.floor(sec / size)
 
   if (lang === 'en') {
@@ -56,13 +69,13 @@ const compactMoney = abs => {
 }
 
 export const fmtBR = n => {
-  if (!n && n !== 0) return '—'
+  if (typeof n !== 'number' || !Number.isFinite(n)) return '—'
   const s = n < 0 ? '-' : n > 0 ? '+' : ''
   return s + compactMoney(Math.abs(n)) + '$'
 }
 
 export const fmtNum = n => {
-  if (!n && n !== 0) return '—'
+  if (typeof n !== 'number' || !Number.isFinite(n)) return '—'
   return compactMoney(Math.abs(n)) + '$'
 }
 
@@ -86,14 +99,16 @@ export const fmtMoneyTick = v => fmtMoneyShort(v, 3, 6)
 // Целое число с тонким пробелом как разделитель тысяч
 export const fmtInt = n => {
   if (n == null || n === '') return '—'
-  return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, '\u202F')
+  const num = Number(n)
+  if (!Number.isFinite(num)) return '—'
+  return String(Math.round(num)).replace(/\B(?=(\d{3})+(?!\d))/g, '\u202F')
 }
 
 // Точный формат со знаком — для профита, чтобы он стоял рядом с БР
 // в одном масштабе (258 122$ / +248 122$), а не в сокращённом (+248.1k$).
 // Тысячи группируются на каждом разряде: +1 234 567$, а не +1234 567$.
 export const fmtExactSigned = n => {
-  if (!n && n !== 0) return '—'
+  if (typeof n !== 'number' || !Number.isFinite(n)) return '—'
   const rounded = Math.round(n)
   const sign = rounded < 0 ? '-' : rounded > 0 ? '+' : ''
   return sign + fmtInt(Math.abs(rounded)) + '$'
@@ -101,7 +116,7 @@ export const fmtExactSigned = n => {
 
 // Точный формат БР до доллара
 export const fmtExact = n => {
-  if (!n && n !== 0) return '—'
+  if (typeof n !== 'number' || !Number.isFinite(n)) return '—'
   const rounded = Math.round(n)
   return (rounded < 0 ? '-' : '') + fmtInt(Math.abs(rounded)) + '$'
 }
@@ -115,21 +130,60 @@ const _warsawFmt = new Intl.DateTimeFormat('en-GB', {
   year: 'numeric', month: '2-digit', day: '2-digit',
   hour: '2-digit', minute: '2-digit', hour12: false,
 })
+// Europe/Warsaw UTC offset (+3600s CET / +7200s CEST) is constant within any
+// UTC hour (DST changes occur on exact UTC hours). Caching offset per UTC hour
+// avoids calling Intl.DateTimeFormat.formatToParts 9,700+ times while staying
+// 100% faithful to IANA timezone data for every date and DST transition.
+const _warsawHourOffsetCache = new Map()
+const _MAX_OFFSET_CACHE = 20000
+function _warsawOffsetSec(tsSec) {
+  const hourBucket = Math.floor(tsSec / 3600)
+  let offset = _warsawHourOffsetCache.get(hourBucket)
+  if (offset !== undefined) return offset
+  const baseSec = hourBucket * 3600
+  const parts = _warsawFmt.formatToParts(new Date(baseSec * 1000))
+  let y = 0, m = 0, d = 0, hr = 0, min = 0
+  for (let i = 0; i < parts.length; i++) {
+    const p = parts[i]
+    if (p.type === 'year') y = parseInt(p.value, 10)
+    else if (p.type === 'month') m = parseInt(p.value, 10)
+    else if (p.type === 'day') d = parseInt(p.value, 10)
+    else if (p.type === 'hour') hr = parseInt(p.value, 10) % 24
+    else if (p.type === 'minute') min = parseInt(p.value, 10)
+  }
+  offset = Math.round(Date.UTC(y, m - 1, d, hr, min) / 1000) - baseSec
+  if (_warsawHourOffsetCache.size >= _MAX_OFFSET_CACHE) _warsawHourOffsetCache.clear()
+  _warsawHourOffsetCache.set(hourBucket, offset)
+  return offset
+}
+const _pad2 = n => (n < 10 ? '0' + n : String(n))
 export function warsawParts(timestamp) {
   if (!timestamp) return null
-  const parts = _warsawFmt.formatToParts(new Date(timestamp * 1000))
-  const pick = (type) => parts.find(p => p.type === type)?.value || ''
+  const num = Number(timestamp)
+  if (!Number.isFinite(num) || num === 0) return null
+  const ms = num * 1000
+  if (ms < -8.64e15 || ms > 8.64e15) return null
+  const localMs = (num + _warsawOffsetSec(num)) * 1000
+  if (!Number.isFinite(localMs) || localMs < -8.64e15 || localMs > 8.64e15) return null
+  const d = new Date(localMs)
   return {
-    year: pick('year'),
-    month: parseInt(pick('month'), 10),
-    day: parseInt(pick('day'), 10),
-    hour: pick('hour'),
-    minute: pick('minute'),
+    year: String(d.getUTCFullYear()),
+    month: d.getUTCMonth() + 1,
+    day: d.getUTCDate(),
+    hour: _pad2(d.getUTCHours()),
+    minute: _pad2(d.getUTCMinutes()),
   }
 }
 export function warsawDayKey(timestamp) {
-  const p = warsawParts(timestamp)
-  return p ? `${p.year}-${String(p.month).padStart(2,'0')}-${String(p.day).padStart(2,'0')}` : ''
+  if (!timestamp) return ''
+  const num = Number(timestamp)
+  if (!Number.isFinite(num) || num === 0) return ''
+  const ms = num * 1000
+  if (ms < -8.64e15 || ms > 8.64e15) return ''
+  const localMs = (num + _warsawOffsetSec(num)) * 1000
+  if (!Number.isFinite(localMs) || localMs < -8.64e15 || localMs > 8.64e15) return ''
+  const d = new Date(localMs)
+  return `${d.getUTCFullYear()}-${_pad2(d.getUTCMonth() + 1)}-${_pad2(d.getUTCDate())}`
 }
 
 const MONTHS_FULL_BY_LANG = {
@@ -164,12 +218,14 @@ export function spansMultipleYears(timestamps) {
   let min = Infinity
   let max = -Infinity
   for (const ts of timestamps) {
-    if (!(ts > 0)) continue
+    if (!Number.isFinite(ts) || !(ts > 0)) continue
     if (ts < min) min = ts
     if (ts > max) max = ts
   }
   if (min === Infinity) return false
-  return warsawParts(min).year !== warsawParts(max).year
+  const minParts = warsawParts(min)
+  const maxParts = warsawParts(max)
+  return Boolean(minParts && maxParts && minParts.year !== maxParts.year)
 }
 
 // Report header only ("Day 187:" / "День #5"), quotes ignored - one definition
@@ -194,6 +250,7 @@ export function extractBR(text) {
 
 // Компактный формат числа со знаком (для P&L внутри компонентов)
 export const fk = (n, withSign = true) => {
+  if (typeof n !== 'number' || !Number.isFinite(n)) return '—'
   const a = Math.abs(n)
   const s = withSign ? (n < 0 ? '-' : n > 0 ? '+' : '') : ''
   return s + compactMoney(a) + '$'
@@ -227,6 +284,7 @@ export const extractQuoteBody = t => {
 }
 
 export const fkAbs = v => {
+  if (typeof v !== 'number' || !Number.isFinite(v)) return '—'
   const a = Math.abs(v)
   return a >= 1000 ? (v < 0 ? '-' : '') + compactMoney(a) + '$' : `${Math.round(v)}$`
 }
@@ -247,11 +305,17 @@ export function dedupBrHistory(hist) {
       && prev.brBefore !== prev.brAfter
 
     if (sameByBrBefore) {
+      const mergedBefore = prev.brBefore ?? entry.brBefore
+      const mergedAfter = Number.isFinite(entry.brAfter) ? entry.brAfter : prev.brAfter
       out[out.length - 1] = {
         ...entry,
-        brBefore: prev.brBefore ?? entry.brBefore,
-        sessionResult: (entry.brAfter || 0) - (prev.brBefore ?? entry.brBefore ?? 0),
+        brBefore: mergedBefore,
+        brAfter: mergedAfter,
+        sessionResult: Number.isFinite(mergedAfter) && Number.isFinite(mergedBefore)
+          ? mergedAfter - mergedBefore
+          : (entry.sessionResult ?? prev.sessionResult ?? 0),
         tournaments: Math.max(prev.tournaments || 0, entry.tournaments || 0),
+        totalTournaments: entry.totalTournaments ?? prev.totalTournaments,
         _mergedFrom: [...(prev._mergedFrom || [prev.id]).filter(Boolean), entry.id].filter(Boolean),
       }
       continue

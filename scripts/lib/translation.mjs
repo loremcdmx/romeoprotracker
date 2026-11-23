@@ -19,6 +19,7 @@ export function needsTranslation(post) {
 export async function translateText(text, targetLang, {
   apiKey = process.env.ANTHROPIC_API_KEY,
   fetchImpl = fetch,
+  timeoutMs = 60_000,
 } = {}) {
   if (!apiKey) return null
 
@@ -34,52 +35,65 @@ Rules:
 Russian text:
 ${text}`
 
-  const response = await fetchImpl('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01',
-      'content-type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: TRANSLATE_MODEL,
-      max_tokens: 4096,
-      messages: [{ role: 'user', content: prompt }],
-    }),
-  })
+  const signal = typeof AbortSignal?.timeout === 'function' ? AbortSignal.timeout(timeoutMs) : undefined
+  let response
+  try {
+    response = await fetchImpl('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: TRANSLATE_MODEL,
+        max_tokens: 4096,
+        messages: [{ role: 'user', content: prompt }],
+      }),
+      ...(signal ? { signal } : {}),
+    })
+  } catch (err) {
+    console.log(`  ⚠ translate ${targetLang} network error: ${err?.message || err}`)
+    return null
+  }
 
   if (!response.ok) {
-    const errorText = await response.text()
+    const errorText = await response.text().catch(() => '')
     console.log(`  ⚠ translate ${targetLang} HTTP ${response.status}: ${errorText.substring(0, 200)}`)
     return null
   }
 
-  const data = await response.json()
-  const output = data.content?.[0]?.text?.trim()
+  let data
+  try {
+    data = await response.json()
+  } catch (err) {
+    console.log(`  ⚠ translate ${targetLang} invalid JSON: ${err?.message || err}`)
+    return null
+  }
+  const output = data?.content?.[0]?.text?.trim()
   return output || null
 }
 
 export async function translatePost(post, options) {
   if (!needsTranslation(post)) return false
 
+  const signature = textSignature(post.text)
+  const tr = post.translations
+  const sameText = tr?.srcLen === signature.srcLen && tr?.srcHead === signature.srcHead
+  const existingEn = sameText && tr.en ? tr.en : null
+  const existingEs = sameText && tr.es ? tr.es : null
+
   const [en, es] = await Promise.all([
-    translateText(post.text, 'en', options),
-    translateText(post.text, 'es', options),
+    existingEn ? Promise.resolve(null) : translateText(post.text, 'en', options),
+    existingEs ? Promise.resolve(null) : translateText(post.text, 'es', options),
   ])
 
   if (!en && !es) return false
 
-  const signature = textSignature(post.text)
-  // A language whose call failed may fall back to its stored translation only
-  // when that translation was made for exactly this text. After a forum edit
-  // the old one describes different words, and keeping it under the new
-  // signature would hide the gap from needsTranslation forever.
-  const tr = post.translations
-  const sameText = tr?.srcLen === signature.srcLen && tr?.srcHead === signature.srcHead
   post.translations = {
     ...signature,
-    en: en || (sameText ? tr.en : null) || null,
-    es: es || (sameText ? tr.es : null) || null,
+    en: en || existingEn || null,
+    es: es || existingEs || null,
   }
 
   return true

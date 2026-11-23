@@ -1,4 +1,84 @@
 import { CACHE_KEY, CACHE_TTL } from './cacheConfig.js'
+import { safeHttpUrl } from './utils.js'
+
+const IDB_NAME = 'rpt_cache_db'
+const IDB_STORE = 'cache'
+const IDB_READ_TIMEOUT_MS = 1500
+// Payloads at or above this post count are persisted in IndexedDB when available
+// (the live 9,700+ post archive is ~8.8 MiB UTF-16, already past Safari/Firefox's
+// 5 MiB localStorage quota and nearing Chrome's 10 MiB origin quota).
+const IDB_ONLY_POST_THRESHOLD = 1500
+
+function hasIndexedDb() {
+  return typeof indexedDB !== 'undefined' && typeof indexedDB?.open === 'function'
+}
+
+let idbPromise = null
+function openIdb() {
+  if (!hasIndexedDb()) return Promise.resolve(null)
+  if (idbPromise) return idbPromise
+  idbPromise = new Promise((resolve) => {
+    try {
+      const req = indexedDB.open(IDB_NAME, 1)
+      req.onupgradeneeded = () => {
+        const db = req.result
+        if (!db.objectStoreNames.contains(IDB_STORE)) db.createObjectStore(IDB_STORE)
+      }
+      req.onsuccess = () => resolve(req.result)
+      req.onerror = () => { idbPromise = null; resolve(null) }
+      req.onblocked = () => { idbPromise = null; resolve(null) }
+    } catch {
+      idbPromise = null
+      resolve(null)
+    }
+  })
+  return idbPromise
+}
+
+function readIdbCache() {
+  if (!hasIndexedDb()) return Promise.resolve(null)
+  let timer = null
+  const timeout = new Promise((resolve) => {
+    timer = setTimeout(() => resolve(null), IDB_READ_TIMEOUT_MS)
+    timer.unref?.()
+  })
+  const read = openIdb().then((db) => {
+    if (!db) return null
+    return new Promise((resolve) => {
+      try {
+        const tx = db.transaction(IDB_STORE, 'readonly')
+        const req = tx.objectStore(IDB_STORE).get(CACHE_KEY)
+        req.onsuccess = () => {
+          const val = req.result
+          resolve(val && typeof val === 'object' && !Array.isArray(val) ? val : null)
+        }
+        req.onerror = () => resolve(null)
+      } catch {
+        resolve(null)
+      }
+    })
+  })
+  return Promise.race([read, timeout]).finally(() => clearTimeout(timer))
+}
+
+function writeIdbCache(record, { clearLocalStorage = false } = {}) {
+  if (!hasIndexedDb()) return
+  openIdb().then((db) => {
+    if (!db) return
+    try {
+      const tx = db.transaction(IDB_STORE, 'readwrite')
+      tx.objectStore(IDB_STORE).put(record, CACHE_KEY)
+      if (clearLocalStorage) {
+        tx.oncomplete = () => {
+          try {
+            localStorage.removeItem(CACHE_KEY)
+            if (memoryCache?.record === record) memoryCache.raw = null
+          } catch { /* ignore */ }
+        }
+      }
+    } catch { /* ignore */ }
+  }).catch(() => {})
+}
 
 const DEFAULT_REPO = 'loremcdmx/romeoprotracker'
 const IS_TEST = import.meta.env.MODE === 'test'
@@ -62,6 +142,12 @@ function getCache() {
     // Private/storage-blocked browsers can still reuse this tab's snapshot.
     raw = memoryCache?.raw ?? null
   }
+  if (memoryCache?.fromIdb && raw == null) {
+    const cache = memoryCache.record
+    const age = Date.now() - memoryCache.validatedAt
+    cache.stale = !(age >= -CLOCK_SKEW_TOLERANCE_MS && age < CACHE_TTL)
+    return cache
+  }
   if (!memoryCache || memoryCache.raw !== raw) {
     if (!raw) {
       memoryCache = null
@@ -75,7 +161,7 @@ function getCache() {
         memoryCache = null
         return null
       }
-      memoryCache = { raw, record, validatedAt: record.ts, payload: null }
+      memoryCache = { raw, record, validatedAt: record.ts, payload: null, fromIdb: false }
     } catch {
       memoryCache = null
       return null
@@ -97,7 +183,16 @@ function setCache(payload) {
     meta: payload.meta ?? {},
     source: payload.source ?? null,
   }
+  const postCount = payload.compact?.posts?.length || payload.posts?.length || 0
+  const useIdbOnly = hasIndexedDb() && postCount >= IDB_ONLY_POST_THRESHOLD
   let raw = memoryCache?.raw ?? null
+  if (useIdbOnly) {
+    // Large payloads live in IndexedDB so we neither freeze the main thread on
+    // a multi-MB JSON.stringify nor blow Safari/Firefox/Chrome localStorage quota.
+    writeIdbCache(record, { clearLocalStorage: true })
+    memoryCache = { raw, record, validatedAt: record.ts, payload: null, fromIdb: true }
+    return record
+  }
   try {
     const serialized = JSON.stringify(record)
     localStorage.setItem(CACHE_KEY, serialized)
@@ -106,7 +201,8 @@ function setCache(payload) {
     // Multi-MB payloads can exceed storage quota. Preserve the memory cache,
     // tied to the previous persisted value, even when this write fails.
   }
-  memoryCache = { raw, record, validatedAt: record.ts, payload: null }
+  if (hasIndexedDb()) writeIdbCache(record)
+  memoryCache = { raw, record, validatedAt: record.ts, payload: null, fromIdb: false }
   return record
 }
 
@@ -211,32 +307,39 @@ function normalizeAvatarUrl(value) {
   if (src.startsWith('/upload/')) return `https://www.gipsyteam.ru${src}`
   if (src.startsWith('/img/')) return `https://forum.gipsyteam.com${src}`
   if (src.startsWith('/')) return `https://forum.gipsyteam.ru${src}`
-  return src
+  return null
 }
 
 function normalizePostAvatar(post) {
   if (!post || typeof post !== 'object') return post
-  if (!Object.prototype.hasOwnProperty.call(post, 'avatar')) return post
-  return { ...post, avatar: normalizeAvatarUrl(post.avatar) }
+  const hasAvatar = Object.prototype.hasOwnProperty.call(post, 'avatar')
+  const hasUrl = Object.prototype.hasOwnProperty.call(post, 'url')
+  if (!hasAvatar && !hasUrl) return post
+  const next = { ...post }
+  if (hasAvatar) next.avatar = normalizeAvatarUrl(post.avatar)
+  if (hasUrl) next.url = safeHttpUrl(post.url)
+  return next
 }
 
 export function expandPosts(compact) {
   const avatars = (compact?.avatars || []).map(normalizeAvatarUrl)
+  const authors = Array.isArray(compact?.authors) ? compact.authors : null
+  const regDataList = Array.isArray(compact?.regData) ? compact.regData : null
   const posts = compact?.posts || []
   const forumBase = 'https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p='
 
   return posts.map((post) => ({
     id: post.i,
-    author: post.a,
+    author: typeof post.a === 'number' && authors ? (authors[post.a] ?? '') : post.a,
     timestamp: post.t,
     likes: post.l || 0,
     text: post.x || '',
     date: post.d || '',
     url: forumBase + post.i,
     avatar: post.v != null ? avatars[post.v] : null,
-    rating: post.r || 0,
+    rating: post.r ?? 0,
     msgCount: post.m || null,
-    regData: post.g || null,
+    regData: typeof post.g === 'number' && regDataList ? (regDataList[post.g] ?? null) : (post.g || null),
     images: post.p || [],
     videos: post.vd || [],
     brAfter: post.ba ?? null,
@@ -269,16 +372,20 @@ function inflateCachedPayload(cache) {
 
 async function fetchJson(url, timeoutMs = JSON_FETCH_TIMEOUT_MS, externalSignal = null, bodyTimeoutMs = timeoutMs, onHeaders = null) {
   const controller = typeof AbortController === 'undefined' ? null : new AbortController()
+  const onExternalAbort = () => controller?.abort()
   if (externalSignal) {
     if (externalSignal.aborted) controller?.abort()
-    else externalSignal.addEventListener?.('abort', () => controller?.abort(), { once: true })
+    else externalSignal.addEventListener?.('abort', onExternalAbort, { once: true })
   }
   let timeoutId = null
   let fail = null
+  let done = false
   const timeout = new Promise((_, reject) => { fail = reject })
   const arm = (ms) => {
     clearTimeout(timeoutId)
+    if (done) return
     timeoutId = setTimeout(() => {
+      done = true
       controller?.abort()
       fail(new Error(`Timeout loading ${url}`))
     }, ms)
@@ -291,8 +398,13 @@ async function fetchJson(url, timeoutMs = JSON_FETCH_TIMEOUT_MS, externalSignal 
   arm(timeoutMs)
   const load = (async () => {
     const response = await fetch(url, { cache: 'no-cache', signal: controller?.signal })
+    if (done || controller?.signal?.aborted) {
+      throw new Error(`Aborted loading ${url}`)
+    }
     if (!response.ok) {
-      throw new Error(`${response.status} ${response.statusText} for ${url}`)
+      const err = new Error(`${response.status} ${response.statusText} for ${url}`)
+      err.status = response.status
+      throw err
     }
     arm(bodyTimeoutMs)
     onHeaders?.()
@@ -305,7 +417,9 @@ async function fetchJson(url, timeoutMs = JSON_FETCH_TIMEOUT_MS, externalSignal 
   try {
     return await Promise.race([load, timeout])
   } finally {
+    done = true
     clearTimeout(timeoutId)
+    externalSignal?.removeEventListener?.('abort', onExternalAbort)
   }
 }
 
@@ -318,9 +432,10 @@ async function fetchFromBase(base, externalSignal = null, onMeta = null, onHeade
   // Own controller: when this source fails, whatever of it is still running
   // (typically the multi-MB posts) is cancelled instead of downloading unused.
   const own = typeof AbortController === 'undefined' ? null : new AbortController()
+  const onExternalAbort = () => own?.abort()
   if (externalSignal) {
     if (externalSignal.aborted) own?.abort()
-    else externalSignal.addEventListener?.('abort', () => own?.abort(), { once: true })
+    else externalSignal.addEventListener?.('abort', onExternalAbort, { once: true })
   }
   const signal = own?.signal || null
 
@@ -332,12 +447,11 @@ async function fetchFromBase(base, externalSignal = null, onMeta = null, onHeade
       return value
     })
     const compactRequest = fetchJson(`${base}/posts.min.json`, JSON_FETCH_TIMEOUT_MS, signal, HEAVY_BODY_TIMEOUT_MS, onHeaders)
-    // The posts file falls back to posts.json. Waiting for both together means
-    // a failure of either ends the attempt at once (and cancels the other).
+    // Fall back to posts.json only when posts.min.json is genuinely absent (404),
+    // never on a timeout/network/5xx error (which would otherwise queue a 10+ MB
+    // retry or a guaranteed 404 on same-origin).
     const postsRequest = compactRequest.then((value) => ({ compact: value, posts: null }), (error) => {
-      // An aborted load (source not needed any more) must not start a second,
-      // heavier request through the fallback file.
-      if (signal?.aborted) throw error
+      if (signal?.aborted || error?.status !== 404) throw error
       return fetchJson(`${base}/posts.json`, JSON_FETCH_TIMEOUT_MS, signal, HEAVY_BODY_TIMEOUT_MS, onHeaders)
         .then((value) => ({ compact: null, posts: value }))
     })
@@ -347,6 +461,8 @@ async function fetchFromBase(base, externalSignal = null, onMeta = null, onHeade
   } catch (error) {
     own?.abort()
     throw error
+  } finally {
+    externalSignal?.removeEventListener?.('abort', onExternalAbort)
   }
 
   return { compact, posts, meta, source: base }
@@ -699,7 +815,16 @@ async function downloadFrom(bases) {
 }
 
 async function loadPublicData() {
-  const cached = getCache()
+  let cached = getCache()
+  if ((!cached || cached.stale) && hasIndexedDb() && !memoryCache?.fromIdb) {
+    const idbRecord = await readIdbCache()
+    if (idbRecord && (!cached || hasPayloadAdvanced(idbRecord, cached))) {
+      const age = Date.now() - idbRecord.ts
+      idbRecord.stale = !(age >= -CLOCK_SKEW_TOLERANCE_MS && age < CACHE_TTL)
+      memoryCache = { raw: memoryCache?.raw ?? null, record: idbRecord, validatedAt: idbRecord.ts, payload: null, fromIdb: true }
+      cached = idbRecord
+    }
+  }
   const cachedPayload = cached ? inflateCachedPayload(cached) : null
 
   if (cachedPayload && !cachedPayload.stale) return cachedPayload
@@ -774,6 +899,7 @@ async function loadPublicData() {
     return inflated
   }
 
+  if (background) deliverLateSources(background)
   if (cachedPayload) return cachedPayload
 
   throw lastError || new Error('Failed to load tracker data from every configured source')

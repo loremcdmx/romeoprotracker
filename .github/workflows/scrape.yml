@@ -3,7 +3,7 @@ name: Scrape Forum
 on:
   schedule:
     - cron: '*/5 * * * *'
-    - cron: '0 */12 * * *'
+    - cron: '3 */12 * * *'
   workflow_dispatch:
     inputs:
       mode:
@@ -47,7 +47,7 @@ jobs:
         shell: bash
         run: |
           mode="${{ inputs.mode || 'normal' }}"
-          if [[ "${{ github.event_name }}" == "schedule" && "${{ github.event.schedule }}" == "0 */12 * * *" ]]; then
+          if [[ "${{ github.event_name }}" == "schedule" && "${{ github.event.schedule }}" == "3 */12 * * *" ]]; then
             mode="full"
           fi
           echo "SCRAPE_MODE=$mode" >> "$GITHUB_ENV"

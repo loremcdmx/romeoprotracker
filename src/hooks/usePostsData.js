@@ -17,7 +17,7 @@ function enrichPosts(posts, meta) {
   const brByTs = [...brHistory].sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0))
 
   posts?.forEach((post) => {
-    if (!ROMEO_RE.test(post.author) || post.brAfter) return
+    if (!ROMEO_RE.test(post.author) || post.brAfter != null) return
 
     const byId = brById.get(post.id)
     if (byId) {
@@ -66,17 +66,24 @@ export function usePostsData() {
     // Storage preserves these references only for the same cached payload.
     // Timestamp/count signatures alone miss bankroll-history corrections
     // that the storage freshness rules already know how to detect.
-    if (silent && knownIdsRef.current
-      && nextPosts === latestPostsRef.current && nextMeta === latestMetaRef.current) {
+    const samePosts = nextPosts === latestPostsRef.current
+    if (silent && knownIdsRef.current && samePosts && nextMeta === latestMetaRef.current) {
       if (errorRef.current) { errorRef.current = null; setError(null) }
       return { posts: latestPostsRef.current, meta: latestMetaRef.current }
     }
-    enrichPosts(nextPosts, nextMeta)
+    if (!samePosts || nextMeta?.brHistory !== latestMetaRef.current?.brHistory) {
+      enrichPosts(nextPosts, nextMeta)
+    }
 
     if (knownIdsRef.current) {
-      const fresh = nextPosts.filter((post) => !knownIdsRef.current.has(post.id))
-      if (fresh.length > 0) {
-        setNewPostIds(fresh.map((post) => post.id))
+      if (!samePosts) {
+        const freshIds = nextPosts
+          .filter((post) => !knownIdsRef.current.has(post.id))
+          .map((post) => post.id)
+        setNewPostIds((prev) => {
+          if (prev.length === freshIds.length && prev.every((id, i) => id === freshIds[i])) return prev
+          return freshIds
+        })
       }
     } else {
       knownIdsRef.current = new Set(nextPosts.map((post) => post.id))
@@ -84,7 +91,7 @@ export function usePostsData() {
 
     latestPostsRef.current = nextPosts
     latestMetaRef.current = nextMeta
-    setPosts(nextPosts)
+    if (!samePosts) setPosts(nextPosts)
     setMeta(nextMeta)
     if (errorRef.current) { errorRef.current = null; setError(null) }
     return { posts: nextPosts, meta: nextMeta }
@@ -112,6 +119,7 @@ export function usePostsData() {
 
     try {
       const payload = await fetchPublicData({ onFresher })
+      if (!mountedRef.current) return { posts: latestPostsRef.current, meta: latestMetaRef.current }
       const applied = applyPayload(payload, { silent })
       if (lateRef.current) {
         const late = lateRef.current
@@ -121,13 +129,13 @@ export function usePostsData() {
       return applied
     } catch (err) {
       const nextError = err instanceof Error ? err : new Error('Failed to load tracker data')
-      if (!silent || latestPostsRef.current.length === 0) {
+      if (mountedRef.current && (!silent || latestPostsRef.current.length === 0)) {
         errorRef.current = nextError
         setError(nextError)
       }
       throw nextError
     } finally {
-      if (!silent) setLoading(false)
+      if (!silent && mountedRef.current) setLoading(false)
     }
   }, [applyPayload, onFresher])
 
