@@ -185094,7 +185094,7 @@
     "date": "24 ноября, 23:34",
     "timestamp": 1795559673,
     "text": "Шалость с долями удалась. Не фин. совет",
-    "likes": 20,
+    "likes": 22,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_11_2026/post-187091-179555966118a9_thumb.webp"
     ],
@@ -185114,7 +185114,7 @@
     "date": "25 ноября, 01:59",
     "timestamp": 1795568345,
     "text": "Day 215:",
-    "likes": 21,
+    "likes": 22,
     "images": [
       "https://static-forum.gipsyteam.ru/monthly_11_2026/post-6195-1795568341eef5_thumb.webp"
     ],
@@ -185139,5 +185139,23 @@
         "lux": 0
       }
     }
+  },
+  {
+    "id": "8334506",
+    "author": "semen77",
+    "avatar": "https://www.gipsyteam.ru/upload/Avatar/default/1/7/2/9/172964.gif",
+    "rating": 1893,
+    "msgCount": 1031,
+    "regData": "9 лет на сайте",
+    "date": "25 ноября, 05:03",
+    "timestamp": 1795579403,
+    "text": "Пора готовить шутку про лям и председателя.",
+    "likes": 0,
+    "images": [],
+    "videos": [],
+    "brBefore": null,
+    "brAfter": null,
+    "sessionResult": null,
+    "url": "https://forum.gipsyteam.ru/index.php?viewtopic=181676&view=findpost&p=8334506"
   }
 ]
